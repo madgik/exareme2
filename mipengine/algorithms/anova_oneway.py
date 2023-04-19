@@ -9,7 +9,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
@@ -22,7 +22,7 @@ from mipengine.udfgen import udf
 ALGORITHM_NAME = "anova_oneway"
 
 
-class AnovaOneWayInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class AnovaOneWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.x, self._variables.y]
 

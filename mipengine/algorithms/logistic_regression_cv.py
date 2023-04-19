@@ -15,7 +15,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
 from mipengine.algorithms.metrics import confusion_matrix
@@ -27,7 +27,7 @@ from mipengine.algorithms.preprocessing import LabelBinarizer
 ALGORITHM_NAME = "logistic_regression_cv"
 
 
-class LogisticRegressionCVInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class LogisticRegressionCVDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.x, self._variables.y]
 

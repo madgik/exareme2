@@ -15,7 +15,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
@@ -33,7 +33,7 @@ ALPHA = 0.05  # alpha level for coefficient confidence intervals
 ALGORITHM_NAME = "logistic_regression"
 
 
-class LogisticRegressionInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class LogisticRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.x, self._variables.y]
 

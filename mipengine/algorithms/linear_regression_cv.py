@@ -12,7 +12,7 @@ from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
@@ -21,7 +21,7 @@ from mipengine.algorithms.preprocessing import relation_to_vector
 ALGORITHM_NAME = "linear_regression_cv"
 
 
-class LinearRegressionCVInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class LinearRegressionCVDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.x, self._variables.y]
 

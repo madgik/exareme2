@@ -8,7 +8,7 @@ from types import ModuleType
 from typing import Dict
 
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 
 from .attrdict import AttrDict
 from .datatypes import DType
@@ -75,7 +75,7 @@ def get_algorithm_classes() -> Dict[str, type]:
 
 def get_algorithms_input_data() -> Dict[str, type]:
     import_algorithm_modules()
-    return {cls.algname: cls for cls in AlgorithmInputData.__subclasses__()}
+    return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
 
 
 algorithm_classes = get_algorithm_classes()

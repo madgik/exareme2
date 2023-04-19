@@ -10,7 +10,6 @@ from pydantic import BaseModel
 
 from mipengine import algorithm_classes
 from mipengine import algorithms_input_data
-from mipengine.algorithms.algorithm import AlgorithmInputData
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import algorithms_specifications

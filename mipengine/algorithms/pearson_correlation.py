@@ -11,7 +11,7 @@ from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -22,7 +22,7 @@ from mipengine.udfgen import udf
 ALGORITHM_NAME = "pearson_correlation"
 
 
-class PearsonCorrelationInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class PearsonCorrelationDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         if self._variables.x:
             variable_groups = [self._variables.x, self._variables.y]

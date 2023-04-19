@@ -8,7 +8,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import merge_transfer
@@ -21,7 +21,7 @@ from mipengine.udfgen import udf
 ALGORITHM_NAME = "standard_deviation"
 
 
-class StandardDeviationInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class StandardDeviationDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.y]
 

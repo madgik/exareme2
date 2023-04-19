@@ -19,7 +19,7 @@ class Variables(BaseModel):
         allow_mutation = False
 
 
-class AlgorithmInputData(ABC):
+class AlgorithmDataLoader(ABC):
     def __init__(self, variables: Variables):
         self._variables = variables
 
@@ -97,7 +97,7 @@ class Algorithm(ABC):
     def __init__(
         self,
         initialization_params: InitializationParams,
-        input_data: AlgorithmInputData,
+        input_data: AlgorithmDataLoader,
         engine,
     ):
         """

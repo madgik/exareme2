@@ -42,7 +42,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
@@ -55,7 +55,7 @@ DATASET_VAR_NAME = "dataset"
 ALGORITHM_NAME = "descriptive_stats"
 
 
-class DescriptiveStatisticsInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class DescriptiveStatisticsDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         xvars = self._variables.x
         yvars = self._variables.y

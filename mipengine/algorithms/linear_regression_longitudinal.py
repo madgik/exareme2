@@ -8,7 +8,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.linear_regression import LinearRegressionResult
 from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformer
@@ -18,7 +18,9 @@ from mipengine.algorithms.preprocessing import relation_to_vector
 ALGORITHM_NAME = "linear_regression_longitudinal"
 
 
-class LinearRegressionLongitudinalInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class LinearRegressionLongitudinalDataLoader(
+    AlgorithmDataLoader, algname=ALGORITHM_NAME
+):
     def get_variable_groups(self):
         xvars = self._variables.x
         yvars = self._variables.y

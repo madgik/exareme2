@@ -11,7 +11,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -22,7 +22,7 @@ from mipengine.udfgen import udf
 ALGORITHM_NAME = "ttest_onesample"
 
 
-class OnesampleTTestInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class OnesampleTTestDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.y]
 

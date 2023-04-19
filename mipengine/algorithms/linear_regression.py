@@ -10,7 +10,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
@@ -30,7 +30,7 @@ RealVector = tensor(dtype=float, ndims=1)
 ALGORITHM_NAME = "linear_regression"
 
 
-class LinearRegressionInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class LinearRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.x, self._variables.y]
 

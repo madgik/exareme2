@@ -13,7 +13,7 @@ from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmInputData
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import FormulaTransformer
 from mipengine.algorithms.preprocessing import relation_to_vector
@@ -22,7 +22,7 @@ from mipengine.exceptions import BadUserInput
 ALGORITHM_NAME = "anova"
 
 
-class AnovaTwoWayInputData(AlgorithmInputData, algname=ALGORITHM_NAME):
+class AnovaTwoWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
         return [self._variables.y, self._variables.x]
 
