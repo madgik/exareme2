@@ -76,7 +76,7 @@ class AnovaTwoWay(Algorithm, algname=ALGORITHM_NAME):
         )
 
     def run(self, data, metadata):
-        [[y], xs] = self._input_data.get_variable_groups()
+        [[y], xs] = self.variable_groups
         if len(xs) == 2:
             x1, x2 = xs
         else:

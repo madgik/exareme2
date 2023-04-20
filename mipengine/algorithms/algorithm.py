@@ -47,7 +47,7 @@ class AlgorithmDataLoader(ABC):
         """
         If an algorithm needs to keep the 'Not Available' values in its data model view
         tables, this method must be overridden to return False. The algorithm execution
-        infrastructure will access this value when the data model view tables on the
+        engine will access this value when the data model view tables on the
         nodes' dbs are created.
 
         Returns
@@ -60,7 +60,7 @@ class AlgorithmDataLoader(ABC):
         """
         If an algorithm needs to ignore the minimum row count threshold for its data
         model view tables, this method must be overridden to return False. The algorithm
-        execution infrastructure will access this value when the data model view tables
+        execution engine will access this value when the data model view tables
         on the nodes' dbs are created.
 
         Returns
@@ -97,7 +97,7 @@ class Algorithm(ABC):
     def __init__(
         self,
         initialization_params: InitializationParams,
-        input_data: AlgorithmDataLoader,
+        data_loader: AlgorithmDataLoader,
         engine,
     ):
         """
@@ -106,7 +106,7 @@ class Algorithm(ABC):
         initialization_params : InitializationParams
         """
         self._initialization_params = initialization_params
-        self._input_data = input_data
+        self._data_loader = data_loader
         self._engine = engine
 
     def __init_subclass__(cls, algname, **kwargs):
@@ -127,7 +127,16 @@ class Algorithm(ABC):
         Variables
             The variables
         """
-        return self._input_data.get_variables()
+        return self._data_loader.get_variables()
+
+    @property
+    def variable_groups(self) -> List[List[str]]:
+        """
+        Use this property when the variable_groups, as defined in
+        AlgorithmDataLoader.get_variable_groups(), need to be accessed from the
+        Algorithm class.
+        """
+        return self._data_loader.get_variable_groups()
 
     @property
     def algorithm_parameters(self) -> Dict[str, Any]:

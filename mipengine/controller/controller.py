@@ -234,7 +234,7 @@ class Controller:
         )
         algorithm = algorithm_classes[algorithm_name](
             initialization_params=init_params,
-            input_data=algorithm_data_loader,
+            data_loader=algorithm_data_loader,
             engine=engine,
         )
 
