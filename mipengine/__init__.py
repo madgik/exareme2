@@ -73,10 +73,10 @@ def get_algorithm_classes() -> Dict[str, type]:
     return {cls.algname: cls for cls in Algorithm.__subclasses__()}
 
 
-def get_algorithms_input_data() -> Dict[str, type]:
+def get_algorithms_data_loader() -> Dict[str, type]:
     import_algorithm_modules()
     return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
 
 
 algorithm_classes = get_algorithm_classes()
-algorithms_input_data = get_algorithms_input_data()
+algorithms_data_loader = get_algorithms_data_loader()

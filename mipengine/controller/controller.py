@@ -9,7 +9,7 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from mipengine import algorithm_classes
-from mipengine import algorithms_input_data
+from mipengine import algorithms_data_loader
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import algorithms_specifications
@@ -180,7 +180,7 @@ class Controller:
 
         command_id_generator = CommandIdGenerator()
 
-        algorithm_input_data = algorithms_input_data[algorithm_name](
+        algorithm_data_loader = algorithms_data_loader[algorithm_name](
             variables=Variables(
                 x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
                 y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
@@ -192,10 +192,10 @@ class Controller:
             local_nodes=nodes.local_nodes,
             datasets=datasets,
             data_model=data_model,
-            variable_groups=algorithm_input_data.get_variable_groups(),
+            variable_groups=algorithm_data_loader.get_variable_groups(),
             var_filters=algorithm_request_dto.inputdata.filters,
-            dropna=algorithm_input_data.get_dropna(),
-            check_min_rows=algorithm_input_data.get_check_min_rows(),
+            dropna=algorithm_data_loader.get_dropna(),
+            check_min_rows=algorithm_data_loader.get_check_min_rows(),
             command_id=command_id_generator.get_next_command_id(),
         )
         if not data_model_views:
@@ -234,7 +234,7 @@ class Controller:
         )
         algorithm = algorithm_classes[algorithm_name](
             initialization_params=init_params,
-            input_data=algorithm_input_data,
+            input_data=algorithm_data_loader,
             engine=engine,
         )
 
