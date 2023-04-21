@@ -85,15 +85,15 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         n_splits = self.algorithm_parameters["n_splits"]
 
-        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        kf = KFold(self._engine, n_splits=n_splits)
+        kf = KFold(self.engine, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, y)
 
-        models = [LinearRegression(self._engine) for _ in range(n_splits)]
+        models = [LinearRegression(self.engine) for _ in range(n_splits)]
 
         for model, X, y in zip(models, X_train, y_train):
             model.fit(X=X, y=y)
@@ -101,7 +101,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         for model, X, y in zip(models, X_test, y_test):
             y_pred = model.predict(X)
             model.compute_summary(
-                y_test=relation_to_vector(y, self._engine),
+                y_test=relation_to_vector(y, self.engine),
                 y_pred=y_pred,
                 p=p,
             )

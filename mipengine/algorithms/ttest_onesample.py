@@ -95,8 +95,8 @@ class OnesampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
     def run(self, data, metadata):
-        local_run = self._engine.run_udf_on_local_nodes
-        global_run = self._engine.run_udf_on_global_node
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
         mu = self.algorithm_parameters["mu"]

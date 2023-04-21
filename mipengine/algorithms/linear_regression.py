@@ -85,16 +85,16 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, data, metadata):
         X, y = data
 
-        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(self._engine)
+        lr = LinearRegression(self.engine)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, self._engine),
+            y_test=relation_to_vector(y, self.engine),
             y_pred=y_pred,
             p=p,
         )

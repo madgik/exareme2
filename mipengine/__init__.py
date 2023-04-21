@@ -73,13 +73,13 @@ def get_algorithm_classes() -> Dict[str, type]:
     return {cls.algname: cls for cls in Algorithm.__subclasses__()}
 
 
-def get_algorithms_data_loader() -> Dict[str, type]:
+def get_algorithm_data_loaders() -> Dict[str, type]:
     import_algorithm_modules()
     return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
 
 
 algorithm_classes = get_algorithm_classes()
-algorithm_data_loaders = get_algorithms_data_loader()
+algorithm_data_loaders = get_algorithm_data_loaders()
 
 
 class AlgorithmNamesMismatchError(Exception):

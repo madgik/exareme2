@@ -90,18 +90,18 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         n_splits = self.algorithm_parameters["n_splits"]
 
         # Dummy encode categorical variables
-        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
-        ybin = LabelBinarizer(self._engine, positive_class).transform(y)
+        ybin = LabelBinarizer(self.engine, positive_class).transform(y)
 
         # Split datasets according to k-fold CV
-        kf = KFold(self._engine, n_splits=n_splits)
+        kf = KFold(self.engine, n_splits=n_splits)
         X_train, X_test, y_train, y_test = kf.split(X, ybin)
 
         # Create models
-        models = [LogisticRegression(self._engine) for _ in range(n_splits)]
+        models = [LogisticRegression(self.engine) for _ in range(n_splits)]
 
         # Train models
         for model, X, y in zip(models, X_train, y_train):
@@ -112,7 +112,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(self._engine, ytrue, proba)
+            confusion_matrix(self.engine, ytrue, proba)
             for ytrue, proba in zip(y_test, probas)
         ]
         total_confmat = sum(confmats)
@@ -126,8 +126,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         # ROC curves
         roc_curves = [
-            roc_curve(self._engine, ytrue, proba)
-            for ytrue, proba in zip(y_test, probas)
+            roc_curve(self.engine, ytrue, proba) for ytrue, proba in zip(y_test, probas)
         ]
         aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
         roc_curves_result = [

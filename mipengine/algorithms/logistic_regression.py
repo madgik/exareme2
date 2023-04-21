@@ -83,12 +83,12 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         X, y = data
         positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(self._engine, positive_class).transform(y)
+        ybin = LabelBinarizer(self.engine, positive_class).transform(y)
 
-        lr = LogisticRegression(self._engine)
+        lr = LogisticRegression(self.engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)

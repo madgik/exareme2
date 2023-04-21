@@ -120,6 +120,10 @@ class Algorithm(ABC):
         cls.algname = algname
 
     @property
+    def engine(self):
+        return self._engine
+
+    @property
     def variables(self) -> Variables:
         """
         Returns

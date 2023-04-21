@@ -112,24 +112,24 @@ class LinearRegressionLongitudinal(Algorithm, algname=ALGORITHM_NAME):
             if name in self.variables.y
         }
 
-        xlt = LongitudinalTransformer(self._engine, metadata, x_strats, visit1, visit2)
+        xlt = LongitudinalTransformer(self.engine, metadata, x_strats, visit1, visit2)
         X = xlt.transform(X)
         metadata = xlt.transform_metadata(metadata)
 
-        ylt = LongitudinalTransformer(self._engine, metadata, y_strats, visit1, visit2)
+        ylt = LongitudinalTransformer(self.engine, metadata, y_strats, visit1, visit2)
         y = ylt.transform(y)
         metadata = ylt.transform_metadata(metadata)
 
-        dummy_encoder = DummyEncoder(engine=self._engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(self._engine)
+        lr = LinearRegression(self.engine)
         lr.fit(X=X, y=y)
         y_pred = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, self._engine),
+            y_test=relation_to_vector(y, self.engine),
             y_pred=y_pred,
             p=p,
         )
