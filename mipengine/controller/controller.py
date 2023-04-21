@@ -9,7 +9,7 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from mipengine import algorithm_classes
-from mipengine import algorithms_data_loader
+from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import algorithms_specifications
@@ -180,7 +180,7 @@ class Controller:
 
         command_id_generator = CommandIdGenerator()
 
-        algorithm_data_loader = algorithms_data_loader[algorithm_name](
+        algorithm_data_loader = algorithm_data_loaders[algorithm_name](
             variables=Variables(
                 x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
                 y=sanitize_request_variable(algorithm_request_dto.inputdata.y),

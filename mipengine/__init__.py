@@ -79,4 +79,31 @@ def get_algorithms_data_loader() -> Dict[str, type]:
 
 
 algorithm_classes = get_algorithm_classes()
-algorithms_data_loader = get_algorithms_data_loader()
+algorithm_data_loaders = get_algorithms_data_loader()
+
+
+class AlgorithmNamesMismatchError(Exception):
+    def __init__(self, mismatches, algorithm_classes, algorithm_data_loaders):
+        mismatches_algname_class = []
+        for m in mismatches:
+            alg_classes = algorithm_classes.get(m)
+            alg_dloaders = algorithm_data_loaders.get(m)
+            if alg_classes:
+                mismatches_algname_class.append(f"{m} -> {alg_classes}")
+            elif alg_dloaders:
+                mismatches_algname_class.append(f"{m} -> {alg_dloaders}")
+        message = (
+            "The following Algorithm and AlgorithmDataLoader classes have "
+            f"mismatching 'algname' values: {mismatches_algname_class}"
+        )
+        super().__init__(message)
+        self.message = message
+
+
+alg_classes_set = set(algorithm_classes.keys())
+alg_dloaders_set = set(algorithm_data_loaders.keys())
+sym_diff = alg_classes_set.symmetric_difference(alg_dloaders_set)
+if sym_diff:
+    raise AlgorithmNamesMismatchError(
+        sym_diff, algorithm_classes, algorithm_data_loaders
+    )
