@@ -30,6 +30,24 @@ if algorithm_folders := os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE):
     ALGORITHM_FOLDERS = algorithm_folders
 
 
+class AlgorithmNamesMismatchError(Exception):
+    def __init__(self, mismatches, algorithm_classes, algorithm_data_loaders):
+        mismatches_algname_class = []
+        for m in mismatches:
+            alg_classes = algorithm_classes.get(m)
+            alg_dloaders = algorithm_data_loaders.get(m)
+            if alg_classes:
+                mismatches_algname_class.append(f"{m} -> {alg_classes}")
+            elif alg_dloaders:
+                mismatches_algname_class.append(f"{m} -> {alg_dloaders}")
+        message = (
+            "The following Algorithm and AlgorithmDataLoader classes have "
+            f"mismatching 'algname' values: {mismatches_algname_class}"
+        )
+        super().__init__(message)
+        self.message = message
+
+
 def import_algorithm_modules() -> Dict[str, ModuleType]:
     # Import all algorithm modules
     # Import all .py modules in the algorithm folder paths
@@ -78,32 +96,18 @@ def get_algorithm_data_loaders() -> Dict[str, type]:
     return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
 
 
+def _check_algo_naming_matching(algo_classes: dict, algo_data_loaders: dict):
+    algo_classes_set = set(algo_classes.keys())
+    algo_data_loaders_set = set(algo_data_loaders.keys())
+    sym_diff = algo_classes_set.symmetric_difference(algo_data_loaders_set)
+    if sym_diff:
+        raise AlgorithmNamesMismatchError(
+            sym_diff, algo_classes, algo_data_loaders
+        )
+
+
 algorithm_classes = get_algorithm_classes()
 algorithm_data_loaders = get_algorithm_data_loaders()
-
-
-class AlgorithmNamesMismatchError(Exception):
-    def __init__(self, mismatches, algorithm_classes, algorithm_data_loaders):
-        mismatches_algname_class = []
-        for m in mismatches:
-            alg_classes = algorithm_classes.get(m)
-            alg_dloaders = algorithm_data_loaders.get(m)
-            if alg_classes:
-                mismatches_algname_class.append(f"{m} -> {alg_classes}")
-            elif alg_dloaders:
-                mismatches_algname_class.append(f"{m} -> {alg_dloaders}")
-        message = (
-            "The following Algorithm and AlgorithmDataLoader classes have "
-            f"mismatching 'algname' values: {mismatches_algname_class}"
-        )
-        super().__init__(message)
-        self.message = message
-
-
-alg_classes_set = set(algorithm_classes.keys())
-alg_dloaders_set = set(algorithm_data_loaders.keys())
-sym_diff = alg_classes_set.symmetric_difference(alg_dloaders_set)
-if sym_diff:
-    raise AlgorithmNamesMismatchError(
-        sym_diff, algorithm_classes, algorithm_data_loaders
-    )
+_check_algo_naming_matching(
+    algo_classes=algorithm_classes, algo_data_loaders=algorithm_data_loaders
+)
