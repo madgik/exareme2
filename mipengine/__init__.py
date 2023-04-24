@@ -101,9 +101,7 @@ def _check_algo_naming_matching(algo_classes: dict, algo_data_loaders: dict):
     algo_data_loaders_set = set(algo_data_loaders.keys())
     sym_diff = algo_classes_set.symmetric_difference(algo_data_loaders_set)
     if sym_diff:
-        raise AlgorithmNamesMismatchError(
-            sym_diff, algo_classes, algo_data_loaders
-        )
+        raise AlgorithmNamesMismatchError(sym_diff, algo_classes, algo_data_loaders)
 
 
 algorithm_classes = get_algorithm_classes()

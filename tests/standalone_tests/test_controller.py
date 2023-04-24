@@ -1,7 +1,7 @@
 import pytest
 
-from mipengine import _check_algo_naming_matching
 from mipengine import AlgorithmNamesMismatchError
+from mipengine import _check_algo_naming_matching
 
 
 @pytest.fixture
