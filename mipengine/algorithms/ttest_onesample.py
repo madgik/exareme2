@@ -11,12 +11,20 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+ALGORITHM_NAME = "ttest_onesample"
+
+
+class OnesampleTTestDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.y]
 
 
 class TtestResult(BaseModel):
@@ -32,7 +40,7 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
+class OnesampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -86,12 +94,9 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
             },
         )
 
-    def get_variable_groups(self):
-        return [self.variables.y]
-
-    def run(self, engine, data, metadata):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
         mu = self.algorithm_parameters["mu"]

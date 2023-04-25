@@ -8,6 +8,7 @@ from types import ModuleType
 from typing import Dict
 
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 
 from .attrdict import AttrDict
 from .datatypes import DType
@@ -27,6 +28,24 @@ ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 ALGORITHM_FOLDERS = "./mipengine/algorithms"
 if algorithm_folders := os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE):
     ALGORITHM_FOLDERS = algorithm_folders
+
+
+class AlgorithmNamesMismatchError(Exception):
+    def __init__(self, mismatches, algorithm_classes, algorithm_data_loaders):
+        mismatches_algname_class = []
+        for m in mismatches:
+            alg_classes = algorithm_classes.get(m)
+            alg_dloaders = algorithm_data_loaders.get(m)
+            if alg_classes:
+                mismatches_algname_class.append(f"{m} -> {alg_classes}")
+            elif alg_dloaders:
+                mismatches_algname_class.append(f"{m} -> {alg_dloaders}")
+        message = (
+            "The following Algorithm and AlgorithmDataLoader classes have "
+            f"mismatching 'algname' values: {mismatches_algname_class}"
+        )
+        super().__init__(message)
+        self.message = message
 
 
 def import_algorithm_modules() -> Dict[str, ModuleType]:
@@ -72,4 +91,21 @@ def get_algorithm_classes() -> Dict[str, type]:
     return {cls.algname: cls for cls in Algorithm.__subclasses__()}
 
 
+def get_algorithm_data_loaders() -> Dict[str, type]:
+    import_algorithm_modules()
+    return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
+
+
+def _check_algo_naming_matching(algo_classes: dict, algo_data_loaders: dict):
+    algo_classes_set = set(algo_classes.keys())
+    algo_data_loaders_set = set(algo_data_loaders.keys())
+    sym_diff = algo_classes_set.symmetric_difference(algo_data_loaders_set)
+    if sym_diff:
+        raise AlgorithmNamesMismatchError(sym_diff, algo_classes, algo_data_loaders)
+
+
 algorithm_classes = get_algorithm_classes()
+algorithm_data_loaders = get_algorithm_data_loaders()
+_check_algo_naming_matching(
+    algo_classes=algorithm_classes, algo_data_loaders=algorithm_data_loaders
+)

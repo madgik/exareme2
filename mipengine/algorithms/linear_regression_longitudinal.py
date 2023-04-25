@@ -8,14 +8,28 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.linear_regression import LinearRegressionResult
 from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformer
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
 
+ALGORITHM_NAME = "linear_regression_longitudinal"
 
-class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitudinal"):
+
+class LinearRegressionLongitudinalDataLoader(
+    AlgorithmDataLoader, algname=ALGORITHM_NAME
+):
+    def get_variable_groups(self):
+        xvars = self._variables.x
+        yvars = self._variables.y
+        xvars += ["subjectid", "visitid"]
+        yvars += ["subjectid", "visitid"]
+        return [xvars, yvars]
+
+
+class LinearRegressionLongitudinal(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -78,14 +92,7 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
             },
         )
 
-    def get_variable_groups(self):
-        xvars = self.variables.x
-        yvars = self.variables.y
-        xvars += ["subjectid", "visitid"]
-        yvars += ["subjectid", "visitid"]
-        return [xvars, yvars]
-
-    def run(self, engine, data, metadata):
+    def run(self, data, metadata):
         X, y = data
         metadata: dict = metadata
 
@@ -105,24 +112,24 @@ class LinearRegressionLongitudinal(Algorithm, algname="linear_regression_longitu
             if name in self.variables.y
         }
 
-        xlt = LongitudinalTransformer(engine, metadata, x_strats, visit1, visit2)
+        xlt = LongitudinalTransformer(self.engine, metadata, x_strats, visit1, visit2)
         X = xlt.transform(X)
         metadata = xlt.transform_metadata(metadata)
 
-        ylt = LongitudinalTransformer(engine, metadata, y_strats, visit1, visit2)
+        ylt = LongitudinalTransformer(self.engine, metadata, y_strats, visit1, visit2)
         y = ylt.transform(y)
         metadata = ylt.transform_metadata(metadata)
 
-        dummy_encoder = DummyEncoder(engine=engine, metadata=metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(engine)
+        lr = LinearRegression(self.engine)
         lr.fit(X=X, y=y)
         y_pred = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, engine),
+            y_test=relation_to_vector(y, self.engine),
             y_pred=y_pred,
             p=p,
         )
