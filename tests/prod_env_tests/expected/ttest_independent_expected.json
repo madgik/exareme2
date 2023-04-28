@@ -188,6 +188,51 @@
                 "ci_lower": -0.4575392419652652,
                 "cohens_d": -0.07063783439542239
             }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "leftmorgmedialorbitalgyrus"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd9",
+                        "desd-synthdata2",
+                        "ppmi4",
+                        "ppmi6",
+                        "ppmi1",
+                        "desd-synthdata6",
+                        "ppmi3",
+                        "edsd5",
+                        "desd-synthdata7",
+                        "ppmi2",
+                        "edsd0",
+                        "ppmi0",
+                        "edsd2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "alt_hypothesis": "less",
+                    "alpha": 0.3320808160368658,
+                    "groupA": "PD",
+                    "groupB": "Other"
+                },
+                "test_case_num": 4
+            },
+            "output": {
+                "statistic": -0.8792690918183549,
+                "p_value": 0.2004729740440892,
+                "df": 268,
+                "mean_diff": -0.14706538461538443,
+                "se_difference": 0.16725867653467585,
+                "ci_upper": 0.15770696505457915,
+                "ci_lower": "-Infinity",
+                "cohens_d": -0.3311746344089679}
         }
     ]
 }
