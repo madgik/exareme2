@@ -8,6 +8,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import relation
@@ -17,8 +18,15 @@ from mipengine.udfgen import tensor
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
+ALGORITHM_NAME = "smpc_standard_deviation"
 
-class StandardDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation"):
+
+class StandardDeviationSMPCDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.y]
+
+
+class StandardDeviationSMPCAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -38,14 +46,11 @@ class StandardDeviationSMPCAlgorithm(Algorithm, algname="smpc_standard_deviation
             ),
         )
 
-    def get_variable_groups(self):
-        return [self.variables.y]
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
 
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
-
-        [Y_relation] = engine.data_model_views
+        [Y_relation] = data
 
         Y = local_run(
             func=relation_to_matrix,

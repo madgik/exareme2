@@ -11,12 +11,24 @@ from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+ALGORITHM_NAME = "pearson_correlation"
+
+
+class PearsonCorrelationDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        if self._variables.x:
+            variable_groups = [self._variables.x, self._variables.y]
+        else:
+            variable_groups = [self._variables.y, self._variables.y]
+        return variable_groups
 
 
 class PearsonResult(BaseModel):
@@ -28,7 +40,7 @@ class PearsonResult(BaseModel):
     ci_lo: dict
 
 
-class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
+class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -68,19 +80,12 @@ class PearsonCorrelationAlgorithm(Algorithm, algname="pearson_correlation"):
             },
         )
 
-    def get_variable_groups(self):
-        if self.variables.x:
-            variable_groups = [self.variables.x, self.variables.y]
-        else:
-            variable_groups = [self.variables.y, self.variables.y]
-        return variable_groups
-
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
 
-        X_relation, Y_relation = engine.data_model_views
+        X_relation, Y_relation = data
 
         local_transfers = local_run(
             func=local1,

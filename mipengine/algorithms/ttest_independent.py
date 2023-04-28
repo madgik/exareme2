@@ -11,6 +11,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
@@ -19,6 +20,13 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import state
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
+
+ALGORITHM_NAME = "ttest_independent"
+
+
+class IndependentTTestDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.x, self._variables.y]
 
 
 class TtestResult(BaseModel):
@@ -32,7 +40,7 @@ class TtestResult(BaseModel):
     cohens_d: float
 
 
-class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
+class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -109,15 +117,16 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
     def get_variable_groups(self):
         return [self.variables.x, self.variables.y]
 
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
         alpha = self.algorithm_parameters["alpha"]
+
         alternative = self.algorithm_parameters["alt_hypothesis"]
         groupA = self.algorithm_parameters["groupA"]
         groupB = self.algorithm_parameters["groupB"]
 
-        X_relation, Y_relation = engine.data_model_views
+        X_relation, Y_relation = data
 
         self.split_state_local, split_result_local = local_run(
             func=split_data_into_groups_local,

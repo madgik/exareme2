@@ -2454,5 +2454,6 @@
             "label": "Proteome"
         }
     ],
-    "label": "Dementia longitudinal"
+    "label": "Dementia longitudinal",
+    "longitudinal": true
 }

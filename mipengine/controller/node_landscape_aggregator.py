@@ -29,6 +29,7 @@ from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import DataModelAttributes
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
+LONGITUDINAL = "longitudinal"
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -82,6 +83,12 @@ class DataModelRegistry(ImmutableBaseModel):
     class Config:
         allow_mutation = False
         arbitrary_types_allowed = True
+
+    def is_longitudinal(self, data_model: str) -> bool:
+        return (
+            LONGITUDINAL
+            in self.data_models_attributes.data_models_attributes[data_model].tags
+        )
 
     def get_cdes_specific_data_model(self, data_model) -> CommonDataElements:
         return self.data_models_cdes.data_models_cdes[data_model]

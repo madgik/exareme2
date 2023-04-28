@@ -10,6 +10,7 @@ from mipengine.algorithm_specification import InputDataSpecifications
 from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
@@ -24,6 +25,14 @@ from mipengine.udfgen import udf
 ALPHA = 0.05  # NOTE maybe this should be a model parameter
 
 RealVector = tensor(dtype=float, ndims=1)
+
+
+ALGORITHM_NAME = "linear_regression"
+
+
+class LinearRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.x, self._variables.y]
 
 
 class LinearRegressionResult(BaseModel):
@@ -45,7 +54,7 @@ class LinearRegressionResult(BaseModel):
     upper_ci: List[float]
 
 
-class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
+class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -73,22 +82,19 @@ class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
             ),
         )
 
-    def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
+    def run(self, data, metadata):
+        X, y = data
 
-    def run(self, engine):
-        X, y = engine.data_model_views
-
-        dummy_encoder = DummyEncoder(engine=engine, metadata=self.metadata)
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(engine)
+        lr = LinearRegression(self.engine)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, engine),
+            y_test=relation_to_vector(y, self.engine),
             y_pred=y_pred,
             p=p,
         )
