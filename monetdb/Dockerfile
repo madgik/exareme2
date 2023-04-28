@@ -86,6 +86,12 @@ VOLUME $MONETDB_STORAGE
 ENV MONIT_CONFIG_FOLDER=/home/monit
 RUN mkdir $MONIT_CONFIG_FOLDER
 
+# MAX monetdb memory in bytes
+ENV MAX_MEMORY=2147483648
+# Soft monetdb restart memory limit in megabytes
+ENV SOFT_RESTART_MEMORY_LIMIT=1200
+# Hard monetdb restart memory limit in megabytes
+ENV HARD_RESTART_MEMORY_LIMIT=1600
 
 WORKDIR /home
 CMD ["sh", "-c", "/home/bootstrap.sh; tail -fn +1 $MONETDB_STORAGE/merovingian.log -fn +1 $MONIT_CONFIG_FOLDER/monit.log"]
