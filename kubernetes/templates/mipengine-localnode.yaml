@@ -44,13 +44,14 @@ spec:
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
-        - name: MAX_MEMORY
-          value: {{ mul .Values.db.max_memory 1048576 | quote }} # We provide mb but memmaxsize of monetdb is in bytes
-        - name: SOFT_RESTART_MEMORY_LIMIT
+        - name: MONETDB_NCLIENTS
+          value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
+        - name: MAX_MEMORY   # Value in bytes
+          value: {{ mul .Values.db.max_memory 1048576 | quote }} # Conversion to bytes
+        - name: SOFT_RESTART_MEMORY_LIMIT   # Value in megabytes
           value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
-        - name: HARD_RESTART_MEMORY_LIMIT
+        - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
           value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
-
         ports:
           - containerPort: 50000
         volumeMounts:
