@@ -35,14 +35,13 @@
                 },
                 "parameters": {
                     "alt_hypothesis": "less",
-                    "confidence_lvl": 0.5727207100545569,
+                    "alpha": 0.5727207100545569,
                     "groupA": "edsd1",
                     "groupB": "ppmi2"
                 },
                 "test_case_num": 0
             },
             "output": {
-                "n_obs": 118,
                 "statistic": -0.25392488369586536,
                 "p_value": 0.4000754772047969,
                 "df": 116,
@@ -85,14 +84,13 @@
                 },
                 "parameters": {
                     "alt_hypothesis": "two-sided",
-                    "confidence_lvl": 0.6289411870096006,
+                    "alpha": 0.6289411870096006,
                     "groupA": "M",
                     "groupB": "F"
                 },
                 "test_case_num": 1
             },
             "output": {
-                "n_obs": 1271,
                 "statistic": 13.710126458021053,
                 "p_value": 5.785550457345252e-40,
                 "df": 1269,
@@ -129,14 +127,13 @@
                 },
                 "parameters": {
                     "alt_hypothesis": "greater",
-                    "confidence_lvl": 0.6313593659938367,
+                    "alpha": 0.6313593659938367,
                     "groupA": "AD",
                     "groupB": "CN"
                 },
                 "test_case_num": 2
             },
             "output": {
-                "n_obs": 323,
                 "statistic": -1.8822987515789422,
                 "p_value": 0.9695963884905578,
                 "df": 321,
@@ -175,14 +172,13 @@
                 },
                 "parameters": {
                     "alt_hypothesis": "two-sided",
-                    "confidence_lvl": 0.500807798669256,
+                    "alpha": 0.500807798669256,
                     "groupA": "-50y",
                     "groupB": "70-79y"
                 },
                 "test_case_num": 3
             },
             "output":  {
-                "n_obs": 317,
                 "statistic": -0.4586796035180297,
                 "p_value": 0.6473868738605983,
                 "df": 315,
@@ -222,14 +218,13 @@
                 },
                 "parameters": {
                     "alt_hypothesis": "less",
-                    "confidence_lvl": 0.3320808160368658,
+                    "alpha": 0.3320808160368658,
                     "groupA": "PD",
                     "groupB": "Other"
                 },
                 "test_case_num": 4
             },
             "output": {
-                "n_obs": 270,
                 "statistic": -0.8792690918183549,
                 "p_value": 0.2004729740440892,
                 "df": 268,

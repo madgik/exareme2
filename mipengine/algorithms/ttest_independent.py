@@ -22,7 +22,6 @@ from mipengine.udfgen import udf
 
 
 class TtestResult(BaseModel):
-    n_obs: int
     t_stat: float
     df: int
     p: float
@@ -43,16 +42,16 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique numerical variable.",
+                    label="Variable of interest",
+                    desc="A numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
                     multiple=False,
                 ),
                 x=InputDataSpecification(
-                    label="Covariate (independent)",
-                    desc="A categorical variable.",
+                    label="Grouping variable",
+                    desc="A nominal variable.",
                     types=[InputDataType.TEXT, InputDataType.INT],
                     stattypes=[InputDataStatType.NOMINAL],
                     notblank=True,
@@ -72,19 +71,19 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
                         source=["two-sided", "less", "greater"],
                     ),
                 ),
-                "confidence_lvl": ParameterSpecification(
-                    label="Confidence level",
-                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                "alpha": ParameterSpecification(
+                    label="Alpha",
+                    desc="The significance level. The probability of rejecting the null hypothesis when it is true.",
                     types=[ParameterType.REAL],
                     notblank=True,
                     multiple=False,
-                    default=0.95,
+                    default=0.05,
                     min=0.0,
                     max=1.0,
                 ),
                 "groupA": ParameterSpecification(
-                    label="Positive groupA",
-                    desc="Positive class of y. All other classes are considered negative.",
+                    label="Group A",
+                    desc="Group A: category of the nominal variable that will go into the t-test calculation.",
                     types=[ParameterType.TEXT, ParameterType.INT],
                     notblank=True,
                     multiple=False,
@@ -94,8 +93,8 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
                     ),
                 ),
                 "groupB": ParameterSpecification(
-                    label="groupB",
-                    desc="Positive class of y. All other classes are considered negative.",
+                    label="Group B",
+                    desc="Group B: category of the nominal variable that will go into the t-test calculation.",
                     types=[ParameterType.TEXT, ParameterType.INT],
                     notblank=True,
                     multiple=False,
@@ -113,7 +112,7 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
     def run(self, engine):
         local_run = engine.run_udf_on_local_nodes
         global_run = engine.run_udf_on_global_node
-        conf_lvl = self.algorithm_parameters["confidence_lvl"]
+        alpha = self.algorithm_parameters["alpha"]
         alternative = self.algorithm_parameters["alt_hypothesis"]
         groupA = self.algorithm_parameters["groupA"]
         groupB = self.algorithm_parameters["groupB"]
@@ -139,11 +138,11 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
 
         if n_x1 == 0:
             raise BadUserInput(
-                f"Not enough data in {groupA}. Please select a different enumeration or more datasets."
+                f"Not enough data in {groupA}. Please select a group with more data."
             )
         if n_x2 == 0:
             raise BadUserInput(
-                f"Not enough data in {groupB}. Please select a different enumeration or more datasets."
+                f"Not enough data in {groupB}. Please select a group with more data."
             )
 
         sec_local_transfer = local_run(
@@ -156,13 +155,12 @@ class IndependentTTestAlgorithm(Algorithm, algname="ttest_independent"):
             func=global_independent,
             keyword_args=dict(
                 sec_local_transfer=sec_local_transfer,
-                conf_lvl=conf_lvl,
+                alpha=alpha,
                 alternative=alternative,
             ),
         )
         result = get_transfer_data(result)
         res = TtestResult(
-            n_obs=result["n_obs"],
             t_stat=result["t_stat"],
             df=result["df"],
             p=result["p"],
@@ -256,11 +254,11 @@ def local_independent(split_state):
 
 @udf(
     sec_local_transfer=secure_transfer(sum_op=True),
-    conf_lvl=literal(),
+    alpha=literal(),
     alternative=literal(),
     return_type=[transfer()],
 )
-def global_independent(sec_local_transfer, conf_lvl, alternative):
+def global_independent(sec_local_transfer, alpha, alternative):
     from scipy.stats import t
 
     n_obs_x1 = sec_local_transfer["n_obs_x1"]
@@ -293,7 +291,7 @@ def global_independent(sec_local_transfer, conf_lvl, alternative):
 
     # Confidence intervals !WARNING: The ci values are not tested. The code should not be modified, unless there is
     # a test for the new method.
-    ci_lower, ci_upper = t.interval(alpha=1 - conf_lvl, df=df, loc=diff_mean, scale=sed)
+    ci_lower, ci_upper = t.interval(alpha=1 - alpha, df=df, loc=diff_mean, scale=sed)
 
     # p-value for alternative = 'greater'
     if alternative == "greater":
@@ -308,10 +306,11 @@ def global_independent(sec_local_transfer, conf_lvl, alternative):
         p = (1.0 - t.cdf(abs(t_stat), df)) * 2.0
 
     # Cohen’s d
-    cohens_d = (mean_x1 - mean_x2) / numpy.sqrt((sd_x1**2 + sd_x2**2) / 2)
+    cohens_d = (mean_x1 - mean_x2) / numpy.sqrt(
+        ((n_obs_x1 - 1) * sd_x1**2 + (n_obs_x2 - 1) * sd_x2**2) / (n_obs - 2)
+    )
 
     transfer_ = {
-        "n_obs": n_obs,
         "t_stat": t_stat,
         "df": df,
         "p": p,

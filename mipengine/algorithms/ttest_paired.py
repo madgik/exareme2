@@ -40,7 +40,7 @@ class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
             enabled=True,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
-                    label="Variable (dependent)",
+                    label="Variable of interest.",
                     desc="A unique numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
@@ -48,8 +48,8 @@ class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
                     multiple=False,
                 ),
                 x=InputDataSpecification(
-                    label="Covariate (independent)",
-                    desc="A unique continuous variable.",
+                    label="Variable related to variable of interest.",
+                    desc="A unique numerical variable.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
@@ -70,12 +70,12 @@ class PairedTTestAlgorithm(Algorithm, algname="ttest_paired"):
                     ),
                 ),
                 "alpha": ParameterSpecification(
-                    label="Confidence level",
-                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                    label="Alpha",
+                    desc="The significance level. The probability of rejecting the null hypothesis when it is true.",
                     types=[ParameterType.REAL],
                     notblank=True,
                     multiple=False,
-                    default=0.95,
+                    default=0.05,
                     min=0.0,
                     max=1.0,
                 ),

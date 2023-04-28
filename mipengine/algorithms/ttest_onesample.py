@@ -43,7 +43,7 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="Variable",
-                    desc="A unique numerical variable.",
+                    desc="Variable of interest.",
                     types=[InputDataType.REAL, InputDataType.INT],
                     stattypes=[InputDataStatType.NUMERICAL],
                     notblank=True,
@@ -64,12 +64,12 @@ class OnesampleTTestAlgorithm(Algorithm, algname="ttest_onesample"):
                     ),
                 ),
                 "alpha": ParameterSpecification(
-                    label="Confidence level",
-                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
+                    label="Alpha",
+                    desc="The significance level. The probability of rejecting the null hypothesis when it is true.",
                     types=[ParameterType.REAL],
                     notblank=True,
                     multiple=False,
-                    default=0.95,
+                    default=0.05,
                     min=0.0,
                     max=1.0,
                 ),
