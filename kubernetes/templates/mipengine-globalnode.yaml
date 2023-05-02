@@ -26,9 +26,10 @@ spec:
       containers:
       - name: monetdb
         image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
-        resources:
-          limits:
-            memory: "{{ .Values.db.max_memory }}Mi"
+        # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
+        # resources:
+        #  limits:
+        #    memory: "{{ .Values.db.max_memory }}Mi"
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
