@@ -1,0 +1,28 @@
+{
+    "inputdata": {
+        "datasets": [
+            "longitudinal_dementia"
+        ],
+        "data_model": "longitudinal_dementia:0.1",
+        "y": [
+            "lefthippocampus"
+        ],
+        "filters": null,
+        "x": [
+            "righthippocampus",
+            "agegroup",
+            "gender"
+        ]
+    },
+    "parameters": {
+        "algorithm": "linear_regression",
+        "visit1": "FL1",
+        "visit2": "FL2",
+        "strategies": {
+            "lefthippocampus": "diff",
+            "righthippocampus": "diff",
+            "agegroup": "second",
+            "gender": "first"
+        }
+    }
+}

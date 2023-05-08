@@ -1,0 +1,24 @@
+{
+    "inputdata": {
+        "x": [
+            "agegroup"
+        ],
+        "y": [
+            "lefthippocampus"
+        ],
+        "filters": null,
+        "datasets": [
+            "longitudinal_dementia"
+        ],
+        "data_model": "longitudinal_dementia:0.1"
+    },
+    "parameters": {
+        "algorithm": "anova_oneway",
+        "visit1": "BL",
+        "visit2": "FL2",
+        "strategies": {
+            "lefthippocampus": "diff",
+            "agegroup": "first"
+        }
+    }
+}

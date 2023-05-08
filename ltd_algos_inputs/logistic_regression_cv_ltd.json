@@ -1,0 +1,30 @@
+{
+    "inputdata": {
+        "datasets": [
+            "longitudinal_dementia"
+        ],
+        "x": [
+            "righthippocampus",
+            "lefthippocampus",
+            "agegroup"
+        ],
+        "y": [
+            "gender"
+        ],
+        "data_model": "longitudinal_dementia:0.1",
+        "filters": null
+    },
+    "parameters": {
+        "algorithm": "logistic_regression_cv",
+        "visit1": "BL",
+        "visit2": "FL1",
+        "positive_class": "F",
+        "n_splits": 3,
+        "strategies": {
+            "lefthippocampus": "diff",
+            "righthippocampus": "second",
+            "agegroup": "first",
+            "gender": "first"
+        }
+    }
+}
