@@ -1,0 +1,34 @@
+{
+    "name": "anova_oneway",
+    "desc": "Test the difference in the means of the dependent variable between two or more groups, when there is a single independent covariate.",
+    "label": "One-way ANOVA",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "Variable (dependent)",
+            "desc": "A unique continuous variable.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Covariate (independent)",
+            "desc": "A unique nominal variable.",
+            "types": [
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

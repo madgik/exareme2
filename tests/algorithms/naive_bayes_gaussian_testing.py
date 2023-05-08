@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.naive_bayes_gaussian import GaussianNB
-from mipengine.algorithms.naive_bayes_gaussian import GaussianNBAlgorithm
+from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNB
+from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
 
 ALGNAME_FIT = "test_nb_gaussian_fit"
 
