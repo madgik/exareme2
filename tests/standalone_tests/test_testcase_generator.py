@@ -21,71 +21,59 @@ TESTCASEGEN_PATH = "tests.testcase_generators.testcase_generator"
 
 @pytest.fixture
 def specs_file_xy_numerical():
-    return io.StringIO(
-        """
-        {
-            "inputdata": {
-                "y": {
-                    "types": ["real"],
-                    "stattypes": ["numerical"],
-                    "notblank": true,
-                    "multiple": true
-                },
-                "x": {
-                    "types": ["real"],
-                    "stattypes": ["numerical"],
-                    "notblank": false,
-                    "multiple": true
-                }
+    return {
+        "inputdata": {
+            "y": {
+                "types": ["real"],
+                "stattypes": ["numerical"],
+                "notblank": True,
+                "multiple": True,
             },
-            "parameters": {}
-        }
-        """
-    )
+            "x": {
+                "types": ["real"],
+                "stattypes": ["numerical"],
+                "notblank": False,
+                "multiple": True,
+            },
+        },
+        "parameters": {},
+    }
 
 
 @pytest.fixture
 def specs_file_y_numerical():
-    return io.StringIO(
-        """
-        {
-            "inputdata": {
-                "y": {
-                    "types": ["real"],
-                    "stattypes": ["numerical"],
-                    "notblank": true,
-                    "multiple": true
-                }
-            },
-            "parameters": {}
-        }
-        """
-    )
+    return {
+        "inputdata": {
+            "y": {
+                "types": ["real"],
+                "stattypes": ["numerical"],
+                "notblank": True,
+                "multiple": True,
+            }
+        },
+        "parameters": {},
+    }
 
 
 @pytest.fixture
 def specs_file_xy_mixed():
-    return io.StringIO(
-        """
-        {
-            "inputdata": {
-                "y": {
-                    "types": ["text", "int"],
-                    "stattypes": ["nominal"],
-                    "notblank": true,
-                    "multiple": false
-                },
-                "x": {
-                    "types": ["real", "text", "int"],
-                    "stattypes": ["numerical", "nominal"],
-                    "notblank": true,
-                    "multiple": true
-                }
+    return {
+        "inputdata": {
+            "y": {
+                "types": ["text", "int"],
+                "stattypes": ["nominal"],
+                "notblank": True,
+                "multiple": False,
             },
-            "parameters": {}
-        }
-        """
-    )
+            "x": {
+                "types": ["real", "text", "int"],
+                "stattypes": ["numerical", "nominal"],
+                "notblank": True,
+                "multiple": True,
+            },
+        },
+        "parameters": {},
+    }
 
 
 def test_single_type_singe_var():

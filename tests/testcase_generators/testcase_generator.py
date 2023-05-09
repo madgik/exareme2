@@ -273,8 +273,8 @@ def make_parameters(properties, variable_groups):
 class InputGenerator:
     db = DB()
 
-    def __init__(self, specs_file):
-        self.specs = json.load(specs_file)
+    def __init__(self, specs):
+        self.specs = specs
         self.inputdata_gens = None  # init in draw to recreate variable pools
         self.parameter_gens = None  # init in draw due to interaction with inputdata
         self.datasets_gen = DatasetsGenerator()
@@ -324,7 +324,7 @@ class InputGenerator:
     def init_parameter_gens(self, variable_groups):
         self.parameter_gens = {
             name: make_parameters(properties, variable_groups)
-            for name, properties in self.specs["parameters"].items()
+            for name, properties in self.specs.get("parameters", {}).items()
         }
 
     def draw(self):
@@ -431,15 +431,15 @@ class TestCaseGenerator(ABC):
     full_data = False
     dropna = True
 
-    def __init__(self, specs_file):
-        self.input_gen = InputGenerator(specs_file)
+    def __init__(self, specs):
+        self.input_gen = InputGenerator(specs)
         self.all_data = DB().get_data_table()
 
     def generate_input(self):
         return self.input_gen.draw()
 
     @abstractmethod
-    def compute_expected_output(self, input_data, input_parameters=None):
+    def compute_expected_output(self, input_data, input_parameters, metadata):
         """Computes the expected output for specific algorithm
 
         This method has to be implemented by subclasses. The user should use
