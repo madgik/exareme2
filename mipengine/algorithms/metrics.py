@@ -8,7 +8,7 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import udf
 
 
-def confusion_matrix(engine, ytrue, proba):
+def confusion_matrix_binary(engine, ytrue, proba):
     """
     Compute confusion matrix for binary classification
 
@@ -27,7 +27,7 @@ def confusion_matrix(engine, ytrue, proba):
         Confusion matrix arranged as [[TN, FP], [FN, TP]]
     """
     loctransf = engine.run_udf_on_local_nodes(
-        func=_confusion_matrix_local,
+        func=_confusion_matrix_binary_local,
         keyword_args={"ytrue": ytrue, "proba": proba},
         share_to_global=[True],
     )
@@ -44,9 +44,9 @@ def confusion_matrix(engine, ytrue, proba):
     proba=relation(),
     return_type=secure_transfer(sum_op=True),
 )
-def _confusion_matrix_local(ytrue, proba):
+def _confusion_matrix_binary_local(ytrue, proba):
     ytrue, proba = ytrue.align(proba, axis=0, copy=False)
-    ytrue, proba = ytrue["ybin"].to_numpy(), proba["proba"].to_numpy()
+    ytrue, proba = ytrue.iloc[:, 0].to_numpy(), proba.iloc[:, 0].to_numpy()
 
     tp = ((proba > 0.5) & (ytrue == 1)).sum()
     tn = ((proba <= 0.5) & (ytrue == 0)).sum()

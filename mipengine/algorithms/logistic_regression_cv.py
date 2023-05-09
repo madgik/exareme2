@@ -18,7 +18,7 @@ from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
-from mipengine.algorithms.metrics import confusion_matrix
+from mipengine.algorithms.metrics import confusion_matrix_binary
 from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
@@ -112,7 +112,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(self.engine, ytrue, proba)
+            confusion_matrix_binary(self.engine, ytrue, proba)
             for ytrue, proba in zip(y_test, probas)
         ]
         total_confmat = sum(confmats)

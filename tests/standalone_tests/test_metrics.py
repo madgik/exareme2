@@ -3,20 +3,31 @@ import pandas as pd
 import pytest
 import sklearn
 
-from mipengine.algorithms.metrics import _confusion_matrix_local
+from mipengine.algorithms.metrics import _confusion_matrix_binary_local
 from mipengine.algorithms.metrics import _get_tpr_fpr_from_counts
 from mipengine.algorithms.metrics import _roc_curve_local
 
 
-def test_confusion_matrix_local():
-    ytrue = pd.DataFrame({"ybin": [0, 0, 1, 1]})
-    proba = pd.DataFrame({"proba": [0.3, 0.7, 0.3, 0.7]})
+def test__confusion_matrix_local_binary():
+    ytrue = pd.DataFrame(data=[0, 0, 1, 1])
+    proba = pd.DataFrame(data=[0.3, 0.7, 0.3, 0.7])
 
-    result = _confusion_matrix_local(ytrue, proba)
-    expected = {
-        "confmat": {"data": [[1, 1], [1, 1]], "operation": "sum", "type": "int"}
-    }
-    assert result == expected
+    result = _confusion_matrix_binary_local(ytrue, proba)
+    expected = [[1, 1], [1, 1]]
+    assert result["confmat"]["data"] == expected
+    assert result["confmat"]["type"] == "int"
+    assert result["confmat"]["operation"] == "sum"
+
+
+def test__confusion_matrix_binary_local__all_diff():
+    ytrue = pd.DataFrame(data=[0, 0, 0, 1, 1, 1, 1, 1, 1, 1])
+    proba = pd.DataFrame(data=[0.3, 0.7, 0.7, 0.3, 0.3, 0.3, 0.7, 0.7, 0.7, 0.7, 0.7])
+
+    result = _confusion_matrix_binary_local(ytrue, proba)
+    expected = [[1, 2], [3, 4]]
+    assert result["confmat"]["data"] == expected
+    assert result["confmat"]["type"] == "int"
+    assert result["confmat"]["operation"] == "sum"
 
 
 @pytest.mark.slow
