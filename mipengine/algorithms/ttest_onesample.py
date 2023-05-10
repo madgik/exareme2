@@ -35,8 +35,8 @@ class TtestResult(BaseModel):
     p: float
     mean_diff: float
     se_diff: float
-    ci_upper: float
-    ci_lower: float
+    ci_upper: str
+    ci_lower: str
     cohens_d: float
 
 
