@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+import pandas as pd
 from pydantic import BaseModel
 from pydantic import validator
 
@@ -129,6 +130,10 @@ class TableData(ImmutableBaseModel):
             ColumnDataBinary,
         ]
     ]
+
+    def to_pandas(self) -> pd.DataFrame:
+        data = {column.name: column.data for column in self.columns}
+        return pd.DataFrame(data)
 
 
 class CommonDataElement(ImmutableBaseModel):

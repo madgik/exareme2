@@ -48,6 +48,7 @@ statsmodels = "^0.13.2" # Must be updated together with monetdb Dockerfile
 psutil = "~5.9"
 pytest-subtests = "~0.9"
 freezegun = "^1.2.2"
+hypothesis = "^6.75.1"
 
 
 [tool.poetry.group.dev.dependencies]
