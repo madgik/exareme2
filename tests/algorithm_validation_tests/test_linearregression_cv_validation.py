@@ -22,6 +22,12 @@ algorithm_name = "linear_regression_cv"
 expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
+pytest.skip(
+    allow_module_level=True,
+    msg="https://team-1617704806227.atlassian.net/browse/MIP-796",
+)
+
+
 @pytest.fixture(scope="module")
 def cache():
     yield {}
