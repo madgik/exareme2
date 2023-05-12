@@ -36,11 +36,6 @@ import numpy
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -116,33 +111,6 @@ class Result(BaseModel):
 
 
 class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Descriptive statistics",
-            label="Descriptive statistics",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="x",
-                    desc="x",
-                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=False,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="y",
-                    desc="y",
-                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-            ),
-        )
-
     def run(self, data, metadata):
         local_run = self.engine.run_udf_on_local_nodes
         global_run = self.engine.run_udf_on_global_node

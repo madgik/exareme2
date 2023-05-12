@@ -4,11 +4,6 @@ import pandas as pd
 from pydantic import BaseModel
 
 from mipengine import DType
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -84,33 +79,6 @@ class GaussianNBDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
 
 
 class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Uses Bayes' theorem to calculate the probability of each class given a set of numerical features assuming independence between features. It then classifies data points ba sed on the class with the highest probability.",
-            label="Gaussian Naive Bayes classifier",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique nominal variable.",
-                    types=[InputDataType.TEXT, InputDataType.INT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="One or more numerical variables.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-            ),
-        )
-
     def run(self, data, metadata):
         engine = self.engine
         X, y = data

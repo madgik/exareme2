@@ -1,0 +1,38 @@
+{
+    "name": "descriptive_stats",
+    "desc": "Descriptive statistics",
+    "label": "Descriptive statistics",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "y",
+            "desc": "y",
+            "types": [
+                "int",
+                "real",
+                "text"
+            ],
+            "stattypes": [
+                "numerical",
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": true
+        },
+        "x": {
+            "label": "x",
+            "desc": "x",
+            "types": [
+                "int",
+                "real",
+                "text"
+            ],
+            "stattypes": [
+                "numerical",
+                "nominal"
+            ],
+            "notblank": false,
+            "multiple": true
+        }
+    }
+}
