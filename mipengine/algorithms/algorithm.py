@@ -175,7 +175,7 @@ class Algorithm(ABC):
         return AlgorithmSpecification.parse_file(file)
 
     @abstractmethod
-    def run(self, data: "LocalNodesTable", metadata: Dict[str, Dict[str, str]]):
+    def run(self, data: "LocalNodesTable", metadata: dict):
         """
         The implementation of the algorithm flow logic goes in this method.
         """
