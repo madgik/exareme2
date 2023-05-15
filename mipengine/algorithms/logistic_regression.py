@@ -5,15 +5,6 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -39,46 +30,6 @@ class LogisticRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
 
 
 class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
-            label="Logistic Regression",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes. ",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "positive_class": ParameterSpecification(
-                    label="Positive class",
-                    desc="Positive class of y. All other classes are considered negative.",
-                    types=[ParameterType.TEXT, ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source=["y"],
-                    ),
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         X, y = data
         positive_class = self.algorithm_parameters["positive_class"]

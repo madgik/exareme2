@@ -1,0 +1,66 @@
+{
+    "name": "ttest_paired",
+    "desc": "Test the difference in means between two related groups. It is commonly used when the same subjects are measured twice, such as before and after a treatment.",
+    "label": "T-Test paired",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "Variable of interest.",
+            "desc": "A unique numerical variable.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Variable related to variable of interest.",
+            "desc": "A unique numerical variable.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters": {
+        "alt_hypothesis": {
+            "label": "Alternative Hypothesis",
+            "desc": "The alternative hypothesis to the null, returning specifically whether measure 1 is different to measure 2, measure 1 greater than measure 2, and measure 1 less than measure 2 respectively.",
+            "types": [
+                "text"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": "two-sided",
+            "enums": {
+                "type": "list",
+                "source": [
+                    "two-sided",
+                    "less",
+                    "greater"
+                ]
+            }
+        },
+        "alpha": {
+            "label": "Alpha",
+            "desc": "The significance level. The probability of rejecting the null hypothesis when it is true.",
+            "types": [
+                "real"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 0.05,
+            "min": 0.0,
+            "max": 1.0
+        }
+    }
+}

@@ -1,0 +1,35 @@
+{
+    "test_cases": [
+        {
+            "input": {
+                "inputdata": {
+                    "x": [
+                        "lefthippocampus",
+                        "righthippocampus"
+                    ],
+                    "filters": null,
+                    "datasets": [
+                        "edsd0",
+                        "edsd1",
+                        "edsd2",
+                        "edsd3",
+                        "edsd4",
+                        "edsd5",
+                        "edsd6",
+                        "edsd7",
+                        "edsd8",
+                        "edsd9"
+                    ],
+                    "y": [
+                        "edsdcategory"
+                    ],
+                    "data_model": "dementia:0.1"
+                },
+                "parameters": {
+                    "n_splits": 3
+                },
+                "test_case_num": 0
+            }
+        }
+    ]
+}

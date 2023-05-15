@@ -1,4 +1,8 @@
+import warnings
+
 import numpy
+import numpy as np
+import pandas as pd
 
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.helpers import sum_secure_transfers
@@ -8,7 +12,7 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import udf
 
 
-def confusion_matrix(engine, ytrue, proba):
+def confusion_matrix_binary(engine, ytrue, proba):
     """
     Compute confusion matrix for binary classification
 
@@ -27,7 +31,7 @@ def confusion_matrix(engine, ytrue, proba):
         Confusion matrix arranged as [[TN, FP], [FN, TP]]
     """
     loctransf = engine.run_udf_on_local_nodes(
-        func=_confusion_matrix_local,
+        func=_confusion_matrix_binary_local,
         keyword_args={"ytrue": ytrue, "proba": proba},
         share_to_global=[True],
     )
@@ -44,9 +48,9 @@ def confusion_matrix(engine, ytrue, proba):
     proba=relation(),
     return_type=secure_transfer(sum_op=True),
 )
-def _confusion_matrix_local(ytrue, proba):
+def _confusion_matrix_binary_local(ytrue, proba):
     ytrue, proba = ytrue.align(proba, axis=0, copy=False)
-    ytrue, proba = ytrue["ybin"].to_numpy(), proba["proba"].to_numpy()
+    ytrue, proba = ytrue.iloc[:, 0].to_numpy(), proba.iloc[:, 0].to_numpy()
 
     tp = ((proba > 0.5) & (ytrue == 1)).sum()
     tn = ((proba <= 0.5) & (ytrue == 0)).sum()
@@ -180,3 +184,170 @@ def fscore(tp, fp, fn):
         return 2 * (prec * rec) / (prec + rec)
     except ZeroDivisionError:
         return 0
+
+
+def confusion_matrix_multiclass(engine, ytrue, proba, labels):
+    """
+    Compute confusion matrix for multiclass classification
+
+    Parameters
+    ----------
+    engine : AlgorithmExecutionEngine
+        Algorithm execution engine passed in algorithm's `run` function.
+    ytrue : relation
+        Ground truth (correct) target values.
+    proba : relation
+        Estimated target probabilities returned by the classifier.
+    labels : list
+        List of labels to index the matrix. The list should have length n_labels.
+
+    Returns
+    -------
+    numpy.array of shape (n_labels, n_labels):
+        Confusion matrix whose i-th row and j-th column entry indicates the
+        number of samples with true label being i-th class and predicted label
+        being j-th class.
+    """
+    loctransf = engine.run_udf_on_local_nodes(
+        func=_confusion_matrix_multiclass_local,
+        keyword_args={"ytrue": ytrue, "proba": proba, "labels": labels},
+        share_to_global=[True],
+    )
+    result = engine.run_udf_on_global_node(
+        func=sum_secure_transfers,
+        keyword_args={"loctransf": loctransf},
+    )
+    confmat = get_transfer_data(result)["confmat"]
+    return numpy.array(confmat)
+
+
+@udf(
+    ytrue=relation(),
+    proba=relation(),
+    labels=literal(),
+    return_type=secure_transfer(sum_op=True),
+)
+def _confusion_matrix_multiclass_local(ytrue, proba, labels):
+    import numpy as np
+
+    ytrue, proba = ytrue.align(proba, axis=0, copy=False)
+    ytrue, proba = ytrue.values, proba.values
+    labels = np.array(labels)
+
+    ypred = labels[proba.argmax(axis=1)][:, np.newaxis]
+
+    # I need to count the matches and missmatches between predictions and true
+    # values independently for each label. In order to do that I create one-hot
+    # encondings for the predictions and for the true values. That gives me
+    # matrices of shape (n_obs, n_labels). Then, I need to take the cross
+    # product between predictions and true values, with respect to the second
+    # dimension, in order to have all combinations of predicted label and true
+    # label. The trick to take the cross product is to insert a new axis at the
+    # right dimension. Finaly, I sum over the first dimension to aggregate all
+    # counts.
+    pred_onehot = (ypred == labels)[:, np.newaxis, :]  # shape=(n_obs, 1, n_labels)
+    true_onehot = (ytrue == labels)[:, :, np.newaxis]  # shape=(n_obs, n_labels, 1)
+    confmat = (pred_onehot & true_onehot).sum(axis=0)  # cross prod then sum over n_obs
+
+    result = {"confmat": {"data": confmat.tolist(), "type": "int", "operation": "sum"}}
+    return result
+
+
+def multiclass_classification_metrics(confmat):
+    """
+    Computes classification metrics from confusion matrix
+
+    The classification metrics are accuracy, precision, recall and fscore.
+    These are all computed starting from a multiclass confusion matrix.
+
+    Parameters
+    ----------
+    confmat : numpy.array of shape (n_labels, n_labels)
+        A multiclass confusion matrix
+
+    Returns
+    -------
+    dict
+        A dictionary containing all the classification metrics
+    """
+    n_labels, _ = confmat.shape
+
+    # In order to compute the classification metrics we first compute the true
+    # positives and negatives, and the false positives and negatives. These are
+    # computed by summing the relevand subparts of the confusion matrix,
+    # explained below case by case.
+    # Then, the classification metrics are computed from the TP, TN, FP, FN.
+
+    # True positives are found in the diagonal of the matrix
+    tp = np.diag(confmat)
+
+    # True negatives are the sums of the submatrices, complementary to the
+    # diagonal elements
+    ix_args = [[[i for i in range(n_labels) if i != j]] * 2 for j in range(n_labels)]
+    tn = np.array([confmat[np.ix_(*args)].sum() for args in ix_args])
+
+    # For false negatives we sum every row omitting the diagonal elements
+    fn_idcs = [
+        ([i] * (n_labels - 1), [j for j in range(n_labels) if j != i])
+        for i in range(n_labels)
+    ]
+    fn = np.array([confmat[idx] for idx in fn_idcs]).sum(axis=1)
+
+    # For false positives we sum every column omitting the diagonal elements, hence
+    # we need to swap fn indices
+    fp_idcs = [(lambda a, b: (b, a))(*idx) for idx in fn_idcs]
+    fp = np.array([confmat[idx] for idx in fp_idcs]).sum(axis=1)
+
+    # Divisions by zero raise warnings but we replace NaNs later anyway
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        accuracy = (tp + tn) / (tp + tn + fp + fn)
+        precision = tp / (tp + fp)
+        recall = tp / (tp + fn)
+        fscore = 2 * (precision * recall) / (precision + recall)
+
+    # Replace NaNs with 0s
+    accuracy = np.nan_to_num(accuracy)
+    precision = np.nan_to_num(precision)
+    recall = np.nan_to_num(recall)
+    fscore = np.nan_to_num(fscore)
+
+    return {
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "fscore": fscore,
+    }
+
+
+def multiclass_classification_summary(metrics, labels, n_obs):
+    """Formats the classification metrics into a summary table, represented by
+    a nested dict."""
+    # Zip values with labels and index by fold
+    data = {
+        f"fold{i}": {k: dict(zip(labels, v)) for k, v in m.items()}
+        for i, m in enumerate(metrics)
+    }
+
+    # Reformat nested dict in a format understood by pandas as a multi-index.
+    reform = {
+        fold_key: {
+            (metrics_key, level): val
+            for metrics_key, metrics_vals in fold_val.items()
+            for level, val in metrics_vals.items()
+        }
+        for fold_key, fold_val in data.items()
+    }
+    # Then transpose to convert multi-index dataframe into hierarchical one
+    # (multi-index on the columns).
+    df = pd.DataFrame(reform).T
+
+    # Append rows for average and stdev of every column
+    df.loc["average"] = df.mean()
+    df.loc["stdev"] = df.std()
+
+    # Hierarchical dataframe to nested dict
+    summary = {level: df.xs(level, axis=1).to_dict() for level in df.columns.levels[0]}
+
+    summary["n_obs"] = {f"fold{i}": int(n) for i, n in enumerate(n_obs)}
+    return summary

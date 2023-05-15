@@ -4,13 +4,6 @@ from typing import NamedTuple
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
@@ -41,45 +34,6 @@ class CVLinearRegressionResult(BaseModel):
 
 
 class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Method used to evaluate the performance of a linear regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
-            label="Linear Regression Cross-validation",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique numerical variable.",
-                    types=[InputDataType.REAL],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "n_splits": ParameterSpecification(
-                    label="Number of splits",
-                    desc="Number of splits for cross-validation.",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=5,
-                    min=2,
-                    max=20,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         X, y = data
 

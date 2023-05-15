@@ -1,12 +1,3 @@
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
@@ -30,68 +21,6 @@ class LinearRegressionLongitudinalDataLoader(
 
 
 class LinearRegressionLongitudinal(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Linear Regression for longitudinal data. The user selects a pair of visits and a strategy for each variable and covariate. A non-longitudinal dataset is then created from these parameters and an ordinary Linear Regression is run.",
-            label="Linear Regression for longitudinal data",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique numerical variable.",
-                    types=[InputDataType.REAL],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "visit1": ParameterSpecification(
-                    label="1st visit",
-                    desc="Can be chosen among BL (baseline), FL1 (follow-up1), FL2, FL3 or FL4.",
-                    types=[ParameterType.TEXT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
-                    ),
-                ),
-                "visit2": ParameterSpecification(
-                    label="2nd visit",
-                    desc="Can be chosen among BL (baseline), FL1 (follow-up1), FL2, FL3 or FL4.",
-                    types=[ParameterType.TEXT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
-                    ),
-                ),
-                "strategies": ParameterSpecification(
-                    label="Strategies",
-                    desc=" The strategies can be: 'diff': Compute the difference between the second and first visits, 'first': Keep value on first visit, 'second': Keep value on second visit.",
-                    types=[ParameterType.DICT],
-                    notblank=True,
-                    multiple=False,
-                    dict_keys_enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_NAMES, source=["x", "y"]
-                    ),
-                    dict_values_enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.LIST, source=["diff", "first", "second"]
-                    ),
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         X, y = data
         metadata: dict = metadata

@@ -6,6 +6,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+import pandas as pd
+
 from mipengine import DATA_TABLE_PRIMARY_KEY
 from mipengine.controller.nodes import GlobalNode
 from mipengine.controller.nodes import LocalNode
@@ -101,27 +103,51 @@ class LocalNodesTable(LocalNodesData):
     def nodes_tables_info(self) -> Dict[LocalNode, TableInfo]:
         return self._nodes_tables_info
 
-    # TODO Should be removed or disabled in PROD https://team-1617704806227.atlassian.net/browse/MIP-690
-    def get_table_data(self) -> List[Union[int, float, str]]:
-        """
-        Should be used ONLY for debugging.
-        """
-        warnings.warn(
-            "'get_table_data' of 'LocalNodesTable' should not be used in production."
-        )
+    def get_table_data(self) -> List[Union[List[int], List[float], List[str]]]:
+        """Gets merged data from corresponding table in all nodes
 
-        tables_data = []
-        for node, table_info in self.nodes_tables_info.items():
-            tables_data.append(node.get_table_data(table_info.name).columns)
+        A LocalNodesTable represents a collection of tables spread across
+        multiple nodes. This method gets data from all tables and merges it in
+        a common tables.
 
-        merged_table_data = []
-        for table in tables_data:
-            for index, column in enumerate(table):
-                if len(merged_table_data) <= index:
-                    merged_table_data.append(column.data)
-                else:
-                    merged_table_data[index].extend(column.data)
-        return merged_table_data
+        The `row_id` column is treated differently. In each node `row_id` is an
+        incrementing integer which is unique within each node, but not across
+        nodes. Therefor, concatenating `row_id` columns would result in non
+        unique values, hence the column would not be a primary key anymore. To
+        remedy this, the current method prepends the node_id to each row_id
+        using the format "node_id:row_id". This guarantees uniqueness of
+        values, making `row_id` a primary key of the merged table.
+        """
+
+        msg = "LocalNodesTable.get_table_data should not be used in production."
+        warnings.warn(msg)
+
+        dataframe_per_node = {
+            node.node_id: node.get_table_data(table_info.name).to_pandas()
+            for node, table_info in self.nodes_tables_info.items()
+        }
+
+        # Sort according to node_id to have a common order for all tables
+        sorted_node_ids = sorted(dataframe_per_node.keys())
+        dataframe_per_node = {
+            node_id: dataframe_per_node[node_id] for node_id in sorted_node_ids
+        }
+
+        # Make multi-index dataframe using both node_id and row_id
+        for node_id, df in dataframe_per_node.items():
+            df["node_id"] = node_id
+            df.set_index(["node_id", "row_id"], inplace=True)
+
+        # Merge dataframes from all nodes
+        dataframes = list(dataframe_per_node.values())
+        merged_df = pd.concat(dataframes)
+
+        # Convert to List[Union[List[int], List[float], List[str]]] where the
+        # row_id column is now composed of strings of the form node_id:row_id
+        index = merged_df.index.tolist()
+        index = [f"{node_id}:{row_id}" for node_id, row_id in index]
+        data = merged_df.T.values.tolist()
+        return [index] + data
 
     def __repr__(self):
         tables_schema = next(

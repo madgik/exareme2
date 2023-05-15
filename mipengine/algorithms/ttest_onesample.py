@@ -1,15 +1,6 @@
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -35,65 +26,12 @@ class TtestResult(BaseModel):
     p: float
     mean_diff: float
     se_diff: float
-    ci_upper: float
-    ci_lower: float
+    ci_upper: str
+    ci_lower: str
     cohens_d: float
 
 
 class OnesampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Test the difference in mean of a single sample with a population mean. It assumes that the sample is drawn from a normal distribution.",
-            label="T-Test One-Sample",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="Variable",
-                    desc="Variable of interest.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "alt_hypothesis": ParameterSpecification(
-                    label="Alternative Hypothesis",
-                    desc="The alternative hypothesis to the null, returning specifically whether the result is less than, greater than, or .",
-                    types=[ParameterType.TEXT],
-                    notblank=True,
-                    multiple=False,
-                    default="two-sided",
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.LIST,
-                        source=["two-sided", "less", "greater"],
-                    ),
-                ),
-                "alpha": ParameterSpecification(
-                    label="Alpha",
-                    desc="The significance level. The probability of rejecting the null hypothesis when it is true.",
-                    types=[ParameterType.REAL],
-                    notblank=True,
-                    multiple=False,
-                    default=0.05,
-                    min=0.0,
-                    max=1.0,
-                ),
-                "mu": ParameterSpecification(
-                    label="Population mean",
-                    desc="The population mean, if it is known, else it defaults to 0.",
-                    types=[ParameterType.REAL],
-                    notblank=True,
-                    multiple=False,
-                    default=0.0,
-                    min=-10,
-                    max=10,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         local_run = self.engine.run_udf_on_local_nodes
         global_run = self.engine.run_udf_on_global_node

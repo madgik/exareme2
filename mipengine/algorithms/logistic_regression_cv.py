@@ -5,20 +5,11 @@ from typing import Optional
 import sklearn.metrics as skm
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
-from mipengine.algorithms.metrics import confusion_matrix
+from mipengine.algorithms.metrics import confusion_matrix_binary
 from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import KFold
@@ -33,56 +24,6 @@ class LogisticRegressionCVDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME
 
 
 class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Method used to evaluate the performance of a logistic regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
-            label="Logistic Regression Cross-validation",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes. ",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "positive_class": ParameterSpecification(
-                    label="Positive class",
-                    desc="Positive class of y. All other classes are considered negative.",
-                    types=[ParameterType.TEXT, ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source=["y"],
-                    ),
-                ),
-                "n_splits": ParameterSpecification(
-                    label="Number of splits",
-                    desc="Number of splits for cross-validation.",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=5,
-                    min=2,
-                    max=20,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         X, y = data
 
@@ -112,7 +53,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(self.engine, ytrue, proba)
+            confusion_matrix_binary(self.engine, ytrue, proba)
             for ytrue, proba in zip(y_test, probas)
         ]
         total_confmat = sum(confmats)
