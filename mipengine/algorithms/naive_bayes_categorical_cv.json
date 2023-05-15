@@ -1,0 +1,34 @@
+{
+    "name": "naive_bayes_categorical_cv",
+    "desc": "Uses Bayes' theorem to calculate the probability of each class given a set of nominal features assuming independence between features. It then classifies data points based on the class with the highest probability.",
+    "label": "Categorical Naive Bayes classifier",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "Variable (dependent)",
+            "desc": "A unique nominal variable.",
+            "types": [
+                "text",
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Covariates (independent)",
+            "desc": "One or more nominal variables.",
+            "types": [
+                "text",
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": true
+        }
+    }
+}
