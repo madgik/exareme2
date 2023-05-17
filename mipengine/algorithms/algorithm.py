@@ -1,6 +1,7 @@
 from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
+from typing import TYPE_CHECKING
 from typing import Any
 from typing import Dict
 from typing import List
@@ -9,6 +10,10 @@ from typing import Optional
 from pydantic import BaseModel
 
 from mipengine.algorithm_specification import AlgorithmSpecification
+
+if TYPE_CHECKING:
+    from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+    from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 
 
 class Variables(BaseModel):
@@ -99,7 +104,7 @@ class Algorithm(ABC):
         self,
         initialization_params: InitializationParams,
         data_loader: AlgorithmDataLoader,
-        engine,
+        engine: "AlgorithmExecutionEngine",
     ):
         """
         Parameters
@@ -110,7 +115,7 @@ class Algorithm(ABC):
         self._data_loader = data_loader
         self._engine = engine
 
-    def __init_subclass__(cls, algname, **kwargs):
+    def __init_subclass__(cls, algname: str, **kwargs):
         """
         Parameters
         ----------
@@ -170,7 +175,7 @@ class Algorithm(ABC):
         return AlgorithmSpecification.parse_file(file)
 
     @abstractmethod
-    def run(self, data, metadata):
+    def run(self, data: "LocalNodesTable", metadata: dict):
         """
         The implementation of the algorithm flow logic goes in this method.
         """

@@ -68,9 +68,16 @@ class MulticlassClassificationSummary(BaseModel):
     n_obs: t.Dict[str, int]
 
 
-class GaussianNBResult(BaseModel):
+class NBResult(BaseModel):
     confusion_matrix: ConfusionMatrix
     classification_summary: MulticlassClassificationSummary
+
+
+def make_naive_bayes_result(confmat, labels, summary) -> NBResult:
+    confmat = ConfusionMatrix(data=confmat.tolist(), labels=labels)
+    summary = MulticlassClassificationSummary(**summary)
+    result = NBResult(confusion_matrix=confmat, classification_summary=summary)
+    return result
 
 
 class GaussianNBDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
@@ -93,7 +100,7 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
 
-        labels = list(models[0].categories.keys())
+        labels = list(models[0].classes)
         confmats = [
             confusion_matrix_multiclass(engine, ytrue, proba, labels)
             for ytrue, proba in zip(y_test, probas)
@@ -104,16 +111,7 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         n_obs = [model.class_count.sum() for model in models]
         summary = multiclass_classification_summary(metrics, labels, n_obs)
 
-        return self._make_result(total_confmat, labels, summary)
-
-    def _make_result(self, confmat, labels, summary) -> GaussianNBResult:
-        confmat = ConfusionMatrix(data=confmat.tolist(), labels=labels)
-        summary = MulticlassClassificationSummary(**summary)
-        result = GaussianNBResult(
-            confusion_matrix=confmat,
-            classification_summary=summary,
-        )
-        return result
+        return make_naive_bayes_result(total_confmat, labels, summary)
 
 
 class GaussianNB:
@@ -128,6 +126,7 @@ class GaussianNB:
         # sort to match sklearn's results
         categories = {key: categories[key] for key in sorted(categories)}
         self.categories = categories
+
         values, names = self.local_run(
             func=self._fit_local,
             keyword_args={"X": X, "y": y, "categories": categories},
@@ -236,12 +235,14 @@ class GaussianNB:
         class_count = counts.iloc[:, 0]
         classes = class_count.index
 
-        names["index"] = counts.index.tolist()  # replace with new index
-        names["means"] = means.values.tolist()
-        names["var"] = var.values.tolist()
-        names["class_count"] = class_count.tolist()
-        names["classes"] = classes.tolist()
-        return names
+        result = {}
+        result["columns"] = names["columns"]
+        result["index"] = counts.index.tolist()
+        result["means"] = means.values.tolist()
+        result["var"] = var.values.tolist()
+        result["class_count"] = class_count.tolist()
+        result["classes"] = classes.tolist()
+        return result
 
     def predict_proba(self, X):
         if not (hasattr(self, "theta") and hasattr(self, "var")):
