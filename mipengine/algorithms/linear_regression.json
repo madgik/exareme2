@@ -1,0 +1,35 @@
+{
+    "name": "linear_regression",
+    "desc": "Statistical method that models the relationship between a dependent variable and one or more independent variables by fitting a linear model to the observed data by ordinary least squares (OLS).",
+    "label": "Linear Regression",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "Variable (dependent)",
+            "desc": "A unique numerical variable.",
+            "types": [
+                "real"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Covariates (independent)",
+            "desc": "One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
+            "types": [
+                "real",
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "numerical",
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": true
+        }
+    }
+}

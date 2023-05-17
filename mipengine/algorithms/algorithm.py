@@ -1,5 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
@@ -156,10 +157,17 @@ class Algorithm(ABC):
     def datasets(self) -> List[str]:
         return self._initialization_params.datasets
 
-    @staticmethod
-    @abstractmethod
-    def get_specification() -> AlgorithmSpecification:
-        pass
+    @classmethod
+    def get_specification(cls) -> AlgorithmSpecification:
+        """Returns the algorithm specs object
+
+        Algorithm specs are read from a json file placed in the same folder as
+        the algorithm implementation file, i.e. the file where `Algorithm` is
+        subclassed. The json file contents must map to the
+        `AlgorithmSpecification` structure.
+        """
+        file = Path(__file__).parent / f"{cls.algname}.json"
+        return AlgorithmSpecification.parse_file(file)
 
     @abstractmethod
     def run(self, data, metadata):

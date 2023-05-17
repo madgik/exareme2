@@ -5,13 +5,6 @@ import numpy as np
 import scipy.stats as st
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
@@ -36,45 +29,6 @@ class AnovaResult(BaseModel):
 
 
 class AnovaTwoWay(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Test the difference in the means of the dependent variable between two or more groups, when there are two independent covariates.",
-            label="Two-way ANOVA",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariates (independent)",
-                    desc="Two nominal variables.",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique numerical variable.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "sstype": ParameterSpecification(
-                    label="sstype",
-                    desc="Type of sum of squares to use. It can be 1 or 2.",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default="2",
-                    min=1,
-                    max=2,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         [xs, [y]] = self.variable_groups
         if len(xs) == 2:

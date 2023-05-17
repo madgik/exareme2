@@ -3,11 +3,6 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -35,33 +30,6 @@ class AnovaResult(BaseModel):
 
 
 class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Test the difference in the means of the dependent variable between two or more groups, when there is a single independent covariate.",
-            label="One-way ANOVA",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="Covariate (independent)",
-                    desc="A unique nominal variable.",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-                y=InputDataSpecification(
-                    label="Variable (dependent)",
-                    desc="A unique continuous variable.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-        )
-
     def run(self, data, metadata):
         local_run = self.engine.run_udf_on_local_nodes
         global_run = self.engine.run_udf_on_global_node

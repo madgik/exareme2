@@ -3,13 +3,6 @@ from typing import TypeVar
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -41,45 +34,6 @@ class PearsonResult(BaseModel):
 
 
 class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Measure the linear relationship between two continuous variables. It calculates the correlation coefficient (range: -1 to 1). The correlation matrix will be computed between all possible pairs of variables and covariates. Leaving covariates empty is equivalent to having covariates = variables.",
-            label="Pearson Correlation Matrix",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="Variables",
-                    desc="Nuerical variables on x axis of correlation matrix.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                x=InputDataSpecification(
-                    label="Covariates (optional)",
-                    desc="Nuerical variables on y axis of correlation matrix.",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=False,
-                    multiple=True,
-                ),
-            ),
-            parameters={
-                "alpha": ParameterSpecification(
-                    label="Confidence level",
-                    desc="The confidence level α used in the calculation of the confidence intervals for the correlation coefficients.",
-                    types=[ParameterType.REAL],
-                    notblank=True,
-                    multiple=False,
-                    default=0.95,
-                    min=0.0,
-                    max=1.0,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         local_run = self.engine.run_udf_on_local_nodes
         global_run = self.engine.run_udf_on_global_node

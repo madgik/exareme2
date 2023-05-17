@@ -6,13 +6,6 @@ from typing import Union
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
@@ -47,45 +40,6 @@ class HistogramResult1(BaseModel):
 
 
 class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Multiple Histograms",
-            label="Multiple Histograms",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="y",
-                    desc="Variable to distribute among bins.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-                x=InputDataSpecification(
-                    label="x",
-                    desc="Nominal variable for grouping bins.",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=False,
-                    multiple=True,
-                ),
-            ),
-            parameters={
-                "bins": ParameterSpecification(
-                    label="Number of bins",
-                    desc="Number of bins",
-                    types=[ParameterType.INT],
-                    notblank=False,
-                    multiple=False,
-                    default=20,
-                    min=1,
-                    max=100,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         local_run = self.engine.run_udf_on_local_nodes
         global_run = self.engine.run_udf_on_global_node
