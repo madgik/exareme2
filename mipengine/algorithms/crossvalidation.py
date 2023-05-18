@@ -1,4 +1,5 @@
 import json
+import typing as t
 
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import DEFERRED
@@ -158,3 +159,58 @@ class KFold:
         split = local_state[key][i]
         result = split
         return result
+
+
+_PredictionType = t.Literal["values", "probabilities"]
+
+
+def cross_validate(X, y, models, splitter, pred_type: _PredictionType):
+    """
+    Performs cross-validation on estimator models
+
+    This function encapsulates the common logic found in all cross-validation
+    algorithms. The function takes data (in the form of X, y), the models and a
+    splitter. It then
+        - Splits the data according to splitter
+        - Calls `model.fit(X, y)` on every model with the train sets
+        - Calls `model.predict(X)` on every model with the test set
+
+    Parameters
+    ----------
+    X : LocalNodesTable
+        A table of features
+    y : LocalNodesTable
+        A table of targets
+    models : list of objects supporting `fit` and `predict` or `predict_proba`
+        The estimator models used in cross-validation. These are mutated by the
+        function since `fit` is called on each.
+    splitter : object supporting `split`
+        Instance of splitter object. Calling `split` should return x_train,
+        y_train, x_test, y_test.
+    pred_type : str, either "values" or "probabilities"
+        Type of prediction. "values" returns the predicted values,
+        "probabilities" returns the prediction probabilities. Typically
+        "values" is used in regression and "probs" in classification.
+
+    Returns
+    -------
+    List[LocalNodesTable]
+        A table of predictions for each split
+    List[LocalNodesTable]
+        The testing set, i.e. a table of true values for each split
+    """
+    X_train, X_test, y_train, y_test = splitter.split(X, y)
+
+    for model, X, y in zip(models, X_train, y_train):
+        model.fit(X=X, y=y)
+
+    if pred_type == "values":
+        methodname = "predict"
+    elif pred_type == "probabilities":
+        methodname = "predict_proba"
+    else:
+        raise ValueError("`prediction_type` should be 'values' or 'probabilities")
+
+    y_pred = [getattr(model, methodname)(X) for model, X in zip(models, X_test)]
+
+    return y_pred, y_test
