@@ -3,12 +3,12 @@ import pandas as pd
 from mipengine import DType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.crossvalidation import KFold
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.metrics import confusion_matrix_multiclass
 from mipengine.algorithms.metrics import multiclass_classification_metrics
 from mipengine.algorithms.metrics import multiclass_classification_summary
 from mipengine.algorithms.naive_bayes_gaussian_cv import make_naive_bayes_result
-from mipengine.algorithms.preprocessing import KFold
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation

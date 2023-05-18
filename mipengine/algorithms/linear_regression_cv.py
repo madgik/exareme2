@@ -6,9 +6,9 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.crossvalidation import KFold
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
-from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import relation_to_vector
 
 ALGORITHM_NAME = "linear_regression_cv"
