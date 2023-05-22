@@ -7,12 +7,13 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.crossvalidation import KFold
+from mipengine.algorithms.crossvalidation import cross_validate
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
 from mipengine.algorithms.metrics import confusion_matrix_binary
 from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
-from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
 
 ALGORITHM_NAME = "logistic_regression_cv"
@@ -37,24 +38,15 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
         ybin = LabelBinarizer(self.engine, positive_class).transform(y)
 
-        # Split datasets according to k-fold CV
+        # Perform cross-validation
         kf = KFold(self.engine, n_splits=n_splits)
-        X_train, X_test, y_train, y_test = kf.split(X, ybin)
-
-        # Create models
         models = [LogisticRegression(self.engine) for _ in range(n_splits)]
-
-        # Train models
-        for model, X, y in zip(models, X_train, y_train):
-            model.fit(X=X, y=y)
-
-        # Compute prediction probabilities
-        probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
+        probas, y_true = cross_validate(X, ybin, models, kf, pred_type="probabilities")
 
         # Patrial and total confusion matrices
         confmats = [
             confusion_matrix_binary(self.engine, ytrue, proba)
-            for ytrue, proba in zip(y_test, probas)
+            for ytrue, proba in zip(y_true, probas)
         ]
         total_confmat = sum(confmats)
         tn, fp, fn, tp = total_confmat.ravel()
@@ -67,7 +59,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         # ROC curves
         roc_curves = [
-            roc_curve(self.engine, ytrue, proba) for ytrue, proba in zip(y_test, probas)
+            roc_curve(self.engine, ytrue, proba) for ytrue, proba in zip(y_true, probas)
         ]
         aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
         roc_curves_result = [

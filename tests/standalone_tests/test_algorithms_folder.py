@@ -24,6 +24,7 @@ def set_test_algorithms_folder():
     del os.environ[mipengine.ALGORITHM_FOLDERS_ENV_VARIABLE]
 
 
+@pytest.mark.slow
 def test_test_algorithms_folder(set_test_algorithms_folder):
     importlib.reload(mipengine)
     assert mipengine.ALGORITHM_FOLDERS == "./tests/algorithms"

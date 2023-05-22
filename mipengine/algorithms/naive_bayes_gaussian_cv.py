@@ -6,11 +6,12 @@ from pydantic import BaseModel
 from mipengine import DType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.crossvalidation import KFold
+from mipengine.algorithms.crossvalidation import cross_validate
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.metrics import confusion_matrix_multiclass
 from mipengine.algorithms.metrics import multiclass_classification_metrics
 from mipengine.algorithms.metrics import multiclass_classification_summary
-from mipengine.algorithms.preprocessing import KFold
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -91,19 +92,15 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         X, y = data
         n_splits = self.algorithm_parameters["n_splits"]
 
-        X_train, X_test, y_train, y_test = KFold(engine, n_splits=n_splits).split(X, y)
-
+        # Perform cross-validation
+        kf = KFold(self.engine, n_splits=n_splits)
         models = [GaussianNB(engine, metadata) for _ in range(n_splits)]
-
-        for model, X, y in zip(models, X_train, y_train):
-            model.fit(X=X, y=y)
-
-        probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
+        probas, y_true = cross_validate(X, y, models, kf, pred_type="probabilities")
 
         labels = list(models[0].classes)
         confmats = [
-            confusion_matrix_multiclass(engine, ytrue, proba, labels)
-            for ytrue, proba in zip(y_test, probas)
+            confusion_matrix_multiclass(engine, y_t, proba, labels)
+            for y_t, proba in zip(y_true, probas)
         ]
         total_confmat = sum(confmats)
 

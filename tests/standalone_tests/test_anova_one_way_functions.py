@@ -25,6 +25,3 @@ def test_min_max_ci():
     for key, e_val in ci_info_exp.items():
         r_val = ci_info[key]
         assert e_val == r_val or np.isclose(e_val, r_val)
-
-
-test_min_max_ci()

@@ -9,7 +9,7 @@ from mipengine.algorithm_specification import InputDataStatType
 from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.preprocessing import KFold
+from mipengine.algorithms.crossvalidation import KFold
 
 ALGNAME = "test_kfold"
 

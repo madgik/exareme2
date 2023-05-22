@@ -450,7 +450,7 @@ def get_min_max_ci_info(
         "max": var_max_per_group,
     }
     df1_means_stds = pd.DataFrame(df1_means_stds_dict, index=categories).drop(
-        "categories", 1
+        "categories", axis=1
     )
     df1_means_stds["m-s"] = list(
         df1_means_stds["means"] - df1_means_stds["sample_stds"]
