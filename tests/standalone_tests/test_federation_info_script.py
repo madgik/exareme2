@@ -59,6 +59,7 @@ def patch_controller_logger_config(controller_config_dict_mock):
         yield
 
 
+@pytest.mark.slow
 def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     logger = init_logger("BACKGROUND")
     _log_node_changes(
