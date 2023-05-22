@@ -104,7 +104,7 @@ def merge_tensor_to_list(columns):
     node_id_name = colnames[node_id_column_idx]
     merge_df = pd.DataFrame(columns)
     groups = [group for _, group in merge_df.groupby(node_id_name)]
-    groups = [group.drop(node_id_name, 1) for group in groups]
+    groups = [group.drop(node_id_name, axis=1) for group in groups]
     all_cols = [
         {colname: np.array(x) for colname, x in df.to_dict(orient="list").items()}
         for df in groups
