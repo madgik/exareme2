@@ -150,12 +150,15 @@ class LocalNodesTable(LocalNodesData):
         return [index] + data
 
     def __repr__(self):
-        tables_schema = next(
-            iter(self.nodes_tables_info.values())
-        ).schema_  # Get any schema from the tables
-        r = f"\n\tLocalNodeTable: {tables_schema=}\n"
-        for node, table_name in self.nodes_tables_info.items():
-            r += f"\t{node=} {table_name=}\n"
+        # tables_schema = next(
+        #     iter(self.nodes_tables_info.values())
+        # ).schema_  # Get any schema from the tables
+        # r = f"\n\tLocalNodeTable: {tables_schema=}\n"
+        # for node, table_info in self.nodes_tables_info.items():
+        #     r += f"\t{node=} {table_info=}\n"
+        r = "LocalNodeTable:\n"
+        for node, table_info in self.nodes_tables_info.items():
+            r += f"\t{node=} {table_info=}\n"
         return r
 
     def _validate_matching_table_names(self):

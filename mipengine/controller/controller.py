@@ -97,6 +97,87 @@ class NodeTaskTimeoutException(Exception):
         self.message = message
 
 
+class DataModelViewsCreator:
+    def __init__(
+        self,
+        node_landscape_aggregator: NodeLandscapeAggregator,
+    ):
+        """
+        Parameters
+        ----------
+        variable_groups : List[List[str]]
+        A list of variable_groups. The variable group is a list of columns.
+        dropna : bool
+        If True the view will not contain Remove NAs from the view.
+        check_min_rows : bool
+        Raise an exception if there are not enough rows in the view.
+        """
+        self._node_landscape_aggregator = node_landscape_aggregator
+
+    def _get_datasets_per_local_node(
+        self,
+        local_node_ids: List[str],
+        datasets: List[str],
+        data_model: str,
+    ):
+        # NOTE:there is something redundant here, the nodes have already been chosen because
+        # they contain the specified data_model and datasets, so getting again the
+        # data model and datasets of each node is redundant
+        datasets_per_local_node = {
+            node_id: self._node_landscape_aggregator.get_node_specific_datasets(
+                node_id,
+                data_model,
+                datasets,
+            )
+            for node_id in local_node_ids
+        }
+        return datasets_per_local_node
+
+    def create_data_model_views(
+        self,
+        local_nodes: List[LocalNode],
+        datasets: List[str],
+        data_model: str,
+        variable_groups: List[List[str]],
+        var_filters: list,
+        dropna: bool,
+        check_min_rows: bool,
+        command_id: int,
+    ) -> List[LocalNodesTable]:
+        """
+        Creates the data model views, for each variable group provided,
+        using also the algorithm request arguments (data_model, datasets, filters).
+
+        Returns
+        ------
+        List[LocalNodesTable]
+        A (LocalNodesTable) view for each variable_group provided.
+        """
+        datasets_per_local_node = self._get_datasets_per_local_node(
+            [local_node.node_id for local_node in local_nodes], datasets, data_model
+        )
+
+        views_per_localnode = {}
+        for node in local_nodes:
+            try:
+                data_model_views = node.create_data_model_views(
+                    command_id=command_id,
+                    data_model=data_model,
+                    datasets=datasets_per_local_node[node.node_id],
+                    columns_per_view=variable_groups,
+                    filters=var_filters,
+                    dropna=dropna,
+                    check_min_rows=check_min_rows,
+                )
+            except InsufficientDataError:
+                continue
+            views_per_localnode[node] = data_model_views
+        if views_per_localnode:
+            return _data_model_views_to_localnodestables(views_per_localnode)
+        else:
+            return []
+
+
 class Controller:
     def __init__(
         self,
@@ -141,7 +222,6 @@ class Controller:
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ) -> str:
-
         context_id = UIDGenerator().get_a_uid()
         algo_execution_logger = ctrl_logger.get_request_logger(
             request_id=algorithm_request_dto.request_id
@@ -196,7 +276,11 @@ class Controller:
             )
 
         # create data model views
-        data_model_views = self._create_data_model_views(
+        data_model_views_creator = DataModelViewsCreator(
+            node_landscape_aggregator=self._node_landscape_aggregator,
+        )
+
+        data_model_views = data_model_views_creator.create_data_model_views(
             local_nodes=nodes.local_nodes,
             datasets=datasets,
             data_model=data_model,
@@ -391,70 +475,6 @@ class Controller:
             run_udf_task_timeout=self._celery_run_udf_task_timeout,
         )
 
-    def _create_data_model_views(
-        self,
-        local_nodes: List[LocalNode],
-        datasets: List[str],
-        data_model: str,
-        variable_groups: List[List[str]],
-        var_filters: list,
-        dropna: bool,
-        check_min_rows: bool,
-        command_id: int,
-    ) -> List[LocalNodesTable]:
-        """
-        Creates the data model views, for each variable group provided,
-        using also the algorithm request arguments (data_model, datasets, filters).
-
-        Parameters
-        ----------
-        variable_groups : List[List[str]]
-        A list of variable_groups. The variable group is a list of columns.
-        dropna : bool
-        If True the view will not contain Remove NAs from the view.
-        check_min_rows : bool
-        Raise an exception if there are not enough rows in the view.
-
-        Returns
-        ------
-        List[LocalNodesTable]
-        A (LocalNodesTable) view for each variable_group provided.
-        """
-        # NOTE:there is something redundant here, the nodes have already been chosen because
-        # they contain the specified data_model and datasets, so getting again the
-        # data model and datasets of each node is redundant
-        datasets_per_local_node = {
-            local_node.node_id: self._node_landscape_aggregator.get_node_specific_datasets(
-                local_node.node_id,
-                data_model,
-                datasets,
-            )
-            for local_node in local_nodes
-        }
-
-        views_per_localnode = []
-        for node in local_nodes:
-            try:
-                data_model_views = node.create_data_model_views(
-                    command_id=command_id,
-                    data_model=data_model,
-                    datasets=datasets_per_local_node[node.node_id],
-                    columns_per_view=variable_groups,
-                    filters=var_filters,
-                    dropna=dropna,
-                    check_min_rows=check_min_rows,
-                )
-            except InsufficientDataError:
-                continue
-            views_per_localnode.append((node, data_model_views))
-
-        if views_per_localnode:
-            return _convert_views_per_localnode_to_local_nodes_tables(
-                views_per_localnode
-            )
-        else:
-            return []
-
     def _get_nodes_info_by_dataset(
         self, data_model: str, datasets: List[str]
     ) -> List[_NodeInfoDTO]:
@@ -583,51 +603,31 @@ def _create_global_node(request_id, context_id, node_tasks_handler):
     return global_node
 
 
-def _convert_views_per_localnode_to_local_nodes_tables(
-    views_per_localnode: List[Tuple[LocalNode, List[TableInfo]]]
+def _data_model_views_to_localnodestables(
+    views_per_localnode: Dict[LocalNode, List[TableInfo]]
 ) -> List[LocalNodesTable]:
-    """
-    In the views_per_localnode the views are stored per the localnode where they exist.
-    In order to create LocalNodesTable objects we need to store them according to the similar "LocalNodesTable"
-    they belong to. We group together one view from each node, based on the views' order.
 
-    Parameters
-    ----------
-    views_per_localnode: views grouped per the localnode where they exist.
+    number_of_tables = _validate_number_of_views(views_per_localnode)
 
-    Returns
-    ------
-    One (LocalNodesTable) view for each one existing in the localnodes.
-    """
-    views_count = _get_amount_of_localnodes_views(views_per_localnode)
-
-    local_nodes_tables_dicts: List[Dict[LocalNode, TableInfo]] = [
-        {} for _ in range(views_count)
-    ]
-    for localnode, local_node_views in views_per_localnode:
-        for view, local_nodes_tables in zip(local_node_views, local_nodes_tables_dicts):
-            local_nodes_tables[localnode] = view
     local_nodes_tables = [
-        LocalNodesTable(local_nodes_tables_dict)
-        for local_nodes_tables_dict in local_nodes_tables_dicts
+        LocalNodesTable(
+            {node: tables[i] for node, tables in views_per_localnode.items()}
+        )
+        for i in range(number_of_tables)
     ]
+
     return local_nodes_tables
 
 
-def _get_amount_of_localnodes_views(
-    views_per_localnode: List[Tuple[LocalNode, List[TableInfo]]]
-) -> int:
-    """
-    Returns the amount of views after validating all localnodes created the same amount of views.
-    """
-    views_count = len(views_per_localnode[0][1])
-    for local_node, local_node_views in views_per_localnode:
-        if len(local_node_views) != views_count:
-            raise ValueError(
-                f"All views from localnodes should have the same length. "
-                f"{local_node} has {len(local_node_views)} instead of {views_count}."
-            )
-    return views_count
+def _validate_number_of_views(views_per_localnode: dict):
+    number_of_tables = [len(tables) for tables in views_per_localnode.values()]
+    number_of_tables_equal = len(set(number_of_tables)) == 1
+
+    if not number_of_tables_equal:
+        raise ValueError(
+            f"The number of views does is not equal for all nodes {views_per_localnode=}"
+        )
+    return number_of_tables[0]
 
 
 def _create_algorithm_execution_engine(
