@@ -213,15 +213,6 @@ def parse_argv(argv):
         action="store_true",
         help="Print request object without making actual request.",
     )
-    parser.add_argument(
-        "-f",
-        "--flag",
-        required=False,
-        nargs=2,
-        action="append",
-        dest="flags",
-        # help="Flags as key value pair. Can repeat '-f key value' multiple times.",
-    )
     return parser.parse_args(argv)
 
 
@@ -289,11 +280,7 @@ def merge_request_data(data1, data2):
     # merge parameters
     parameters = data1.get("parameters", None) or data2.get("parameters", None)
 
-    #merge flags
-    flags = data1.get("flags", None) or data2.get("flags", None)
-
-    merged = {"inputdata": inputdata, "parameters": parameters,"flags":flags}
-
+    merged = {"inputdata": inputdata, "parameters": parameters}
     return merged
 
 
