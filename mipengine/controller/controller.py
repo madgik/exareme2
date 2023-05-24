@@ -102,16 +102,6 @@ class DataModelViewsCreator:
         self,
         node_landscape_aggregator: NodeLandscapeAggregator,
     ):
-        """
-        Parameters
-        ----------
-        variable_groups : List[List[str]]
-        A list of variable_groups. The variable group is a list of columns.
-        dropna : bool
-        If True the view will not contain Remove NAs from the view.
-        check_min_rows : bool
-        Raise an exception if there are not enough rows in the view.
-        """
         self._node_landscape_aggregator = node_landscape_aggregator
 
     def _get_datasets_per_local_node(
@@ -120,9 +110,6 @@ class DataModelViewsCreator:
         datasets: List[str],
         data_model: str,
     ):
-        # NOTE:there is something redundant here, the nodes have already been chosen because
-        # they contain the specified data_model and datasets, so getting again the
-        # data model and datasets of each node is redundant
         datasets_per_local_node = {
             node_id: self._node_landscape_aggregator.get_node_specific_datasets(
                 node_id,
