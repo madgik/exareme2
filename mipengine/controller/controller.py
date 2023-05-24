@@ -180,12 +180,20 @@ class Controller:
 
         command_id_generator = CommandIdGenerator()
 
-        algorithm_data_loader = algorithm_data_loaders[algorithm_name](
-            variables=Variables(
-                x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
-                y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
-            ),
+        variables = Variables(
+            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
+            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
         )
+
+        # LONGITUDINAL specific
+        if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
+            algorithm_data_loader = algorithm_data_loaders["generic_longitudinal"](
+                variables=variables
+            )
+        else:
+            algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+                variables=variables
+            )
 
         # create data model views
         data_model_views = self._create_data_model_views(
@@ -224,6 +232,34 @@ class Controller:
             command_id_generator=command_id_generator,
             nodes=nodes,
         )
+
+        # LONGITUDINAL specific
+        if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
+            init_params_gl = AlgorithmInitParams(
+                algorithm_name="generic_longitudinal",
+                var_filters=algorithm_request_dto.inputdata.filters,
+                algorithm_parameters=algorithm_request_dto.parameters,
+                datasets=algorithm_request_dto.inputdata.datasets,
+            )
+            algorithm_gl = algorithm_classes["generic_longitudinal"](
+                initialization_params=init_params_gl,
+                data_loader=algorithm_data_loader,
+                engine=engine,
+            )
+            longitudinal_transform_result = await self._algorithm_run_in_event_loop(
+                algorithm=algorithm_gl,
+                data_model_views=data_model_views,
+                metadata=metadata,
+            )
+
+            alg_vars = longitudinal_transform_result[0]
+            metadata = longitudinal_transform_result[2]
+
+            algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+                variables=alg_vars
+            )
+            new_data_model_views = longitudinal_transform_result[1]
+            data_model_views = new_data_model_views
 
         # instantiate algorithm
         init_params = AlgorithmInitParams(

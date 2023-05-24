@@ -19,36 +19,10 @@ from mipengine.algorithms.logistic_regression import LogisticRegressionDataLoade
 from mipengine.algorithms.logistic_regression_cv import LogisticRegressionCVAlgorithm
 from mipengine.algorithms.logistic_regression_cv import LogisticRegressionCVDataLoader
 from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformer
-from mipengine.algorithms.naive_bayes_gaussian import GaussianNBAlgorithm
-from mipengine.algorithms.naive_bayes_gaussian import GaussianNBDataLoader
+from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
+from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNBDataLoader
 
 ALGNAME = "generic_longitudinal"
-
-
-ALGORITHMS = {
-    alg.algname: alg
-    for alg in [
-        LinearRegressionAlgorithm,
-        LogisticRegressionAlgorithm,
-        AnovaOneWayAlgorithm,
-        AnovaTwoWay,
-        LinearRegressionCVAlgorithm,
-        LogisticRegressionCVAlgorithm,
-        GaussianNBAlgorithm,
-    ]
-}
-DATALOADERS = {
-    dl.algname: dl
-    for dl in [
-        LinearRegressionDataLoader,
-        LogisticRegressionDataLoader,
-        AnovaOneWayDataLoader,
-        AnovaTwoWayDataLoader,
-        LinearRegressionCVDataLoader,
-        LogisticRegressionCVDataLoader,
-        GaussianNBDataLoader,
-    ]
-}
 
 
 class LongitudinalDataLoader(AlgorithmDataLoader, algname=ALGNAME):
@@ -119,14 +93,7 @@ class LongitudinalAlgorithm(Algorithm, algname=ALGNAME):
         y = lt_y.transform(y)
         metadata = lt_y.transform_metadata(metadata)
 
-        algname = self.algorithm_parameters["algorithm"]
-
         alg_vars = Variables(x=X.columns, y=y.columns)  # use transformed vars
-        data_loader = DATALOADERS[algname](variables=alg_vars)
-        algo = ALGORITHMS[algname](
-            initialization_params=self._initialization_params,
-            data_loader=data_loader,
-            engine=self._engine,
-        )
+        data = (X, y)
 
-        return algo.run(data=(X, y), metadata=metadata)
+        return (alg_vars, data, metadata)

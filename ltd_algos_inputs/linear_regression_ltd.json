@@ -15,7 +15,6 @@
         ]
     },
     "parameters": {
-        "algorithm": "linear_regression",
         "visit1": "FL1",
         "visit2": "FL2",
         "strategies": {
@@ -24,5 +23,8 @@
             "agegroup": "second",
             "gender": "first"
         }
+    },
+    "flags":{
+	"longitudinal":true
     }
 }

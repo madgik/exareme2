@@ -14,7 +14,6 @@
         "filters": null
     },
     "parameters": {
-        "algorithm": "logistic_regression",
         "positive_class": "F",
         "visit1": "FL3",
         "visit2": "FL4",
@@ -23,5 +22,8 @@
             "agegroup": "first",
             "gender": "second"
         }
+    },
+    "flags":{
+	"longitudinal":true
     }
 }
