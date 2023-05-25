@@ -14,7 +14,6 @@
         "data_model": "longitudinal_dementia:0.1"
     },
     "parameters": {
-        "algorithm": "naive_bayes_gaussian_cv",
         "n_splits": 4,
         "visit1": "BL",
         "visit2": "FL1",
@@ -23,5 +22,8 @@
             "lefthippocampus": "diff",
             "agegroup": "second"
         }
+    },
+    "flags":{
+	"longitudinal":true
     }
 }

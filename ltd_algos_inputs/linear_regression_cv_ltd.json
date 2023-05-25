@@ -15,7 +15,6 @@
         ]
     },
     "parameters": {
-        "algorithm": "linear_regression_cv",
         "visit1": "BL",
         "visit2": "FL1",
         "n_splits": 2,
