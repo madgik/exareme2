@@ -5,8 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
@@ -46,34 +45,27 @@ from mipengine.node_info_DTOs import NodeInfo
 from mipengine.node_tasks_DTOs import TableInfo
 
 
-class NodesTasksHandlers(BaseModel):
+@dataclass(frozen=True)
+class NodesTasksHandlers:
     global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
     local_nodes_tasks_handlers: List[INodeAlgorithmTasksHandler]
 
-    class Config:
-        arbitrary_types_allowed = True
-        allow_mutation = False
 
-
-class _NodeInfoDTO(BaseModel):
+@dataclass(frozen=True)
+class _NodeInfoDTO:
     node_id: str
     queue_address: str
     db_address: str
     tasks_timeout: int
     run_udf_task_timeout: int
 
-    class Config:
-        allow_mutation = False
 
-
-class InitializationParams(BaseModel):
+@dataclass(frozen=True)
+class InitializationParams:
     smpc_enabled: bool
     smpc_optional: bool
     celery_tasks_timeout: int
     celery_run_udf_task_timeout: int
-
-    class Config:
-        allow_mutation = False
 
 
 class NodeUnresponsiveException(Exception):
@@ -97,39 +89,32 @@ class NodeTaskTimeoutException(Exception):
         self.message = message
 
 
-class DataModelViewsCreator:
-    def __init__(
-        self,
-        node_landscape_aggregator: NodeLandscapeAggregator,
-    ):
-        self._node_landscape_aggregator = node_landscape_aggregator
+@dataclass(frozen=True)
+class DataModelViewsCreatorInitParams:
+    nodes_datasets: Dict[LocalNode, List[str]]
+    data_model: str
+    datasets: List[str]
+    variable_groups: List[List[str]]
+    var_filters: list
+    dropna: bool
+    check_min_rows: bool
+    command_id: int
 
-    def _get_datasets_per_local_node(
-        self,
-        local_node_ids: List[str],
-        datasets: List[str],
-        data_model: str,
-    ):
-        datasets_per_local_node = {
-            node_id: self._node_landscape_aggregator.get_node_specific_datasets(
-                node_id,
-                data_model,
-                datasets,
-            )
-            for node_id in local_node_ids
-        }
-        return datasets_per_local_node
+
+class DataModelViewsCreator:
+    def __init__(self, init_params: DataModelViewsCreatorInitParams):
+        self._nodes_datasets = init_params.nodes_datasets
+        # self._nodeids=list(self._nodes_datasets.keys())
+        self._data_model = init_params.data_model
+        self._datasets = init_params.datasets
+        self._variable_groups = init_params.variable_groups
+        self._var_filters = init_params.var_filters
+        self._dropna = init_params.dropna
+        self._check_min_rows = init_params.check_min_rows
+        self._command_id = init_params.command_id
 
     def create_data_model_views(
         self,
-        local_nodes: List[LocalNode],
-        datasets: List[str],
-        data_model: str,
-        variable_groups: List[List[str]],
-        var_filters: list,
-        dropna: bool,
-        check_min_rows: bool,
-        command_id: int,
     ) -> List[LocalNodesTable]:
         """
         Creates the data model views, for each variable group provided,
@@ -140,30 +125,33 @@ class DataModelViewsCreator:
         List[LocalNodesTable]
         A (LocalNodesTable) view for each variable_group provided.
         """
-        datasets_per_local_node = self._get_datasets_per_local_node(
-            [local_node.node_id for local_node in local_nodes], datasets, data_model
-        )
 
         views_per_localnode = {}
-        for node in local_nodes:
+        for node in self._nodes_datasets.keys():  # _nodeids:
             try:
                 data_model_views = node.create_data_model_views(
-                    command_id=command_id,
-                    data_model=data_model,
-                    datasets=datasets_per_local_node[node.node_id],
-                    columns_per_view=variable_groups,
-                    filters=var_filters,
-                    dropna=dropna,
-                    check_min_rows=check_min_rows,
+                    command_id=self._command_id,
+                    data_model=self._data_model,
+                    datasets=self._nodes_datasets[node],
+                    columns_per_view=self._variable_groups,
+                    filters=self._var_filters,
+                    dropna=self._dropna,
+                    check_min_rows=self._check_min_rows,
                 )
             except InsufficientDataError:
                 continue
             views_per_localnode[node] = data_model_views
-        if views_per_localnode:
-            return _data_model_views_to_localnodestables(views_per_localnode)
-        else:
-            return []
 
+        if not views_per_localnode:
+            raise InsufficientDataError(
+                f"None of the nodes has enough data to execute request: {self._local_nodes=} "
+                f"{self._data_model=} {self._datasets=} {self._variable_groups=} "
+                f"{self._var_filters=} {self._dropna=} {self._check_min_rows=}"
+            )
+
+        return _data_model_views_to_localnodestables(views_per_localnode)
+
+    
 
 class Controller:
     def __init__(
@@ -205,12 +193,11 @@ class Controller:
         self._node_landscape_aggregator.stop()
 
     async def exec_algorithm(
-        self,
-        algorithm_name: str,
+        self,        algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ) -> str:
         context_id = UIDGenerator().get_a_uid()
-        algo_execution_logger = ctrl_logger.get_request_logger(
+        logger = ctrl_logger.get_request_logger(
             request_id=algorithm_request_dto.request_id
         )
 
@@ -262,29 +249,30 @@ class Controller:
                 variables=variables
             )
 
-        # create data model views
-        data_model_views_creator = DataModelViewsCreator(
-            node_landscape_aggregator=self._node_landscape_aggregator,
-        )
-
-        data_model_views = data_model_views_creator.create_data_model_views(
-            local_nodes=nodes.local_nodes,
-            datasets=datasets,
+        nodes_datasets = self._get_subset_of_nodes_containing_datasets(
+            nodes=nodes.local_nodes,
             data_model=data_model,
+            datasets=datasets,
+        )
+        init_params = DataModelViewsCreatorInitParams(
+            nodes_datasets=nodes_datasets,
+            data_model=data_model,
+            datasets=datasets,
             variable_groups=algorithm_data_loader.get_variable_groups(),
             var_filters=algorithm_request_dto.inputdata.filters,
             dropna=algorithm_data_loader.get_dropna(),
             check_min_rows=algorithm_data_loader.get_check_min_rows(),
-            command_id=command_id_generator.get_next_command_id(),
+            command_id=command_id_generator.get_next_command_id(),  # should pass cmnd gen...
         )
-        if not data_model_views:
-            raise InsufficientDataError(
-                f"None of the nodes has enough data to execute "
-                f"{algorithm_request_dto=}"
-            )
+        # create data model views
+        data_model_views_creator = DataModelViewsCreator(init_params)
+        data_model_views = data_model_views_creator.create_data_model_views()
 
-        local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
-        algo_execution_logger.debug(
+        # breakpoint()
+        # local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+        local_nodes_filtered = _get_nodes(data_model_views)
+
+        logger.debug(
             f"{local_nodes_filtered=} after creating data model views"
         )
 
@@ -346,7 +334,7 @@ class Controller:
         )
 
         log_experiment_execution(
-            logger=algo_execution_logger,
+            logger=logger,
             request_id=algorithm_request_dto.request_id,
             context_id=context_id,
             algorithm_name=algorithm_name,
@@ -363,27 +351,27 @@ class Controller:
                 metadata=metadata,
             )
         except CeleryConnectionError as exc:
-            algo_execution_logger.error(
+            logger.error(
                 f"ErrorType: '{type(exc)}' and message: '{exc}'"
             )
             raise NodeUnresponsiveException()
         except CeleryTaskTimeoutException as exc:
-            algo_execution_logger.error(
+            logger.error(
                 f"ErrorType: '{type(exc)}' and message: '{exc}'"
             )
             raise NodeTaskTimeoutException()
         except Exception as exc:
-            algo_execution_logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             raise exc
 
         finally:
             if not self._cleaner.cleanup_context_id(context_id=context_id):
                 self._cleaner.release_context_id(context_id=context_id)
 
-        algo_execution_logger.info(
+        logger.info(
             f"Finished execution->  {algorithm_name=} with {algorithm_request_dto.request_id=}"
         )
-        algo_execution_logger.debug(
+        logger.debug(
             f"Algorithm {algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
         )
         return algorithm_result.json()
@@ -401,6 +389,17 @@ class Controller:
             metadata,
         )
         return algorithm_result
+
+    def _get_subset_of_nodes_containing_datasets(self, nodes, data_model, datasets):
+        datasets_per_local_node = {
+            node: self._node_landscape_aggregator.get_node_specific_datasets(
+                node.node_id,
+                data_model,
+                datasets,
+            )
+            for node in nodes
+        }
+        return datasets_per_local_node
 
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -558,15 +557,16 @@ class Controller:
         return nodes
 
 
-def _get_data_model_views_nodes(data_model_views):
+# def _get_data_model_views_nodes(data_model_views:List[LocalNodesTable])->List[LocalNodes]:
+def _get_nodes(local_nodes_tables:List[LocalNodesTable])->List[LocalNode]:
     valid_nodes = set()
-    for data_model_view in data_model_views:
-        valid_nodes.update(data_model_view.nodes_tables_info.keys())
+    for local_node_table in local_nodes_tables:
+        valid_nodes.update(local_node_table.nodes_tables_info.keys())
     if not valid_nodes:
         raise InsufficientDataError(
             "None of the nodes has enough data to execute the algorithm."
         )
-    return valid_nodes
+    return list(valid_nodes)
 
 
 def _create_local_nodes(request_id, context_id, nodes_tasks_handlers):
