@@ -1,11 +1,11 @@
 import asyncio
 import concurrent
 import traceback
+from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from dataclasses import dataclass
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
@@ -89,6 +89,24 @@ class NodeTaskTimeoutException(Exception):
         self.message = message
 
 
+class DataModelViews:
+    def __init__(self, local_node_tables: List[LocalNodesTable]):
+        self._views = local_node_tables
+
+    def to_list(self):
+        return self._views
+
+    def get_nodes(self) -> List[LocalNode]:
+        valid_nodes = set()  # valid_nodes tf do you mean??
+        for local_node_table in self._views:
+            valid_nodes.update(local_node_table.nodes_tables_info.keys())
+        if not valid_nodes:
+            raise InsufficientDataError(
+                "None of the nodes has enough data to execute the algorithm."
+            )
+        return list(valid_nodes)
+
+
 @dataclass(frozen=True)
 class DataModelViewsCreatorInitParams:
     nodes_datasets: Dict[LocalNode, List[str]]
@@ -149,9 +167,196 @@ class DataModelViewsCreator:
                 f"{self._var_filters=} {self._dropna=} {self._check_min_rows=}"
             )
 
-        return _data_model_views_to_localnodestables(views_per_localnode)
+        # return _data_model_views_to_localnodestables(views_per_localnode)
+        return DataModelViews(
+            _data_model_views_to_localnodestables(views_per_localnode)
+        )
 
-    
+
+class NodesFederation:
+    def __init__(
+        self,
+        request_id: str,
+        context_id: str,
+        data_model: str,
+        datasets: List[str],
+        var_filters: dict,
+        node_landscape_aggregator: NodeLandscapeAggregator,
+        celery_tasks_timeout: int,
+        celery_run_udf_task_timeout: int,
+        command_id_generator: CommandIdGenerator,
+    ):
+
+        self._command_id_generator = command_id_generator
+
+        self._request_id = request_id
+        self._context_id = context_id
+        self._data_model = data_model
+        self._datasets = datasets
+        self._var_filters = var_filters
+
+        self._node_landscape_aggregator = node_landscape_aggregator
+
+        self._celery_tasks_timeout = celery_tasks_timeout
+        self._celery_run_udf_task_timeout = celery_run_udf_task_timeout
+
+        self._nodes = self._create_nodes()
+
+    @property
+    def nodes(self):
+        return self._nodes
+
+    @property
+    def node_ids(self):
+        local_node_ids = [node.node_id for node in self._nodes.local_nodes]
+
+        node_ids = []
+        # global node should not be optional, it was nevertheless made optional
+        # https://github.com/madgik/MIP-Engine/pull/269
+        if self._nodes.global_node:
+            node_ids = [self._nodes.global_node.node_id] + local_node_ids
+        else:
+            node_ids = local_node_ids
+
+        return node_ids
+
+    def create_data_model_views(
+        self, variable_groups: List[List[str]], dropna: bool, check_min_rows: bool
+    ):
+        # why tf do you need to pass data_model & datasets???
+        nodes_datasets = self._get_nodes_containing_datasets(
+            data_model=self._data_model,
+            datasets=self._datasets,
+        )
+
+        init_params = DataModelViewsCreatorInitParams(
+            nodes_datasets=nodes_datasets,
+            data_model=self._data_model,
+            datasets=self._datasets,
+            variable_groups=variable_groups,
+            var_filters=self._var_filters,
+            dropna=dropna,
+            check_min_rows=check_min_rows,
+            command_id=self._command_id_generator.get_next_command_id(),
+        )
+        # create data model views
+        data_model_views_creator = DataModelViewsCreator(init_params)
+        data_model_views = data_model_views_creator.create_data_model_views()
+
+        local_nodes_filtered = data_model_views.get_nodes()
+
+        # logger.debug(f"{local_nodes_filtered=} after creating data model views")
+        print(f"{local_nodes_filtered=} after creating data model views")
+
+        self._nodes = Nodes(
+            global_node=self._nodes.global_node,
+            local_nodes=local_nodes_filtered,
+        )
+
+        return data_model_views
+
+    def _create_nodes(self) -> Nodes:
+        node_tasks_handlers = self._create_nodes_tasks_handlers()
+
+        # global node should not be optional, it was nevertheless made optional
+        # https://github.com/madgik/MIP-Engine/pull/269
+        global_node_tasks_handler = node_tasks_handlers.global_node_tasks_handler
+        global_node = (
+            _create_global_node(
+                self._request_id, self._context_id, global_node_tasks_handler
+            )
+            if global_node_tasks_handler
+            else None
+        )
+
+        nodes = Nodes(
+            global_node=global_node,
+            local_nodes=_create_local_nodes(
+                self._request_id,
+                self._context_id,
+                node_tasks_handlers.local_nodes_tasks_handlers,
+            ),
+        )
+
+        return nodes
+
+    def _get_nodes_containing_datasets(self, data_model, datasets):
+        datasets_per_local_node = {
+            node: self._node_landscape_aggregator.get_node_specific_datasets(
+                node.node_id,
+                data_model,
+                datasets,
+            )
+            for node in self._nodes.local_nodes
+        }
+        return datasets_per_local_node
+
+    def _create_nodes_tasks_handlers(self) -> NodesTasksHandlers:
+        # Get only the relevant nodes
+        local_nodes_info = self._get_nodes_info_by_dataset()
+        local_nodes_tasks_handlers = [
+            NodeAlgorithmTasksHandler(
+                node_id=node_info.node_id,
+                node_queue_addr=node_info.queue_address,
+                node_db_addr=node_info.db_address,
+                tasks_timeout=node_info.tasks_timeout,
+                run_udf_task_timeout=node_info.run_udf_task_timeout,
+            )
+            for node_info in local_nodes_info
+        ]
+
+        global_node_tasks_handler = None
+        try:
+            # raises exception if there is no global node...
+            global_node = self._node_landscape_aggregator.get_global_node()
+
+            global_node_tasks_handler = NodeAlgorithmTasksHandler(
+                node_id=global_node.id,
+                node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
+                node_db_addr=":".join(
+                    [str(global_node.db_ip), str(global_node.db_port)]
+                ),
+                tasks_timeout=self._celery_tasks_timeout,
+                run_udf_task_timeout=self._celery_run_udf_task_timeout,
+            )
+
+            # global node should not be optional, it was nevertheless made optional
+            # https://github.com/madgik/MIP-Engine/pull/269
+        except Exception:
+            pass
+
+        return NodesTasksHandlers(
+            global_node_tasks_handler=global_node_tasks_handler,
+            local_nodes_tasks_handlers=local_nodes_tasks_handlers,
+        )
+
+    def _get_nodes_info_by_dataset(self) -> List[_NodeInfoDTO]:
+        local_node_ids = (
+            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+                data_model=self._data_model,
+                datasets=self._datasets,
+            )
+        )
+        local_nodes_info = [
+            self._node_landscape_aggregator.get_node_info(node_id)
+            for node_id in local_node_ids
+        ]
+        nodes_info = []
+        for local_node in local_nodes_info:
+            nodes_info.append(
+                _NodeInfoDTO(
+                    node_id=local_node.id,
+                    queue_address=":".join([str(local_node.ip), str(local_node.port)]),
+                    db_address=":".join(
+                        [str(local_node.db_ip), str(local_node.db_port)]
+                    ),
+                    tasks_timeout=self._celery_tasks_timeout,
+                    run_udf_task_timeout=self._celery_run_udf_task_timeout,
+                )
+            )
+
+        return nodes_info
+
 
 class Controller:
     def __init__(
@@ -193,36 +398,34 @@ class Controller:
         self._node_landscape_aggregator.stop()
 
     async def exec_algorithm(
-        self,        algorithm_name: str,
+        self,
+        algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ) -> str:
-        context_id = UIDGenerator().get_a_uid()
-        logger = ctrl_logger.get_request_logger(
-            request_id=algorithm_request_dto.request_id
-        )
 
+        command_id_generator = CommandIdGenerator()
+
+        request_id = algorithm_request_dto.request_id
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        context_id = UIDGenerator().get_a_uid()
         data_model = algorithm_request_dto.inputdata.data_model
         datasets = algorithm_request_dto.inputdata.datasets
+        var_filters = algorithm_request_dto.inputdata.filters
 
-        # instantiate nodes
-        nodes = self._create_nodes(
-            request_id=algorithm_request_dto.request_id,
+        # Instantiate NodeFed
+        nodes_federation = NodesFederation(
+            request_id=request_id,
             context_id=context_id,
             data_model=data_model,
             datasets=datasets,
+            var_filters=var_filters,
+            node_landscape_aggregator=self._node_landscape_aggregator,
+            celery_tasks_timeout=self._celery_tasks_timeout,
+            celery_run_udf_task_timeout=self._celery_run_udf_task_timeout,
+            command_id_generator=command_id_generator,
         )
 
-        # add contextid and nodeids to cleaner
-        local_nodes_ids = [node.node_id for node in nodes.local_nodes]
-
-        # global node should not be optional, it was nevertheless made optional
-        # https://github.com/madgik/MIP-Engine/pull/269
-        if nodes.global_node:
-            all_nodes_ids = [nodes.global_node.node_id] + local_nodes_ids
-        else:
-            all_nodes_ids = local_nodes_ids
-
-        self._cleaner.add_contextid_for_cleanup(context_id, all_nodes_ids)
+        self._cleaner.add_contextid_for_cleanup(context_id, nodes_federation.node_ids)
 
         # get metadata
         variable_names = (algorithm_request_dto.inputdata.x or []) + (
@@ -231,8 +434,6 @@ class Controller:
         metadata = self._node_landscape_aggregator.get_metadata(
             data_model=data_model, variable_names=variable_names
         )
-
-        command_id_generator = CommandIdGenerator()
 
         variables = Variables(
             x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
@@ -249,34 +450,11 @@ class Controller:
                 variables=variables
             )
 
-        nodes_datasets = self._get_subset_of_nodes_containing_datasets(
-            nodes=nodes.local_nodes,
-            data_model=data_model,
-            datasets=datasets,
-        )
-        init_params = DataModelViewsCreatorInitParams(
-            nodes_datasets=nodes_datasets,
-            data_model=data_model,
-            datasets=datasets,
+        data_model_views = nodes_federation.create_data_model_views(
             variable_groups=algorithm_data_loader.get_variable_groups(),
-            var_filters=algorithm_request_dto.inputdata.filters,
             dropna=algorithm_data_loader.get_dropna(),
             check_min_rows=algorithm_data_loader.get_check_min_rows(),
-            command_id=command_id_generator.get_next_command_id(),  # should pass cmnd gen...
         )
-        # create data model views
-        data_model_views_creator = DataModelViewsCreator(init_params)
-        data_model_views = data_model_views_creator.create_data_model_views()
-
-        # breakpoint()
-        # local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
-        local_nodes_filtered = _get_nodes(data_model_views)
-
-        logger.debug(
-            f"{local_nodes_filtered=} after creating data model views"
-        )
-
-        nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
 
         # instantiate algorithm execution engine
         engine_init_params = EngineInitParams(
@@ -289,7 +467,7 @@ class Controller:
         engine = _create_algorithm_execution_engine(
             engine_init_params=engine_init_params,
             command_id_generator=command_id_generator,
-            nodes=nodes,
+            nodes=nodes_federation.nodes,  # nodes,
         )
 
         # LONGITUDINAL specific
@@ -317,7 +495,7 @@ class Controller:
             algorithm_data_loader = algorithm_data_loaders[algorithm_name](
                 variables=alg_vars
             )
-            new_data_model_views = longitudinal_transform_result[1]
+            new_data_model_views = DataModelViews(longitudinal_transform_result[1])
             data_model_views = new_data_model_views
 
         # instantiate algorithm
@@ -340,7 +518,7 @@ class Controller:
             algorithm_name=algorithm_name,
             datasets=algorithm_request_dto.inputdata.datasets,
             algorithm_parameters=algorithm_request_dto.json(),
-            local_node_ids=local_nodes_ids,
+            local_node_ids=nodes_federation.node_ids,
         )
 
         # run the algorithm
@@ -351,14 +529,10 @@ class Controller:
                 metadata=metadata,
             )
         except CeleryConnectionError as exc:
-            logger.error(
-                f"ErrorType: '{type(exc)}' and message: '{exc}'"
-            )
+            logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveException()
         except CeleryTaskTimeoutException as exc:
-            logger.error(
-                f"ErrorType: '{type(exc)}' and message: '{exc}'"
-            )
+            logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeTaskTimeoutException()
         except Exception as exc:
             logger.error(traceback.format_exc())
@@ -385,21 +559,10 @@ class Controller:
         algorithm_result = await loop.run_in_executor(
             self._thread_pool_executor,
             algorithm.run,
-            data_model_views,
+            data_model_views.to_list(),
             metadata,
         )
         return algorithm_result
-
-    def _get_subset_of_nodes_containing_datasets(self, nodes, data_model, datasets):
-        datasets_per_local_node = {
-            node: self._node_landscape_aggregator.get_node_specific_datasets(
-                node.node_id,
-                data_model,
-                datasets,
-            )
-            for node in nodes
-        }
-        return datasets_per_local_node
 
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -460,113 +623,6 @@ class Controller:
             tasks_timeout=self._celery_tasks_timeout,
             run_udf_task_timeout=self._celery_run_udf_task_timeout,
         )
-
-    def _get_nodes_info_by_dataset(
-        self, data_model: str, datasets: List[str]
-    ) -> List[_NodeInfoDTO]:
-        local_node_ids = (
-            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
-                data_model=data_model,
-                datasets=datasets,
-            )
-        )
-        local_nodes_info = [
-            self._node_landscape_aggregator.get_node_info(node_id)
-            for node_id in local_node_ids
-        ]
-        nodes_info = []
-        for local_node in local_nodes_info:
-            nodes_info.append(
-                _NodeInfoDTO(
-                    node_id=local_node.id,
-                    queue_address=":".join([str(local_node.ip), str(local_node.port)]),
-                    db_address=":".join(
-                        [str(local_node.db_ip), str(local_node.db_port)]
-                    ),
-                    tasks_timeout=self._celery_tasks_timeout,
-                    run_udf_task_timeout=self._celery_run_udf_task_timeout,
-                )
-            )
-
-        return nodes_info
-
-    def _create_nodes_tasks_handlers(
-        self, data_model: str, datasets: List[str]
-    ) -> NodesTasksHandlers:
-        # Get only the relevant nodes
-        local_nodes_info = self._get_nodes_info_by_dataset(
-            data_model=data_model, datasets=datasets
-        )
-        local_nodes_tasks_handlers = [
-            NodeAlgorithmTasksHandler(
-                node_id=node_info.node_id,
-                node_queue_addr=node_info.queue_address,
-                node_db_addr=node_info.db_address,
-                tasks_timeout=node_info.tasks_timeout,
-                run_udf_task_timeout=node_info.run_udf_task_timeout,
-            )
-            for node_info in local_nodes_info
-        ]
-
-        global_node_tasks_handler = None
-        try:
-            # raises exception if there is no global node...
-            global_node = self._node_landscape_aggregator.get_global_node()
-
-            global_node_tasks_handler = NodeAlgorithmTasksHandler(
-                node_id=global_node.id,
-                node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
-                node_db_addr=":".join(
-                    [str(global_node.db_ip), str(global_node.db_port)]
-                ),
-                tasks_timeout=self._celery_tasks_timeout,
-                run_udf_task_timeout=self._celery_run_udf_task_timeout,
-            )
-
-            # global node should not be optional, it was nevertheless made optional
-            # https://github.com/madgik/MIP-Engine/pull/269
-        except Exception:
-            pass
-
-        return NodesTasksHandlers(
-            global_node_tasks_handler=global_node_tasks_handler,
-            local_nodes_tasks_handlers=local_nodes_tasks_handlers,
-        )
-
-    def _create_nodes(self, request_id, context_id, data_model, datasets):
-        node_tasks_handlers = self._create_nodes_tasks_handlers(
-            data_model=data_model, datasets=datasets
-        )
-
-        # global node should not be optional, it was nevertheless made optional
-        # https://github.com/madgik/MIP-Engine/pull/269
-        global_node_tasks_handler = node_tasks_handlers.global_node_tasks_handler
-        global_node = (
-            _create_global_node(request_id, context_id, global_node_tasks_handler)
-            if global_node_tasks_handler
-            else None
-        )
-
-        nodes = Nodes(
-            global_node=global_node,
-            local_nodes=_create_local_nodes(
-                request_id, context_id, node_tasks_handlers.local_nodes_tasks_handlers
-            ),
-        )
-
-        return nodes
-
-
-# def _get_data_model_views_nodes(data_model_views:List[LocalNodesTable])->List[LocalNodes]:
-def _get_nodes(local_nodes_tables:List[LocalNodesTable])->List[LocalNode]:
-    valid_nodes = set()
-    for local_node_table in local_nodes_tables:
-        valid_nodes.update(local_node_table.nodes_tables_info.keys())
-    if not valid_nodes:
-        raise InsufficientDataError(
-            "None of the nodes has enough data to execute the algorithm."
-        )
-    return list(valid_nodes)
 
 
 def _create_local_nodes(request_id, context_id, nodes_tasks_handlers):
