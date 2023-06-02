@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
@@ -358,6 +357,76 @@ class NodesFederation:
         return nodes_info
 
 
+from abc import ABC
+from abc import abstractmethod
+
+
+class ExecutionStrategy(ABC):
+    def __init__(self, algorithm_name: str, variables: Variables):
+        self._algorithm_name = algorithm_name
+        self._algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+            variables=variables
+        )
+
+    @property
+    def algorithm_data_loader(self):
+        return self._algorithm_data_loader
+
+    @abstractmethod
+    async def run(self, data, metadata):
+        pass
+
+
+class LongitudinalStrategy(ExecutionStrategy):
+    def __init__(
+        self,
+        algorithm_name: str,
+        variables: Variables,
+        algorithm_request_dto: AlgorithmRequestDTO,
+        engine: AlgorithmExecutionEngine,
+    ):
+        super().__init__(algorithm_name="generic_longitudinal", variables=variables)
+        self._algorithm_name = algorithm_name
+
+        self._algorithm_request_dto = algorithm_request_dto
+        self._engine = engine
+
+    async def run(self, data, metadata):
+        init_params_gl = AlgorithmInitParams(
+            algorithm_name="generic_longitudinal",
+            var_filters=self._algorithm_request_dto.inputdata.filters,
+            algorithm_parameters=self._algorithm_request_dto.parameters,
+            datasets=self._algorithm_request_dto.inputdata.datasets,
+        )
+        algorithm_gl = algorithm_classes["generic_longitudinal"](
+            initialization_params=init_params_gl,
+            data_loader=self._algorithm_data_loader,
+            engine=self._engine,
+        )
+        longitudinal_transform_result = await _algorithm_run_in_event_loop(
+            algorithm=algorithm_gl,
+            data_model_views=data,  # data_model_views,
+            metadata=metadata,
+        )
+
+        alg_vars = longitudinal_transform_result[0]
+        metadata = longitudinal_transform_result[2]
+
+        algorithm_data_loader = algorithm_data_loaders[self._algorithm_name](
+            variables=alg_vars
+        )
+        new_data_model_views = DataModelViews(longitudinal_transform_result[1])
+        return (algorithm_data_loader, new_data_model_views)
+
+
+class SingleAlgorithmStrategy(ExecutionStrategy):
+    def __init__(self, algorithm_name: str, variables: Variables):
+        super().__init__(algorithm_name=algorithm_name, variables=variables)
+
+    async def run(self, data, metadata):
+        return (self._algorithm_data_loader, data)
+
+
 class Controller:
     def __init__(
         self,
@@ -377,7 +446,6 @@ class Controller:
         self._cleaner = cleaner
         self._node_landscape_aggregator = node_landscape_aggregator
 
-        self._thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
 
     def start_cleanup_loop(self):
         self._controller_logger.info("(Controller) Cleaner starting ...")
@@ -435,27 +503,6 @@ class Controller:
             data_model=data_model, variable_names=variable_names
         )
 
-        variables = Variables(
-            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
-            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
-        )
-
-        # LONGITUDINAL specific
-        if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
-            algorithm_data_loader = algorithm_data_loaders["generic_longitudinal"](
-                variables=variables
-            )
-        else:
-            algorithm_data_loader = algorithm_data_loaders[algorithm_name](
-                variables=variables
-            )
-
-        data_model_views = nodes_federation.create_data_model_views(
-            variable_groups=algorithm_data_loader.get_variable_groups(),
-            dropna=algorithm_data_loader.get_dropna(),
-            check_min_rows=algorithm_data_loader.get_check_min_rows(),
-        )
-
         # instantiate algorithm execution engine
         engine_init_params = EngineInitParams(
             smpc_enabled=self._smpc_enabled,
@@ -470,33 +517,34 @@ class Controller:
             nodes=nodes_federation.nodes,  # nodes,
         )
 
-        # LONGITUDINAL specific
+        variables = Variables(
+            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
+            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
+        )
+
+        # Instantiate ExecutionStrategy
+        execution_strategy = None
         if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
-            init_params_gl = AlgorithmInitParams(
-                algorithm_name="generic_longitudinal",
-                var_filters=algorithm_request_dto.inputdata.filters,
-                algorithm_parameters=algorithm_request_dto.parameters,
-                datasets=algorithm_request_dto.inputdata.datasets,
-            )
-            algorithm_gl = algorithm_classes["generic_longitudinal"](
-                initialization_params=init_params_gl,
-                data_loader=algorithm_data_loader,
+            execution_strategy = LongitudinalStrategy(
+                algorithm_name=algorithm_name,
+                variables=variables,
+                algorithm_request_dto=algorithm_request_dto,
                 engine=engine,
             )
-            longitudinal_transform_result = await self._algorithm_run_in_event_loop(
-                algorithm=algorithm_gl,
-                data_model_views=data_model_views,
-                metadata=metadata,
+        else:
+            execution_strategy = SingleAlgorithmStrategy(
+                algorithm_name=algorithm_name, variables=variables
             )
 
-            alg_vars = longitudinal_transform_result[0]
-            metadata = longitudinal_transform_result[2]
+        data_model_views = nodes_federation.create_data_model_views(
+            variable_groups=execution_strategy.algorithm_data_loader.get_variable_groups(),
+            dropna=execution_strategy.algorithm_data_loader.get_dropna(),
+            check_min_rows=execution_strategy.algorithm_data_loader.get_check_min_rows(),
+        )
 
-            algorithm_data_loader = algorithm_data_loaders[algorithm_name](
-                variables=alg_vars
-            )
-            new_data_model_views = DataModelViews(longitudinal_transform_result[1])
-            data_model_views = new_data_model_views
+        (algorithm_data_loader, data_model_views) = await execution_strategy.run(
+            data=data_model_views, metadata=metadata
+        )
 
         # instantiate algorithm
         init_params = AlgorithmInitParams(
@@ -523,7 +571,7 @@ class Controller:
 
         # run the algorithm
         try:
-            algorithm_result = await self._algorithm_run_in_event_loop(
+            algorithm_result = await _algorithm_run_in_event_loop(
                 algorithm=algorithm,
                 data_model_views=data_model_views,
                 metadata=metadata,
@@ -549,20 +597,6 @@ class Controller:
             f"Algorithm {algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
         )
         return algorithm_result.json()
-
-    # TODO add types
-    async def _algorithm_run_in_event_loop(self, algorithm, data_model_views, metadata):
-        # By calling blocking method Algorithm.run() inside run_in_executor(),
-        # Algorithm.run() will execute in a separate thread of the threadpool and at
-        # the same time yield control to the executor event loop, through await
-        loop = asyncio.get_event_loop()
-        algorithm_result = await loop.run_in_executor(
-            self._thread_pool_executor,
-            algorithm.run,
-            data_model_views.to_list(),
-            metadata,
-        )
-        return algorithm_result
 
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
@@ -697,3 +731,19 @@ def sanitize_request_variable(variable: list):
         return variable
     else:
         return []
+
+
+_thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
+# TODO add types
+async def _algorithm_run_in_event_loop(algorithm, data_model_views, metadata):
+    # By calling blocking method Algorithm.run() inside run_in_executor(),
+    # Algorithm.run() will execute in a separate thread of the threadpool and at
+    # the same time yield control to the executor event loop, through await
+    loop = asyncio.get_event_loop()
+    algorithm_result = await loop.run_in_executor(
+        _thread_pool_executor,
+        algorithm.run,
+        data_model_views.to_list(),
+        metadata,
+    )
+    return algorithm_result
