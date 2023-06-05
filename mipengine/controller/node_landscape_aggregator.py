@@ -27,9 +27,9 @@ from mipengine.node_info_DTOs import NodeRole
 from mipengine.node_tasks_DTOs import CommonDataElement
 from mipengine.node_tasks_DTOs import CommonDataElements
 from mipengine.node_tasks_DTOs import DataModelAttributes
-from mipengine.singleton import Singleton
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
+LONGITUDINAL = "longitudinal"
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -83,6 +83,12 @@ class DataModelRegistry(ImmutableBaseModel):
     class Config:
         allow_mutation = False
         arbitrary_types_allowed = True
+
+    def is_longitudinal(self, data_model: str) -> bool:
+        return (
+            LONGITUDINAL
+            in self.data_models_attributes.data_models_attributes[data_model].tags
+        )
 
     def get_cdes_specific_data_model(self, data_model) -> CommonDataElements:
         return self.data_models_cdes.data_models_cdes[data_model]
@@ -225,7 +231,7 @@ class DataModelMetadata(ImmutableBaseModel):
 
     datasets_labels: DatasetsLabels
     cdes: Optional[CommonDataElements]
-    attributes: DataModelAttributes
+    attributes: Optional[DataModelAttributes]
 
 
 class DataModelsMetadata(ImmutableBaseModel):
@@ -259,7 +265,19 @@ class InitializationParams(BaseModel):
         allow_mutation = False
 
 
-class NodeLandscapeAggregator(metaclass=Singleton):
+class NodeLandscapeAggregator:
+    def __new__(cls, *args):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(NodeLandscapeAggregator, cls).__new__(cls)
+            return cls.instance
+        else:
+            raise ValueError("NodeLandscapeAggregator instance already exists.")
+
+    @classmethod
+    def _delete_instance(cls):
+        if hasattr(cls, "instance"):
+            del cls.instance
+
     def __init__(self, initialization_params: InitializationParams):
         self._logger = ctrl_logger.get_background_service_logger()
 
@@ -779,7 +797,11 @@ def _get_incompatible_data_models(
             data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
 
-            if data_model in incompatible_data_models or not data_model_metadata.cdes:
+            if (
+                data_model in incompatible_data_models
+                or not data_model_metadata.cdes
+                or not data_model_metadata.attributes
+            ):
                 continue
 
             if data_model in validation_dictionary:
@@ -812,6 +834,7 @@ def _remove_incompatible_data_models_from_data_models_metadata_per_node(
                     for data_model, data_model_metadata in data_models_metadata.data_models_metadata.items()
                     if data_model not in incompatible_data_models
                     and data_model_metadata.cdes
+                    and data_model_metadata.attributes
                 }
             )
             for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()

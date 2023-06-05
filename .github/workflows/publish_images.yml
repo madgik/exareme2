@@ -16,10 +16,17 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to EBRAINS HARBOR
+        uses: docker/login-action@v2
+        with:
+          registry: docker-registry.ebrains.eu
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
 
 # TODO Disabled due to https://team-1617704806227.atlassian.net/browse/MIP-631
 #      - name: Build and Push MONETDB_base docker image to dockerhub
@@ -32,9 +39,11 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4
         with:
-          images: madgik/mipenginedb
+          images: |
+            madgik/mipenginedb
+            docker-registry.ebrains.eu/medical-informatics-platform/mipenginedb
 
       - name: Build and Push MONETDB docker image to dockerhub
         uses: docker/build-push-action@v3
@@ -56,16 +65,25 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Log in to EBRAINS HARBOR
+        uses: docker/login-action@v2
+        with:
+          registry: docker-registry.ebrains.eu
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4
         with:
-          images: madgik/mipengine_mipdb
+          images: |
+            madgik/mipengine_mipdb
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_mipdb
 
       - name: Load MIPDB cached image
         uses: actions/cache@v3
@@ -105,16 +123,25 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Log in to EBRAINS HARBOR
+        uses: docker/login-action@v2
+        with:
+          registry: docker-registry.ebrains.eu
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4
         with:
-          images: madgik/mipengine_rabbitmq
+          images: |
+            madgik/mipengine_rabbitmq
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_rabbitmq
 
       - name: Load RABBITMQ cached image
         uses: actions/cache@v3
@@ -154,16 +181,25 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Log in to EBRAINS HARBOR
+        uses: docker/login-action@v2
+        with:
+          registry: docker-registry.ebrains.eu
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4
         with:
-          images: madgik/mipengine_controller
+          images: |
+            madgik/mipengine_controller
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_controller
 
       - name: Load CONTROLLER service cached image
         uses: actions/cache@v3
@@ -203,16 +239,25 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Log in to EBRAINS HARBOR
+        uses: docker/login-action@v2
+        with:
+          registry: docker-registry.ebrains.eu
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v4
         with:
-          images: madgik/mipengine_node
+          images: |
+            madgik/mipengine_node
+            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_node
 
       - name: Load NODE service cached image
         uses: actions/cache@v3
@@ -221,6 +266,7 @@ jobs:
           key: ${{ runner.os }}-buildx-node-${{hashFiles('mipengine/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-node-
+
       - name: Build NODE service docker image
         uses: docker/build-push-action@v3
         with:

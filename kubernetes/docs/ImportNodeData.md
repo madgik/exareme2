@@ -44,3 +44,17 @@ kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb add-dataset /opt/data/demen
 ```
 kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb --help'
 ```
+
+
+### (FAST) Import of all the data available
+
+Instead of manually importing each data model and dataset there is a command that loads all of the data models and datasets inside a specific folder.
+The to-be imported folder should contain one subfolder for each data model and inside of that any number of dataset csv files.
+
+```
+kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb init'
+kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb load-folder /opt/data'
+```
+
+**ATTENTION** Only absolute paths can be used with this command.
+

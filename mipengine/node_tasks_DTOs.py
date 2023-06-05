@@ -7,6 +7,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+import pandas as pd
 from pydantic import BaseModel
 from pydantic import validator
 
@@ -57,6 +58,13 @@ class TableSchema(ImmutableBaseModel):
     @property
     def column_names(self):
         return [column_info.name for column_info in self.columns]
+
+    @classmethod
+    def from_list(cls, lst: List[Tuple[str, DType]]):
+        return cls(columns=[ColumnInfo(name=name, dtype=dtype) for name, dtype in lst])
+
+    def to_list(self) -> List[Tuple[str, DType]]:
+        return [(col.name, col.dtype) for col in self.columns]
 
 
 class TableInfo(ImmutableBaseModel):
@@ -122,6 +130,10 @@ class TableData(ImmutableBaseModel):
             ColumnDataBinary,
         ]
     ]
+
+    def to_pandas(self) -> pd.DataFrame:
+        data = {column.name: column.data for column in self.columns}
+        return pd.DataFrame(data)
 
 
 class CommonDataElement(ImmutableBaseModel):

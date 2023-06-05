@@ -115,6 +115,10 @@ ALGORITHM EXAMPLES
         ./run_algorithm -a anova_oneway -x ppmicategory -y lefthippocampus \
             -d ppmi1 -m dementia:0.1
 
+    TWO WAY ANOVA
+        ./run_algorithm -a anova -x ppmicategory gender -y lefthippocampus \
+            -d ppmi1 -m dementia:0.1 -p sstype 2
+
     LINEAR REGRESSION
 
         ./run_algorithm -a linear_regression -y righthippocampus \
@@ -215,7 +219,7 @@ def parse_argv(argv):
 def guess_type_and_cast(value: str):
     """Casts values passed in the command line by guessing their type.
 
-    Types supported: bool, int, float, str.
+    Types supported: bool, int, float, valid json as string and any other string.
     """
     try:
         return int(value)
@@ -229,6 +233,10 @@ def guess_type_and_cast(value: str):
         return True
     if value == "False":
         return False
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        pass
     return value
 
 

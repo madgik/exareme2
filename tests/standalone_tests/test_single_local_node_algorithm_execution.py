@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from mipengine import AttrDict
 from mipengine import algorithm_classes
+from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import controller_logger as ctrl_logger
@@ -46,11 +47,6 @@ def controller_config():
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
         "node_landscape_aggregator_update_interval": 30,
-        # "cleanup": {
-        #     "contextids_cleanup_folder": "/tmp",
-        #     "nodes_cleanup_interval": 9999,  # don't cleanup
-        #     "contextid_release_timelimit": 3600,  # 1hour
-        # },
         "localnodes": {
             "config_file": path.join(
                 TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODE1_ADDRESSES_FILE
@@ -87,6 +83,8 @@ def node_landscape_aggregator(
         deployment_type=controller_config.deployment_type,
         localnodes=controller_config.localnodes,
     )
+
+    NodeLandscapeAggregator._delete_instance()
     node_landscape_aggregator = NodeLandscapeAggregator(
         node_landscape_aggregator_init_params
     )
@@ -242,7 +240,35 @@ def metadata_case_2(node_landscape_aggregator, algorithm_request_case_2):
 
 
 @pytest.fixture(scope="function")
-def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
+def algorithm_data_loader_case_1(algorithm_request_case_1):
+    algorithm_name = algorithm_request_case_1[0]
+    algorithm_request_dto = algorithm_request_case_1[1]
+    algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+        variables=Variables(
+            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
+            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
+        ),
+    )
+    return algorithm_data_loader
+
+
+@pytest.fixture(scope="function")
+def algorithm_data_loader_case_2(algorithm_request_case_2):
+    algorithm_name = algorithm_request_case_2[0]
+    algorithm_request_dto = algorithm_request_case_2[1]
+    algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+        variables=Variables(
+            x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
+            y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
+        ),
+    )
+    return algorithm_data_loader
+
+
+@pytest.fixture(scope="function")
+def algorithm_case_1(
+    algorithm_request_case_1, algorithm_data_loader_case_1, engine_case_1
+):
     algorithm_name = algorithm_request_case_1[0]
     algorithm_request_dto = algorithm_request_case_1[1]
 
@@ -258,13 +284,19 @@ def algorithm_case_1(algorithm_request_case_1, metadata_case_1):
         ),
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
-        metadata=metadata_case_1,
+        datasets=algorithm_request_dto.inputdata.datasets,
     )
-    return algorithm_classes[algorithm_name](initialization_params=init_params)
+    return algorithm_classes[algorithm_name](
+        initialization_params=init_params,
+        data_loader=algorithm_data_loader_case_1,
+        engine=engine_case_1,
+    )
 
 
 @pytest.fixture(scope="function")
-def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
+def algorithm_case_2(
+    algorithm_request_case_2, algorithm_data_loader_case_2, engine_case_2
+):
     algorithm_name = algorithm_request_case_2[0]
     algorithm_request_dto = algorithm_request_case_2[1]
 
@@ -280,9 +312,13 @@ def algorithm_case_2(algorithm_request_case_2, metadata_case_2):
         ),
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
-        metadata=metadata_case_2,
+        datasets=algorithm_request_dto.inputdata.datasets,
     )
-    return algorithm_classes[algorithm_name](initialization_params=init_params)
+    return algorithm_classes[algorithm_name](
+        initialization_params=init_params,
+        data_loader=algorithm_data_loader_case_2,
+        engine=engine_case_2,
+    )
 
 
 @pytest.fixture(scope="function")
@@ -337,7 +373,7 @@ def data_model_views_and_nodes_case_1(
     datasets,
     algorithm_request_case_1,
     nodes_case_1,
-    algorithm_case_1,
+    algorithm_data_loader_case_1,
     command_id_generator,
     controller,
 ):
@@ -348,16 +384,19 @@ def data_model_views_and_nodes_case_1(
         local_nodes=nodes.local_nodes,
         datasets=datasets,
         data_model=algorithm_request_dto.inputdata.data_model,
-        variable_groups=algorithm_case_1.get_variable_groups(),
+        variable_groups=algorithm_data_loader_case_1.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
-        dropna=algorithm_case_1.get_dropna(),
-        check_min_rows=algorithm_case_1.get_check_min_rows(),
+        dropna=algorithm_data_loader_case_1.get_dropna(),
+        check_min_rows=algorithm_data_loader_case_1.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
     local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+    if not local_nodes_filtered:
+        pytest.fail(
+            f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
+        )
+
     nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
-    if not nodes.local_nodes:
-        raise RequestConstraintsError(algorithm_request_dto)
     return (data_model_views, nodes)
 
 
@@ -366,7 +405,7 @@ def data_model_views_and_nodes_case_2(
     datasets,
     algorithm_request_case_2,
     nodes_case_2,
-    algorithm_case_2,
+    algorithm_data_loader_case_2,
     command_id_generator,
     controller,
 ):
@@ -377,16 +416,19 @@ def data_model_views_and_nodes_case_2(
         local_nodes=nodes.local_nodes,
         datasets=datasets,
         data_model=algorithm_request_dto.inputdata.data_model,
-        variable_groups=algorithm_case_2.get_variable_groups(),
+        variable_groups=algorithm_data_loader_case_2.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
-        dropna=algorithm_case_2.get_dropna(),
-        check_min_rows=algorithm_case_2.get_check_min_rows(),
+        dropna=algorithm_data_loader_case_2.get_dropna(),
+        check_min_rows=algorithm_data_loader_case_2.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
     local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+    if not local_nodes_filtered:
+        pytest.fail(
+            f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
+        )
+
     nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
-    if not nodes.local_nodes:
-        raise RequestConstraintsError(algorithm_request_dto)
     return (data_model_views, nodes)
 
 
@@ -405,7 +447,6 @@ def engine_case_1(
         request_id=algorithm_request_dto.request_id,
         context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
-        data_model_views=data_model_views_and_nodes_case_1[0],
     )
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
@@ -429,7 +470,6 @@ def engine_case_2(
         request_id=algorithm_request_dto.request_id,
         context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
-        data_model_views=data_model_views_and_nodes_case_2[0],
     )
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
@@ -438,33 +478,39 @@ def engine_case_2(
     )
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "algorithm,engine",
+    "algorithm,data_model_views_and_nodes,metadata",
     [
-        ("algorithm_case_1", "engine_case_1"),
-        ("algorithm_case_2", "engine_case_2"),
+        (
+            "algorithm_case_1",
+            "data_model_views_and_nodes_case_1",
+            "metadata_case_1",
+        ),
+        (
+            "algorithm_case_2",
+            "data_model_views_and_nodes_case_2",
+            "metadata_case_2",
+        ),
     ],
 )
 @pytest.mark.asyncio
 async def test_single_local_node_algorithm_execution(
     algorithm,
-    engine,
+    data_model_views_and_nodes,
+    metadata,
     controller,
     request,
     reset_celery_app_factory,  # celery tasks fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
-    engine = request.getfixturevalue(engine)
-
+    data_model_views = request.getfixturevalue(data_model_views_and_nodes)
+    metadata = request.getfixturevalue(metadata)
     try:
         algorithm_result = await controller._algorithm_run_in_event_loop(
-            algorithm=algorithm, engine=engine
+            algorithm=algorithm,
+            data_model_views=data_model_views[0],
+            metadata=metadata,
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")

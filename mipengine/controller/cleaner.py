@@ -16,7 +16,6 @@ from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.singleton import Singleton
 
 CLEANER_REQUEST_ID = "CLEANER"
 CLEANUP_FILE_TEMPLATE = string.Template("cleanup_${context_id}.toml")
@@ -53,7 +52,7 @@ class _CleanupEntry(BaseModel):
     released: bool
 
 
-class Cleaner(metaclass=Singleton):
+class Cleaner:
     """
     The Cleaner class handles the cleaning of database artifacts created during the
     execution of algorithms.
@@ -102,6 +101,18 @@ class Cleaner(metaclass=Singleton):
     release_context_id(context_id):
         Set the "released" flag of the cleanup entry to true.
     """
+
+    def __new__(cls, *args):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(Cleaner, cls).__new__(cls)
+            return cls.instance
+        else:
+            raise ValueError("Cleaner instance already exists.")
+
+    @classmethod
+    def _delete_instance(cls):
+        if hasattr(cls, "instance"):
+            del cls.instance
 
     def __init__(self, init_params: InitializationParams):
         """

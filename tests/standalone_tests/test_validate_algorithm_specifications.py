@@ -42,7 +42,8 @@ def test_validate_parameter_spec_input_var_CDE_enums_source_is_x_or_y():
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source="not_x_or_y"
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
+                        source=["not_x_or_y"],
                     ),
                 ),
             },
@@ -79,7 +80,7 @@ def test_validate_parameter_spec_input_var_CDE_enums_multiple_false():
                     notblank=False,
                     multiple=True,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source="y"
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source=["y"]
                     ),
                 ),
             },
@@ -116,7 +117,7 @@ def test_validate_parameter_spec_input_var_CDE_enums_inputdata_has_multiple_fals
                     notblank=False,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source="y"
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS, source=["y"]
                     ),
                 ),
             },
@@ -154,6 +155,82 @@ def test_validate_parameter_spec_input_var_names_type_must_be_text():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_NAMES, source=["y"]
+                    ),
+                ),
+            },
+        )
+
+
+def test_validate_parameter_spec_input_var_CDE_enums_only_one_value():
+    exception_type = ValidationError
+    exception_message = (
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has enums type 'input_var_CDE_enums' "
+        "that supports only one value."
+    )
+    with pytest.raises(exception_type, match=exception_message):
+        AlgorithmSpecification(
+            name="sample_algo",
+            desc="sample",
+            label="sample_algo",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+            parameters={
+                "inputdata_cde_enum_param": ParameterSpecification(
+                    label="sample_label",
+                    desc="sample",
+                    types=[ParameterType.TEXT],
+                    notblank=False,
+                    multiple=True,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
+                        source=["y", "second_value"],
+                    ),
+                ),
+            },
+        )
+
+
+def test_validate_parameter_spec_fixed_var_CDE_enums_only_one_value():
+    exception_type = ValidationError
+    exception_message = (
+        ".*In algorithm 'sample_algo', parameter 'sample_label' has enums type 'fixed_var_CDE_enums' "
+        "that supports only one value."
+    )
+    with pytest.raises(exception_type, match=exception_message):
+        AlgorithmSpecification(
+            name="sample_algo",
+            desc="sample",
+            label="sample_algo",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.TEXT],
+                    stattypes=[InputDataStatType.NOMINAL],
+                    notblank=True,
+                    multiple=False,
+                )
+            ),
+            parameters={
+                "inputdata_cde_enum_param": ParameterSpecification(
+                    label="sample_label",
+                    desc="sample",
+                    types=[ParameterType.TEXT],
+                    notblank=False,
+                    multiple=True,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
+                        source=["y", "second_value"],
                     ),
                 ),
             },

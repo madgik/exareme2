@@ -4,12 +4,8 @@ import numpy
 import scipy.stats as stats
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
@@ -24,6 +20,14 @@ from mipengine.udfgen import udf
 ALPHA = 0.05  # NOTE maybe this should be a model parameter
 
 RealVector = tensor(dtype=float, ndims=1)
+
+
+ALGORITHM_NAME = "linear_regression"
+
+
+class LinearRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.x, self._variables.y]
 
 
 class LinearRegressionResult(BaseModel):
@@ -45,52 +49,20 @@ class LinearRegressionResult(BaseModel):
     upper_ci: List[float]
 
 
-class LinearRegressionAlgorithm(Algorithm, algname="linear_regression"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Linear Regression",
-            label="Linear Regression",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
-                    types=[InputDataType.REAL],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-        )
+class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        X, y = data
 
-    def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
-
-    def run(self, engine):
-        X, y = engine.data_model_views
-
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=self.metadata
-        )
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         p = len(dummy_encoder.new_varnames) - 1
 
-        lr = LinearRegression(engine)
+        lr = LinearRegression(self.engine)
         lr.fit(X=X, y=y)
         y_pred: RealVector = lr.predict(X)
         lr.compute_summary(
-            y_test=relation_to_vector(y, engine),
+            y_test=relation_to_vector(y, self.engine),
             y_pred=y_pred,
             p=p,
         )

@@ -5,18 +5,19 @@ import numpy as np
 import scipy.stats as st
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import FormulaTransformer
 from mipengine.algorithms.preprocessing import relation_to_vector
 from mipengine.exceptions import BadUserInput
+
+ALGORITHM_NAME = "anova"
+
+
+class AnovaTwoWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.y, self._variables.x]
 
 
 class AnovaResult(BaseModel):
@@ -27,58 +28,20 @@ class AnovaResult(BaseModel):
     f_pvalue: List[Optional[float]]
 
 
-class AnovaTwoWay(Algorithm, algname="anova"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Two-way analysis of variance (ANOVA)",
-            label="Two-way ANOVA",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="dependent",
-                    desc="Dependent variable",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "sstype": ParameterSpecification(
-                    label="sstype",
-                    desc="Type of sum of squares to use. It can be 1 or 2.",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default="2",
-                    min=1,
-                    max=2,
-                ),
-            },
-        )
+class AnovaTwoWay(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        [[y], xs] = self.variable_groups
+        if len(xs) == 2:
+            x1, x2 = xs
+        else:
+            msg = "Anova two-way only works with two dependent variables. "
+            msg += f"Got {len(xs)} varible(s) instead."
+            raise BadUserInput(msg)
 
-    def get_variable_groups(self):
-        [y] = self.variables.y
-        x1, x2 = self.variables.x
-        return [[y], [x1, x2]]
+        Y, X = data
 
-    def run(self, engine):
-        [[y], [x1, x2]] = self.get_variable_groups()
-
-        Y, X = engine.data_model_views
-
-        x1_enums = list(self.metadata[x1]["enumerations"])
-        x2_enums = list(self.metadata[x2]["enumerations"])
+        x1_enums = list(metadata[x1]["enumerations"])
+        x2_enums = list(metadata[x2]["enumerations"])
         sstype = self.algorithm_parameters["sstype"]
 
         if len(x1_enums) < 2:
@@ -109,7 +72,7 @@ class AnovaTwoWay(Algorithm, algname="anova"):
 
         # Define datasets for each lm based on above formulas
         transformers = {
-            formula: FormulaTransformer(engine, self.variables, self.metadata, formula)
+            formula: FormulaTransformer(self.engine, self.variables, metadata, formula)
             for formula in formulas
         }
         Xs = {
@@ -134,13 +97,13 @@ class AnovaTwoWay(Algorithm, algname="anova"):
             )
 
         # Define lms and fit to data
-        models = {formula: LinearRegression(engine) for formula in formulas}
+        models = {formula: LinearRegression(self.engine) for formula in formulas}
         for formula in formulas:
             X = Xs[formula]
             model = models[formula]
             model.fit(X, Y)
             model.compute_summary(
-                y_test=relation_to_vector(Y, engine),
+                y_test=relation_to_vector(Y, self.engine),
                 y_pred=model.predict(X),
                 p=len(X.columns) - 1,
             )

@@ -62,7 +62,7 @@ class InputDataSpecifications(ImmutableBaseModel):
 
 class ParameterEnumSpecification(ImmutableBaseModel):
     type: ParameterEnumType
-    source: Any
+    source: List[str]
 
 
 class ParameterSpecification(ImmutableBaseModel):
@@ -79,11 +79,26 @@ class ParameterSpecification(ImmutableBaseModel):
     max: Optional[float]
 
 
+def _validate_parameter_with_enums_type_fixed_var_CDE_enums(param_value, cls_values):
+    if len(param_value.enums.source) != 1:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'fixed_var_CDE_enums' "
+            f"that supports only one value. Value given: {param_value.enums.source}."
+        )
+
+
 def _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_values):
-    if param_value.enums.source not in ["x", "y"]:
+    if len(param_value.enums.source) != 1:
         raise ValueError(
             f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'input_var_CDE_enums' "
-            f"that supports only 'x' or 'y' as source. Value given: '{param_value.enums.source}'."
+            f"that supports only one value. Value given: {param_value.enums.source}."
+        )
+
+    value = param_value.enums.source[0]  # Only one value is allowed
+    if value not in ["x", "y"]:
+        raise ValueError(
+            f"In algorithm '{cls_values['label']}', parameter '{param_value.label}' has enums type 'input_var_CDE_enums' "
+            f"that supports only 'x' or 'y' as source. Value given: '{value}'."
         )
     if param_value.multiple:
         raise ValueError(
@@ -91,9 +106,7 @@ def _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_val
             f"that doesn't support 'multiple=True', in the parameter."
         )
     inputdata_var = (
-        cls_values["inputdata"].x
-        if param_value.enums.source == "x"
-        else cls_values["inputdata"].y
+        cls_values["inputdata"].x if value == "x" else cls_values["inputdata"].y
     )
     if inputdata_var.multiple:
         raise ValueError(
@@ -115,9 +128,11 @@ def _validate_parameter_with_enums_type_input_var_names(param_value, cls_values)
 def _validate_parameter_enums(param_value, cls_values):
     if not param_value.enums:
         return
-    if param_value.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
+    if param_value.enums.type == ParameterEnumType.FIXED_VAR_CDE_ENUMS:
+        _validate_parameter_with_enums_type_fixed_var_CDE_enums(param_value, cls_values)
+    elif param_value.enums.type == ParameterEnumType.INPUT_VAR_CDE_ENUMS:
         _validate_parameter_with_enums_type_input_var_CDE_enums(param_value, cls_values)
-    if param_value.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
+    elif param_value.enums.type == ParameterEnumType.INPUT_VAR_NAMES:
         _validate_parameter_with_enums_type_input_var_names(param_value, cls_values)
 
 

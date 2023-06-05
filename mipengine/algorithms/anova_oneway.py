@@ -3,12 +3,8 @@ from typing import TypeVar
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
@@ -18,6 +14,13 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
+ALGORITHM_NAME = "anova_oneway"
+
+
+class AnovaOneWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.x, self._variables.y]
+
 
 class AnovaResult(BaseModel):
     anova_table: dict
@@ -26,47 +29,17 @@ class AnovaResult(BaseModel):
     ci_info: dict
 
 
-class AnovaOneWayAlgorithm(Algorithm, algname="anova_oneway"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="ANOVA One-way",
-            label="ANOVA One-way",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="independent",
-                    desc="independent variable",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-                y=InputDataSpecification(
-                    label="dependent",
-                    desc="Dependent variable",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-        )
+class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
 
-    def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
-
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
-
-        X_relation, Y_relation = engine.data_model_views
+        X_relation, Y_relation = data
 
         [x_var_name] = self.variables.x
         [y_var_name] = self.variables.y
 
-        covar_enums = list(self.metadata[x_var_name]["enumerations"])
+        covar_enums = list(metadata[x_var_name]["enumerations"])
 
         sec_local_transfer, local_transfers = local_run(
             func=local1,
@@ -477,7 +450,7 @@ def get_min_max_ci_info(
         "max": var_max_per_group,
     }
     df1_means_stds = pd.DataFrame(df1_means_stds_dict, index=categories).drop(
-        "categories", 1
+        "categories", axis=1
     )
     df1_means_stds["m-s"] = list(
         df1_means_stds["means"] - df1_means_stds["sample_stds"]

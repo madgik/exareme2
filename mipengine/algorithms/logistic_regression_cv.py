@@ -5,112 +5,48 @@ from typing import Optional
 import sklearn.metrics as skm
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.crossvalidation import KFold
+from mipengine.algorithms.crossvalidation import cross_validate
 from mipengine.algorithms.logistic_regression import LogisticRegression
 from mipengine.algorithms.metrics import compute_classification_metrics
-from mipengine.algorithms.metrics import confusion_matrix
+from mipengine.algorithms.metrics import confusion_matrix_binary
 from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
-from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import LabelBinarizer
 
+ALGORITHM_NAME = "logistic_regression_cv"
 
-class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Logistic Regression Cross-validation",
-            label="Logistic Regression Cross-validation",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="target",
-                    desc="Target",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "positive_class": ParameterSpecification(
-                    label="Positive class",
-                    desc="Positive class of y. All other classes are considered negative.",
-                    types=[ParameterType.TEXT, ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
-                    ),
-                ),
-                "n_splits": ParameterSpecification(
-                    label="Number of splits",
-                    desc="Number of splits",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=5,
-                    min=2,
-                    max=20,
-                ),
-            },
-        )
 
+class LogisticRegressionCVDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
+        return [self._variables.x, self._variables.y]
 
-    def run(self, engine):
-        X, y = engine.data_model_views
+
+class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        X, y = data
 
         positive_class = self.algorithm_parameters["positive_class"]
         n_splits = self.algorithm_parameters["n_splits"]
 
         # Dummy encode categorical variables
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=self.metadata
-        )
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
         # Binarize `y` by mapping positive_class to 1 and everything else to 0
-        ybin = LabelBinarizer(engine, positive_class).transform(y)
+        ybin = LabelBinarizer(self.engine, positive_class).transform(y)
 
-        # Split datasets according to k-fold CV
-        kf = KFold(engine, n_splits=n_splits)
-        X_train, X_test, y_train, y_test = kf.split(X, ybin)
-
-        # Create models
-        models = [LogisticRegression(engine) for _ in range(n_splits)]
-
-        # Train models
-        for model, X, y in zip(models, X_train, y_train):
-            model.fit(X=X, y=y)
-
-        # Compute prediction probabilities
-        probas = [model.predict_proba(X) for model, X in zip(models, X_test)]
+        # Perform cross-validation
+        kf = KFold(self.engine, n_splits=n_splits)
+        models = [LogisticRegression(self.engine) for _ in range(n_splits)]
+        probas, y_true = cross_validate(X, ybin, models, kf, pred_type="probabilities")
 
         # Patrial and total confusion matrices
         confmats = [
-            confusion_matrix(engine, ytrue, proba)
-            for ytrue, proba in zip(y_test, probas)
+            confusion_matrix_binary(self.engine, ytrue, proba)
+            for ytrue, proba in zip(y_true, probas)
         ]
         total_confmat = sum(confmats)
         tn, fp, fn, tp = total_confmat.ravel()
@@ -123,7 +59,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname="logistic_regression_cv")
 
         # ROC curves
         roc_curves = [
-            roc_curve(engine, ytrue, proba) for ytrue, proba in zip(y_test, probas)
+            roc_curve(self.engine, ytrue, proba) for ytrue, proba in zip(y_true, probas)
         ]
         aucs = [skm.auc(x=fpr, y=tpr) for tpr, fpr in roc_curves]
         roc_curves_result = [

@@ -32,15 +32,12 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+import numpy
 import pandas as pd
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
@@ -50,6 +47,26 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 DATASET_VAR_NAME = "dataset"
+ALGORITHM_NAME = "descriptive_stats"
+
+
+class DescriptiveStatisticsDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        xvars = self._variables.x
+        yvars = self._variables.y
+
+        # dataset variable is special as it is used to group results. Thus, it
+        # doesn't make sense to include it also as variable.
+        vars = [var for var in xvars + yvars if var != DATASET_VAR_NAME]
+        variable_groups = [vars + [DATASET_VAR_NAME]]
+
+        return variable_groups
+
+    def get_dropna(self) -> bool:
+        return False
+
+    def get_check_min_rows(self) -> bool:
+        return False
 
 
 class NumericalDescriptiveStats(BaseModel):
@@ -93,57 +110,13 @@ class Result(BaseModel):
     model_based: List[Variable]
 
 
-class DescriptiveStatisticsAlgorithm(Algorithm, algname="descriptive_stats"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Descriptive statistics",
-            label="Descriptive statistics",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="x",
-                    desc="x",
-                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=False,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="y",
-                    desc="y",
-                    types=[InputDataType.INT, InputDataType.REAL, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-            ),
-        )
+class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
 
-    def get_variable_groups(self):
-        xvars = self.variables.x
-        yvars = self.variables.y  # or []
-
-        # dataset variable is special as it is used to group results. Thus, it
-        # doesn't make sense to include it also as variable.
-        vars = [var for var in xvars + yvars if var != DATASET_VAR_NAME]
-        variable_groups = [vars + [DATASET_VAR_NAME]]
-
-        return variable_groups
-
-    def get_dropna(self) -> bool:
-        return False
-
-    def get_check_min_rows(self) -> bool:
-        return False
-
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
-
-        [data] = engine.data_model_views
-        metadata = self.metadata
+        [data] = data
+        metadata = metadata
         datasets = self.datasets
 
         vars = [v for v in data.columns if v != DATASET_VAR_NAME]
@@ -254,7 +227,7 @@ def local(
                 q2=q2[var],
                 q3=q3[var],
                 mean=mean[var],
-                std=std[var],
+                std=None if numpy.isnan(std[var]) else std[var],
                 min=min_[var],
                 max=max_[var],
             )
@@ -350,7 +323,7 @@ def add_records(r1, r2):
     mean = sx / num
     result["mean"] = mean
     variance = sxx / (num - 1) - 2 * mean * sx / (num - 1) + num / (num - 1) * mean**2
-    result["std"] = math.sqrt(variance)
+    result["std"] = None if numpy.isnan(variance) else math.sqrt(variance)
     return result
 
 

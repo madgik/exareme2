@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -6,6 +5,7 @@ import pytest
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.helpers import parse_response
 
 algorithm_name = "ttest_paired"
 
@@ -15,7 +15,7 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_paired_ttest(test_input, expected):
     response = algorithm_request(algorithm_name, test_input)
-    result = json.loads(response.content)
+    result = parse_response(response)
 
     assert_allclose(result["t_stat"], expected["statistic"], rtol=1e-8, atol=1e-10)
     assert_allclose(result["p"], expected["p_value"], rtol=1e-8, atol=1e-10)

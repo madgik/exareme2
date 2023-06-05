@@ -5,16 +5,8 @@ import scipy.stats as stats
 from pydantic import BaseModel
 from scipy.special import xlogy
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
@@ -29,63 +21,25 @@ MAX_ITER = 50  # maximum iterations before cancelling run due to non convergence
 TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
+ALGORITHM_NAME = "logistic_regression"
 
-class LogisticRegressionAlgorithm(Algorithm, algname="logistic_regression"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Logistic Regression",
-            label="Logistic Regression",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="features",
-                    desc="Features",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="target",
-                    desc="Target variable",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "positive_class": ParameterSpecification(
-                    label="Positive class",
-                    desc="Positive class of y. All other classes are considered negative.",
-                    types=[ParameterType.TEXT, ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
-                    ),
-                ),
-            },
-        )
 
+class LogisticRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
-        return [self.variables.x, self.variables.y]
+        return [self._variables.x, self._variables.y]
 
-    def run(self, engine):
-        X, y = engine.data_model_views
+
+class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        X, y = data
         positive_class = self.algorithm_parameters["positive_class"]
 
-        dummy_encoder = DummyEncoder(
-            engine=engine, variables=self.variables, metadata=self.metadata
-        )
+        dummy_encoder = DummyEncoder(engine=self.engine, metadata=metadata)
         X = dummy_encoder.transform(X)
 
-        ybin = LabelBinarizer(engine, positive_class).transform(y)
+        ybin = LabelBinarizer(self.engine, positive_class).transform(y)
 
-        lr = LogisticRegression(engine)
+        lr = LogisticRegression(self.engine)
         lr.fit(X=X, y=ybin)
 
         summary = compute_summary(model=lr)

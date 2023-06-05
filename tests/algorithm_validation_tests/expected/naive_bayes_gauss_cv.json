@@ -1,0 +1,242 @@
+{
+    "test_cases": [
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "rightainsanteriorinsula",
+                        "leftorifgorbitalpartoftheinferiorfrontalgyrus",
+                        "rightttgtransversetemporalgyrus",
+                        "leftsmcsupplementarymotorcortex",
+                        "rightthalamusproper",
+                        "leftpogpostcentralgyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "ppmi2",
+                        "ppmi8",
+                        "desd-synthdata8",
+                        "edsd5",
+                        "ppmi9",
+                        "edsd2",
+                        "edsd7",
+                        "ppmi5",
+                        "edsd0",
+                        "desd-synthdata5",
+                        "ppmi6",
+                        "ppmi0",
+                        "desd-synthdata7",
+                        "ppmi4",
+                        "desd-synthdata1",
+                        "ppmi7",
+                        "ppmi3",
+                        "ppmi1",
+                        "edsd3",
+                        "desd-synthdata6",
+                        "desd-synthdata4",
+                        "desd-synthdata2",
+                        "desd-synthdata9",
+                        "edsd9",
+                        "edsd1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_splits": 3
+                },
+                "test_case_num": 0
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "leftpcuprecuneus",
+                        "rightmfcmedialfrontalcortex",
+                        "leftmcggmiddlecingulategyrus",
+                        "rightmsfgsuperiorfrontalgyrusmedialsegment",
+                        "leftptplanumtemporale"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi9",
+                        "desd-synthdata7",
+                        "desd-synthdata2",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_splits": 5
+                },
+                "test_case_num": 1
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "leftmogmiddleoccipitalgyrus",
+                        "leftamygdala",
+                        "leftaorganteriororbitalgyrus",
+                        "leftsmgsupramarginalgyrus",
+                        "rightitginferiortemporalgyrus",
+                        "leftocpoccipitalpole",
+                        "rightthalamusproper",
+                        "rightmcggmiddlecingulategyrus",
+                        "rightententorhinalarea",
+                        "rightangangulargyrus",
+                        "subjectage",
+                        "rightcuncuneus",
+                        "leftscasubcallosalarea",
+                        "rightpallidum",
+                        "leftfrpfrontalpole",
+                        "leftmsfgsuperiorfrontalgyrusmedialsegment",
+                        "leftcerebralwhitematter",
+                        "leftorifgorbitalpartoftheinferiorfrontalgyrus",
+                        "leftitginferiortemporalgyrus",
+                        "rightsfgsuperiorfrontalgyrus",
+                        "rightventraldc",
+                        "leftphgparahippocampalgyrus",
+                        "rightaorganteriororbitalgyrus",
+                        "leftcalccalcarinecortex",
+                        "leftofugoccipitalfusiformgyrus",
+                        "rightpcggposteriorcingulategyrus",
+                        "rightmogmiddleoccipitalgyrus",
+                        "rightaccumbensarea",
+                        "opticchiasm",
+                        "lefttrifgtriangularpartoftheinferiorfrontalgyrus",
+                        "rightmsfgsuperiorfrontalgyrusmedialsegment",
+                        "rightcerebellumwhitematter",
+                        "rightputamen"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd9",
+                        "desd-synthdata1",
+                        "desd-synthdata9",
+                        "desd-synthdata5",
+                        "edsd4",
+                        "ppmi4",
+                        "edsd1",
+                        "desd-synthdata3",
+                        "desd-synthdata7",
+                        "edsd5",
+                        "edsd0",
+                        "ppmi0",
+                        "ppmi9",
+                        "desd-synthdata6",
+                        "edsd8",
+                        "desd-synthdata2",
+                        "edsd3",
+                        "ppmi6",
+                        "ppmi8",
+                        "desd-synthdata8",
+                        "edsd7",
+                        "ppmi1",
+                        "ppmi3",
+                        "ppmi7",
+                        "desd-synthdata4",
+                        "edsd2",
+                        "edsd6",
+                        "ppmi2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_splits": 7
+                },
+                "test_case_num": 2
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "leftstgsuperiortemporalgyrus",
+                        "rightppplanumpolare",
+                        "leftpcggposteriorcingulategyrus",
+                        "leftlateralventricle",
+                        "leftphgparahippocampalgyrus",
+                        "lefttmptemporalpole"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata5",
+                        "ppmi4",
+                        "desd-synthdata7",
+                        "ppmi6",
+                        "edsd4",
+                        "ppmi5",
+                        "desd-synthdata9",
+                        "edsd1",
+                        "edsd6",
+                        "ppmi2",
+                        "ppmi0",
+                        "edsd8"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_splits": 10
+                },
+                "test_case_num": 3
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "righthippocampus",
+                        "rightcaudate",
+                        "cerebellarvermallobulesviiix",
+                        "rightmorgmedialorbitalgyrus",
+                        "rightbasalforebrain",
+                        "leftangangulargyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd3",
+                        "ppmi8",
+                        "desd-synthdata9",
+                        "desd-synthdata3",
+                        "edsd9",
+                        "edsd5",
+                        "ppmi1",
+                        "ppmi5",
+                        "desd-synthdata2",
+                        "ppmi6",
+                        "desd-synthdata4",
+                        "desd-synthdata8",
+                        "edsd8",
+                        "edsd7",
+                        "ppmi7",
+                        "edsd1",
+                        "desd-synthdata6"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_splits": 4
+                },
+                "test_case_num": 4
+            }
+        }
+    ]
+}

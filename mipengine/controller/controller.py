@@ -9,6 +9,7 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from mipengine import algorithm_classes
+from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
 from mipengine.controller import algorithms_specifications
@@ -177,31 +178,24 @@ class Controller:
             data_model=data_model, variable_names=variable_names
         )
 
-        # instantiate algorithm
-        init_params = AlgorithmInitParams(
-            algorithm_name=algorithm_name,
+        command_id_generator = CommandIdGenerator()
+
+        algorithm_data_loader = algorithm_data_loaders[algorithm_name](
             variables=Variables(
                 x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
                 y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
             ),
-            var_filters=algorithm_request_dto.inputdata.filters,
-            algorithm_parameters=algorithm_request_dto.parameters,
-            metadata=metadata,
-            datasets=algorithm_request_dto.inputdata.datasets,
         )
-        algorithm = algorithm_classes[algorithm_name](initialization_params=init_params)
-
-        command_id_generator = CommandIdGenerator()
 
         # create data model views
         data_model_views = self._create_data_model_views(
             local_nodes=nodes.local_nodes,
             datasets=datasets,
             data_model=data_model,
-            variable_groups=algorithm.get_variable_groups(),
+            variable_groups=algorithm_data_loader.get_variable_groups(),
             var_filters=algorithm_request_dto.inputdata.filters,
-            dropna=algorithm.get_dropna(),
-            check_min_rows=algorithm.get_check_min_rows(),
+            dropna=algorithm_data_loader.get_dropna(),
+            check_min_rows=algorithm_data_loader.get_check_min_rows(),
             command_id=command_id_generator.get_next_command_id(),
         )
         if not data_model_views:
@@ -224,12 +218,24 @@ class Controller:
             request_id=algorithm_request_dto.request_id,
             context_id=context_id,
             algo_flags=algorithm_request_dto.flags,
-            data_model_views=data_model_views,
         )
         engine = _create_algorithm_execution_engine(
             engine_init_params=engine_init_params,
             command_id_generator=command_id_generator,
             nodes=nodes,
+        )
+
+        # instantiate algorithm
+        init_params = AlgorithmInitParams(
+            algorithm_name=algorithm_name,
+            var_filters=algorithm_request_dto.inputdata.filters,
+            algorithm_parameters=algorithm_request_dto.parameters,
+            datasets=algorithm_request_dto.inputdata.datasets,
+        )
+        algorithm = algorithm_classes[algorithm_name](
+            initialization_params=init_params,
+            data_loader=algorithm_data_loader,
+            engine=engine,
         )
 
         log_experiment_execution(
@@ -245,7 +251,9 @@ class Controller:
         # run the algorithm
         try:
             algorithm_result = await self._algorithm_run_in_event_loop(
-                algorithm=algorithm, engine=engine
+                algorithm=algorithm,
+                data_model_views=data_model_views,
+                metadata=metadata,
             )
         except CeleryConnectionError as exc:
             algo_execution_logger.error(
@@ -273,13 +281,17 @@ class Controller:
         )
         return algorithm_result.json()
 
-    async def _algorithm_run_in_event_loop(self, algorithm, engine):
+    # TODO add types
+    async def _algorithm_run_in_event_loop(self, algorithm, data_model_views, metadata):
         # By calling blocking method Algorithm.run() inside run_in_executor(),
         # Algorithm.run() will execute in a separate thread of the threadpool and at
         # the same time yield control to the executor event loop, through await
         loop = asyncio.get_event_loop()
         algorithm_result = await loop.run_in_executor(
-            self._thread_pool_executor, algorithm.run, engine
+            self._thread_pool_executor,
+            algorithm.run,
+            data_model_views,
+            metadata,
         )
         return algorithm_result
 
