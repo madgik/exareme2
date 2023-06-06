@@ -32,9 +32,10 @@ class RandomForestResult(BaseModel):
 
 
 class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
+    def run(self, data, metadata):
+
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
 
         xvars = self.variables.x
         yvars = self.variables.y
@@ -44,11 +45,11 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         default_estimators = 64
         num_trees = self.algorithm_parameters.get("num_estimators", default_estimators)
         if num_trees is None:
-            num_trees = default_bins
+            num_trees = default_estimators
 
-        [data] = engine.data_model_views
+        [data] = data
 
-        metadata = dict(self.metadata)
+        metadata = dict(metadata)
 
         vars = [var for var in xvars + yvars]
 
@@ -58,7 +59,7 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         locals_result = local_run(
             func=fit_trees_local,
-            positional_args=[data, enumerations_dict, yvar, xvars],
+            positional_args=[data, enumerations_dict, yvar, xvars, num_trees],
             share_to_global=[True],
         )
 
@@ -71,69 +72,88 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         ret_val = RandomForestResult(title="random_forest")
         return ret_val
 
-    @udf(
-        data=relation(S),
-        enumerations_dict=literal(),
-        yvar=literal(),
-        xvars=literal(),
-        num_trees=literal(),
-        return_type=[transfer()],
-    )
-    def fit_trees_local(data, enumerations_dict, yvar, xvars, num_trees):
-        from sklearn import preprocessing
-        from sklearn.ensemble import RandomForestClassifier
 
-        xdata = data[xvars]
-        ydata = data[yvar]
+@udf(
+    data=relation(S),
+    enumerations_dict=literal(),
+    yvar=literal(),
+    xvars=literal(),
+    num_trees=literal(),
+    return_type=[transfer()],
+)
+def fit_trees_local(data, enumerations_dict, yvar, xvars, num_trees):
+    import codecs
+    import pickle
 
-        le = preprocessing.LabelEncoder()
-        le.fit(ydata)
-        ydata_enc = le.transform(ydata)
-
-        model = RandomForestClassifier(n_estimators=num_trees)
-        model.fit(xdata, ydata_enc)
-
-        transfer_ = {
-            "forest": serialize_rf(model),
-        }
-
-        return transfer_
-
-    @udf(local_transfers=merge_transfer(), return_type=transfer())
-    def merge_trees(local_transfers):
-        forest_list = []
-        for transfer in local_transfers:
-            curr_model = transfer["forest"]
-            curr_model2 = deserialize_rf(curr_model)
-            forest_list.append(curr_model2)
-
-        from copy import deepcopy
-
-        final_model_rf = deepcopy(forest_list[0])
-        list1 = []
-        for curr_model2 in forest_list:
-            estimators = curr_model2.estimators_
-            for curr_estimator in estimators:
-                list1.append(curr_estimator)
-        final_model_rf.estimators_ = list1
-
-        transfer_ = {"final_model": serialize_rf(final_model_rf)}
-
-        return transfer_
+    from sklearn import preprocessing
+    from sklearn.ensemble import RandomForestClassifier
 
     def serialize_rf(model):
-        import pickle
 
-        curr_bytes = pickle.dumps(model)
-        curr_str = curr_bytes.decode("utf-8")
+        rf_serialized = pickle.dumps(model)
+        curr_str = codecs.encode(rf_serialized, "base64").decode()
+
         return curr_str
 
-        # return bytes_list
+    def deserialize_rf(curr_str):
 
-    def deserialize_rf(model_str):
-        import pickle
+        bytes_again = codecs.decode(curr_str.encode(), "base64")
+        unpickled = pickle.loads(bytes_again)
 
-        curr_byte = model_str.encode("utf-8")
-        curr_model = pickle.loads(curr_byte)
+        return unpickled
 
-        return curr_model
+    X = data[xvars]
+    y = data[yvar]
+    le = preprocessing.LabelEncoder()
+    le.fit(y)
+    ydata_enc = le.transform(y)
+
+    model = RandomForestClassifier(n_estimators=num_trees)
+    model.fit(X, ydata_enc)
+
+    transfer_ = {
+        "forest": serialize_rf(model),
+    }
+
+    return transfer_
+
+
+@udf(local_transfers=merge_transfer(), return_type=transfer())
+def merge_trees(local_transfers):
+
+    import codecs
+    import pickle
+
+    def serialize_rf(model):
+
+        rf_serialized = pickle.dumps(model)
+        curr_str = codecs.encode(rf_serialized, "base64").decode()
+
+        return curr_str
+
+    def deserialize_rf(curr_str):
+
+        bytes_again = codecs.decode(curr_str.encode(), "base64")
+        unpickled = pickle.loads(bytes_again)
+
+        return unpickled
+
+    forest_list = []
+    for transfer in local_transfers:
+        curr_model = transfer["forest"]
+        curr_model2 = deserialize_rf(curr_model)
+        forest_list.append(curr_model2)
+
+    from copy import deepcopy
+
+    final_model_rf = deepcopy(forest_list[0])
+    list1 = []
+    for curr_model2 in forest_list:
+        estimators = curr_model2.estimators_
+        for curr_estimator in estimators:
+            list1.append(curr_estimator)
+    final_model_rf.estimators_ = list1
+
+    transfer_ = {"final_model": serialize_rf(final_model_rf)}
+
+    return transfer_
