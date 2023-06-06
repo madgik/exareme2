@@ -6,14 +6,8 @@ from typing import Union
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
 from mipengine.algorithms.algorithm import Algorithm
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
@@ -25,50 +19,19 @@ from mipengine.udfgen import udf
 
 S = TypeVar("S")
 
+ALGORITHM_NAME = "random_forest"
 
-class MultipleHistogramsAlgorithm(Algorithm, algname="random_forest"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Random Forest",
-            label="Random Forest",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="y",
-                    desc="class_values",
-                    types=[InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-                x=InputDataSpecification(
-                    label="x",
-                    desc="Nominal variable for grouping bins.",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=False,
-                    multiple=True,
-                ),
-            ),
-            parameters={
-                "n_estimators": ParameterSpecification(
-                    label="Number of Trees",
-                    desc="Number of Trees",
-                    types=[ParameterType.INT],
-                    notblank=False,
-                    multiple=False,
-                    default=64,
-                    min=1,
-                    max=100,
-                ),
-            },
-        )
 
+class RandomForestDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
-        return [self.variables.y + self.variables.x]
+        return [self._variables.y + self._variables.x]
 
+
+class RandomForestResult(BaseModel):
+    title: str  # y
+
+
+class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, engine):
         local_run = engine.run_udf_on_local_nodes
         global_run = engine.run_udf_on_global_node
@@ -105,6 +68,9 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="random_forest"):
             share_to_locals=[True],
         )
 
+        ret_val = RandomForestResult(title="random_forest")
+        return ret_val
+
     @udf(
         data=relation(S),
         enumerations_dict=literal(),
@@ -114,13 +80,18 @@ class MultipleHistogramsAlgorithm(Algorithm, algname="random_forest"):
         return_type=[transfer()],
     )
     def fit_trees_local(data, enumerations_dict, yvar, xvars, num_trees):
+        from sklearn import preprocessing
         from sklearn.ensemble import RandomForestClassifier
 
         xdata = data[xvars]
         ydata = data[yvar]
 
+        le = preprocessing.LabelEncoder()
+        le.fit(ydata)
+        ydata_enc = le.transform(ydata)
+
         model = RandomForestClassifier(n_estimators=num_trees)
-        model.fit(xdata, ydata)
+        model.fit(xdata, ydata_enc)
 
         transfer_ = {
             "forest": serialize_rf(model),
