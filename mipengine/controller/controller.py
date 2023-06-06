@@ -5,11 +5,13 @@ from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Optional
+from logging import Logger
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
@@ -132,7 +134,7 @@ class DataModelViewsCreator:
 
     def create_data_model_views(
         self,
-    ) -> List[LocalNodesTable]:
+    ) -> DataModelViews:  # List[LocalNodesTable]:
         """
         Creates the data model views, for each variable group provided,
         using also the algorithm request arguments (data_model, datasets, filters).
@@ -362,11 +364,22 @@ from abc import abstractmethod
 
 
 class ExecutionStrategy(ABC):
-    def __init__(self, algorithm_name: str, variables: Variables):
+    def __init__(
+        self,
+        algorithm_name: str,
+        variables: Variables,
+        algorithm_request_dto: AlgorithmRequestDTO,
+        engine: AlgorithmExecutionEngine,
+        logger: Logger,
+    ):
         self._algorithm_name = algorithm_name
+        self._variables=variables
         self._algorithm_data_loader = algorithm_data_loaders[algorithm_name](
             variables=variables
         )
+        self._algorithm_request_dto = algorithm_request_dto
+        self._engine = engine
+        self._logger = logger
 
     @property
     def algorithm_data_loader(self):
@@ -384,12 +397,22 @@ class LongitudinalStrategy(ExecutionStrategy):
         variables: Variables,
         algorithm_request_dto: AlgorithmRequestDTO,
         engine: AlgorithmExecutionEngine,
+        logger: Logger,
     ):
-        super().__init__(algorithm_name="generic_longitudinal", variables=variables)
-        self._algorithm_name = algorithm_name
+        super().__init__(
+            algorithm_name=algorithm_name,
+            variables=variables,
+            algorithm_request_dto=algorithm_request_dto,
+            engine=engine,
+            logger=logger,
+        )
+        self._algorithm_data_loader = algorithm_data_loaders["generic_longitudinal"](
+            variables=variables
+        )
+        # self._algorithm_name = algorithm_name
 
-        self._algorithm_request_dto = algorithm_request_dto
-        self._engine = engine
+        # self._algorithm_request_dto = algorithm_request_dto
+        # self._engine = engine
 
     async def run(self, data, metadata):
         init_params_gl = AlgorithmInitParams(
@@ -400,6 +423,9 @@ class LongitudinalStrategy(ExecutionStrategy):
         )
         algorithm_gl = algorithm_classes["generic_longitudinal"](
             initialization_params=init_params_gl,
+            # data_loader=algorithm_data_loaders["generic_longitudinal"](
+            #     variables=self._variables
+            # ),
             data_loader=self._algorithm_data_loader,
             engine=self._engine,
         )
@@ -408,7 +434,6 @@ class LongitudinalStrategy(ExecutionStrategy):
             data_model_views=data,  # data_model_views,
             metadata=metadata,
         )
-
         alg_vars = longitudinal_transform_result[0]
         metadata = longitudinal_transform_result[2]
 
@@ -416,15 +441,141 @@ class LongitudinalStrategy(ExecutionStrategy):
             variables=alg_vars
         )
         new_data_model_views = DataModelViews(longitudinal_transform_result[1])
-        return (algorithm_data_loader, new_data_model_views)
+        # return (algorithm_data_loader, new_data_model_views)
+
+        algorithm_executor = AlgorithmExecutor(
+            engine=self._engine,
+            algorithm_data_loader=algorithm_data_loader,
+            algorithm_name=self._algorithm_name,
+            datasets=self._algorithm_request_dto.inputdata.datasets,
+            filters=self._algorithm_request_dto.inputdata.filters,
+            params=self._algorithm_request_dto.parameters,
+            logger=self._logger,
+        )
+
+        algorithm_result = await algorithm_executor.run(
+            data=new_data_model_views, metadata=metadata
+        )
+        return algorithm_result
 
 
 class SingleAlgorithmStrategy(ExecutionStrategy):
-    def __init__(self, algorithm_name: str, variables: Variables):
-        super().__init__(algorithm_name=algorithm_name, variables=variables)
+    def __init__(
+        self,
+        algorithm_name: str,
+        variables: Variables,
+        algorithm_request_dto: AlgorithmRequestDTO,
+        engine: AlgorithmExecutionEngine,
+        logger: Logger,
+    ):
+        super().__init__(
+            algorithm_name=algorithm_name,
+            variables=variables,
+            algorithm_request_dto=algorithm_request_dto,
+            engine=engine,
+            logger=logger,
+        )
+        
+    async def run(self, data, metadata):
+        # return (self._algorithm_data_loader, data)
+        algorithm_executor = AlgorithmExecutor(
+            engine=self._engine,
+            algorithm_data_loader=self._algorithm_data_loader,
+            algorithm_name=self._algorithm_name,
+            datasets=self._algorithm_request_dto.inputdata.datasets,
+            filters=self._algorithm_request_dto.inputdata.filters,
+            params=self._algorithm_request_dto.parameters,
+            logger=self._logger,
+        )
+
+        algorithm_result = await algorithm_executor.run(
+            data=data, metadata=metadata
+        )
+        return algorithm_result
+
+
+class AlgorithmExecutor:
+    def __init__(
+        self,
+        engine: AlgorithmExecutionEngine,
+        algorithm_data_loader: AlgorithmDataLoader,
+        algorithm_name: str,
+        datasets: List[str],
+        filters: dict,
+        params: dict,
+        logger: Logger,
+    ):
+        self._engine = engine
+
+        self._algorithm_data_loader = algorithm_data_loader
+
+        self._algorithm_name = algorithm_name
+        self._datasets = datasets
+        self._filters = filters
+        self._params = params
+
+        self._logger = logger
 
     async def run(self, data, metadata):
-        return (self._algorithm_data_loader, data)
+        # instantiate algorithm
+        init_params = AlgorithmInitParams(
+            algorithm_name=self._algorithm_name,
+            var_filters=self._filters,
+            algorithm_parameters=self._params,
+            datasets=self._datasets,
+        )
+        algorithm = algorithm_classes[self._algorithm_name](
+            initialization_params=init_params,
+            data_loader=self._algorithm_data_loader,
+            engine=self._engine,
+        )
+
+        # log_experiment_execution(
+        #     logger=logger,
+        #     request_id=algorithm_request_dto.request_id,
+        #     context_id=context_id,
+        #     algorithm_name=algorithm_name,
+        #     datasets=algorithm_request_dto.inputdata.datasets,
+        #     algorithm_parameters=algorithm_request_dto.json(),
+        #     local_node_ids=nodes_federation.node_ids,
+        # )
+
+        # run the algorithm
+        try:
+            algorithm_result = await _algorithm_run_in_event_loop(
+                algorithm=algorithm,
+                data_model_views=data,
+                metadata=metadata,
+            )
+        except CeleryConnectionError as exc:
+            self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
+            raise NodeUnresponsiveException()
+        except CeleryTaskTimeoutException as exc:
+            self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
+            raise NodeTaskTimeoutException()
+        except Exception as exc:
+            self._logger.error(traceback.format_exc())
+            raise exc
+
+        # self._logger.info(
+        #     f"Finished execution->  {self._algorithm_name=} with {self._algorithm_request_dto.request_id=}"
+        # )
+        # self._logger.debug(
+        #     f"Algorithm {self._algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
+        # )
+        return algorithm_result.json()
+
+        # finally:
+        #     if not self._cleaner.cleanup_context_id(context_id=context_id):
+        #         self._cleaner.release_context_id(context_id=context_id)
+
+        # logger.info(
+        #     f"Finished execution->  {algorithm_name=} with {algorithm_request_dto.request_id=}"
+        # )
+        # logger.debug(
+        #     f"Algorithm {algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
+        # )
+        # return algorithm_result.json()
 
 
 class Controller:
@@ -445,7 +596,6 @@ class Controller:
 
         self._cleaner = cleaner
         self._node_landscape_aggregator = node_landscape_aggregator
-
 
     def start_cleanup_loop(self):
         self._controller_logger.info("(Controller) Cleaner starting ...")
@@ -530,10 +680,15 @@ class Controller:
                 variables=variables,
                 algorithm_request_dto=algorithm_request_dto,
                 engine=engine,
+                logger=logger,
             )
         else:
             execution_strategy = SingleAlgorithmStrategy(
-                algorithm_name=algorithm_name, variables=variables
+                algorithm_name=algorithm_name,
+                variables=variables,
+                algorithm_request_dto=algorithm_request_dto,
+                engine=engine,
+                logger=logger,
             )
 
         data_model_views = nodes_federation.create_data_model_views(
@@ -541,62 +696,15 @@ class Controller:
             dropna=execution_strategy.algorithm_data_loader.get_dropna(),
             check_min_rows=execution_strategy.algorithm_data_loader.get_check_min_rows(),
         )
-
-        (algorithm_data_loader, data_model_views) = await execution_strategy.run(
+        algorithm_result = await execution_strategy.run(
             data=data_model_views, metadata=metadata
         )
+        
+        if not self._cleaner.cleanup_context_id(context_id=context_id):
+            self._cleaner.release_context_id(context_id=context_id)
 
-        # instantiate algorithm
-        init_params = AlgorithmInitParams(
-            algorithm_name=algorithm_name,
-            var_filters=algorithm_request_dto.inputdata.filters,
-            algorithm_parameters=algorithm_request_dto.parameters,
-            datasets=algorithm_request_dto.inputdata.datasets,
-        )
-        algorithm = algorithm_classes[algorithm_name](
-            initialization_params=init_params,
-            data_loader=algorithm_data_loader,
-            engine=engine,
-        )
+        return algorithm_result
 
-        log_experiment_execution(
-            logger=logger,
-            request_id=algorithm_request_dto.request_id,
-            context_id=context_id,
-            algorithm_name=algorithm_name,
-            datasets=algorithm_request_dto.inputdata.datasets,
-            algorithm_parameters=algorithm_request_dto.json(),
-            local_node_ids=nodes_federation.node_ids,
-        )
-
-        # run the algorithm
-        try:
-            algorithm_result = await _algorithm_run_in_event_loop(
-                algorithm=algorithm,
-                data_model_views=data_model_views,
-                metadata=metadata,
-            )
-        except CeleryConnectionError as exc:
-            logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
-            raise NodeUnresponsiveException()
-        except CeleryTaskTimeoutException as exc:
-            logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
-            raise NodeTaskTimeoutException()
-        except Exception as exc:
-            logger.error(traceback.format_exc())
-            raise exc
-
-        finally:
-            if not self._cleaner.cleanup_context_id(context_id=context_id):
-                self._cleaner.release_context_id(context_id=context_id)
-
-        logger.info(
-            f"Finished execution->  {algorithm_name=} with {algorithm_request_dto.request_id=}"
-        )
-        logger.debug(
-            f"Algorithm {algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
-        )
-        return algorithm_result.json()
 
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
