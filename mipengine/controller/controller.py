@@ -1,11 +1,11 @@
 import asyncio
 import concurrent
 import traceback
+from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
-from dataclasses import dataclass
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
@@ -151,7 +151,6 @@ class DataModelViewsCreator:
 
         return _data_model_views_to_localnodestables(views_per_localnode)
 
-    
 
 class Controller:
     def __init__(
@@ -193,7 +192,8 @@ class Controller:
         self._node_landscape_aggregator.stop()
 
     async def exec_algorithm(
-        self,        algorithm_name: str,
+        self,
+        algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ) -> str:
         context_id = UIDGenerator().get_a_uid()
@@ -272,9 +272,7 @@ class Controller:
         # local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
         local_nodes_filtered = _get_nodes(data_model_views)
 
-        logger.debug(
-            f"{local_nodes_filtered=} after creating data model views"
-        )
+        logger.debug(f"{local_nodes_filtered=} after creating data model views")
 
         nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
 
@@ -351,14 +349,10 @@ class Controller:
                 metadata=metadata,
             )
         except CeleryConnectionError as exc:
-            logger.error(
-                f"ErrorType: '{type(exc)}' and message: '{exc}'"
-            )
+            logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeUnresponsiveException()
         except CeleryTaskTimeoutException as exc:
-            logger.error(
-                f"ErrorType: '{type(exc)}' and message: '{exc}'"
-            )
+            logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
             raise NodeTaskTimeoutException()
         except Exception as exc:
             logger.error(traceback.format_exc())
@@ -558,7 +552,7 @@ class Controller:
 
 
 # def _get_data_model_views_nodes(data_model_views:List[LocalNodesTable])->List[LocalNodes]:
-def _get_nodes(local_nodes_tables:List[LocalNodesTable])->List[LocalNode]:
+def _get_nodes(local_nodes_tables: List[LocalNodesTable]) -> List[LocalNode]:
     valid_nodes = set()
     for local_node_table in local_nodes_tables:
         valid_nodes.update(local_node_table.nodes_tables_info.keys())
