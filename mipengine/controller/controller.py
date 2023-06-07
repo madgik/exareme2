@@ -144,7 +144,8 @@ class DataModelViewsCreator:
 
         if not views_per_localnode:
             raise InsufficientDataError(
-                f"None of the nodes has enough data to execute request: {self._local_nodes=} "
+                f"None of the nodes has enough data to execute request: "
+                f"Nodes={[node.node_id for node in self._nodes_datasets.keys()]} "
                 f"{self._data_model=} {self._datasets=} {self._variable_groups=} "
                 f"{self._var_filters=} {self._dropna=} {self._check_min_rows=}"
             )
