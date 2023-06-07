@@ -269,8 +269,6 @@ class Controller:
         data_model_views_creator = DataModelViewsCreator(init_params)
         data_model_views = data_model_views_creator.create_data_model_views()
 
-        # breakpoint()
-        # local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
         local_nodes_filtered = _get_nodes(data_model_views)
 
         logger.debug(f"{local_nodes_filtered=} after creating data model views")
@@ -552,7 +550,6 @@ class Controller:
         return nodes
 
 
-# def _get_data_model_views_nodes(data_model_views:List[LocalNodesTable])->List[LocalNodes]:
 def _get_nodes(local_nodes_tables: List[LocalNodesTable]) -> List[LocalNode]:
     valid_nodes = set()
     for local_node_table in local_nodes_tables:

@@ -16,10 +16,12 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.controller import CommandIdGenerator
 from mipengine.controller.controller import Controller
+from mipengine.controller.controller import DataModelViewsCreator
+from mipengine.controller.controller import DataModelViewsCreatorInitParams
 from mipengine.controller.controller import InitializationParams as ControllerInitParams
 from mipengine.controller.controller import Nodes
 from mipengine.controller.controller import _create_algorithm_execution_engine
-from mipengine.controller.controller import _get_data_model_views_nodes
+from mipengine.controller.controller import _get_nodes
 from mipengine.controller.controller import sanitize_request_variable
 from mipengine.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
@@ -380,17 +382,25 @@ def data_model_views_and_nodes_case_1(
     algorithm_request_dto = algorithm_request_case_1[1]
     nodes = nodes_case_1
 
-    data_model_views = controller._create_data_model_views(
-        local_nodes=nodes.local_nodes,
-        datasets=datasets,
+    nodes_datasets = controller._get_subset_of_nodes_containing_datasets(
+        nodes=nodes.local_nodes,
         data_model=algorithm_request_dto.inputdata.data_model,
+        datasets=datasets,
+    )
+    init_params = DataModelViewsCreatorInitParams(
+        nodes_datasets=nodes_datasets,
+        data_model=algorithm_request_dto.inputdata.data_model,
+        datasets=datasets,
         variable_groups=algorithm_data_loader_case_1.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm_data_loader_case_1.get_dropna(),
         check_min_rows=algorithm_data_loader_case_1.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+    data_model_views_creator = DataModelViewsCreator(init_params)
+    data_model_views = data_model_views_creator.create_data_model_views()
+
+    local_nodes_filtered = _get_nodes(data_model_views)
     if not local_nodes_filtered:
         pytest.fail(
             f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
@@ -412,17 +422,25 @@ def data_model_views_and_nodes_case_2(
     algorithm_request_dto = algorithm_request_case_2[1]
     nodes = nodes_case_2
 
-    data_model_views = controller._create_data_model_views(
-        local_nodes=nodes.local_nodes,
-        datasets=datasets,
+    nodes_datasets = controller._get_subset_of_nodes_containing_datasets(
+        nodes=nodes.local_nodes,
         data_model=algorithm_request_dto.inputdata.data_model,
+        datasets=datasets,
+    )
+    init_params = DataModelViewsCreatorInitParams(
+        nodes_datasets=nodes_datasets,
+        data_model=algorithm_request_dto.inputdata.data_model,
+        datasets=datasets,
         variable_groups=algorithm_data_loader_case_2.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm_data_loader_case_2.get_dropna(),
         check_min_rows=algorithm_data_loader_case_2.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+    data_model_views_creator = DataModelViewsCreator(init_params)
+    data_model_views = data_model_views_creator.create_data_model_views()
+
+    local_nodes_filtered = _get_nodes(data_model_views)
     if not local_nodes_filtered:
         pytest.fail(
             f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
