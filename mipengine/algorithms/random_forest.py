@@ -29,6 +29,7 @@ class RandomForestDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
 
 class RandomForestResult(BaseModel):
     title: str  # y
+    accuracy: float
 
 
 class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
@@ -69,7 +70,21 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             share_to_locals=[True],
         )
 
-        ret_val = RandomForestResult(title="random_forest")
+        locals_result2 = local_run(
+            func=predict_trees_local,
+            positional_args=[data, enumerations_dict, yvar, xvars, global_result],
+            share_to_global=[True],
+        )
+
+        global_accuracy = global_run(
+            func=compute_accuracy,
+            positional_args=[locals_result2],
+            share_to_locals=[False],
+        )
+
+        curr_accuracy = get_transfer_data(global_accuracy)["total_accuracy"]
+
+        ret_val = RandomForestResult(title="random_forest", accuracy=curr_accuracy)
         return ret_val
 
 
@@ -155,5 +170,68 @@ def merge_trees(local_transfers):
     final_model_rf.estimators_ = list1
 
     transfer_ = {"final_model": serialize_rf(final_model_rf)}
+
+    return transfer_
+
+
+@udf(
+    data=relation(S),
+    enumerations_dict=literal(),
+    yvar=literal(),
+    xvars=literal(),
+    global_transfer=transfer(),
+    return_type=[transfer()],
+)
+def predict_trees_local(data, enumerations_dict, yvar, xvars, global_transfer):
+    import codecs
+    import pickle
+
+    from sklearn import preprocessing
+    from sklearn.ensemble import RandomForestClassifier
+
+    def serialize_rf(model):
+
+        rf_serialized = pickle.dumps(model)
+        curr_str = codecs.encode(rf_serialized, "base64").decode()
+
+        return curr_str
+
+    def deserialize_rf(curr_str):
+
+        bytes_again = codecs.decode(curr_str.encode(), "base64")
+        unpickled = pickle.loads(bytes_again)
+
+        return unpickled
+
+    X = data[xvars]
+    y = data[yvar]
+    le = preprocessing.LabelEncoder()
+    le.fit(y)
+    ydata_enc = le.transform(y)
+
+    rf_model = global_transfer["final_model"]
+    rf_deserialized = deserialize_rf(rf_model)
+    y_pred = rf_deserialized.predict(X)
+
+    differing_labels = ydata_enc - y_pred
+    score = differing_labels == 0
+    score2 = sum(score)
+    total_obs = len(differing_labels)
+
+    transfer_ = {"total_correct": int(score2), "total_obs": int(total_obs)}
+
+    return transfer_
+
+
+@udf(local_transfers=merge_transfer(), return_type=transfer())
+def compute_accuracy(local_transfers):
+    total_correct_ret = 0
+    total_obs_ret = 0
+    for curr_transfer in local_transfers:
+        total_correct_ret += curr_transfer["total_correct"]
+        total_obs_ret += curr_transfer["total_obs"]
+    total_accuracy = total_correct_ret / float(total_obs_ret)
+
+    transfer_ = {"total_accuracy": total_accuracy}
 
     return transfer_
