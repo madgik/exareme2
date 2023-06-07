@@ -255,7 +255,7 @@ def data_model_views_and_nodes(
     )
     data_model_views_creator = DataModelViewsCreator(init_params)
     data_model_views = data_model_views_creator.create_data_model_views()
-    
+
     local_nodes_filtered = _get_nodes(data_model_views)
     nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
     return (data_model_views, nodes)
