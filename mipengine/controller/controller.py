@@ -2,16 +2,16 @@ import asyncio
 import concurrent
 import traceback
 from dataclasses import dataclass
+from logging import Logger
 from typing import Dict
 from typing import List
 from typing import Optional
-from logging import Logger
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
+from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
@@ -98,14 +98,20 @@ class DataModelViews:
         return self._views
 
     def get_nodes(self) -> List[LocalNode]:
-        valid_nodes = set()  # valid_nodes tf do you mean??
-        for local_node_table in self._views:
-            valid_nodes.update(local_node_table.nodes_tables_info.keys())
-        if not valid_nodes:
+        """
+        LocalNodesTable is representation of a table across multiple nodes. A DataModelView
+        is consists a collection of LocalNodesTables that might exist on different set
+        of nodes or even on overlapping set of nodes. This method returns a list of all
+        the nodes in the collection of LocalNodesTables without duplicates
+        """
+        nodes = set()
+        for local_nodes_table in self._views:
+            nodes.update(local_nodes_table.nodes_tables_info.keys())
+        if not nodes:
             raise InsufficientDataError(
                 "None of the nodes has enough data to execute the algorithm."
             )
-        return list(valid_nodes)
+        return list(nodes)
 
 
 @dataclass(frozen=True)
@@ -373,7 +379,7 @@ class ExecutionStrategy(ABC):
         logger: Logger,
     ):
         self._algorithm_name = algorithm_name
-        self._variables=variables
+        self._variables = variables
         self._algorithm_data_loader = algorithm_data_loaders[algorithm_name](
             variables=variables
         )
@@ -475,7 +481,7 @@ class SingleAlgorithmStrategy(ExecutionStrategy):
             engine=engine,
             logger=logger,
         )
-        
+
     async def run(self, data, metadata):
         # return (self._algorithm_data_loader, data)
         algorithm_executor = AlgorithmExecutor(
@@ -488,9 +494,7 @@ class SingleAlgorithmStrategy(ExecutionStrategy):
             logger=self._logger,
         )
 
-        algorithm_result = await algorithm_executor.run(
-            data=data, metadata=metadata
-        )
+        algorithm_result = await algorithm_executor.run(data=data, metadata=metadata)
         return algorithm_result
 
 
@@ -699,12 +703,11 @@ class Controller:
         algorithm_result = await execution_strategy.run(
             data=data_model_views, metadata=metadata
         )
-        
+
         if not self._cleaner.cleanup_context_id(context_id=context_id):
             self._cleaner.release_context_id(context_id=context_id)
 
         return algorithm_result
-
 
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
