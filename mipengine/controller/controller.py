@@ -11,6 +11,13 @@ from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
+from mipengine.algorithms.generic_longitudinal import (
+    DataLoader as LongitudinalTransformerDataLoader,
+)
+from mipengine.algorithms.generic_longitudinal import (
+    InitializationParams as LongitudinalTransformerInitParams,
+)
+from mipengine.algorithms.generic_longitudinal import LongitudinalTransformer
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
@@ -242,13 +249,9 @@ class Controller:
 
         # LONGITUDINAL specific
         if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
-            algorithm_data_loader = algorithm_data_loaders["generic_longitudinal"](
-                variables=variables
-            )
+            data_loader = LongitudinalTransformerDataLoader(variables=variables)
         else:
-            algorithm_data_loader = algorithm_data_loaders[algorithm_name](
-                variables=variables
-            )
+            data_loader = algorithm_data_loaders[algorithm_name](variables=variables)
 
         nodes_datasets = self._get_subset_of_nodes_containing_datasets(
             nodes=nodes.local_nodes,
@@ -259,10 +262,10 @@ class Controller:
             nodes_datasets=nodes_datasets,
             data_model=data_model,
             datasets=datasets,
-            variable_groups=algorithm_data_loader.get_variable_groups(),
+            variable_groups=data_loader.get_variable_groups(),
             var_filters=algorithm_request_dto.inputdata.filters,
-            dropna=algorithm_data_loader.get_dropna(),
-            check_min_rows=algorithm_data_loader.get_check_min_rows(),
+            dropna=data_loader.get_dropna(),
+            check_min_rows=data_loader.get_check_min_rows(),
             command_id=command_id_generator.get_next_command_id(),  # should pass cmnd gen...
         )
         # create data model views
@@ -291,19 +294,19 @@ class Controller:
 
         # LONGITUDINAL specific
         if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
-            init_params_gl = AlgorithmInitParams(
-                algorithm_name="generic_longitudinal",
+            longitudinal_transform_init_params = LongitudinalTransformerInitParams(
                 var_filters=algorithm_request_dto.inputdata.filters,
                 algorithm_parameters=algorithm_request_dto.parameters,
                 datasets=algorithm_request_dto.inputdata.datasets,
             )
-            algorithm_gl = algorithm_classes["generic_longitudinal"](
-                initialization_params=init_params_gl,
-                data_loader=algorithm_data_loader,
+            longitudinal_transformer = LongitudinalTransformer(
+                initialization_params=longitudinal_transform_init_params,
+                data_loader=data_loader,
                 engine=engine,
             )
+
             longitudinal_transform_result = await self._algorithm_run_in_event_loop(
-                algorithm=algorithm_gl,
+                algorithm=longitudinal_transformer,
                 data_model_views=data_model_views,
                 metadata=metadata,
             )
@@ -316,9 +319,7 @@ class Controller:
             X = data_transformed[0]
             y = data_transformed[1]
             alg_vars = Variables(x=X.columns, y=y.columns)
-            algorithm_data_loader = algorithm_data_loaders[algorithm_name](
-                variables=alg_vars
-            )
+            data_loader = algorithm_data_loaders[algorithm_name](variables=alg_vars)
 
         # instantiate algorithm
         init_params = AlgorithmInitParams(
@@ -329,7 +330,7 @@ class Controller:
         )
         algorithm = algorithm_classes[algorithm_name](
             initialization_params=init_params,
-            data_loader=algorithm_data_loader,
+            data_loader=data_loader,
             engine=engine,
         )
 
