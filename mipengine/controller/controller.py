@@ -308,14 +308,17 @@ class Controller:
                 metadata=metadata,
             )
 
-            alg_vars = longitudinal_transform_result[0]
-            metadata = longitudinal_transform_result[2]
+            data_transformed = longitudinal_transform_result.data
+            metadata = longitudinal_transform_result.metadata
 
+            data_model_views = data_transformed
+
+            X = data_transformed[0]
+            y = data_transformed[1]
+            alg_vars = Variables(x=X.columns, y=y.columns)
             algorithm_data_loader = algorithm_data_loaders[algorithm_name](
                 variables=alg_vars
             )
-            new_data_model_views = longitudinal_transform_result[1]
-            data_model_views = new_data_model_views
 
         # instantiate algorithm
         init_params = AlgorithmInitParams(

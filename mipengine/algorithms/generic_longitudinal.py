@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from mipengine.algorithm_specification import AlgorithmSpecification
 from mipengine.algorithm_specification import InputDataSpecification
 from mipengine.algorithm_specification import InputDataSpecifications
@@ -23,6 +25,12 @@ from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
 from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNBDataLoader
 
 ALGNAME = "generic_longitudinal"
+
+
+@dataclass(frozen=True)
+class Result:
+    data: tuple
+    metadata: dict
 
 
 class LongitudinalDataLoader(AlgorithmDataLoader, algname=ALGNAME):
@@ -93,7 +101,6 @@ class LongitudinalAlgorithm(Algorithm, algname=ALGNAME):
         y = lt_y.transform(y)
         metadata = lt_y.transform_metadata(metadata)
 
-        alg_vars = Variables(x=X.columns, y=y.columns)  # use transformed vars
         data = (X, y)
 
-        return (alg_vars, data, metadata)
+        return Result(data, metadata)
