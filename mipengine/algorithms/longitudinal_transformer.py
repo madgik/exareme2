@@ -1,5 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Dict
@@ -7,12 +8,15 @@ from typing import List
 from typing import Optional
 
 from mipengine import DType
+from mipengine.algorithm_specification import AlgorithmSpecification
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import AdhocUdfGenerator
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 
 if TYPE_CHECKING:
     from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+
+TRANSFORMER_NAME = "longitudinal_transformer"
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,15 @@ class LongitudinalTransformerRunner:
         self.algorithm_parameters = initialization_params.algorithm_parameters
         self.variables = data_loader.get_variables()
         self.engine = engine
+
+    @classmethod
+    def get_transformer_name(cls):
+        return TRANSFORMER_NAME
+
+    @classmethod
+    def get_specification(cls):
+        file = Path(__file__).parent / f"{cls.get_transformer_name()}.json"
+        return AlgorithmSpecification.parse_file(file)
 
     def run(self, data, metadata):
         X, y = data

@@ -1,0 +1,39 @@
+{
+    "name": "longitudinal_transformer",
+    "desc": "",
+    "label": "",
+    "enabled": true,
+    "inputdata":{
+        "x":{
+            "label":"",
+            "desc":"",
+            "types":[
+		"real",
+		"int",
+		"text"
+	    ],
+            "stattypes":[
+		"numerical",
+		"nominal"
+	    ],
+            "notblank":true,
+            "multiple":true
+        },
+        "y":{
+            "label":"",
+            "desc":"",
+            "types":[
+		"real",
+		"int",
+		"text"
+	    ],
+            "stattypes":[
+		"numerical",
+		"nominal"
+	    ],
+            "notblank":true,
+            "multiple":false
+        }
+    },
+    "parameters": {}
+}

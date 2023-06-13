@@ -10,6 +10,7 @@ from mipengine import AttrDict
 from mipengine import algorithm_classes
 from mipengine import controller
 from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
 
 BACKGROUND_LOGGER_NAME = "controller_background_service"
 
@@ -29,11 +30,19 @@ else:
 
 
 def _get_algorithms_specifications() -> Dict[str, AlgorithmSpecification]:
-    return {
+
+    specs = {
         algo_name: algorithm.get_specification()
         for algo_name, algorithm in algorithm_classes.items()
         if algorithm.get_specification().enabled
     }
+
+    if LongitudinalTransformerRunner.get_specification().enabled:
+        specs[
+            LongitudinalTransformerRunner.get_transformer_name()
+        ] = LongitudinalTransformerRunner.get_specification()
+
+    return specs
 
 
 algorithms_specifications = _get_algorithms_specifications()
