@@ -5,19 +5,18 @@ from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 from mipengine import algorithm_classes
 from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
-from mipengine.algorithms.generic_longitudinal import (
-    DataLoader as LongitudinalTransformerDataLoader,
+from mipengine.algorithms.longitudinal_transformer import (
+    DataLoader as LongitudinalTransformerRunnerDataLoader,
 )
-from mipengine.algorithms.generic_longitudinal import (
-    InitializationParams as LongitudinalTransformerInitParams,
+from mipengine.algorithms.longitudinal_transformer import (
+    InitializationParams as LongitudinalTransformerRunnerInitParams,
 )
-from mipengine.algorithms.generic_longitudinal import LongitudinalTransformer
+from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
@@ -249,7 +248,7 @@ class Controller:
 
         # LONGITUDINAL specific
         if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
-            data_loader = LongitudinalTransformerDataLoader(variables=variables)
+            data_loader = LongitudinalTransformerRunnerDataLoader(variables=variables)
         else:
             data_loader = algorithm_data_loaders[algorithm_name](variables=variables)
 
@@ -294,12 +293,14 @@ class Controller:
 
         # LONGITUDINAL specific
         if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
-            longitudinal_transform_init_params = LongitudinalTransformerInitParams(
-                var_filters=algorithm_request_dto.inputdata.filters,
-                algorithm_parameters=algorithm_request_dto.parameters,
-                datasets=algorithm_request_dto.inputdata.datasets,
+            longitudinal_transform_init_params = (
+                LongitudinalTransformerRunnerInitParams(
+                    var_filters=algorithm_request_dto.inputdata.filters,
+                    algorithm_parameters=algorithm_request_dto.parameters,
+                    datasets=algorithm_request_dto.inputdata.datasets,
+                )
             )
-            longitudinal_transformer = LongitudinalTransformer(
+            longitudinal_transformer = LongitudinalTransformerRunner(
                 initialization_params=longitudinal_transform_init_params,
                 data_loader=data_loader,
                 engine=engine,
