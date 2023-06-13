@@ -24,7 +24,7 @@ ALGORITHM_NAME = "random_forest"
 
 class RandomForestDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
-        return [self._variables.y + self._variables.x]
+        return [self._variables.x, self._variables.y]
 
 
 class RandomForestResult(BaseModel):
@@ -48,7 +48,7 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         if num_trees is None:
             num_trees = default_estimators
 
-        [data] = data
+        X, y = data
 
         metadata = dict(metadata)
 
@@ -60,7 +60,7 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         locals_result = local_run(
             func=fit_trees_local,
-            positional_args=[data, enumerations_dict, yvar, xvars, num_trees],
+            positional_args=[X, y, enumerations_dict, yvar, xvars, num_trees],
             share_to_global=[True],
         )
 
@@ -72,7 +72,7 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         locals_result2 = local_run(
             func=predict_trees_local,
-            positional_args=[data, enumerations_dict, yvar, xvars, global_result],
+            positional_args=[X, y, enumerations_dict, yvar, xvars, global_result],
             share_to_global=[True],
         )
 
@@ -89,14 +89,15 @@ class RandomForestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @udf(
-    data=relation(S),
+    X=relation(S),
+    y=relation(S),
     enumerations_dict=literal(),
     yvar=literal(),
     xvars=literal(),
     num_trees=literal(),
     return_type=[transfer()],
 )
-def fit_trees_local(data, enumerations_dict, yvar, xvars, num_trees):
+def fit_trees_local(X, y, enumerations_dict, yvar, xvars, num_trees):
     import codecs
     import pickle
 
@@ -117,8 +118,6 @@ def fit_trees_local(data, enumerations_dict, yvar, xvars, num_trees):
 
         return unpickled
 
-    X = data[xvars]
-    y = data[yvar]
     le = preprocessing.LabelEncoder()
     le.fit(y)
     ydata_enc = le.transform(y)
@@ -175,14 +174,15 @@ def merge_trees(local_transfers):
 
 
 @udf(
-    data=relation(S),
+    X=relation(S),
+    y=relation(S),
     enumerations_dict=literal(),
     yvar=literal(),
     xvars=literal(),
     global_transfer=transfer(),
     return_type=[transfer()],
 )
-def predict_trees_local(data, enumerations_dict, yvar, xvars, global_transfer):
+def predict_trees_local(X, y, enumerations_dict, yvar, xvars, global_transfer):
     import codecs
     import pickle
 
@@ -203,8 +203,6 @@ def predict_trees_local(data, enumerations_dict, yvar, xvars, global_transfer):
 
         return unpickled
 
-    X = data[xvars]
-    y = data[yvar]
     le = preprocessing.LabelEncoder()
     le.fit(y)
     ydata_enc = le.transform(y)
