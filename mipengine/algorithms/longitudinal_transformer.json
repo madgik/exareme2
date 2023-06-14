@@ -1,39 +1,35 @@
 {
     "name": "longitudinal_transformer",
-    "desc": "",
-    "label": "",
-    "enabled": true,
+    "desc":"longitudinal_transform",
+    "label":"longitudinal_transform",
+    "enabled":true,
     "inputdata":{
-        "x":{
-            "label":"",
-            "desc":"",
+	"y":{
+            "label":"ignore this, longitudinal_transformer should not have an 'inputdata' field",
+            "desc":"ignore this, longitudinal_transformer should not have an 'inputdata' field",
             "types":[
-		"real",
-		"int",
-		"text"
+		"real"
 	    ],
             "stattypes":[
-		"numerical",
-		"nominal"
-	    ],
-            "notblank":true,
-            "multiple":true
-        },
-        "y":{
-            "label":"",
-            "desc":"",
-            "types":[
-		"real",
-		"int",
-		"text"
-	    ],
-            "stattypes":[
-		"numerical",
-		"nominal"
+		"numerical"
 	    ],
             "notblank":true,
             "multiple":false
         }
     },
-    "parameters": {}
+    "parameters":{
+        "visit1": {
+            "label":"visit1",
+            "desc":"visit1",
+            "types":["text"],
+            "notblank":true,
+            "multiple":false,
+            "enums":{
+		"type":"fixed_var_CDE_enums",
+		"source":[
+		    "visitID"
+		]
+	    }
+	}
+    }
 }

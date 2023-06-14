@@ -77,6 +77,8 @@ class LongitudinalTransformerRunner:
     @classmethod
     def get_specification(cls):
         file = Path(__file__).parent / f"{cls.get_transformer_name()}.json"
+        # TODO: A dedicated TransformerSpecification class must be defined that
+        # does not have an "inputdata" field
         return AlgorithmSpecification.parse_file(file)
 
     def run(self, data, metadata):
