@@ -27,7 +27,61 @@
             "enums":{
 		"type":"fixed_var_CDE_enums",
 		"source":[
-		    "visitID"
+		    "visitid"
+		]
+	    }
+	},
+	"visit2":{
+            "label":"visit2",
+            "desc":"visit2",
+            "types":["text"],
+            "notblank":true,
+            "multiple":false,
+            "enums":{
+                "type":"fixed_var_CDE_enums",
+		"source":[
+		    "visitid"
+                ]
+	    }
+	},
+        "strategy":{
+            "label":"strategy",
+            "desc":"strategy",
+            "types":[
+		"dict"
+	    ],
+            "notblank":true,
+            "multiple":false,
+            "dict_keys_enums":{
+                "type":"input_var_names",
+		"source":[
+		    "x",
+		    "y"
+		]
+	    },
+            "dict_values_enums":{
+                "type":"list",
+		"source":[
+		    "diff",
+		    "first",
+		    "second"
+		]
+            }
+	},
+        "compatible_algorithms":{
+	    "label":"",
+	    "desc":"",
+	    "types":["text"],
+	    "notblank":true,
+            "multiple":false,
+	    "enums":{
+		"type":"list",
+		"source":[
+		    "linear_regression",
+		    "linear_regression_cv",
+		    "logistic_regression",
+		    "anova_oneway",
+		    "anova"
 		]
 	    }
 	}
