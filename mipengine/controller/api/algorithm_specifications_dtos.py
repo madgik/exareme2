@@ -16,6 +16,7 @@ from mipengine.algorithm_specification import ParameterEnumType
 from mipengine.algorithm_specification import ParameterSpecification
 from mipengine.algorithm_specification import ParameterType
 from mipengine.controller import algorithms_specifications
+from mipengine.controller import transformer_specs
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -68,8 +69,20 @@ class AlgorithmSpecificationDTO(ImmutableBaseModel):
     parameters: Optional[Dict[str, ParameterSpecificationDTO]]
 
 
+class TransformerSpecificationDTO(ImmutableBaseModel):
+    name: str
+    desc: str
+    label: str
+    parameters: Optional[Dict[str, ParameterSpecificationDTO]]
+    compatible_algorithms: List[str]
+
+
 class AlgorithmSpecificationsDTO(ImmutableBaseModel):
     __root__: List[AlgorithmSpecificationDTO]
+
+
+class TransformerSpecificationsDTO(ImmutableBaseModel):
+    __root__: List[TransformerSpecificationDTO]
 
 
 def _convert_inputdata_specification_to_dto(self: InputDataSpecification):
@@ -189,6 +202,24 @@ def _convert_algorithm_specification_to_dto(spec: AlgorithmSpecification):
     )
 
 
+def _convert_transformer_specification_to_dto(spec: AlgorithmSpecification):
+    # Converting to a DTO does not include the flags.
+    return TransformerSpecificationDTO(
+        name=spec.name,
+        desc=spec.desc,
+        label=spec.label,
+        parameters=(
+            {
+                name: _convert_parameter_specification_to_dto(value)
+                for name, value in spec.parameters.items()
+            }
+            if spec.parameters
+            else None
+        ),
+        compatible_algorithms=spec.compatible_algorithms,
+    )
+
+
 def _get_algorithm_specifications_dtos() -> AlgorithmSpecificationsDTO:
     return AlgorithmSpecificationsDTO(
         __root__=[
@@ -198,4 +229,14 @@ def _get_algorithm_specifications_dtos() -> AlgorithmSpecificationsDTO:
     )
 
 
+def _get_transformer_specifications_dtos() -> AlgorithmSpecificationsDTO:
+    return TransformerSpecificationsDTO(
+        __root__=[
+            _convert_transformer_specification_to_dto(transformer)
+            for transformer in transformer_specs.values()
+        ]
+    )
+
+
 algorithm_specifications_dtos = _get_algorithm_specifications_dtos()
+transformer_specs_dtos = _get_transformer_specifications_dtos()

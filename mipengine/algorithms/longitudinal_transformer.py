@@ -1,6 +1,5 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Dict
@@ -8,7 +7,11 @@ from typing import List
 from typing import Optional
 
 from mipengine import DType
-from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
+from mipengine.algorithm_specification import TransformerSpecification
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import AdhocUdfGenerator
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
@@ -76,10 +79,54 @@ class LongitudinalTransformerRunner:
 
     @classmethod
     def get_specification(cls):
-        file = Path(__file__).parent / f"{cls.get_transformer_name()}.json"
-        # TODO: A dedicated TransformerSpecification class must be defined that
-        # does not have an "inputdata" field
-        return AlgorithmSpecification.parse_file(file)
+        return TransformerSpecification(
+            name=cls.get_transformer_name(),
+            desc="longitudinal_transform",
+            label="longitudinal_transform",
+            enabled=True,
+            parameters={
+                "visit1": ParameterSpecification(
+                    label="visit1",
+                    desc="visit1",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitID"]
+                    ),
+                ),
+                "visit2": ParameterSpecification(
+                    label="visit2",
+                    desc="visit2",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitID"]
+                    ),
+                ),
+                "strategy": ParameterSpecification(
+                    label="strategy",
+                    desc="strategy",
+                    types=[ParameterType.DICT],
+                    notblank=True,
+                    multiple=False,
+                    dict_keys_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_NAMES, source=["x", "y"]
+                    ),
+                    dict_values_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST, source=["diff", "first", "second"]
+                    ),
+                ),
+            },
+            compatible_algorithms=[
+                "linear_regression",
+                "linear_regression_cv",
+                "logistic_regression",
+                "anova_oneway",
+                "anova",
+            ],
+        )
 
     def run(self, data, metadata):
         X, y = data
