@@ -129,7 +129,6 @@ class DataModelViewsCreatorInitParams:
 class DataModelViewsCreator:
     def __init__(self, init_params: DataModelViewsCreatorInitParams):
         self._nodes_datasets = init_params.nodes_datasets
-        # self._nodeids=list(self._nodes_datasets.keys())
         self._data_model = init_params.data_model
         self._datasets = init_params.datasets
         self._variable_groups = init_params.variable_groups
@@ -138,9 +137,15 @@ class DataModelViewsCreator:
         self._check_min_rows = init_params.check_min_rows
         self._command_id = init_params.command_id
 
+        self._data_model_views = None
+
+    @property
+    def data_model_views(self):
+        return self._data_model_views
+
     def create_data_model_views(
         self,
-    ) -> DataModelViews:  # List[LocalNodesTable]:
+    ) -> DataModelViews:
         """
         Creates the data model views, for each variable group provided,
         using also the algorithm request arguments (data_model, datasets, filters).
@@ -151,13 +156,16 @@ class DataModelViewsCreator:
         A (LocalNodesTable) view for each variable_group provided.
         """
 
+        if self._data_model_views:
+            return
+
         views_per_localnode = {}
-        for node in self._nodes_datasets.keys():  # _nodeids:
+        for node in self._nodes_datasets.keys():
             try:
                 data_model_views = node.create_data_model_views(
                     command_id=self._command_id,
                     data_model=self._data_model,
-                    datasets=self._nodes_datasets[node],
+                    datasets=self._datasets,
                     columns_per_view=self._variable_groups,
                     filters=self._var_filters,
                     dropna=self._dropna,
@@ -169,13 +177,14 @@ class DataModelViewsCreator:
 
         if not views_per_localnode:
             raise InsufficientDataError(
-                f"None of the nodes has enough data to execute request: {self._local_nodes=} "
+                "None of the nodes has enough data to execute request: on "
+                f"local_nodes:{list(self._nodes_datasets.keys())} with "
                 f"{self._data_model=} {self._datasets=} {self._variable_groups=} "
                 f"{self._var_filters=} {self._dropna=} {self._check_min_rows=}"
             )
 
         # return _data_model_views_to_localnodestables(views_per_localnode)
-        return DataModelViews(
+        self._data_model_views = DataModelViews(
             _data_model_views_to_localnodestables(views_per_localnode)
         )
 
