@@ -138,7 +138,7 @@ class DataModelViewsCreator:
                 data_model_views = node.create_data_model_views(
                     command_id=self._command_id,
                     data_model=self._data_model,
-                    datasets=self._nodes_datasets[node],
+                    datasets=self._datasets,
                     columns_per_view=self._variable_groups,
                     filters=self._var_filters,
                     dropna=self._dropna,
@@ -210,6 +210,14 @@ class Controller:
 
         data_model = algorithm_request_dto.inputdata.data_model
         datasets = algorithm_request_dto.inputdata.datasets
+
+        if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
+            longitudinal_specs = LongitudinalTransformerRunner.get_specification()
+            longitudinal_algorithms = longitudinal_specs.compatible_algorithms
+            if algorithm_name not in longitudinal_algorithms:
+                msg = f"The algorithm provided '{algorithm_name}' is not compatible "
+                msg += "with the 'longitudinal' flag."
+                raise ValueError(msg)
 
         # instantiate nodes
         nodes = self._create_nodes(

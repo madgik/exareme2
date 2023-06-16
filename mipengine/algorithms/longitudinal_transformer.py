@@ -28,14 +28,8 @@ class Result:
     metadata: dict
 
 
-@dataclass(frozen=True)
-class Variables:
-    x: List[str]
-    y: List[str]
-
-
 class DataLoader:
-    def __init__(self, variables: Variables):
+    def __init__(self, variables):
         self._variables = variables
 
     def get_variable_groups(self):
@@ -51,7 +45,7 @@ class DataLoader:
     def get_check_min_rows(self) -> bool:
         return True
 
-    def get_variables(self) -> Variables:
+    def get_variables(self):
         return self._variables
 
 
@@ -120,11 +114,14 @@ class LongitudinalTransformerRunner:
                 ),
             },
             compatible_algorithms=[
+                "anova_oneway",
+                "anova",
                 "linear_regression",
                 "linear_regression_cv",
                 "logistic_regression",
-                "anova_oneway",
-                "anova",
+                "logistic_regression_cv",
+                "naive_bayes_gaussian_cv",
+                "naive_bayes_categorical_cv",
             ],
         )
 
