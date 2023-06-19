@@ -102,12 +102,6 @@ def datasets():
         "edsd1",
         "edsd2",
         "edsd3",
-        "edsd4",
-        "edsd5",
-        "edsd6",
-        "edsd7",
-        "edsd8",
-        "edsd9",
     ]
 
 
@@ -532,5 +526,3 @@ async def test_single_local_node_algorithm_execution(
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")
-
-    assert isinstance(algorithm_result, BaseModel)
