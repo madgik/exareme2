@@ -133,12 +133,17 @@ class DataModelViewsCreator:
         """
 
         views_per_localnode = {}
-        for node in self._nodes_datasets.keys():  # _nodeids:
+        for node in self._nodes_datasets.keys():
+            datasets = [
+                datasets
+                for datasets in self._datasets
+                if datasets in self._nodes_datasets[node]
+            ]
             try:
                 data_model_views = node.create_data_model_views(
                     command_id=self._command_id,
                     data_model=self._data_model,
-                    datasets=self._datasets,
+                    datasets=datasets,
                     columns_per_view=self._variable_groups,
                     filters=self._var_filters,
                     dropna=self._dropna,
