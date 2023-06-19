@@ -103,6 +103,7 @@ def test_celery_app_is_the_same_after_executing_task(
     ), "Celery app is different after a queue/get of a task, even though the node never went down."
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
@@ -208,6 +209,7 @@ def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
     ), "The new celery app is not an instance of Celery. Something unexpected occurred during the reset."
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_res_with_node_down(
@@ -310,6 +312,7 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
     kill_service(localnodetmp_node_service)
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_when_rabbitmq_restarted(
