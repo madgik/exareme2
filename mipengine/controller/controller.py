@@ -1,6 +1,8 @@
 import asyncio
 import concurrent
 import traceback
+from abc import ABC
+from abc import abstractmethod
 from dataclasses import dataclass
 from logging import Logger
 from typing import Dict
@@ -12,6 +14,13 @@ from mipengine import algorithm_data_loaders
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
 from mipengine.algorithms.algorithm import Variables
+from mipengine.algorithms.longitudinal_transformer import (
+    DataLoader as LongitudinalTransformerRunnerDataLoader,
+)
+from mipengine.algorithms.longitudinal_transformer import (
+    InitializationParams as LongitudinalTransformerRunnerInitParams,
+)
+from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
@@ -161,11 +170,16 @@ class DataModelViewsCreator:
 
         views_per_localnode = {}
         for node in self._nodes_datasets.keys():
+            datasets = [
+                datasets
+                for datasets in self._datasets
+                if datasets in self._nodes_datasets[node]
+            ]
             try:
                 data_model_views = node.create_data_model_views(
                     command_id=self._command_id,
                     data_model=self._data_model,
-                    datasets=self._datasets,
+                    datasets=datasets,
                     columns_per_view=self._variable_groups,
                     filters=self._var_filters,
                     dropna=self._dropna,
@@ -177,13 +191,12 @@ class DataModelViewsCreator:
 
         if not views_per_localnode:
             raise InsufficientDataError(
-                "None of the nodes has enough data to execute request: on "
-                f"local_nodes:{list(self._nodes_datasets.keys())} with "
+                f"None of the nodes has enough data to execute request: "
+                f"Nodes={[node.node_id for node in self._nodes_datasets.keys()]} "
                 f"{self._data_model=} {self._datasets=} {self._variable_groups=} "
                 f"{self._var_filters=} {self._dropna=} {self._check_min_rows=}"
             )
 
-        # return _data_model_views_to_localnodestables(views_per_localnode)
         self._data_model_views = DataModelViews(
             _data_model_views_to_localnodestables(views_per_localnode)
         )
@@ -201,6 +214,7 @@ class NodesFederation:
         celery_tasks_timeout: int,
         celery_run_udf_task_timeout: int,
         command_id_generator: CommandIdGenerator,
+        logger: Logger,
     ):
 
         self._command_id_generator = command_id_generator
@@ -217,6 +231,8 @@ class NodesFederation:
         self._celery_run_udf_task_timeout = celery_run_udf_task_timeout
 
         self._nodes = self._create_nodes()
+
+        self._logger = logger
 
     @property
     def nodes(self):
@@ -239,7 +255,6 @@ class NodesFederation:
     def create_data_model_views(
         self, variable_groups: List[List[str]], dropna: bool, check_min_rows: bool
     ):
-        # why tf do you need to pass data_model & datasets???
         nodes_datasets = self._get_nodes_containing_datasets(
             data_model=self._data_model,
             datasets=self._datasets,
@@ -257,19 +272,17 @@ class NodesFederation:
         )
         # create data model views
         data_model_views_creator = DataModelViewsCreator(init_params)
-        data_model_views = data_model_views_creator.create_data_model_views()
+        data_model_views_creator.create_data_model_views()
+        local_nodes_filtered = data_model_views_creator.data_model_views.get_nodes()
 
-        local_nodes_filtered = data_model_views.get_nodes()
-
-        # logger.debug(f"{local_nodes_filtered=} after creating data model views")
-        print(f"{local_nodes_filtered=} after creating data model views")
+        self._logger.debug(f"{local_nodes_filtered=} after creating data model views")
 
         self._nodes = Nodes(
             global_node=self._nodes.global_node,
             local_nodes=local_nodes_filtered,
         )
 
-        return data_model_views
+        return data_model_views_creator.data_model_views
 
     def _create_nodes(self) -> Nodes:
         node_tasks_handlers = self._create_nodes_tasks_handlers()
@@ -374,10 +387,6 @@ class NodesFederation:
         return nodes_info
 
 
-from abc import ABC
-from abc import abstractmethod
-
-
 class ExecutionStrategy(ABC):
     def __init__(
         self,
@@ -421,13 +430,10 @@ class LongitudinalStrategy(ExecutionStrategy):
             engine=engine,
             logger=logger,
         )
-        self._algorithm_data_loader = algorithm_data_loaders["generic_longitudinal"](
+
+        self._algorithm_data_loader = LongitudinalTransformerRunnerDataLoader(
             variables=variables
         )
-        # self._algorithm_name = algorithm_name
-
-        # self._algorithm_request_dto = algorithm_request_dto
-        # self._engine = engine
 
     async def run(self, data, metadata):
         init_params_gl = AlgorithmInitParams(
@@ -436,27 +442,28 @@ class LongitudinalStrategy(ExecutionStrategy):
             algorithm_parameters=self._algorithm_request_dto.parameters,
             datasets=self._algorithm_request_dto.inputdata.datasets,
         )
-        algorithm_gl = algorithm_classes["generic_longitudinal"](
+        longitudinal_transformer = LongitudinalTransformerRunner(
             initialization_params=init_params_gl,
-            # data_loader=algorithm_data_loaders["generic_longitudinal"](
-            #     variables=self._variables
-            # ),
             data_loader=self._algorithm_data_loader,
             engine=self._engine,
         )
+
         longitudinal_transform_result = await _algorithm_run_in_event_loop(
-            algorithm=algorithm_gl,
-            data_model_views=data,  # data_model_views,
+            algorithm=longitudinal_transformer,
+            data_model_views=data,
             metadata=metadata,
         )
-        alg_vars = longitudinal_transform_result[0]
-        metadata = longitudinal_transform_result[2]
+        data_transformed = longitudinal_transform_result.data
+        metadata = longitudinal_transform_result.metadata
 
+        X = data_transformed[0]
+        y = data_transformed[1]
+        alg_vars = Variables(x=X.columns, y=y.columns)
         algorithm_data_loader = algorithm_data_loaders[self._algorithm_name](
             variables=alg_vars
         )
-        new_data_model_views = DataModelViews(longitudinal_transform_result[1])
-        # return (algorithm_data_loader, new_data_model_views)
+
+        new_data_model_views = DataModelViews(data_transformed)
 
         algorithm_executor = AlgorithmExecutor(
             engine=self._engine,
@@ -492,7 +499,6 @@ class SingleAlgorithmStrategy(ExecutionStrategy):
         )
 
     async def run(self, data, metadata):
-        # return (self._algorithm_data_loader, data)
         algorithm_executor = AlgorithmExecutor(
             engine=self._engine,
             algorithm_data_loader=self._algorithm_data_loader,
@@ -517,6 +523,7 @@ class AlgorithmExecutor:
         filters: dict,
         params: dict,
         logger: Logger,
+        # request_id:str
     ):
         self._engine = engine
 
@@ -543,15 +550,15 @@ class AlgorithmExecutor:
             engine=self._engine,
         )
 
-        # log_experiment_execution(
-        #     logger=logger,
-        #     request_id=algorithm_request_dto.request_id,
-        #     context_id=context_id,
-        #     algorithm_name=algorithm_name,
-        #     datasets=algorithm_request_dto.inputdata.datasets,
-        #     algorithm_parameters=algorithm_request_dto.json(),
-        #     local_node_ids=nodes_federation.node_ids,
-        # )
+        log_experiment_execution(
+            logger=self._logger,
+            request_id=self._engine._local_nodes[0].request_id,
+            context_id=self._engine._local_nodes[0].context_id,
+            algorithm_name=self._algorithm_name,
+            datasets=self._datasets,
+            algorithm_parameters=self._params,
+            local_node_ids=[node.node_id for node in self._engine._local_nodes],
+        )
 
         # run the algorithm
         try:
@@ -577,18 +584,6 @@ class AlgorithmExecutor:
         #     f"Algorithm {self._algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
         # )
         return algorithm_result.json()
-
-        # finally:
-        #     if not self._cleaner.cleanup_context_id(context_id=context_id):
-        #         self._cleaner.release_context_id(context_id=context_id)
-
-        # logger.info(
-        #     f"Finished execution->  {algorithm_name=} with {algorithm_request_dto.request_id=}"
-        # )
-        # logger.debug(
-        #     f"Algorithm {algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
-        # )
-        # return algorithm_result.json()
 
 
 class Controller:
@@ -643,7 +638,7 @@ class Controller:
         datasets = algorithm_request_dto.inputdata.datasets
         var_filters = algorithm_request_dto.inputdata.filters
 
-        # Instantiate NodeFed
+        # Instantiate NodesFederation
         nodes_federation = NodesFederation(
             request_id=request_id,
             context_id=context_id,
@@ -654,7 +649,19 @@ class Controller:
             celery_tasks_timeout=self._celery_tasks_timeout,
             celery_run_udf_task_timeout=self._celery_run_udf_task_timeout,
             command_id_generator=command_id_generator,
+            logger=logger,
         )
+
+        # TODO move to function
+        if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
+            "longitudinal"
+        ):
+            longitudinal_specs = LongitudinalTransformerRunner.get_specification()
+            longitudinal_algorithms = longitudinal_specs.compatible_algorithms
+            if algorithm_name not in longitudinal_algorithms:
+                msg = f"The algorithm provided '{algorithm_name}' is not compatible "
+                msg += "with the 'longitudinal' flag."
+                raise ValueError(msg)
 
         self._cleaner.add_contextid_for_cleanup(context_id, nodes_federation.node_ids)
 
@@ -687,7 +694,9 @@ class Controller:
 
         # Instantiate ExecutionStrategy
         execution_strategy = None
-        if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
+        if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
+            "longitudinal"
+        ):
             execution_strategy = LongitudinalStrategy(
                 algorithm_name=algorithm_name,
                 variables=variables,
@@ -709,6 +718,7 @@ class Controller:
             dropna=execution_strategy.algorithm_data_loader.get_dropna(),
             check_min_rows=execution_strategy.algorithm_data_loader.get_check_min_rows(),
         )
+
         algorithm_result = await execution_strategy.run(
             data=data_model_views, metadata=metadata
         )
@@ -855,6 +865,7 @@ def sanitize_request_variable(variable: list):
 
 _thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
 # TODO add types
+# TODO change func name, transformer runs through that as well
 async def _algorithm_run_in_event_loop(algorithm, data_model_views, metadata):
     # By calling blocking method Algorithm.run() inside run_in_executor(),
     # Algorithm.run() will execute in a separate thread of the threadpool and at
