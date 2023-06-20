@@ -216,7 +216,7 @@ class Controller:
         data_model = algorithm_request_dto.inputdata.data_model
         datasets = algorithm_request_dto.inputdata.datasets
 
-        if algorithm_request_dto.flags and algorithm_request_dto.flags["longitudinal"]:
+        if algorithm_request_dto.flags and algorithm_request_dto.flags.get("longitudinal"):
             longitudinal_specs = LongitudinalTransformerRunner.get_specification()
             longitudinal_algorithms = longitudinal_specs.compatible_algorithms
             if algorithm_name not in longitudinal_algorithms:
