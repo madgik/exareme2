@@ -17,7 +17,7 @@ ALGORITHM_NAME = "anova"
 
 class AnovaTwoWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
-        return [self._variables.y, self._variables.x]
+        return [self._variables.x, self._variables.y]
 
 
 class AnovaResult(BaseModel):
@@ -30,7 +30,7 @@ class AnovaResult(BaseModel):
 
 class AnovaTwoWay(Algorithm, algname=ALGORITHM_NAME):
     def run(self, data, metadata):
-        [[y], xs] = self.variable_groups
+        [xs, [y]] = self.variable_groups
         if len(xs) == 2:
             x1, x2 = xs
         else:
@@ -38,7 +38,7 @@ class AnovaTwoWay(Algorithm, algname=ALGORITHM_NAME):
             msg += f"Got {len(xs)} varible(s) instead."
             raise BadUserInput(msg)
 
-        Y, X = data
+        X, Y = data
 
         x1_enums = list(metadata[x1]["enumerations"])
         x2_enums = list(metadata[x2]["enumerations"])

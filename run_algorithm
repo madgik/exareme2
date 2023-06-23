@@ -213,6 +213,15 @@ def parse_argv(argv):
         action="store_true",
         help="Print request object without making actual request.",
     )
+    parser.add_argument(
+        "-f",
+        "--flag",
+        required=False,
+        nargs=2,
+        action="append",
+        dest="flags",
+        help="Flags as key value pair. Can repeat '-f key value' multiple times.",
+    )
     return parser.parse_args(argv)
 
 
@@ -245,6 +254,7 @@ def get_commandline_request_data(cl_args):
     parameters = {
         key: guess_type_and_cast(value) for key, value in cl_args.parameters or []
     }
+    flags = {key: guess_type_and_cast(value) for key, value in cl_args.flags or []}
     return dict(
         inputdata=dict(
             data_model=cl_args.data_model,
@@ -254,6 +264,7 @@ def get_commandline_request_data(cl_args):
             x=cl_args.x,
         ),
         parameters=parameters,
+        flags=flags,
     )
 
 
@@ -265,7 +276,7 @@ def get_piped_request_data():
         piped_input["inputdata"]["filters"] = None  # fix for empty string in test case
         sys.stdin = open("/dev/tty")  # get back stdin in case we need it for debugger
         return piped_input
-    return {"inputdata": {}, "parameters": {}}
+    return {"inputdata": {}, "parameters": {}, "flags": {}}
 
 
 def merge_request_data(data1, data2):
@@ -280,7 +291,10 @@ def merge_request_data(data1, data2):
     # merge parameters
     parameters = data1.get("parameters", None) or data2.get("parameters", None)
 
-    merged = {"inputdata": inputdata, "parameters": parameters}
+    # merge flags
+    flags = data1.get("flags", None) or data2.get("flags", None)
+
+    merged = {"inputdata": inputdata, "parameters": parameters, "flags": flags}
     return merged
 
 

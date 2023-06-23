@@ -203,3 +203,12 @@ class AlgorithmSpecification(ImmutableBaseModel):
             _validate_parameter_type_dict(param_value, cls_values)
             _validate_parameter_type_dict_enums(param_value, cls_values)
         return cls_values
+
+
+class TransformerSpecification(ImmutableBaseModel):
+    name: str
+    desc: str
+    label: str
+    enabled: bool
+    parameters: Optional[Dict[str, ParameterSpecification]]
+    compatible_algorithms: List[str]

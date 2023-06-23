@@ -1,10 +1,161 @@
 from copy import deepcopy
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
 
 from mipengine import DType
+from mipengine.algorithm_specification import ParameterEnumSpecification
+from mipengine.algorithm_specification import ParameterEnumType
+from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithm_specification import ParameterType
+from mipengine.algorithm_specification import TransformerSpecification
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import AdhocUdfGenerator
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
+
+if TYPE_CHECKING:
+    from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+
+TRANSFORMER_NAME = "longitudinal_transformer"
+
+
+@dataclass(frozen=True)
+class Result:
+    data: tuple
+    metadata: dict
+
+
+class DataLoader:
+    def __init__(self, variables):
+        self._variables = variables
+
+    def get_variable_groups(self):
+        xvars = self._variables.x
+        yvars = self._variables.y
+        xvars += ["subjectid", "visitid"]
+        yvars += ["subjectid", "visitid"]
+        return [xvars, yvars]
+
+    def get_dropna(self) -> bool:
+        return True
+
+    def get_check_min_rows(self) -> bool:
+        return True
+
+    def get_variables(self):
+        return self._variables
+
+
+@dataclass(frozen=True)
+class InitializationParams:
+    datasets: List[str]
+    var_filters: Optional[dict] = None
+    algorithm_parameters: Optional[Dict[str, Any]] = None
+
+
+class LongitudinalTransformerRunner:
+    def __init__(
+        self,
+        initialization_params: InitializationParams,
+        data_loader: DataLoader,
+        engine: "AlgorithmExecutionEngine",
+    ):
+        self.algorithm_parameters = initialization_params.algorithm_parameters
+        self.variables = data_loader.get_variables()
+        self.engine = engine
+
+    @classmethod
+    def get_transformer_name(cls):
+        return TRANSFORMER_NAME
+
+    @classmethod
+    def get_specification(cls):
+        return TransformerSpecification(
+            name=cls.get_transformer_name(),
+            desc="longitudinal_transform",
+            label="longitudinal_transform",
+            enabled=True,
+            parameters={
+                "visit1": ParameterSpecification(
+                    label="visit1",
+                    desc="visit1",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitID"]
+                    ),
+                ),
+                "visit2": ParameterSpecification(
+                    label="visit2",
+                    desc="visit2",
+                    types=[ParameterType.TEXT],
+                    notblank=True,
+                    multiple=False,
+                    enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitID"]
+                    ),
+                ),
+                "strategy": ParameterSpecification(
+                    label="strategy",
+                    desc="strategy",
+                    types=[ParameterType.DICT],
+                    notblank=True,
+                    multiple=False,
+                    dict_keys_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.INPUT_VAR_NAMES, source=["x", "y"]
+                    ),
+                    dict_values_enums=ParameterEnumSpecification(
+                        type=ParameterEnumType.LIST, source=["diff", "first", "second"]
+                    ),
+                ),
+            },
+            compatible_algorithms=[
+                "anova_oneway",
+                "anova",
+                "linear_regression",
+                "linear_regression_cv",
+                "logistic_regression",
+                "logistic_regression_cv",
+                "naive_bayes_gaussian_cv",
+                "naive_bayes_categorical_cv",
+            ],
+        )
+
+    def run(self, data, metadata):
+        X, y = data
+        metadata: dict = metadata
+
+        visit1 = self.algorithm_parameters["visit1"]
+        visit2 = self.algorithm_parameters["visit2"]
+        strategies = self.algorithm_parameters["strategies"]
+
+        # Split strategies to X and Y part
+        x_strats = {
+            name: strat
+            for name, strat in strategies.items()
+            if name in self.variables.x
+        }
+        y_strats = {
+            name: strat
+            for name, strat in strategies.items()
+            if name in self.variables.y
+        }
+
+        lt_x = LongitudinalTransformer(self.engine, metadata, x_strats, visit1, visit2)
+        X = lt_x.transform(X)
+        metadata = lt_x.transform_metadata(metadata)
+
+        lt_y = LongitudinalTransformer(self.engine, metadata, y_strats, visit1, visit2)
+        y = lt_y.transform(y)
+        metadata = lt_y.transform_metadata(metadata)
+
+        data = (X, y)
+
+        return Result(data, metadata)
 
 
 class LongitudinalTransformer:
