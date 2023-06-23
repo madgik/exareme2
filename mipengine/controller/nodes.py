@@ -199,11 +199,29 @@ class _Node(_INode, ABC):
 
 
 class LocalNode(_Node):
+    def __init__(
+        self,
+        request_id: str,
+        context_id: str,
+        node_tasks_handler: INodeAlgorithmTasksHandler,
+        data_model: str,
+        datasets: List[str],
+    ):
+        super().__init__(request_id, context_id, node_tasks_handler)
+        self._data_model = data_model
+        self._datasets = datasets
+
+    @property
+    def data_model(self):
+        return self._data_model
+
+    @property
+    def datasets(self):
+        return self._datasets
+
     def create_data_model_views(
         self,
         command_id: str,
-        data_model: str,
-        datasets: List[str],
         columns_per_view: List[List[str]],
         filters: dict = None,
         dropna: bool = True,
@@ -238,8 +256,8 @@ class LocalNode(_Node):
             request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
-            data_model=data_model,
-            datasets=datasets,
+            data_model=self._data_model,
+            datasets=self._datasets,
             columns_per_view=columns_per_view,
             filters=filters,
             dropna=dropna,
