@@ -97,7 +97,7 @@ class DataModelViews:
     def to_list(self):
         return self._views
 
-    def get_nodes(self) -> List[LocalNode]:
+    def get_list_of_nodes(self) -> List[LocalNode]:
         """
         LocalNodesTable is representation of a table across multiple nodes. A DataModelView
         consists a collection of LocalNodesTables that might exist on different set
@@ -116,7 +116,7 @@ class DataModelViews:
 
 @dataclass(frozen=True)
 class DataModelViewsCreatorInitParams:
-    local_nodes: List[Nodes]
+    local_nodes: List[LocalNode]
     variable_groups: List[List[str]]
     var_filters: list
     dropna: bool
@@ -171,10 +171,10 @@ class DataModelViewsCreator:
 
         if not views_per_localnode:
             raise InsufficientDataError(
-                f"None of the nodes has enough data to execute request: "
-                f"Nodes={[node.node_id for node in self._nodes_datasets.keys()]} "
-                f"{self._data_model=} {self._datasets=} {self._variable_groups=} "
-                f"{self._var_filters=} {self._dropna=} {self._check_min_rows=}"
+                "None of the nodes has enough data to execute request: LocalNodes - Datasets-> "
+                f"{ {node.node_id:node.datasets for node in self._local_nodes} } "
+                f"{self._variable_groups=} {self._var_filters=} {self._dropna=} "
+                f"{self._check_min_rows=}"
             )
 
         self._data_model_views = DataModelViews(
@@ -262,7 +262,9 @@ class NodesFederation:
 
         data_model_views_creator = DataModelViewsCreator(init_params)
         data_model_views_creator.create_data_model_views()
-        local_nodes_filtered = data_model_views_creator.data_model_views.get_nodes()
+        local_nodes_filtered = (
+            data_model_views_creator.data_model_views.get_list_of_nodes()
+        )
 
         self._logger.debug(
             f"{local_nodes_filtered=} after creating the data model views"

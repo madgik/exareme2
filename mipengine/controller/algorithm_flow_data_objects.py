@@ -78,20 +78,29 @@ class GlobalNodeData(AlgoFlowData, ABC):
     pass
 
 
-# When _AlgorithmExecutionInterface::run_udf_on_local_nodes(..) is called, depending on
-# how many local nodes are participating in the current algorithm execution, several
-# database tables are created on all participating local nodes. Irrespective of the
-# number of local nodes participating, the number of tables created on each of these local
-# nodes will be the same.
-# Class _LocalNodeTable is the structure that represents the concept of these database
-# tables, created during the execution of a udf, in the algorithm execution layer. A key
-# concept is that a _LocalNodeTable stores 'pointers' to 'relevant' tables existing in
-# different local nodes across the federation. By 'relevant' I mean tables that are
-# generated when triggering a udf execution across several local nodes. By 'pointers'
-# I mean mapping between local nodes and table names and the aim is to hide the underline
-# complexity from the algorithm flow and exposing a single 'local node table' object that
-# stores in the background pointers to several tables in several local nodes.
 class LocalNodesTable(LocalNodesData):
+    """
+    A LocalNodesTable is a representation of a table across multiple nodes. To this end,
+    it holds refferences to the actual nodes and tables through a dictionary with its keys
+    being nodes and values being a table on that node
+
+    example:
+      When AlgorithmExecutionEngine::run_udf_on_local_nodes(..) is called, depending on
+    how many local nodes are participating in the current algorithm execution, several
+    database tables are created on all participating local nodes. Irrespective of the
+    number of local nodes participating, the number of tables created on each of these local
+    nodes will be the same.
+    Class LocalNodeTable is the structure that represents the concept of these database
+    tables, created during the execution of a udf, in the algorithm execution layer. A key
+    concept is that a LocalNodeTable stores 'pointers' to 'relevant' tables existing in
+    different local nodes across the federation. What 'relevant' means is that the tables
+    are generated when triggering a udf execution across several local nodes. What
+    'pointers' means is that there is a mapping between local nodes and table names and
+    the aim is to hide the underline complexity from the algorithm flow and exposing a
+    single 'local node table' object that stores in the background pointers to several
+    tables in several local nodes.
+    """
+
     _nodes_tables_info: Dict[LocalNode, TableInfo]
 
     def __init__(self, nodes_tables_info: Dict[LocalNode, TableInfo]):
