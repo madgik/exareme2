@@ -114,24 +114,47 @@ class DataModelViews:
         return list(nodes)
 
 
-@dataclass(frozen=True)
-class DataModelViewsCreatorInitParams:
-    local_nodes: List[LocalNode]
-    variable_groups: List[List[str]]
-    var_filters: list
-    dropna: bool
-    check_min_rows: bool
-    command_id: int
-
-
 class DataModelViewsCreator:
-    def __init__(self, init_params: DataModelViewsCreatorInitParams):
-        self._local_nodes = init_params.local_nodes
-        self._variable_groups = init_params.variable_groups
-        self._var_filters = init_params.var_filters
-        self._dropna = init_params.dropna
-        self._check_min_rows = init_params.check_min_rows
-        self._command_id = init_params.command_id
+    """
+    DataModelViewsCreator implements the functionality of creating the "data model views"
+    on each local node database
+    """
+
+    def __init__(
+        self,
+        local_nodes: List[LocalNode],
+        variable_groups: List[List[str]],
+        var_filters: list,
+        dropna: bool,
+        check_min_rows: bool,
+        command_id: int,
+    ):
+
+        """
+        Parameters
+        ----------
+        local_nodes: List[LocalNode]
+            The list of LocalNodes on which the "data model views" will be created(if
+            there is "sufficient data")
+        variable_groups: List[List[str]]
+            The variable groups
+        var_filters: list
+            The filtering parameters
+        dropna: bool
+            A boolean flag denoting if the 'Not Available' values will be kept in the
+            "data model views" or not
+        check_min_rows: bool
+            A boolean flag denoting if a "minimum row count threshol" will be in palce
+            or not
+        command_id: int
+            A unique id
+        """
+        self._local_nodes = local_nodes
+        self._variable_groups = variable_groups
+        self._var_filters = var_filters
+        self._dropna = dropna
+        self._check_min_rows = check_min_rows
+        self._command_id = command_id
 
         self._data_model_views = None
 
@@ -143,7 +166,7 @@ class DataModelViewsCreator:
         self,
     ) -> DataModelViews:
         """
-        Creates the data model views, for each variable group provided,
+        Creates the "data model views", for each variable group provided,
         using also the algorithm request arguments (data_model, datasets, filters).
 
         Returns
@@ -183,6 +206,14 @@ class DataModelViewsCreator:
 
 
 class NodesFederation:
+    """
+    When a NodesFederation object is instantiated, with respect to the algorithm execution
+    request parameters(data model, datasets), it takes care of finding which nodes of
+    the federation contain the relevant data. Then, calling the create_data_model_views
+    method will create the appropriate view tables in the nodes databases and return a
+    DataModelViews object.
+    """
+
     def __init__(
         self,
         request_id: str,
@@ -196,7 +227,34 @@ class NodesFederation:
         command_id_generator: CommandIdGenerator,
         logger: Logger,
     ):
-
+        """
+        Parameters
+        ----------
+        request_id: str
+            The requests id that will uniquely idεntify the whole execution process,
+            from request to result
+        context_id: str
+            The requests id that will uniquely idεntify the whole execution process,
+            from request to result
+        data_model: str
+            The data model requested
+        datasets: List[str]
+            The datasets requested
+        var_filters: dict
+            The filtering parameters
+        node_landscape_aggregator: NodeLandscapeAggregator
+            The NodeLandscapeAggregator object that keeps track of the nodes currently
+            connected to the system
+        celery_tasks_timeout: int
+            The timeout, in seconds, for the tasks to be processed by the nodes in the system
+        celery_run_udf_task_timeout: int
+            The timeout, in seconds, for the task executing a udf by the nodes in the system
+        command_id_generator: CommandIdGenerator
+            Each node task(command) is assigned a unique id, a CommandIdGenerator takes care
+            of generating unique ids
+        logger: Logger
+            A logger
+        """
         self._command_id_generator = command_id_generator
 
         self._request_id = request_id
@@ -250,8 +308,12 @@ class NodesFederation:
 
     def create_data_model_views(
         self, variable_groups: List[List[str]], dropna: bool, check_min_rows: bool
-    ):
-        init_params = DataModelViewsCreatorInitParams(
+    ) -> DataModelViews:
+        """
+        Createw the appropriate view tables in the nodes databases(what is called
+        "data model views") and return a DataModelViews object..
+        """
+        data_model_views_creator = DataModelViewsCreator(
             local_nodes=self._nodes.local_nodes,
             variable_groups=variable_groups,
             var_filters=self._var_filters,
@@ -259,9 +321,11 @@ class NodesFederation:
             check_min_rows=check_min_rows,
             command_id=self._command_id_generator.get_next_command_id(),
         )
-
-        data_model_views_creator = DataModelViewsCreator(init_params)
         data_model_views_creator.create_data_model_views()
+
+        # NOTE after creating the "data model views" some of the local nodes in the
+        # original list, passed to the DataModelviewscreator, can be filtered out of the
+        # execution if they do not contain "suffucient data"
         local_nodes_filtered = (
             data_model_views_creator.data_model_views.get_list_of_nodes()
         )
@@ -274,7 +338,6 @@ class NodesFederation:
             global_node=self._nodes.global_node,
             local_nodes=local_nodes_filtered,
         )
-
         return data_model_views_creator.data_model_views
 
     def get_global_node_info(self) -> NodeInfo:
@@ -654,17 +717,6 @@ class Controller:
             logger=logger,
         )
 
-        # TODO move to function
-        if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
-            "longitudinal"
-        ):
-            longitudinal_specs = LongitudinalTransformerRunner.get_specification()
-            longitudinal_algorithms = longitudinal_specs.compatible_algorithms
-            if algorithm_name not in longitudinal_algorithms:
-                msg = f"The algorithm provided '{algorithm_name}' is not compatible "
-                msg += "with the 'longitudinal' flag."
-                raise ValueError(msg)
-
         self._cleaner.add_contextid_for_cleanup(context_id, nodes_federation.node_ids)
 
         # get metadata
@@ -733,6 +785,19 @@ class Controller:
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
+
+        # if the request is for a longitudinal type of dataset(s), check the requested
+        # algorithm is compatible with longitudinal datasets
+        if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
+            "longitudinal"
+        ):
+            longitudinal_specs = LongitudinalTransformerRunner.get_specification()
+            longitudinal_algorithms = longitudinal_specs.compatible_algorithms
+            if algorithm_name not in longitudinal_algorithms:
+                msg = f"The algorithm provided '{algorithm_name}' is not compatible "
+                msg += "with the 'longitudinal' flag."
+                raise ValueError(msg)
+
         available_datasets_per_data_model = (
             self.get_all_available_datasets_per_data_model()
         )
