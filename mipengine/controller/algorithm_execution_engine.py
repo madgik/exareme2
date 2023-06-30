@@ -97,6 +97,11 @@ class InitializationParams(BaseModel):
 
 
 class AlgorithmExecutionEngine:
+    """
+    The AlgorithmExecutionEngine is the class used by the algorithms to communicate with
+    the nodes of the system. An AlgorithmExecutionEngine object is passed to all algorithms
+
+    """
     def __init__(
         self,
         initialization_params: InitializationParams,

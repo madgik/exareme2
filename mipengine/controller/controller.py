@@ -82,9 +82,9 @@ class NodeUnresponsiveException(Exception):
 class NodeTaskTimeoutException(Exception):
     def __init__(self):
         message = (
-            "One of the tasks in the algorithm execution took longer to finish than the timeout."
-            f"This could be caused by a high load or by an experiment with too much data. "
-            f"Please try again or increase the timeout."
+            f"One of the tasks in the algorithm execution took longer to finish than "
+            f"the timeout.This could be caused by a high load or by an experiment with "
+            f"too much data. Please try again or increase the timeout."
         )
         super().__init__(message)
         self.message = message
@@ -129,7 +129,6 @@ class DataModelViewsCreator:
         check_min_rows: bool,
         command_id: int,
     ):
-
         """
         Parameters
         ----------
@@ -194,7 +193,8 @@ class DataModelViewsCreator:
 
         if not views_per_localnode:
             raise InsufficientDataError(
-                "None of the nodes has enough data to execute request: LocalNodes - Datasets-> "
+                "None of the nodes has enough data to execute request: {LocalNodes:"
+                "Datasets}-> "
                 f"{ {node.node_id:node.datasets for node in self._local_nodes} } "
                 f"{self._variable_groups=} {self._var_filters=} {self._dropna=} "
                 f"{self._check_min_rows=}"
@@ -291,7 +291,16 @@ class NodesFederation:
         return self._node_landscape_aggregator.get_global_node()
 
     @property
-    def nodes(self):
+    def nodes(self) -> Nodes:
+        """
+        Returns the nodes (local nodes and global node) that have been selected based
+        on whether they contain data belonging to the "data model" and "datasets" passed
+        during the instantioation of the NodesFederation.
+        NOTE: If method "create_data_model_views" has been called and the check_min_rows
+        flag is set to True, the nodes returned by this method might be further filtered
+        down because after applying the variables' filters and the dropna flag, on the
+        specific variable groups, some of the local nodes might not contain "sufficient data".
+        """
         return self._nodes
 
     @property
@@ -602,7 +611,7 @@ class AlgorithmExecutor:
         self._logger = logger
 
     async def run(self, data, metadata):
-        # instantiate algorithm
+        # Instantiate Algorithm object
         init_params = AlgorithmInitParams(
             algorithm_name=self._algorithm_name,
             var_filters=self._filters,
@@ -625,7 +634,7 @@ class AlgorithmExecutor:
             local_node_ids=[node.node_id for node in self._engine._local_nodes],
         )
 
-        # run the algorithm
+        # Call Algorithm.run inside event loop
         try:
             algorithm_result = await _algorithm_run_in_event_loop(
                 algorithm=algorithm,
@@ -642,12 +651,6 @@ class AlgorithmExecutor:
             self._logger.error(traceback.format_exc())
             raise exc
 
-        # self._logger.info(
-        #     f"Finished execution->  {self._algorithm_name=} with {self._algorithm_request_dto.request_id=}"
-        # )
-        # self._logger.debug(
-        #     f"Algorithm {self._algorithm_request_dto.request_id=} result-> {algorithm_result.json()=}"
-        # )
         return algorithm_result.json()
 
 
@@ -693,7 +696,6 @@ class Controller:
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ) -> str:
-
         command_id_generator = CommandIdGenerator()
 
         request_id = algorithm_request_dto.request_id
@@ -703,7 +705,8 @@ class Controller:
         datasets = algorithm_request_dto.inputdata.datasets
         var_filters = algorithm_request_dto.inputdata.filters
 
-        # Instantiate NodesFederation
+        # Instantiate a NodesFederation will keep track of the local nodes relevant to
+        # the execution based on the request parameters
         nodes_federation = NodesFederation(
             request_id=request_id,
             context_id=context_id,
@@ -717,6 +720,9 @@ class Controller:
             logger=logger,
         )
 
+        # add the identifier of the execution(context_id), along with the relevant local
+        # node ids, to the cleaner so that whatever database artifacts are created during
+        # the execution get dropped at the end of the execution, when not needed anymore
         self._cleaner.add_contextid_for_cleanup(context_id, nodes_federation.node_ids)
 
         # get metadata
@@ -727,7 +733,7 @@ class Controller:
             data_model=data_model, variable_names=variable_names
         )
 
-        # instantiate algorithm execution engine
+        # instantiate a algorithm execution engine
         engine_init_params = EngineInitParams(
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
@@ -738,7 +744,7 @@ class Controller:
         engine = _create_algorithm_execution_engine(
             engine_init_params=engine_init_params,
             command_id_generator=command_id_generator,
-            nodes=nodes_federation.nodes,  # nodes,
+            nodes=nodes_federation.nodes,
         )
 
         variables = Variables(
@@ -767,17 +773,25 @@ class Controller:
                 logger=logger,
             )
 
+        # Create the "data model views" in the relevant nodes
         data_model_views = nodes_federation.create_data_model_views(
             variable_groups=execution_strategy.algorithm_data_loader.get_variable_groups(),
             dropna=execution_strategy.algorithm_data_loader.get_dropna(),
             check_min_rows=execution_strategy.algorithm_data_loader.get_check_min_rows(),
         )
 
+        # Execute the algorithm
         algorithm_result = await execution_strategy.run(
             data=data_model_views, metadata=metadata
         )
 
+        logger.info(f"Finished execution->  {algorithm_name=} with {request_id=}")
+        logger.debug(f"Algorithm {request_id=} result-> {algorithm_result=}")
+
+        # Cleanup artifacts created in the nodes' databases during the execution
         if not self._cleaner.cleanup_context_id(context_id=context_id):
+            # if the cleanup did not succeed, set the current "context_id" as released
+            # so that the Cleaner retries later
             self._cleaner.release_context_id(context_id=context_id)
 
         return algorithm_result
@@ -785,7 +799,6 @@ class Controller:
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-
         # if the request is for a longitudinal type of dataset(s), check the requested
         # algorithm is compatible with longitudinal datasets
         if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
@@ -902,7 +915,6 @@ def _create_global_node(request_id, context_id, node_tasks_handler):
 def _data_model_views_to_localnodestables(
     views_per_localnode: Dict[LocalNode, List[TableInfo]]
 ) -> List[LocalNodesTable]:
-
     number_of_tables = _validate_number_of_views(views_per_localnode)
 
     local_nodes_tables = [
@@ -921,7 +933,8 @@ def _validate_number_of_views(views_per_localnode: dict):
 
     if not number_of_tables_equal:
         raise ValueError(
-            f"The number of views does is not equal for all nodes {views_per_localnode=}"
+            "The number of views does is not equal for all nodes"
+            f" {views_per_localnode=}"
         )
     return number_of_tables[0]
 
@@ -953,6 +966,8 @@ def sanitize_request_variable(variable: list):
 
 
 _thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
+
+
 # TODO add types
 # TODO change func name, transformer runs through that as well
 async def _algorithm_run_in_event_loop(algorithm, data_model_views, metadata):
