@@ -1,23 +1,25 @@
 import functools
 import itertools
 import unittest.mock
+from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
 
 from mipengine import DType
+from mipengine.controller.algorithm_execution_engine import Nodes
 from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     INodeAlgorithmTasksHandler,
 )
 from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.controller import DataModelViews
-from mipengine.controller.controller import NodesFederation
 from mipengine.controller.controller import DataModelViewsCreator
-from mipengine.controller.controller import DataModelViewsCreatorInitParams
+from mipengine.controller.controller import NodesFederation
 from mipengine.controller.controller import _data_model_views_to_localnodestables
 from mipengine.controller.controller import _validate_number_of_views
 from mipengine.controller.nodes import LocalNode
@@ -30,10 +32,6 @@ from mipengine.node_tasks_DTOs import TableData
 from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.node_tasks_DTOs import TableType
-from mipengine.controller.algorithm_execution_engine import Nodes
-
-
-from unittest.mock import MagicMock
 
 
 def create_dummy_node(node_id: str, context_id: str, request_id: str):
@@ -63,11 +61,6 @@ def node_mocks():
     return nodes
 
 
-# @pytest.fixture
-# def table_mocks(node_mocks):
-#     for node in node_mocks
-
-
 class TestNodesFederation:
     class NodeInfoMock:
         def __init__(self, node_id: str):
@@ -76,10 +69,6 @@ class TestNodesFederation:
             self.port = ""
             self.db_ip = ""
             self.db_port = ""
-
-        # @property
-        # def id(self):
-        #     return self._node_id
 
     class NodeLandscapeAggregatorMock:
         @property
@@ -93,19 +82,21 @@ class TestNodesFederation:
         @property
         def globalnodeid(self):
             return "globalnode"
-        
+
         def get_node_ids_with_any_of_datasets(self, *args, **kwargs):
             return list(self.nodeids_datasets_mock.keys())
 
         def get_node_info(self, node_id: str):
             return TestNodesFederation.NodeInfoMock(node_id)
 
-        def get_node_specific_datasets(self,node_id: str, data_model: str, wanted_datasets: List[str]):
+        def get_node_specific_datasets(
+            self, node_id: str, data_model: str, wanted_datasets: List[str]
+        ):
             return self.nodeids_datasets_mock[node_id]
 
         def get_global_node(self):
             return TestNodesFederation.NodeInfoMock(self.globalnodeid)
-            
+
     class CommandIdGeneratorMock:
         pass
 
@@ -127,43 +118,42 @@ class TestNodesFederation:
             logger=self.LoggerMock(),
         )
 
-    # def test_get_nodeids_for_requested_datasets(self):
+    # def test_get_nodeinfo_for_requested_datasets(self):
     #     pass
-    def test_get_nodeinfo_for_requested_datasets(self):
-        pass
 
-    # def test_get_globalnodeinfo(self):
+    # def test_node_ids(self):
     #     pass
-    def test_node_ids(self):
-        pass
 
-    def test_create_data_model_views(self):
-        pass
+    # def test_create_data_model_views(self):
+    #     pass
 
-    def test_create_nodes(self,nodes_federation_mock):
-        nodes_federation=nodes_federation_mock
-        created_nodes=nodes_federation._create_nodes()
+    def test_create_nodes(self, nodes_federation_mock):
+        nodes_federation = nodes_federation_mock
+        created_nodes = nodes_federation._create_nodes()
 
-        assert isinstance(created_nodes,Nodes)
+        assert isinstance(created_nodes, Nodes)
 
-        created_localnodeids=[ localnode.node_id for localnode in created_nodes.local_nodes]
-        created_globalnodeid=created_nodes.global_node.node_id
-        
-        expected_localnodeids=nodes_federation._node_landscape_aggregator.nodeids_datasets_mock.keys()
+        created_localnodeids = [
+            localnode.node_id for localnode in created_nodes.local_nodes
+        ]
+        created_globalnodeid = created_nodes.global_node.node_id
+
+        expected_localnodeids = (
+            nodes_federation._node_landscape_aggregator.nodeids_datasets_mock.keys()
+        )
         assert all(nodeid in created_localnodeids for nodeid in expected_localnodeids)
-        
-        expected_globalnodeid=nodes_federation._node_landscape_aggregator.globalnodeid
-        assert expected_globalnodeid== created_globalnodeid
 
+        expected_globalnodeid = nodes_federation._node_landscape_aggregator.globalnodeid
+        assert expected_globalnodeid == created_globalnodeid
 
-    def test_get_datasets_of_nodeids(self):
-        pass
+    # def test_get_datasets_of_nodeids(self):
+    #     pass
 
-    def test_create_nodes_tasks_handlers(self):
-        pass
+    # def test_create_nodes_tasks_handlers(self):
+    #     pass
 
-    def test_get_nodes_info(self):
-        pass
+    # def test_get_nodes_info(self):
+    #     pass
 
 
 class TestDataModelViews:
@@ -182,77 +172,8 @@ class TestDataModelViews:
         )
         views = [LocalNodesTable(nodes_tables_info={node_mocks[0], table_info})]
         return views
-        # breakpoint()
-        # schema = TableSchema(
-        #     columns=[
-        #         ColumnInfo(name="col_1", dtype=DType.INT),
-        #         ColumnInfo(name="col_2", dtype=DType.INT),
-        #         ColumnInfo(name="col_3", dtype=DType.INT),
-        #     ]
-        # )
 
-        # nodes_table_info_1 = {}
-        # expected_nodes_1 = []
-        # for i in range(1, 5):
-        #     context_id = "0"
-        #     local_node = create_dummy_node(
-        #         node_id="node" + str(i),
-        #         request_id="0",
-        #         context_id=context_id,
-        #     )
-        #     expected_nodes_1.append(local_node)
-
-        #     table_type = TableType.NORMAL
-
-        #     # table naming convention <table_type>_<node_id>_<context_id>_<command_id>_<result_id>
-        #     table_info = TableInfo(
-        #         name=str(table_type).lower()
-        #         + "_"
-        #         + local_node.node_id
-        #         + "_0_"
-        #         + context_id
-        #         + "_0",
-        #         schema_=schema,
-        #         type_=TableType.NORMAL,
-        #     )
-        #     nodes_table_info_1[local_node] = table_info
-
-        # local_nodes_table_1 = LocalNodesTable(nodes_tables_info=nodes_table_info_1)
-
-        # nodes_table_info_2 = {}
-        # expected_nodes_2 = []
-        # for i in range(3, 7):
-        #     context_id = "1"
-        #     local_node = create_dummy_node(
-        #         node_id="node" + str(i),
-        #         request_id="0",
-        #         context_id=context_id,
-        #     )
-        #     expected_nodes_2.append(local_node)
-
-        #     table_type = TableType.NORMAL
-
-        #     # table naming convention <table_type>_<node_id>_<context_id>_<command_id>_<result_id>
-        #     table_info = TableInfo(
-        #         name=str(table_type).lower()
-        #         + "_"
-        #         + local_node.node_id
-        #         + "_0_"
-        #         + context_id
-        #         + "_0",
-        #         schema_=schema,
-        #         type_=TableType.NORMAL,
-        #     )
-        #     nodes_table_info_2[local_node] = table_info
-
-        # local_nodes_table_2 = LocalNodesTable(nodes_tables_info=nodes_table_info_2)
-
-        # return [
-        #     (local_nodes_table_1, expected_nodes_1),
-        #     (local_nodes_table_2, expected_nodes_2),
-        # ]
-
-    def test_get_nodes(self):  # , views_mocks):
+    def test_get_nodes(self):
         class LocalNodesTable:
             def __init__(self, node_ids: List[str]):
                 self.nodes_tables_info = {node_id: None for node_id in node_ids}
@@ -282,125 +203,40 @@ class TestDataModelViews:
 
 
 class TestDataModelViewsCreator:
-    # @pytest.fixture
-    # def node_mocks(self):
-    #     context_id = "0"
-    #     nodes_ids = ["node" + str(i) for i in range(5)]
-    #     nodes = [
-    #         create_mock_node(node_id=node_id, context_id=context_id, request_id="0")
-    #         for node_id in nodes_ids
-    #     ]
-    #     return nodes
-
-    # @pytest.fixture
-    # def nodes_datasets_mock(self, node_mocks):
-    #     nodes_datasets_mock = {
-    #         # node_mocks[0]: ["dataset1", "dataset2", "dataset6"],
-    #         # node_mocks[1]: ["dataset2", "dataset3", "dataset6"],
-    #         # node_mocks[2]: ["dataset7", "dataset6", "dataset9", "dataset2"],
-    #         # node_mocks[3]: ["dataset6", "dataset1", "dataset3", "dataset8", "dataset2"],
-    #         # node_mocks[4]: ["dataset2", "dataset6"],
-    #         node_mocks[0]: ["dataset1", "dataset3", "dataset4"],
-    #         node_mocks[1]: ["dataset2", "dataset8", "dataset5"],
-    #         node_mocks[2]: ["dataset9", "dataset6", "dataset7"],
-    #     }
-
-    #     has_node_sufficient_data = [
-    #         True,
-    #         True,
-    #         False,
-    #         True,
-    #         True,
-    #         False,
-    #         True,
-    #         True,
-    #         True,
-    #         False,
-    #     ]
-    #     sufficient_data_nodes = dict(zip(node_mocks, has_node_sufficient_data))
-
-    #     def node_create_data_model_views_mock(self, *args, **kwargs) -> str:
-    #         requested_datasets = kwargs["datasets"]
-    #         subset_of_datasets_contained_in_node = [
-    #             requested_dataset
-    #             for requested_dataset in requested_datasets
-    #             if requested_dataset in nodes_datasets_mock[self]
-    #         ]
-    #         if subset_of_datasets_contained_in_node:
-    #             return [
-    #                 f"view_{dataset}"
-    #                 for dataset in subset_of_datasets_contained_in_node
-    #             ]
-    #         # if sufficient_data_nodes[self]:
-    #         #     return "a_dummy_view_table"
-    #         # else:
-    #         #     raise InsufficientDataError(f"Node:{self.node_id} has not enough data")
-
-    #     for node in nodes_datasets_mock.keys():
-    #         node.create_data_model_views = functools.partial(
-    #             node_create_data_model_views_mock, node
-    #         )
-
-    #     return (nodes_datasets_mock, sufficient_data_nodes)
-
-    # check that  node.create_data_model_views is called with the relevant params for all nodes
-    # check it returns the "correct" DataModelViews obj
-    # @pytest.mark.skip
-
     @pytest.fixture
     def local_node_mocks(self):
         return [MagicMock(LocalNode) for number_of_nodes in range(10)]
 
     @pytest.fixture
     def data_model_views_creator_init_params(self, local_node_mocks):
-        variable_groups = [["v1," "v2"], ["v3", "v4"]]
-        var_filters = []
-        dropna = False
-        check_min_rows = True
-        command_id = 123
+        @dataclass
+        class DataModelViewsCreatorInitParams:
+            local_nodes: List[LocalNode]
+            variable_groups: List[List[str]]
+            var_filters: list
+            dropna: bool
+            check_min_rows: bool
+            command_id: int
 
         return DataModelViewsCreatorInitParams(
-            # local_nodes=[LocalNodeMock()],
             local_nodes=local_node_mocks,
-            variable_groups=variable_groups,
-            var_filters=var_filters,
-            dropna=dropna,
-            check_min_rows=check_min_rows,
-            command_id=command_id,
+            variable_groups=[["v1," "v2"], ["v3", "v4"]],
+            var_filters=[],
+            dropna=False,
+            check_min_rows=True,
+            command_id=123,
         )
 
     def test_create_data_model_views(
         self, local_node_mocks, data_model_views_creator_init_params
-    ):  # , nodes_datasets_mock):
-        # class LocalNodeMock:
-        #      def create_data_model_views(
-        #              self,
-        #              command_id: str,
-        #              columns_per_view: List[List[str]],
-        #              filters: dict = None,
-        #              dropna: bool = True,
-        #              check_min_rows: bool = True,
-        #      ):
-        #          return ""
-
-        # local_node_mocks = [MagicMock(LocalNode) for number_of_nodes in range(10)]
-        # variable_groups = [["v1," "v2"], ["v3", "v4"]]
-        # var_filters = []
-        # dropna = False
-        # check_min_rows = True
-        # command_id = 123
-
-        # init_params = DataModelViewsCreatorInitParams(
-        #     # local_nodes=[LocalNodeMock()],
-        #     local_nodes=local_node_mocks,
-        #     variable_groups=variable_groups,
-        #     var_filters=var_filters,
-        #     dropna=dropna,
-        #     check_min_rows=check_min_rows,
-        #     command_id=command_id,
-        # )
+    ):
         data_model_views_creator = DataModelViewsCreator(
-            data_model_views_creator_init_params
+            local_nodes=data_model_views_creator_init_params.local_nodes,
+            variable_groups=data_model_views_creator_init_params.variable_groups,
+            var_filters=data_model_views_creator_init_params.var_filters,
+            dropna=data_model_views_creator_init_params.dropna,
+            check_min_rows=data_model_views_creator_init_params.check_min_rows,
+            command_id=data_model_views_creator_init_params.command_id,
         )
         # assert that create_data_model_views was called for all self._local_nodes with the args
         data_model_views_creator.create_data_model_views()
@@ -416,36 +252,6 @@ class TestDataModelViewsCreator:
 
         assert isinstance(data_model_views_creator.data_model_views, DataModelViews)
 
-        # nodes_datasets_mock, sufficient_data_nodes = nodes_datasets_mock
-        # request_datasets = ["dataset1", "dataset2", "dataset4", "dataset7", "dataset8"]
-
-        # init_params = DataModelViewsCreatorInitParams(
-        #     nodes_datasets=nodes_datasets_mock,
-        #     data_model="datamodel",
-        #     datasets=request_datasets,
-        #     variable_groups=[],
-        #     var_filters=[],
-        #     dropna=True,
-        #     check_min_rows=True,
-        #     command_id=0,
-        # )
-        # with unittest.mock.patch(
-        #     "mipengine.controller.controller._data_model_views_to_localnodestables",
-        #     new=_data_model_views_to_localnodestables_mock,
-        # ):
-        #     data_model_views_creator = DataModelViewsCreator(init_params)
-        #     data_model_views_creator.create_data_model_views()
-
-        #     expected = [
-        #         node.node_id
-        #         for node, has_sufficient_data in sufficient_data_nodes.items()
-        #         if has_sufficient_data
-        #     ]
-
-        #     assert set(expected) == set(
-        #         data_model_views_creator.data_model_views.to_list()
-        #     )
-
     def test_create_data_model_views_insufficient_data_error(
         self, data_model_views_creator_init_params
     ):
@@ -454,11 +260,8 @@ class TestDataModelViewsCreator:
         for node_mock in local_node_mocks:
             node_mock.node_id = "some_id.."
             node_mock.create_data_model_views.side_effect = InsufficientDataError("")
-            # node_mock.create_data_model_views.side_effect = (
-            #     lambda *args: InsufficientDataError("")
-            # )
 
-        data_model_views_creator_init_params = DataModelViewsCreatorInitParams(
+        data_model_views_creator = DataModelViewsCreator(
             local_nodes=local_node_mocks,
             variable_groups=data_model_views_creator_init_params.variable_groups,
             var_filters=data_model_views_creator_init_params.var_filters,
@@ -466,49 +269,8 @@ class TestDataModelViewsCreator:
             check_min_rows=data_model_views_creator_init_params.check_min_rows,
             command_id=data_model_views_creator_init_params.command_id,
         )
-        # breakpoint()
-        data_model_views_creator = DataModelViewsCreator(
-            data_model_views_creator_init_params
-        )
-        # assert that create_data_model_views was called for all self._local_nodes with the args
         with pytest.raises(InsufficientDataError):
             data_model_views_creator.create_data_model_views()
-
-    # check InsufficientDataError if not enough data on any of the nodes
-    @pytest.mark.skip
-    def test_create_data_model_views_insufficient_data(self, nodes_datasets_mock):
-        nodes_datasets_mock, __ = nodes_datasets_mock
-
-        def create_data_model_views_mock(self, *args, **kwargs) -> str:
-            raise InsufficientDataError(f"Node:{self.node_id} has not enough data")
-
-        for node in nodes_datasets_mock.keys():
-            node.create_data_model_views = functools.partial(
-                create_data_model_views_mock, node
-            )
-
-        request_datasets = ["dataset2", "dataset6"]
-
-        init_params = DataModelViewsCreatorInitParams(
-            nodes_datasets=nodes_datasets_mock,
-            data_model="datamodel",
-            datasets=request_datasets,
-            variable_groups=[],
-            var_filters=[],
-            dropna=True,
-            check_min_rows=True,
-            command_id=0,
-        )
-        data_model_views_creator = DataModelViewsCreator(init_params)
-        with pytest.raises(InsufficientDataError):
-            data_model_views_creator.create_data_model_views()
-
-
-# def _data_model_views_to_localnodestables_mock(
-#     views_per_localnode: Dict[LocalNode, List[TableInfo]]
-# ) -> List[str]:  # List[LocalNodesTable]:
-#     # only the node_id portion of the dict is used in the test
-#     return [node.node_id for node in views_per_localnode.keys()]
 
 
 class AsyncResult:
@@ -531,7 +293,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     def tasks_timeout(self) -> int:
         pass
 
-    # TABLES functionality
     def get_tables(self, request_id: str, context_id: str) -> List[str]:
         pass
 
@@ -543,7 +304,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> TableInfo:
         pass
 
-    # VIEWS functionality
     def get_views(self, request_id: str, context_id: str) -> List[str]:
         pass
 
@@ -561,7 +321,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> List[TableInfo]:
         pass
 
-    # MERGE TABLES functionality
     def get_merge_tables(self, request_id: str, context_id: str) -> List[str]:
         pass
 
@@ -574,7 +333,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> TableInfo:
         pass
 
-    # REMOTE TABLES functionality
     def get_remote_tables(self, request_id: str, context_id: str) -> List[str]:
         pass
 
@@ -587,7 +345,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> TableInfo:
         pass
 
-    # UDFs functionality
     def queue_run_udf(
         self,
         request_id: str,
@@ -609,7 +366,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     def get_udfs(self, request_id: str, algorithm_name) -> List[str]:
         pass
 
-    # return the generated monetdb python udf
     def get_run_udf_query(
         self,
         request_id: str,
@@ -620,14 +376,12 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> Tuple[str, str]:
         pass
 
-    # CLEANUP functionality
     def queue_cleanup(self, request_id: str, context_id: str):
         pass
 
     def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
         pass
 
-    # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(
         self,
         context_id: str,
@@ -709,91 +463,3 @@ def test_data_model_views_to_localnodestables(
             assert expected in nodes_tables_info
 
         assert len(nodes_tables_expected) == len(nodes_tables_info)
-
-
-# ---------------------------
-# class TestDataModelViewsCreator:
-#     @pytest.fixture
-#     def datasets(self):
-#         return ["dataset" + str(i) for i in range(1, 20)]
-
-#     @pytest.fixture
-#     def node_mocks(self):
-#         context_id = "0"
-#         nodes_ids = ["node" + str(i) for i in range(1, 11)]
-#         nodes = [
-#             create_mock_node(node_id=node_id, context_id=context_id, request_id="0")
-#             for node_id in nodes_ids
-#         ]
-#         return nodes
-
-#     @pytest.fixture
-#     def nodes_datasets_mock(self, node_mocks, datasets):
-#         nodes_datasets_mock={
-#             node_mocks[0]: ["dataset1", "dataset2"],
-#             node_mocks[1]: ["dataset2", "dataset3", "dataset6"],
-#             node_mocks[2]: ["dataset1", "dataset4", "dataset6"],
-#             node_mocks[3]: ["dataset4", "dataset1", "dataset3"],
-#             node_mocks[4]: ["dataset2", "dataset1", "dataset6"],
-#         }
-
-#         def create_data_model_views_mock(
-#             self,
-#             command_id: str,
-#             data_model: str,
-#             datasets: List[str],
-#             columns_per_view: List[List[str]],
-#             filters: dict = None,
-#             dropna: bool = True,
-#             check_min_rows: bool = True,
-#         )-> str:#-> List[TableInfo]:
-#             if set(datasets).issubset(nodes_datasets_mock[self]):
-#                 return "a_dummy_view_table"
-#             else:
-#                 raise InsufficientDataError(f"Node:{self.node_id} has not enough data"
-#             )
-
-
-#         for node,datasets in nodes_datasets_mock.items():
-#             node.create_data_model_views=functools.partial(create_data_model_views_mock,node)
-
-#         return nodes_datasets_mock
-#         # return {
-#         #     node_mocks[0]: ["dataset1", "dataset2"],
-#         #     node_mocks[1]: ["dataset2", "dataset3", "dataset6"],
-#         #     node_mocks[2]: ["dataset1", "dataset4", "dataset6"],
-#         #     node_mocks[3]: ["dataset4", "dataset1", "dataset3"],
-#         #     node_mocks[4]: ["dataset2", "dataset1", "dataset6"],
-#         # }
-
-#     def test_create_data_model_views(self, nodes_datasets_mock):
-#         request_datasets=["dataset2", "dataset6"]
-
-#         init_params= DataModelViewsCreatorInitParams(
-#             nodes_datasets=nodes_datasets_mock,
-#             data_model="datamodel",
-#             datasets=request_datasets,
-#             variable_groups=[["var1", "var2"], ["var3"]],
-#             var_filters=[],
-#             dropna=True,
-#             check_min_rows=True,
-#             command_id=0,
-#         )
-#         with unittest.mock.patch('mipengine.controller.controller._data_model_views_to_localnodestables',new=_data_model_views_to_localnodestables_mock):
-
-#             data_model_views_creator=DataModelViewsCreator(init_params)
-#             data_model_views_creator.create_data_model_views()
-#             # expected
-#             expected=[node.node_id for node,datasets in nodes_datasets_mock.items() if set(request_datasets).issubset(datasets)]
-#             assert set(expected)==set(data_model_views_creator.data_model_views.to_list())
-#         # check that  node.create_data_model_views is called with the relevant params for all nodes
-#         # check InsufficientDataError if not enough data on any of the nodes
-#         # check it returns the "correct" DataModelViews obj
-#         pass
-
-
-# def _data_model_views_to_localnodestables_mock(
-#     views_per_localnode: Dict[LocalNode, List[TableInfo]]
-# ) -> List[str]:#List[LocalNodesTable]:
-#     # only the node_id portion of the dict is used in the test
-#     return [node.node_id for node in views_per_localnode.keys()]

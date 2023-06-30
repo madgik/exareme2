@@ -102,6 +102,7 @@ class AlgorithmExecutionEngine:
     the nodes of the system. An AlgorithmExecutionEngine object is passed to all algorithms
 
     """
+
     def __init__(
         self,
         initialization_params: InitializationParams,
