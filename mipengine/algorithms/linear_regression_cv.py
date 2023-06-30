@@ -6,9 +6,10 @@ from pydantic import BaseModel
 
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.crossvalidation import KFold
+from mipengine.algorithms.crossvalidation import cross_validate
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
-from mipengine.algorithms.preprocessing import KFold
 from mipengine.algorithms.preprocessing import relation_to_vector
 
 ALGORITHM_NAME = "linear_regression_cv"
@@ -44,19 +45,15 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         p = len(dummy_encoder.new_varnames) - 1
 
+        # Perform cross-validation
         kf = KFold(self.engine, n_splits=n_splits)
-        X_train, X_test, y_train, y_test = kf.split(X, y)
-
         models = [LinearRegression(self.engine) for _ in range(n_splits)]
+        y_pred, y_true = cross_validate(X, y, models, kf, pred_type="values")
 
-        for model, X, y in zip(models, X_train, y_train):
-            model.fit(X=X, y=y)
-
-        for model, X, y in zip(models, X_test, y_test):
-            y_pred = model.predict(X)
+        for model, y_p, y_t in zip(models, y_pred, y_true):
             model.compute_summary(
-                y_test=relation_to_vector(y, self.engine),
-                y_pred=y_pred,
+                y_test=relation_to_vector(y_t, self.engine),
+                y_pred=y_p,
                 p=p,
             )
 

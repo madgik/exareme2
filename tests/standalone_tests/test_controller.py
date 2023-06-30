@@ -1,8 +1,4 @@
-import functools
-import itertools
-import unittest.mock
 from dataclasses import dataclass
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -11,7 +7,6 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine import DType
 from mipengine.controller.algorithm_execution_engine import Nodes
 from mipengine.controller.algorithm_execution_engine_tasks_handler import (
     INodeAlgorithmTasksHandler,
@@ -46,7 +41,7 @@ def create_dummy_node(node_id: str, context_id: str, request_id: str):
 
 @pytest.fixture
 def node_mocks():
-    context_id = "0"
+    # context_id = "0"
     nodes_ids = ["node" + str(i) for i in range(1, 11)]
     nodes = [
         LocalNode(

@@ -796,6 +796,17 @@ class Controller:
 
         return algorithm_result
 
+    def _get_subset_of_nodes_containing_datasets(self, nodes, data_model, datasets):
+        datasets_per_local_node = {
+            node: self._node_landscape_aggregator.get_node_specific_datasets(
+                node.node_id,
+                data_model,
+                datasets,
+            )
+            for node in nodes
+        }
+        return datasets_per_local_node
+
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
@@ -933,7 +944,7 @@ def _validate_number_of_views(views_per_localnode: dict):
 
     if not number_of_tables_equal:
         raise ValueError(
-            "The number of views does is not equal for all nodes"
+            "The number of views is not the same for all nodes"
             f" {views_per_localnode=}"
         )
     return number_of_tables[0]
