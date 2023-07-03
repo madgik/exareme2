@@ -9,7 +9,9 @@ import pandas as pd
 from pydantic import BaseModel
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import KFold
 
+from mipengine.algorithms.random_forest_cv import RandomForestCVAlgorithm
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
@@ -41,22 +43,23 @@ class RandomForestTestcaseGenerator(TestCaseGenerator):
         X_data = pd.DataFrame(X)
 
         le = preprocessing.LabelEncoder()
-        le.fit(Y_data)
-        ydata_enc = le.transform(Y_data)
+        Y_conv = Y_data.values.ravel()
+        le.fit(Y_conv)
+        ydata_enc = le.transform(Y_conv)
 
-        n_splits = 2
+        n_splits = parameters["n_splits"]
 
-        num_trees = 64
+        num_trees = parameters["n_estimators"]
 
         kf = KFold(n_splits=n_splits)
 
         curr_accuracy_list = []
         for train, test in kf.split(X):
 
-            X_train = X[train]
+            X_train = X.values[train]
             y_train = ydata_enc[train]
 
-            X_test = X[test]
+            X_test = X.values[test]
             y_test = ydata_enc[test]
 
             rf = RandomForestClassifier(n_estimators=num_trees)
@@ -77,7 +80,9 @@ class RandomForestTestcaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    with open("mipengine/algorithms/random_forest_cv.json") as specs_file:
-        gen = RandomForestTestcaseGenerator(specs_file)
-    with open("new_rf.json", "w") as expected_file:
-        gen.write_test_cases(expected_file, 2)
+    specs = json.loads(
+        RandomForestCVAlgorithm.get_specification().json(exclude_none=True)
+    )
+    gen = RandomForestTestcaseGenerator(specs)
+    with open("tmp.json", "w") as expected_file:
+        gen.write_test_cases(expected_file, num_test_cases=5)
