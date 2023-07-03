@@ -288,7 +288,13 @@ class NodesFederation:
         ]
 
     def _get_globalnodeinfo(self) -> NodeInfo:
-        return self._node_landscape_aggregator.get_global_node()
+        # TODO why is NodeLandscape raising an exception when get_global_node is called
+        # and there is no Global Node?
+        try:
+            return self._node_landscape_aggregator.get_global_node()
+        except Exception:
+            # means there is no global node, single local node execution...
+            return None
 
     @property
     def nodes(self) -> Nodes:
