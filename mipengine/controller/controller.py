@@ -399,8 +399,10 @@ class NodesFederation:
                 context_id=self._context_id,
                 node_tasks_handler=tasks_handler,
             )
+            nodes = Nodes(global_node=globalnode, local_nodes=localnodes)
 
-        nodes = Nodes(global_node=globalnode, local_nodes=localnodes)
+        else:
+            nodes = Nodes(local_nodes=localnodes)
 
         return nodes
 
