@@ -388,16 +388,17 @@ class NodesFederation:
 
         # Global Node
         globalnodeinfo = self._get_globalnodeinfo()
-        tasks_handler = _create_node_tasks_handler(
-            nodeinfo=globalnodeinfo,
-            tasks_timeout=self._celery_tasks_timeout,
-            run_udf_task_timeout=self._celery_run_udf_task_timeout,
-        )
-        globalnode = _create_global_node(
-            request_id=self._request_id,
-            context_id=self._context_id,
-            node_tasks_handler=tasks_handler,
-        )
+        if globalnodeinfo:
+            tasks_handler = _create_node_tasks_handler(
+                nodeinfo=globalnodeinfo,
+                tasks_timeout=self._celery_tasks_timeout,
+                run_udf_task_timeout=self._celery_run_udf_task_timeout,
+            )
+            globalnode = _create_global_node(
+                request_id=self._request_id,
+                context_id=self._context_id,
+                node_tasks_handler=tasks_handler,
+            )
 
         nodes = Nodes(global_node=globalnode, local_nodes=localnodes)
 
