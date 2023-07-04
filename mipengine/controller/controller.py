@@ -257,6 +257,8 @@ class NodesFederation:
         """
         self._command_id_generator = command_id_generator
 
+        self._logger = logger
+        
         self._request_id = request_id
         self._context_id = context_id
         self._data_model = data_model
@@ -270,7 +272,6 @@ class NodesFederation:
 
         self._nodes = self._create_nodes()
 
-        self._logger = logger
 
     def _get_nodeids_for_requested_datasets(self) -> List[str]:
         return self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
@@ -346,13 +347,12 @@ class NodesFederation:
         )
 
         self._logger.debug(
-            f"{local_nodes_filtered=} after creating the data model views"
+            f"Local nodes after create_data_model_views:{local_nodes_filtered}"
         )
 
-        self._nodes = Nodes(
-            global_node=self._nodes.global_node,
-            local_nodes=local_nodes_filtered,
-        )
+        # update local nodes 
+        self._nodes.local_nodes=local_nodes_filtered
+        
         return data_model_views_creator.data_model_views
 
     def get_global_node_info(self) -> NodeInfo:
@@ -404,6 +404,7 @@ class NodesFederation:
         else:
             nodes = Nodes(local_nodes=localnodes)
 
+        self._logger.debug(f"Created Nodes object: {nodes}")
         return nodes
 
     def _get_datasets_of_nodeids(
@@ -635,12 +636,12 @@ class AlgorithmExecutor:
 
         log_experiment_execution(
             logger=self._logger,
-            request_id=self._engine._local_nodes[0].request_id,
-            context_id=self._engine._local_nodes[0].context_id,
+            request_id=self._engine._nodes.local_nodes[0].request_id,
+            context_id=self._engine._nodes.local_nodes[0].context_id,
             algorithm_name=self._algorithm_name,
             datasets=self._datasets,
             algorithm_parameters=self._params,
-            local_node_ids=[node.node_id for node in self._engine._local_nodes],
+            local_node_ids=[node.node_id for node in self._engine._nodes.local_nodes],
         )
 
         # Call Algorithm.run inside event loop
@@ -747,7 +748,6 @@ class Controller:
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
             request_id=algorithm_request_dto.request_id,
-            context_id=context_id,
             algo_flags=algorithm_request_dto.flags,
         )
         engine = _create_algorithm_execution_engine(
@@ -755,7 +755,6 @@ class Controller:
             command_id_generator=command_id_generator,
             nodes=nodes_federation.nodes,
         )
-
         variables = Variables(
             x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
             y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
@@ -871,24 +870,8 @@ class Controller:
             self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
         )
 
-    # def get_all_local_nodes(self) -> List[NodeInfo]:
-    #     return self._node_landscape_aggregator.get_all_local_nodes()
 
-    # def get_global_node(self) -> NodeInfo:
-    #     return self._node_landscape_aggregator.get_global_node()
-
-    # def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-    #     node = self._node_landscape_aggregator.get_node_info(node_id)
-
-    #     return _NodeInfoDTO(
-    #         node_id=node.id,
-    #         queue_address=":".join([str(node.ip), str(node.port)]),
-    #         db_address=":".join([str(node.db_ip), str(node.db_port)]),
-    #         tasks_timeout=self._celery_tasks_timeout,
-    #         run_udf_task_timeout=self._celery_run_udf_task_timeout,
-    #     )
-
-
+    
 def _create_node_tasks_handler(
     nodeinfo: NodeInfo, tasks_timeout: int, run_udf_task_timeout: int
 ):
@@ -989,7 +972,7 @@ _thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
 
 
 # TODO add types
-# TODO change func name, transformer runs through that as well
+# TODO change func name, Transformers runs through this as well
 async def _algorithm_run_in_event_loop(algorithm, data_model_views, metadata):
     # By calling blocking method Algorithm.run() inside run_in_executor(),
     # Algorithm.run() will execute in a separate thread of the threadpool and at

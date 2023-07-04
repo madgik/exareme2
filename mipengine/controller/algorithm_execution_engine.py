@@ -6,8 +6,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
-
-from pydantic import BaseModel
+from dataclasses import dataclass
 
 from mipengine import DType
 from mipengine.controller import controller_logger as ctrl_logger
@@ -40,14 +39,10 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import make_unique_func_name
 
-
-class Nodes(BaseModel):
-    global_node: Optional[GlobalNode]
+@dataclass
+class Nodes:
     local_nodes: List[LocalNode]
-
-    class Config:
-        arbitrary_types_allowed = True
-        allow_mutation = False
+    global_node: Optional[GlobalNode]=None
 
 
 class CommandIdGenerator:
@@ -85,15 +80,12 @@ class InconsistentShareTablesValueException(Exception):
         message = f"The size of the {share_list=} does not match the {number_of_result_tables=}"
         super().__init__(message)
 
-
-class InitializationParams(BaseModel):
+@dataclass(frozen=True)
+class InitializationParams:
     smpc_enabled: bool
     smpc_optional: bool
     request_id: str
     algo_flags: Optional[Dict[str, Any]] = None
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class AlgorithmExecutionEngine:
@@ -117,9 +109,7 @@ class AlgorithmExecutionEngine:
         self._smpc_optional = initialization_params.smpc_optional
 
         self._command_id_generator = command_id_generator
-        self._local_nodes = nodes.local_nodes
-        self._global_node = nodes.global_node
-
+        self._nodes=nodes
     @property
     def use_smpc(self):
         return self._get_use_smpc_flag()
@@ -159,7 +149,7 @@ class AlgorithmExecutionEngine:
 
         # Queue the udf on all local nodes
         tasks = {}
-        for node in self._local_nodes:
+        for node in self._nodes.local_nodes:
             positional_udf_args = algoexec_udf_posargs_to_node_udf_posargs(
                 positional_args, node
             )
@@ -241,7 +231,7 @@ class AlgorithmExecutionEngine:
             output_schema = TableSchema.from_list(output_schema)
 
         # Queue the udf on global node
-        task = self._global_node.queue_run_udf(
+        task = self._nodes.global_node.queue_run_udf(
             command_id=str(command_id),
             func_name=func_name,
             positional_args=positional_udf_args,
@@ -250,7 +240,7 @@ class AlgorithmExecutionEngine:
             output_schema=output_schema,
         )
 
-        node_tables = self._global_node.get_queued_udf_result(task)
+        node_tables = self._nodes.global_node.get_queued_udf_result(task)
         global_node_tables = self._convert_global_udf_results_to_global_node_data(
             node_tables
         )
@@ -291,7 +281,7 @@ class AlgorithmExecutionEngine:
     ) -> List[GlobalNodeTable]:
         global_tables = [
             GlobalNodeTable(
-                node=self._global_node,
+                node=self._nodes.global_node,
                 table_info=table_dto.value,
             )
             for table_dto in node_tables
@@ -305,9 +295,9 @@ class AlgorithmExecutionEngine:
             node: node.create_remote_table(
                 table_name=global_table.table_info.name,
                 table_schema=global_table.table_info.schema_,
-                native_node=self._global_node,
+                native_node=self._nodes.global_node,
             )
-            for node in self._local_nodes
+            for node in self._nodes.local_nodes
         }
         return LocalNodesTable(nodes_tables_info=local_tables)
 
@@ -369,7 +359,7 @@ class AlgorithmExecutionEngine:
 
         # create remote tables on global node
         table_infos = [
-            self._global_node.create_remote_table(
+            self._nodes.global_node.create_remote_table(
                 table_name=node_table.name,
                 table_schema=common_schema,
                 native_node=node,
@@ -378,9 +368,9 @@ class AlgorithmExecutionEngine:
         ]
 
         # merge remote tables into one merge table on global node
-        merge_table = self._global_node.create_merge_table(str(command_id), table_infos)
+        merge_table = self._nodes.global_node.create_merge_table(str(command_id), table_infos)
 
-        return GlobalNodeTable(node=self._global_node, table_info=merge_table)
+        return GlobalNodeTable(node=self._nodes.global_node, table_info=merge_table)
 
     def _share_local_smpc_tables_to_global(
         self,
@@ -391,7 +381,7 @@ class AlgorithmExecutionEngine:
             local_nodes_table=local_nodes_smpc_tables.template_local_nodes_table,
             command_id=command_id,
         )
-        self._global_node.validate_smpc_templates_match(
+        self._nodes.global_node.validate_smpc_templates_match(
             global_template_table.table_info.name
         )
 
@@ -401,14 +391,14 @@ class AlgorithmExecutionEngine:
 
         (sum_op, min_op, max_op) = trigger_smpc_operations(
             logger=self._logger,
-            context_id=self._global_node.context_id,
+            context_id=self._nodes.global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
         )
 
         wait_for_smpc_results_to_be_ready(
             logger=self._logger,
-            context_id=self._global_node.context_id,
+            context_id=self._nodes.global_node.context_id,
             command_id=command_id,
             sum_op=sum_op,
             min_op=min_op,
@@ -420,8 +410,8 @@ class AlgorithmExecutionEngine:
             min_op_result_table,
             max_op_result_table,
         ) = get_smpc_results(
-            node=self._global_node,
-            context_id=self._global_node.context_id,
+            node=self._nodes.global_node,
+            context_id=self._nodes.global_node.context_id,
             command_id=command_id,
             sum_op=sum_op,
             min_op=min_op,
@@ -429,7 +419,7 @@ class AlgorithmExecutionEngine:
         )
 
         return GlobalNodeSMPCTables(
-            node=self._global_node,
+            node=self._nodes.global_node,
             smpc_tables_info=SMPCTablesInfo(
                 template=global_template_table.table_info,
                 sum_op=sum_op_result_table,
@@ -537,7 +527,7 @@ class AlgorithmExecutionEngine:
 class AlgorithmExecutionEngineSingleLocalNode(AlgorithmExecutionEngine):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._global_node = self._local_nodes[0]
+        self._nodes.global_node = self._nodes.local_nodes[0]
 
     def _share_local_node_data(
         self,
@@ -546,13 +536,13 @@ class AlgorithmExecutionEngineSingleLocalNode(AlgorithmExecutionEngine):
     ) -> GlobalNodeData:
         if isinstance(local_nodes_data, LocalNodesTable):
             return GlobalNodeTable(
-                node=self._global_node,
-                table_info=local_nodes_data.nodes_tables_info[self._local_nodes[0]],
+                node=self._nodes.global_node,
+                table_info=local_nodes_data.nodes_tables_info[self._nodes.local_nodes[0]],
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
             return GlobalNodeSMPCTables(
-                node=self._global_node,
-                smpc_tables_info=local_nodes_data.nodes_smpc_tables[self._global_node],
+                node=self._nodes.global_node,
+                smpc_tables_info=local_nodes_data.nodes_smpc_tables[self._nodes.global_node],
             )
         raise NotImplementedError
 
@@ -560,5 +550,5 @@ class AlgorithmExecutionEngineSingleLocalNode(AlgorithmExecutionEngine):
         self, global_table: GlobalNodeTable
     ) -> LocalNodesTable:
         return LocalNodesTable(
-            nodes_tables_info=dict({self._global_node: global_table.table_info})
+            nodes_tables_info=dict({self._nodes.global_node: global_table.table_info})
         )

@@ -477,7 +477,6 @@ def engine_case_1(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
-        context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
     )
     return _create_algorithm_execution_engine(
@@ -500,7 +499,6 @@ def engine_case_2(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
-        context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
     )
     return _create_algorithm_execution_engine(
