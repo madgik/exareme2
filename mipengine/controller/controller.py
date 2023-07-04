@@ -916,6 +916,9 @@ def _create_global_node(request_id, context_id, node_tasks_handler):
 def _data_model_views_to_localnodestables(
     views_per_localnode: Dict[LocalNode, List[TableInfo]]
 ) -> List[LocalNodesTable]:
+    """
+    Combines the tables of different nodes into LocalNodesTables
+    """
     number_of_tables = _validate_number_of_views(views_per_localnode)
 
     local_nodes_tables = [
@@ -928,7 +931,10 @@ def _data_model_views_to_localnodestables(
     return local_nodes_tables
 
 
-def _validate_number_of_views(views_per_localnode: dict):
+def _validate_number_of_views(views_per_localnode: Dict[LocalNode, List[TableInfo]]):
+    """
+    Checks that the number of views is the same for all nodes
+    """
     number_of_tables = [len(tables) for tables in views_per_localnode.values()]
     number_of_tables_equal = len(set(number_of_tables)) == 1
 

@@ -56,7 +56,6 @@ def node_mocks():
     return nodes
 
 
-@pytest.mark.skip
 class TestNodesFederation:
     class NodeInfoMock:
         def __init__(self, node_id: str):
@@ -97,7 +96,11 @@ class TestNodesFederation:
         pass
 
     class LoggerMock:
-        pass
+        def debug(self, *args, **kwargs):
+            pass
+
+        def debug(self, *args, **kwargs):
+            pass
 
     @pytest.fixture
     def nodes_federation_mock(self):
@@ -152,7 +155,6 @@ class TestNodesFederation:
     #     pass
 
 
-@pytest.mark.skip
 class TestDataModelViews:
     @pytest.fixture
     def views_mocks(self, node_mocks):
@@ -199,7 +201,6 @@ class TestDataModelViews:
         assert all(node_id in result for node_id in expected_node_ids)
 
 
-@pytest.mark.skip
 class TestDataModelViewsCreator:
     @pytest.fixture
     def local_node_mocks(self):
@@ -434,9 +435,8 @@ def views_per_local_nodes_invalid():
 
 
 def test_validate_number_of_views(views_per_local_nodes, views_per_local_nodes_invalid):
-    assert _validate_number_of_views(views_per_local_nodes) == len(
-        list(views_per_local_nodes.values())[0]
-    )
+    tableinfo_list = list(views_per_local_nodes.values())
+    assert _validate_number_of_views(views_per_local_nodes) == len(tableinfo_list[0])
 
     with pytest.raises(ValueError):
         _validate_number_of_views(views_per_local_nodes_invalid)
