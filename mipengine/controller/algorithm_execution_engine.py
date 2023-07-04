@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -6,7 +7,6 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Union
-from dataclasses import dataclass
 
 from mipengine import DType
 from mipengine.controller import controller_logger as ctrl_logger
@@ -39,10 +39,11 @@ from mipengine.node_tasks_DTOs import TableInfo
 from mipengine.node_tasks_DTOs import TableSchema
 from mipengine.udfgen import make_unique_func_name
 
+
 @dataclass
 class Nodes:
     local_nodes: List[LocalNode]
-    global_node: Optional[GlobalNode]=None
+    global_node: Optional[GlobalNode] = None
 
 
 class CommandIdGenerator:
@@ -80,6 +81,7 @@ class InconsistentShareTablesValueException(Exception):
         message = f"The size of the {share_list=} does not match the {number_of_result_tables=}"
         super().__init__(message)
 
+
 @dataclass(frozen=True)
 class InitializationParams:
     smpc_enabled: bool
@@ -109,7 +111,8 @@ class AlgorithmExecutionEngine:
         self._smpc_optional = initialization_params.smpc_optional
 
         self._command_id_generator = command_id_generator
-        self._nodes=nodes
+        self._nodes = nodes
+
     @property
     def use_smpc(self):
         return self._get_use_smpc_flag()
@@ -368,7 +371,9 @@ class AlgorithmExecutionEngine:
         ]
 
         # merge remote tables into one merge table on global node
-        merge_table = self._nodes.global_node.create_merge_table(str(command_id), table_infos)
+        merge_table = self._nodes.global_node.create_merge_table(
+            str(command_id), table_infos
+        )
 
         return GlobalNodeTable(node=self._nodes.global_node, table_info=merge_table)
 
@@ -537,12 +542,16 @@ class AlgorithmExecutionEngineSingleLocalNode(AlgorithmExecutionEngine):
         if isinstance(local_nodes_data, LocalNodesTable):
             return GlobalNodeTable(
                 node=self._nodes.global_node,
-                table_info=local_nodes_data.nodes_tables_info[self._nodes.local_nodes[0]],
+                table_info=local_nodes_data.nodes_tables_info[
+                    self._nodes.local_nodes[0]
+                ],
             )
         elif isinstance(local_nodes_data, LocalNodesSMPCTables):
             return GlobalNodeSMPCTables(
                 node=self._nodes.global_node,
-                smpc_tables_info=local_nodes_data.nodes_smpc_tables[self._nodes.global_node],
+                smpc_tables_info=local_nodes_data.nodes_smpc_tables[
+                    self._nodes.global_node
+                ],
             )
         raise NotImplementedError
 

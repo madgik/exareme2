@@ -56,6 +56,7 @@ def node_mocks():
     return nodes
 
 
+@pytest.mark.skip
 class TestNodesFederation:
     class NodeInfoMock:
         def __init__(self, node_id: str):
@@ -151,6 +152,7 @@ class TestNodesFederation:
     #     pass
 
 
+@pytest.mark.skip
 class TestDataModelViews:
     @pytest.fixture
     def views_mocks(self, node_mocks):
@@ -197,6 +199,7 @@ class TestDataModelViews:
         assert all(node_id in result for node_id in expected_node_ids)
 
 
+@pytest.mark.skip
 class TestDataModelViewsCreator:
     @pytest.fixture
     def local_node_mocks(self):

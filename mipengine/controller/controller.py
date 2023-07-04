@@ -258,7 +258,7 @@ class NodesFederation:
         self._command_id_generator = command_id_generator
 
         self._logger = logger
-        
+
         self._request_id = request_id
         self._context_id = context_id
         self._data_model = data_model
@@ -271,7 +271,6 @@ class NodesFederation:
         self._celery_run_udf_task_timeout = celery_run_udf_task_timeout
 
         self._nodes = self._create_nodes()
-
 
     def _get_nodeids_for_requested_datasets(self) -> List[str]:
         return self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
@@ -350,9 +349,9 @@ class NodesFederation:
             f"Local nodes after create_data_model_views:{local_nodes_filtered}"
         )
 
-        # update local nodes 
-        self._nodes.local_nodes=local_nodes_filtered
-        
+        # update local nodes
+        self._nodes.local_nodes = local_nodes_filtered
+
         return data_model_views_creator.data_model_views
 
     def get_global_node_info(self) -> NodeInfo:
@@ -871,7 +870,6 @@ class Controller:
         )
 
 
-    
 def _create_node_tasks_handler(
     nodeinfo: NodeInfo, tasks_timeout: int, run_udf_task_timeout: int
 ):
