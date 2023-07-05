@@ -9,6 +9,7 @@ from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
 from mipengine.udfgen import secure_transfer
@@ -22,7 +23,7 @@ ALPHA = 0.05  # NOTE maybe this should be a model parameter
 RealVector = tensor(dtype=float, ndims=1)
 
 
-ALGORITHM_NAME = "linear_regression"
+ALGORITHM_NAME = AlgorithmName.LINEAR_REGRESSION
 
 
 class LinearRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

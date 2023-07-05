@@ -7,10 +7,12 @@ from typing import List
 from typing import Optional
 
 from mipengine import DType
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.algorithms.specifications import ParameterEnumSpecification
 from mipengine.algorithms.specifications import ParameterEnumType
 from mipengine.algorithms.specifications import ParameterSpecification
 from mipengine.algorithms.specifications import ParameterType
+from mipengine.algorithms.specifications import TransformerName
 from mipengine.algorithms.specifications import TransformerSpecification
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import AdhocUdfGenerator
@@ -19,7 +21,7 @@ from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
 if TYPE_CHECKING:
     from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 
-TRANSFORMER_NAME = "longitudinal_transformer"
+TRANSFORMER_NAME = TransformerName.LONGITUDINAL_TRANSFORMER
 
 
 @dataclass(frozen=True)
@@ -114,14 +116,14 @@ class LongitudinalTransformerRunner:
                 ),
             },
             compatible_algorithms=[
-                "anova_oneway",
-                "anova",
-                "linear_regression",
-                "linear_regression_cv",
-                "logistic_regression",
-                "logistic_regression_cv",
-                "naive_bayes_gaussian_cv",
-                "naive_bayes_categorical_cv",
+                AlgorithmName.ANOVA,
+                AlgorithmName.ANOVA_ONEWAY,
+                AlgorithmName.LINEAR_REGRESSION,
+                AlgorithmName.LINEAR_REGRESSION_CV,
+                AlgorithmName.LOGISTIC_REGRESSION,
+                AlgorithmName.LOGISTIC_REGRESSION_CV,
+                AlgorithmName.NAIVE_BAYES_GAUSSIAN_CV,
+                AlgorithmName.NAIVE_BAYES_CATEGORICAL_CV,
             ],
         )
 

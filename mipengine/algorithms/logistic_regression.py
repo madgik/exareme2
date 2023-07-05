@@ -10,6 +10,7 @@ from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -21,7 +22,7 @@ MAX_ITER = 50  # maximum iterations before cancelling run due to non convergence
 TOL = 1e-4  # tolerance for stopping criterion
 ALPHA = 0.05  # alpha level for coefficient confidence intervals
 
-ALGORITHM_NAME = "logistic_regression"
+ALGORITHM_NAME = AlgorithmName.LOGISTIC_REGRESSION
 
 
 class LogisticRegressionDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

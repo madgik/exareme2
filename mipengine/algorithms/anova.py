@@ -10,9 +10,10 @@ from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import FormulaTransformer
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.exceptions import BadUserInput
 
-ALGORITHM_NAME = "anova"
+ALGORITHM_NAME = AlgorithmName.ANOVA
 
 
 class AnovaTwoWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

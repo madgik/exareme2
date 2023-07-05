@@ -39,6 +39,7 @@ from pydantic import BaseModel
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -47,7 +48,7 @@ from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
 DATASET_VAR_NAME = "dataset"
-ALGORITHM_NAME = "descriptive_stats"
+ALGORITHM_NAME = AlgorithmName.DESCRIPTIVE_STATS
 
 
 class DescriptiveStatisticsDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
