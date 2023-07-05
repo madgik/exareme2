@@ -1,0 +1,241 @@
+{
+    "test_cases": [
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "dataset"
+                    ],
+                    "x": [
+                        "rightlateralventricle",
+                        "rightmorgmedialorbitalgyrus",
+                        "leftmogmiddleoccipitalgyrus",
+                        "leftcocentraloperculum",
+                        "rightpcuprecuneus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "edsd6",
+                        "ppmi5",
+                        "desd-synthdata7",
+                        "desd-synthdata9",
+                        "ppmi6",
+                        "ppmi2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_estimators": 17,
+                    "n_splits": 10
+                },
+                "test_case_num": 0
+            },
+            "output": {
+                "title": "random_forest",
+                "accuracy_list": [
+                    0.0,
+                    0.0,
+                    0.03773584905660377,
+                    0.16981132075471697,
+                    0.07547169811320754,
+                    0.0,
+                    0.11538461538461539,
+                    0.057692307692307696,
+                    0.17307692307692307,
+                    0.07692307692307693
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "leftprgprecentralgyrus",
+                        "leftmcggmiddlecingulategyrus",
+                        "leftcerebellumexterior",
+                        "leftmsfgsuperiorfrontalgyrusmedialsegment",
+                        "rightsogsuperioroccipitalgyrus",
+                        "rightbasalforebrain",
+                        "rightptplanumtemporale",
+                        "leftmprgprecentralgyrusmedialsegment",
+                        "leftpcggposteriorcingulategyrus",
+                        "opticchiasm",
+                        "leftcaudate",
+                        "leftmfcmedialfrontalcortex",
+                        "rightpoparietaloperculum",
+                        "rightcuncuneus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata7",
+                        "edsd9",
+                        "ppmi4",
+                        "desd-synthdata5",
+                        "ppmi7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_estimators": 43,
+                    "n_splits": 7
+                },
+                "test_case_num": 1
+            },
+            "output": {
+                "title": "random_forest",
+                "accuracy_list": [
+                    0.8148148148148148,
+                    0.9629629629629629,
+                    0.8148148148148148,
+                    0.7777777777777778,
+                    0.34615384615384615,
+                    0.23076923076923078,
+                    0.2692307692307692
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [
+                        "cerebellarvermallobulesvivii",
+                        "leftpoparietaloperculum",
+                        "rightsplsuperiorparietallobule",
+                        "rightmfgmiddlefrontalgyrus",
+                        "leftprgprecentralgyrus",
+                        "rightputamen",
+                        "lefthippocampus",
+                        "cerebellarvermallobulesiv"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata8",
+                        "desd-synthdata9",
+                        "ppmi3",
+                        "ppmi1",
+                        "edsd9",
+                        "desd-synthdata7",
+                        "edsd1",
+                        "desd-synthdata2",
+                        "desd-synthdata3",
+                        "desd-synthdata1",
+                        "edsd7",
+                        "desd-synthdata4",
+                        "edsd2",
+                        "desd-synthdata0",
+                        "ppmi2",
+                        "ppmi9",
+                        "desd-synthdata5",
+                        "edsd3"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_estimators": 15,
+                    "n_splits": 5
+                },
+                "test_case_num": 2
+            },
+            "output": {
+                "title": "random_forest",
+                "accuracy_list": [
+                    0.7404580152671756,
+                    0.767175572519084,
+                    0.6908396946564885,
+                    0.6973180076628352,
+                    0.685823754789272
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "leftfofrontaloperculum",
+                        "rightfofrontaloperculum",
+                        "rightcerebellumwhitematter",
+                        "rightprgprecentralgyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "ppmi5",
+                        "ppmi6",
+                        "edsd1",
+                        "ppmi0",
+                        "desd-synthdata5",
+                        "desd-synthdata4",
+                        "desd-synthdata8",
+                        "desd-synthdata0",
+                        "desd-synthdata9",
+                        "edsd9",
+                        "desd-synthdata1",
+                        "desd-synthdata7",
+                        "edsd2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_estimators": 8,
+                    "n_splits": 2
+                },
+                "test_case_num": 3
+            },
+            "output": {
+                "title": "random_forest",
+                "accuracy_list": [
+                    0.6643356643356644,
+                    0.5174825174825175
+                ]
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "leftstgsuperiortemporalgyrus",
+                        "leftententorhinalarea",
+                        "rightthalamusproper",
+                        "rightporgposteriororbitalgyrus",
+                        "righttmptemporalpole",
+                        "rightfrpfrontalpole",
+                        "rightbasalforebrain",
+                        "rightmfgmiddlefrontalgyrus"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd1",
+                        "desd-synthdata9",
+                        "desd-synthdata3"
+                    ],
+                    "filters": null
+                },
+                "parameters": {
+                    "n_estimators": 98,
+                    "n_splits": 2
+                },
+                "test_case_num": 4
+            },
+            "output": {
+                "title": "random_forest",
+                "accuracy_list": [
+                    0.6129032258064516,
+                    0.5108695652173914
+                ]
+            }
+        }
+    ]
+}
