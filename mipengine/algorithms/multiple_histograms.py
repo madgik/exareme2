@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.udfgen import MIN_ROW_COUNT
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -19,7 +20,7 @@ from mipengine.udfgen import udf
 
 S = TypeVar("S")
 
-ALGORITHM_NAME = "multiple_histograms"
+ALGORITHM_NAME = AlgorithmName.MULTIPLE_HISTOGRAMS
 
 
 class MultipleHistogramsDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

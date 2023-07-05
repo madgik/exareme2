@@ -11,8 +11,9 @@ from mipengine.algorithms.crossvalidation import cross_validate
 from mipengine.algorithms.linear_regression import LinearRegression
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import relation_to_vector
+from mipengine.algorithms.specifications import AlgorithmName
 
-ALGORITHM_NAME = "linear_regression_cv"
+ALGORITHM_NAME = AlgorithmName.LINEAR_REGRESSION_CV
 
 
 class LinearRegressionCVDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

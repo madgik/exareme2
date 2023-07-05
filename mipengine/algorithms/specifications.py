@@ -202,6 +202,28 @@ class PipelineStepSpecification(ImmutableBaseModel):
         return cls_values
 
 
+@unique
+class AlgorithmName(str, Enum):
+    ANOVA = "anova"
+    ANOVA_ONEWAY = "anova_oneway"
+    DESCRIPTIVE_STATS = "descriptive_stats"
+    LINEAR_REGRESSION = "linear_regression"
+    LINEAR_REGRESSION_CV = "linear_regression_cv"
+    LOGISTIC_REGRESSION = "logistic_regression"
+    LOGISTIC_REGRESSION_CV = "logistic_regression_cv"
+    MULTIPLE_HISTOGRAMS = "multiple_histograms"
+    NAIVE_BAYES_CATEGORICAL_CV = "naive_bayes_categorical_cv"
+    NAIVE_BAYES_GAUSSIAN_CV = "naive_bayes_gaussian_cv"
+    PCA = "pca"
+    PEARSON_CORRELATION = "pearson_correlation"
+    TTEST_INDEPENDENT = "ttest_independent"
+    TTEST_ONESAMPLE = "ttest_onesample"
+    TTEST_PAIRED = "ttest_paired"
+
+    def __str__(self) -> str:
+        return str.__str__(self)
+
+
 class AlgorithmSpecification(PipelineStepSpecification):
     name: str
     desc: str
@@ -210,6 +232,14 @@ class AlgorithmSpecification(PipelineStepSpecification):
     inputdata: InputDataSpecifications
     parameters: Optional[Dict[str, ParameterSpecification]]
     flags: Optional[Dict[str, bool]]
+
+
+@unique
+class TransformerName(str, Enum):
+    LONGITUDINAL_TRANSFORMER = "longitudinal_transformer"
+
+    def __str__(self) -> str:
+        return str.__str__(self)
 
 
 class TransformerSpecification(PipelineStepSpecification):

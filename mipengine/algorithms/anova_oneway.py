@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
 from mipengine.algorithms.helpers import get_transfer_data
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import literal
 from mipengine.udfgen import merge_transfer
@@ -14,7 +15,7 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "anova_oneway"
+ALGORITHM_NAME = AlgorithmName.ANOVA_ONEWAY
 
 
 class AnovaOneWayDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

@@ -15,8 +15,9 @@ from mipengine.algorithms.metrics import confusion_matrix_binary
 from mipengine.algorithms.metrics import roc_curve
 from mipengine.algorithms.preprocessing import DummyEncoder
 from mipengine.algorithms.preprocessing import LabelBinarizer
+from mipengine.algorithms.specifications import AlgorithmName
 
-ALGORITHM_NAME = "logistic_regression_cv"
+ALGORITHM_NAME = AlgorithmName.LOGISTIC_REGRESSION_CV
 
 
 class LogisticRegressionCVDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

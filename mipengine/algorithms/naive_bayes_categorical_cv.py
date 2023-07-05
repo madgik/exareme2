@@ -10,6 +10,7 @@ from mipengine.algorithms.metrics import confusion_matrix_multiclass
 from mipengine.algorithms.metrics import multiclass_classification_metrics
 from mipengine.algorithms.metrics import multiclass_classification_summary
 from mipengine.algorithms.naive_bayes_gaussian_cv import make_naive_bayes_result
+from mipengine.algorithms.specifications import AlgorithmName
 from mipengine.udfgen import DEFERRED
 from mipengine.udfgen import literal
 from mipengine.udfgen import relation
@@ -17,7 +18,7 @@ from mipengine.udfgen import secure_transfer
 from mipengine.udfgen import transfer
 from mipengine.udfgen import udf
 
-ALGORITHM_NAME = "naive_bayes_categorical_cv"
+ALGORITHM_NAME = AlgorithmName.NAIVE_BAYES_CATEGORICAL_CV
 
 
 class CategoricalNBDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
