@@ -6,15 +6,15 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
+from mipengine.algorithms.specifications import AlgorithmSpecification
+from mipengine.algorithms.specifications import InputDataSpecification
+from mipengine.algorithms.specifications import InputDataSpecifications
+from mipengine.algorithms.specifications import InputDataStatType
+from mipengine.algorithms.specifications import InputDataType
+from mipengine.algorithms.specifications import ParameterEnumSpecification
+from mipengine.algorithms.specifications import ParameterEnumType
+from mipengine.algorithms.specifications import ParameterSpecification
+from mipengine.algorithms.specifications import ParameterType
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import transformer_specs
 
@@ -74,7 +74,7 @@ class TransformerSpecificationDTO(ImmutableBaseModel):
     desc: str
     label: str
     parameters: Optional[Dict[str, ParameterSpecificationDTO]]
-    compatible_algorithms: List[str]
+    compatible_algorithms: Optional[List[str]]
 
 
 class AlgorithmSpecificationsDTO(ImmutableBaseModel):

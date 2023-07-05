@@ -7,11 +7,11 @@ from typing import List
 from typing import Optional
 
 from mipengine import DType
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithm_specification import TransformerSpecification
+from mipengine.algorithms.specifications import ParameterEnumSpecification
+from mipengine.algorithms.specifications import ParameterEnumType
+from mipengine.algorithms.specifications import ParameterSpecification
+from mipengine.algorithms.specifications import ParameterType
+from mipengine.algorithms.specifications import TransformerSpecification
 from mipengine.exceptions import BadUserInput
 from mipengine.udfgen import AdhocUdfGenerator
 from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult

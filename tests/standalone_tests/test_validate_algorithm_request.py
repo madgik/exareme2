@@ -1,10 +1,10 @@
 import pytest
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterSpecification
+from mipengine.algorithms.specifications import AlgorithmSpecification
+from mipengine.algorithms.specifications import InputDataSpecification
+from mipengine.algorithms.specifications import InputDataSpecifications
+from mipengine.algorithms.specifications import ParameterEnumSpecification
+from mipengine.algorithms.specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
