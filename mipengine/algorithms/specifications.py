@@ -184,7 +184,25 @@ def _validate_parameter_type_dict_enums(param_value, cls_values):
     _validate_parameter_type_dict_enums_not_allowed(param_value, cls_values)
 
 
-class AlgorithmSpecification(ImmutableBaseModel):
+def validate_parameters(cls_values):
+    if not cls_values["parameters"]:
+        return cls_values
+
+    for param_value in cls_values["parameters"].values():
+        _validate_parameter_enums(param_value, cls_values)
+        _validate_parameter_type_dict(param_value, cls_values)
+        _validate_parameter_type_dict_enums(param_value, cls_values)
+    return cls_values
+
+
+class PipelineStepSpecification(ImmutableBaseModel):
+    @root_validator
+    def validate_parameters(cls, cls_values):
+        validate_parameters(cls_values)
+        return cls_values
+
+
+class AlgorithmSpecification(PipelineStepSpecification):
     name: str
     desc: str
     label: str
@@ -193,22 +211,11 @@ class AlgorithmSpecification(ImmutableBaseModel):
     parameters: Optional[Dict[str, ParameterSpecification]]
     flags: Optional[Dict[str, bool]]
 
-    @root_validator
-    def validate_parameter_enums_logic(cls, cls_values):
-        if not cls_values["parameters"]:
-            return cls_values
 
-        for param_value in cls_values["parameters"].values():
-            _validate_parameter_enums(param_value, cls_values)
-            _validate_parameter_type_dict(param_value, cls_values)
-            _validate_parameter_type_dict_enums(param_value, cls_values)
-        return cls_values
-
-
-class TransformerSpecification(ImmutableBaseModel):
+class TransformerSpecification(PipelineStepSpecification):
     name: str
     desc: str
     label: str
     enabled: bool
     parameters: Optional[Dict[str, ParameterSpecification]]
-    compatible_algorithms: List[str]
+    compatible_algorithms: Optional[List[str]]

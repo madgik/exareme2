@@ -9,8 +9,8 @@ import envtoml
 from mipengine import AttrDict
 from mipengine import algorithm_classes
 from mipengine import controller
-from mipengine.algorithm_specification import AlgorithmSpecification
 from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
+from mipengine.algorithms.specifications import AlgorithmSpecification
 
 BACKGROUND_LOGGER_NAME = "controller_background_service"
 

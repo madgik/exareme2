@@ -2,13 +2,13 @@ import json
 from typing import TypeVar
 
 from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
 from mipengine.algorithms.algorithm import Algorithm
 from mipengine.algorithms.algorithm import AlgorithmDataLoader
+from mipengine.algorithms.specifications import AlgorithmSpecification
+from mipengine.algorithms.specifications import InputDataSpecification
+from mipengine.algorithms.specifications import InputDataSpecifications
+from mipengine.algorithms.specifications import InputDataStatType
+from mipengine.algorithms.specifications import InputDataType
 from mipengine.table_data_DTOs import ColumnDataFloat
 from mipengine.table_data_DTOs import ColumnDataStr
 from mipengine.udfgen import relation

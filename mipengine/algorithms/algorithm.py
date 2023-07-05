@@ -9,7 +9,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from mipengine.algorithm_specification import AlgorithmSpecification
+from mipengine.algorithms.specifications import AlgorithmSpecification
 
 if TYPE_CHECKING:
     from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
