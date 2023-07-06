@@ -30,7 +30,6 @@ else:
 
 
 def _get_algorithms_specifications() -> Dict[str, AlgorithmSpecification]:
-
     specs = {
         algo_name: algorithm.get_specification()
         for algo_name, algorithm in algorithm_classes.items()
@@ -40,6 +39,6 @@ def _get_algorithms_specifications() -> Dict[str, AlgorithmSpecification]:
 
 
 algorithms_specifications = _get_algorithms_specifications()
-transformer_specs = {
+transformers_specifications = {
     LongitudinalTransformerRunner.get_transformer_name(): LongitudinalTransformerRunner.get_specification()
 }

@@ -14,8 +14,8 @@ from mipengine.algorithms.specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
+from mipengine.controller.api.specifications_dtos import ParameterEnumType
+from mipengine.controller.api.specifications_dtos import ParameterType
 from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from mipengine.exceptions import BadUserInput
 from mipengine.filters import validate_filter

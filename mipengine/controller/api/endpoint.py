@@ -6,13 +6,8 @@ from quart import request
 
 from mipengine.controller import config as controller_config
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_specifications_dtos import (
-    algorithm_specifications_dtos,
-)
-from mipengine.controller.api.algorithm_specifications_dtos import (
-    transformer_specs_dtos,
-)
 from mipengine.controller.api.loggers import loggers
+from mipengine.controller.api.specifications_dtos import algorithm_specifications_dtos
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.cleaner import Cleaner
 from mipengine.controller.cleaner import InitializationParams as CleanerInitParams
@@ -57,11 +52,6 @@ async def get_data_models_attributes() -> dict:
 @algorithms.route("/algorithms", methods=["GET"])
 async def get_algorithms() -> str:
     return algorithm_specifications_dtos.json()
-
-
-@algorithms.route("/transformers", methods=["GET"])
-async def get_transformers() -> str:
-    return transformer_specs_dtos.json()
 
 
 @algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
