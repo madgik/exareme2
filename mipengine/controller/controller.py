@@ -116,8 +116,16 @@ class DataModelViews:
 
 class DataModelViewsCreator:
     """
-    DataModelViewsCreator implements the functionality of creating the "data model views"
-    on each local node database
+    Choosing which subset of the connected to the system nodes will participate in an
+    execution takes place in 2 steps. The first step is choosing the nodes containing
+    the "data model" and datasets in the request. The second is when "data model views"
+    are created. During this second step, depending on the "minimum_row_count" threshold,
+    a node that was chosen in the previous step might be left out because of
+    "insufficient data". So the procedure of creating the, so called, "data model views"
+    plays a key role in defining the subset of the nodes that will participate in an
+    execution. The DataModelCreator class implements the aforementioned functionality,
+    of generating a DataModelView object as well as identifying the subset of nodes
+    eligible for a specific execution request.
     """
 
     def __init__(
@@ -170,8 +178,8 @@ class DataModelViewsCreator:
 
         Returns
         ------
-        List[LocalNodesTable]
-        A (LocalNodesTable) view for each variable_group provided.
+        DataModelViews
+            A DataModelViews containing a view for each variable_group provided.
         """
 
         if self._data_model_views:
@@ -212,6 +220,18 @@ class NodesFederation:
     the federation contain the relevant data. Then, calling the create_data_model_views
     method will create the appropriate view tables in the nodes databases and return a
     DataModelViews object.
+
+    When the system is up and running there is a number of local nodes (and one global
+    node) waiting to execute tasks and return results as building blocks of executing,
+    what is called in the system, an "Algorithm". The request for executing an
+    "Algorithm", appart from defining which "Algorithm" to execute, contains parameters
+    constraining the data on which the "Algorithm" will be executed on, like
+    "data model", datasets, variables, filters etc. These constraints on the data will
+    also define which nodes will be chosen to partiipate in a specific request for an
+    "Algorithm" execution. The NodesFederation class implements the functionality of
+    choosing (based on these request's parameters) the nodes (thus, a federation of
+    nodes) that participate on a single execution request. A NodesFederation object
+    is instantiated for each request to execute an "Algorithm".
     """
 
     def __init__(
@@ -302,10 +322,12 @@ class NodesFederation:
         Returns the nodes (local nodes and global node) that have been selected based
         on whether they contain data belonging to the "data model" and "datasets" passed
         during the instantioation of the NodesFederation.
-        NOTE: If method "create_data_model_views" has been called and the check_min_rows
-        flag is set to True, the nodes returned by this method might be further filtered
-        down because after applying the variables' filters and the dropna flag, on the
-        specific variable groups, some of the local nodes might not contain "sufficient data".
+        NOTE: Getting this value can be different before and after calling method
+        "create_data_model_views" if the check_min_rows flag is set to True. The reason
+        is that method "create_data_model_views" can potentially reject some nodes,
+        after applying the variables' filters and the dropna flag, on the specific
+        variable groups, since some of the local nodes might not contain "sufficient
+        data".
         """
         return self._nodes
 
@@ -325,8 +347,14 @@ class NodesFederation:
         self, variable_groups: List[List[str]], dropna: bool, check_min_rows: bool
     ) -> DataModelViews:
         """
-        Createw the appropriate view tables in the nodes databases(what is called
-        "data model views") and return a DataModelViews object..
+        Create the appropriate view tables in the nodes databases(what is called
+        "data model views") and return a DataModelViews object
+
+        Returns
+        -------
+        DataModelViews
+            The "data model views"
+
         """
         data_model_views_creator = DataModelViewsCreator(
             local_nodes=self._nodes.local_nodes,
@@ -339,8 +367,9 @@ class NodesFederation:
         data_model_views_creator.create_data_model_views()
 
         # NOTE after creating the "data model views" some of the local nodes in the
-        # original list, passed to the DataModelviewscreator, can be filtered out of the
-        # execution if they do not contain "suffucient data"
+        # original list (self._nodes.local_nodes), can be filtered out of the
+        # execution if they do not contain "suffucient data", thus
+        # self._nodes.local_nodes are updated
         local_nodes_filtered = (
             data_model_views_creator.data_model_views.get_list_of_nodes()
         )
@@ -359,7 +388,7 @@ class NodesFederation:
 
     def _create_nodes(self) -> Nodes:
         """
-        create Nodes containing only the relevant datasets
+        Create Nodes containing only the relevant datasets
         """
         # Local Nodes
         localnodesinfo = self._get_nodeinfo_for_requested_datasets()
@@ -473,6 +502,13 @@ class NodesFederation:
 
 
 class ExecutionStrategy(ABC):
+    """
+    ExecutionStrategy is an interface, that implements a Strategy pattern, allowing to
+    add arbitrary functionalilty before executing the final "Algorithm" logic, without
+    having to alter the Controller.exec_algorithm method. Subclassing and implementing
+    the abstract method run defines the desired functionality.
+    """
+
     def __init__(
         self,
         algorithm_name: str,
@@ -500,6 +536,11 @@ class ExecutionStrategy(ABC):
 
 
 class LongitudinalStrategy(ExecutionStrategy):
+    """
+    Implementation of ExecutionStrategy interface that first executes
+    "LongitudinalTransformer" and then the requested "Algorithm".
+    """
+
     def __init__(
         self,
         algorithm_name: str,
@@ -566,6 +607,11 @@ class LongitudinalStrategy(ExecutionStrategy):
 
 
 class SingleAlgorithmStrategy(ExecutionStrategy):
+    """
+    Implementation of ExecutionStrategy interface that executes the requested
+    "Algorithm" without any other preprocessing steps.
+    """
+
     def __init__(
         self,
         algorithm_name: str,
@@ -598,6 +644,11 @@ class SingleAlgorithmStrategy(ExecutionStrategy):
 
 
 class AlgorithmExecutor:
+    """
+    Implements the functionality of executing one "Algorithm" asynchronously
+    (which must be the final step of any ExecutionStrategy)
+    """
+
     def __init__(
         self,
         engine: AlgorithmExecutionEngine,
@@ -714,8 +765,8 @@ class Controller:
         datasets = algorithm_request_dto.inputdata.datasets
         var_filters = algorithm_request_dto.inputdata.filters
 
-        # Instantiate a NodesFederation will keep track of the local nodes relevant to
-        # the execution based on the request parameters
+        # Instantiate a NodesFederation that will keep track of the local nodes that are
+        # relevant to the execution, based on the request parameters
         nodes_federation = NodesFederation(
             request_id=request_id,
             context_id=context_id,
@@ -742,7 +793,9 @@ class Controller:
             data_model=data_model, variable_names=variable_names
         )
 
-        # instantiate a algorithm execution engine
+        # instantiate an algorithm execution engine, the engine is passed to the
+        # "Algorithm" implementation and serves as an API for the "Algorithm" code to
+        # execute tasks on nodes
         engine_init_params = EngineInitParams(
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
@@ -759,7 +812,7 @@ class Controller:
             y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
         )
 
-        # Instantiate ExecutionStrategy
+        # Choose ExecutionStrategy
         execution_strategy = None
         if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
             "longitudinal"
@@ -780,14 +833,14 @@ class Controller:
                 logger=logger,
             )
 
-        # Create the "data model views" in the relevant nodes
+        # Create the "data model views"
         data_model_views = nodes_federation.create_data_model_views(
             variable_groups=execution_strategy.algorithm_data_loader.get_variable_groups(),
             dropna=execution_strategy.algorithm_data_loader.get_dropna(),
             check_min_rows=execution_strategy.algorithm_data_loader.get_check_min_rows(),
         )
 
-        # Execute the algorithm
+        # Execute the strategy
         algorithm_result = await execution_strategy.run(
             data=data_model_views, metadata=metadata
         )
