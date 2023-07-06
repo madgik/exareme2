@@ -458,42 +458,6 @@ class NodesFederation:
         }
         return datasets_per_local_node
 
-    def _create_nodes_tasks_handlers(self) -> NodesTasksHandlers:
-        local_nodes_info = self._get_nodes_info()
-        local_nodes_tasks_handlers = [
-            NodeAlgorithmTasksHandler(
-                node_id=node_info.id,
-                node_queue_addr=str(nodeinfo.ip) + ":" + str(nodeinfo.port),
-                node_db_addr=str(nodeinfo.db_ip) + ":" + str(nodeinfo.db_port),
-                tasks_timeout=self._celery_tasks_timeout,
-                run_udf_task_timeout=self._celery_run_udf_task_timeout,
-            )
-            for node_info in local_nodes_info
-        ]
-
-        global_node_tasks_handler = None
-        try:
-            # raises exception if there is no global node...
-            global_node = self._node_landscape_aggregator.get_global_node()
-
-            global_node_tasks_handler = NodeAlgorithmTasksHandler(
-                node_id=global_node.id,
-                node_queue_addr=":".join([str(global_node.ip), str(global_node.port)]),
-                node_db_addr=":".join(
-                    [str(global_node.db_ip), str(global_node.db_port)]
-                ),
-                tasks_timeout=self._celery_tasks_timeout,
-                run_udf_task_timeout=self._celery_run_udf_task_timeout,
-            )
-        except Exception:
-            # means there is no global node, single local node execution...
-            pass
-
-        return NodesTasksHandlers(
-            global_node_tasks_handler=global_node_tasks_handler,
-            local_nodes_tasks_handlers=local_nodes_tasks_handlers,
-        )
-
     def _get_nodes_info(self) -> List[NodeInfo]:
         local_node_ids = (
             self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(

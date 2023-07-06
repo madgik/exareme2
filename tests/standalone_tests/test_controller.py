@@ -15,8 +15,8 @@ from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.controller import DataModelViews
 from mipengine.controller.controller import DataModelViewsCreator
 from mipengine.controller.controller import NodesFederation
-from mipengine.controller.controller import _views_per_localnode_to_localnodestables
 from mipengine.controller.controller import _validate_number_of_views
+from mipengine.controller.controller import _views_per_localnode_to_localnodestables
 from mipengine.controller.nodes import LocalNode
 from mipengine.exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import ColumnInfo
