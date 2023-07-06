@@ -195,7 +195,7 @@ def validate_parameters(cls_values):
     return cls_values
 
 
-class PipelineStepSpecification(ImmutableBaseModel):
+class WorkflowStepSpecification(ImmutableBaseModel):
     @root_validator
     def validate_parameters(cls, cls_values):
         validate_parameters(cls_values)
@@ -224,7 +224,7 @@ class AlgorithmName(str, Enum):
         return str.__str__(self)
 
 
-class AlgorithmSpecification(PipelineStepSpecification):
+class AlgorithmSpecification(WorkflowStepSpecification):
     name: str
     desc: str
     label: str
@@ -242,7 +242,7 @@ class TransformerName(str, Enum):
         return str.__str__(self)
 
 
-class TransformerSpecification(PipelineStepSpecification):
+class TransformerSpecification(WorkflowStepSpecification):
     name: str
     desc: str
     label: str
