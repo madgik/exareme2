@@ -6,6 +6,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from logging import Logger
 from typing import Dict
+from typing import Iterable
 from typing import List
 from typing import Optional
 
@@ -91,8 +92,14 @@ class NodeTaskTimeoutException(Exception):
 
 
 class DataModelViews:
-    def __init__(self, local_node_tables: List[LocalNodesTable]):
+    def __init__(self, local_node_tables: Iterable[LocalNodesTable]):
         self._views = local_node_tables
+
+    @classmethod
+    def from_views_per_localnode(
+        cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
+    ):
+        return cls(_views_per_localnode_to_localnodestables(views_per_localnode))
 
     def to_list(self):
         return self._views
@@ -208,8 +215,8 @@ class DataModelViewsCreator:
                 f"{self._check_min_rows=}"
             )
 
-        self._data_model_views = DataModelViews(
-            _data_model_views_to_localnodestables(views_per_localnode)
+        self._data_model_views = DataModelViews.from_views_per_localnode(
+            views_per_localnode
         )
 
 
@@ -966,7 +973,7 @@ def _create_global_node(request_id, context_id, node_tasks_handler):
     return global_node
 
 
-def _data_model_views_to_localnodestables(
+def _views_per_localnode_to_localnodestables(
     views_per_localnode: Dict[LocalNode, List[TableInfo]]
 ) -> List[LocalNodesTable]:
     """
