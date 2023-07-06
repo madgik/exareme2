@@ -15,7 +15,7 @@ from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.controller import DataModelViews
 from mipengine.controller.controller import DataModelViewsCreator
 from mipengine.controller.controller import NodesFederation
-from mipengine.controller.controller import _data_model_views_to_localnodestables
+from mipengine.controller.controller import _views_per_localnode_to_localnodestables
 from mipengine.controller.controller import _validate_number_of_views
 from mipengine.controller.nodes import LocalNode
 from mipengine.exceptions import InsufficientDataError
@@ -442,7 +442,7 @@ def test_validate_number_of_views(views_per_local_nodes, views_per_local_nodes_i
         _validate_number_of_views(views_per_local_nodes_invalid)
 
 
-def test_data_model_views_to_localnodestables(
+def test_views_per_localnode_to_localnodestables(
     views_per_local_nodes, nodes_tables_expected
 ):
     class MockLocalNodesTable:
@@ -453,7 +453,7 @@ def test_data_model_views_to_localnodestables(
         "mipengine.controller.controller.LocalNodesTable",
         MockLocalNodesTable,
     ):
-        local_nodes_tables = _data_model_views_to_localnodestables(
+        local_nodes_tables = _views_per_localnode_to_localnodestables(
             views_per_local_nodes
         )
         nodes_tables_info = [t._nodes_tables_info for t in local_nodes_tables]
