@@ -15,8 +15,9 @@ from mipengine.algorithms.specifications import ParameterEnumSpecification
 from mipengine.algorithms.specifications import ParameterEnumType
 from mipengine.algorithms.specifications import ParameterSpecification
 from mipengine.algorithms.specifications import ParameterType
+from mipengine.algorithms.specifications import TransformerSpecification
 from mipengine.controller import algorithms_specifications
-from mipengine.controller import transformer_specs
+from mipengine.controller import transformers_specifications
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -61,20 +62,20 @@ class ParameterSpecificationDTO(ImmutableBaseModel):
     max: Optional[float]
 
 
+class TransformerSpecificationDTO(ImmutableBaseModel):
+    name: str
+    desc: str
+    label: str
+    parameters: Optional[Dict[str, ParameterSpecificationDTO]]
+
+
 class AlgorithmSpecificationDTO(ImmutableBaseModel):
     name: str
     desc: str
     label: str
     inputdata: InputDataSpecificationsDTO
     parameters: Optional[Dict[str, ParameterSpecificationDTO]]
-
-
-class TransformerSpecificationDTO(ImmutableBaseModel):
-    name: str
-    desc: str
-    label: str
-    parameters: Optional[Dict[str, ParameterSpecificationDTO]]
-    compatible_algorithms: Optional[List[str]]
+    preprocessing: Optional[List[TransformerSpecificationDTO]]
 
 
 class AlgorithmSpecificationsDTO(ImmutableBaseModel):
@@ -184,8 +185,44 @@ def _convert_parameter_specification_to_dto(spec: ParameterSpecification):
     )
 
 
-def _convert_algorithm_specification_to_dto(spec: AlgorithmSpecification):
-    # Converting to a DTO does not include the flags.
+def _convert_transformer_specification_to_dto(spec: TransformerSpecification):
+    return TransformerSpecificationDTO(
+        name=spec.name,
+        desc=spec.desc,
+        label=spec.label,
+        parameters=(
+            {
+                name: _convert_parameter_specification_to_dto(value)
+                for name, value in spec.parameters.items()
+            }
+            if spec.parameters
+            else None
+        ),
+    )
+
+
+def _convert_transformers_specs_to_algorithm_preprocessing(
+    algo_name: str, transformers: List[TransformerSpecification]
+) -> List[TransformerSpecificationDTO]:
+    compatible_transformers = []
+    for transformer in transformers:
+        if (
+            not transformer.compatible_algorithms
+            or algo_name in transformer.compatible_algorithms
+        ):
+            compatible_transformers.append(
+                _convert_transformer_specification_to_dto(transformer)
+            )
+    return compatible_transformers if compatible_transformers else None
+
+
+def _convert_algorithm_specification_to_dto(
+    spec: AlgorithmSpecification, transformers: List[TransformerSpecification]
+):
+    """
+    Converting to a DTO does not include the flags.
+    The preprocessing specifications is added from the transformers that are compatible with the specific algorithm.
+    """
     return AlgorithmSpecificationDTO(
         name=spec.name,
         desc=spec.desc,
@@ -199,44 +236,33 @@ def _convert_algorithm_specification_to_dto(spec: AlgorithmSpecification):
             if spec.parameters
             else None
         ),
-    )
-
-
-def _convert_transformer_specification_to_dto(spec: AlgorithmSpecification):
-    # Converting to a DTO does not include the flags.
-    return TransformerSpecificationDTO(
-        name=spec.name,
-        desc=spec.desc,
-        label=spec.label,
-        parameters=(
-            {
-                name: _convert_parameter_specification_to_dto(value)
-                for name, value in spec.parameters.items()
-            }
-            if spec.parameters
-            else None
+        preprocessing=_convert_transformers_specs_to_algorithm_preprocessing(
+            spec.name, transformers
         ),
-        compatible_algorithms=spec.compatible_algorithms,
     )
 
 
-def _get_algorithm_specifications_dtos() -> AlgorithmSpecificationsDTO:
+def _get_algorithm_specifications_dtos(
+    algorithms_specs: List[AlgorithmSpecification],
+    transformers_specs: List[TransformerSpecification],
+) -> AlgorithmSpecificationsDTO:
     return AlgorithmSpecificationsDTO(
         __root__=[
-            _convert_algorithm_specification_to_dto(algorithm)
-            for algorithm in algorithms_specifications.values()
+            _convert_algorithm_specification_to_dto(spec, transformers_specs)
+            for spec in algorithms_specs
         ]
     )
 
 
-def _get_transformer_specifications_dtos() -> AlgorithmSpecificationsDTO:
+def _get_transformer_specifications_dtos() -> TransformerSpecificationsDTO:
     return TransformerSpecificationsDTO(
         __root__=[
             _convert_transformer_specification_to_dto(spec)
-            for spec in transformer_specs.values()
+            for spec in transformers_specifications.values()
         ]
     )
 
 
-algorithm_specifications_dtos = _get_algorithm_specifications_dtos()
-transformer_specs_dtos = _get_transformer_specifications_dtos()
+algorithm_specifications_dtos = _get_algorithm_specifications_dtos(
+    algorithms_specifications.values(), transformers_specifications.values()
+)

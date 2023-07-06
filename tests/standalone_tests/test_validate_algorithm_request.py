@@ -7,10 +7,10 @@ from mipengine.algorithms.specifications import ParameterEnumSpecification
 from mipengine.algorithms.specifications import ParameterSpecification
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
-from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
+from mipengine.controller.api.specifications_dtos import InputDataStatType
+from mipengine.controller.api.specifications_dtos import InputDataType
+from mipengine.controller.api.specifications_dtos import ParameterEnumType
+from mipengine.controller.api.specifications_dtos import ParameterType
 from mipengine.controller.api.validator import BadRequest
 from mipengine.controller.api.validator import validate_algorithm_request
 from mipengine.controller.node_landscape_aggregator import DataModelRegistry
