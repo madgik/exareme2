@@ -15,8 +15,6 @@ from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
 from mipengine.controller.controller import DataModelViews
 from mipengine.controller.controller import DataModelViewsCreator
 from mipengine.controller.controller import NodesFederation
-from mipengine.controller.controller import _validate_number_of_views
-from mipengine.controller.controller import _views_per_localnode_to_localnodestables
 from mipengine.controller.nodes import LocalNode
 from mipengine.exceptions import InsufficientDataError
 from mipengine.node_tasks_DTOs import ColumnInfo
@@ -199,6 +197,66 @@ class TestDataModelViews:
         )
 
         assert all(node_id in result for node_id in expected_node_ids)
+
+        @pytest.fixture
+        def views_per_local_nodes():
+            tables_views = {
+                "node1": ["view1_1", "view1_2"],
+                "node2": ["view2_1", "view2_2"],
+                "node3": ["view3_1", "view3_2"],
+            }
+            return tables_views
+
+        @pytest.fixture
+        def nodes_tables_expected():
+            expected = [
+                {"node1": "view1_1", "node2": "view2_1", "node3": "view3_1"},
+                {"node1": "view1_2", "node2": "view2_2", "node3": "view3_2"},
+            ]
+            return expected
+
+        @pytest.fixture
+        def views_per_local_nodes_invalid():
+            tables_views = {
+                "node1": ["view1_1", "view1_2"],
+                "node2": ["view2_1"],
+                "node3": ["view3_1", "view3_2"],
+            }
+            return tables_views
+
+        def test_validate_number_of_views(
+            views_per_local_nodes, views_per_local_nodes_invalid
+        ):
+            tableinfo_list = list(views_per_local_nodes.values())
+            assert DataModelViews._validate_number_of_views(
+                views_per_local_nodes
+            ) == len(tableinfo_list[0])
+
+            with pytest.raises(ValueError):
+                DataModelViews._validate_number_of_views(views_per_local_nodes_invalid)
+
+        def test_views_per_localnode_to_localnodestables(
+            views_per_local_nodes, nodes_tables_expected
+        ):
+            class MockLocalNodesTable:
+                def __init__(self, nodes_tables_info: dict):
+                    self._nodes_tables_info = nodes_tables_info
+
+            with patch(
+                "mipengine.controller.controller.LocalNodesTable",
+                MockLocalNodesTable,
+            ):
+                local_nodes_tables = (
+                    DataModelViews._views_per_localnode_to_localnodestables(
+                        views_per_local_nodes
+                    )
+                )
+
+            nodes_tables_info = [t._nodes_tables_info for t in local_nodes_tables]
+            for expected in nodes_tables_expected:
+                assert expected in nodes_tables_info
+
+                assert len(nodes_tables_expected) == len(nodes_tables_info)
 
 
 class TestDataModelViewsCreator:
@@ -402,62 +460,3 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         command_subid: Optional[str] = "0",
     ) -> TableInfo:
         pass
-
-
-# --------------------------functions tests----------------------------------
-@pytest.fixture
-def views_per_local_nodes():
-    tables_views = {
-        "node1": ["view1_1", "view1_2"],
-        "node2": ["view2_1", "view2_2"],
-        "node3": ["view3_1", "view3_2"],
-    }
-    return tables_views
-
-
-@pytest.fixture
-def nodes_tables_expected():
-    expected = [
-        {"node1": "view1_1", "node2": "view2_1", "node3": "view3_1"},
-        {"node1": "view1_2", "node2": "view2_2", "node3": "view3_2"},
-    ]
-    return expected
-
-
-@pytest.fixture
-def views_per_local_nodes_invalid():
-    tables_views = {
-        "node1": ["view1_1", "view1_2"],
-        "node2": ["view2_1"],
-        "node3": ["view3_1", "view3_2"],
-    }
-    return tables_views
-
-
-def test_validate_number_of_views(views_per_local_nodes, views_per_local_nodes_invalid):
-    tableinfo_list = list(views_per_local_nodes.values())
-    assert _validate_number_of_views(views_per_local_nodes) == len(tableinfo_list[0])
-
-    with pytest.raises(ValueError):
-        _validate_number_of_views(views_per_local_nodes_invalid)
-
-
-def test_views_per_localnode_to_localnodestables(
-    views_per_local_nodes, nodes_tables_expected
-):
-    class MockLocalNodesTable:
-        def __init__(self, nodes_tables_info: dict):
-            self._nodes_tables_info = nodes_tables_info
-
-    with patch(
-        "mipengine.controller.controller.LocalNodesTable",
-        MockLocalNodesTable,
-    ):
-        local_nodes_tables = _views_per_localnode_to_localnodestables(
-            views_per_local_nodes
-        )
-        nodes_tables_info = [t._nodes_tables_info for t in local_nodes_tables]
-        for expected in nodes_tables_expected:
-            assert expected in nodes_tables_info
-
-        assert len(nodes_tables_expected) == len(nodes_tables_info)

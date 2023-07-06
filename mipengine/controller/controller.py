@@ -99,7 +99,7 @@ class DataModelViews:
     def from_views_per_localnode(
         cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
     ):
-        return cls(_views_per_localnode_to_localnodestables(views_per_localnode))
+        return cls(cls._views_per_localnode_to_localnodestables(views_per_localnode))
 
     def to_list(self):
         return self._views
@@ -119,6 +119,41 @@ class DataModelViews:
                 "None of the nodes has enough data to execute the algorithm."
             )
         return list(nodes)
+
+    @classmethod
+    def _views_per_localnode_to_localnodestables(
+        cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
+    ) -> List[LocalNodesTable]:
+        """
+        Combines the tables of different nodes into LocalNodesTables
+        """
+        number_of_tables = cls._validate_number_of_views(views_per_localnode)
+
+        local_nodes_tables = [
+            LocalNodesTable(
+                {node: tables[i] for node, tables in views_per_localnode.items()}
+            )
+            for i in range(number_of_tables)
+        ]
+
+        return local_nodes_tables
+
+    @classmethod
+    def _validate_number_of_views(
+        cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
+    ):
+        """
+        Checks that the number of views is the same for all nodes
+        """
+        number_of_tables = [len(tables) for tables in views_per_localnode.values()]
+        number_of_tables_equal = len(set(number_of_tables)) == 1
+
+        if not number_of_tables_equal:
+            raise ValueError(
+                "The number of views is not the same for all nodes"
+                f" {views_per_localnode=}"
+            )
+        return number_of_tables[0]
 
 
 class DataModelViewsCreator:
@@ -935,39 +970,6 @@ def _create_global_node(request_id, context_id, node_tasks_handler):
         node_tasks_handler=node_tasks_handler,
     )
     return global_node
-
-
-def _views_per_localnode_to_localnodestables(
-    views_per_localnode: Dict[LocalNode, List[TableInfo]]
-) -> List[LocalNodesTable]:
-    """
-    Combines the tables of different nodes into LocalNodesTables
-    """
-    number_of_tables = _validate_number_of_views(views_per_localnode)
-
-    local_nodes_tables = [
-        LocalNodesTable(
-            {node: tables[i] for node, tables in views_per_localnode.items()}
-        )
-        for i in range(number_of_tables)
-    ]
-
-    return local_nodes_tables
-
-
-def _validate_number_of_views(views_per_localnode: Dict[LocalNode, List[TableInfo]]):
-    """
-    Checks that the number of views is the same for all nodes
-    """
-    number_of_tables = [len(tables) for tables in views_per_localnode.values()]
-    number_of_tables_equal = len(set(number_of_tables)) == 1
-
-    if not number_of_tables_equal:
-        raise ValueError(
-            "The number of views is not the same for all nodes"
-            f" {views_per_localnode=}"
-        )
-    return number_of_tables[0]
 
 
 def _create_algorithm_execution_engine(
