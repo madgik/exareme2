@@ -10,12 +10,14 @@ base_input = {
         "datasets": ["longitudinal_dementia"],
         "filters": None,
     },
-    "parameters": {
-        "visit1": "BL",
-        "visit2": "FL1",
-        "strategies": None,
+    "parameters": {},
+    "preprocessing": {
+        "longitudinal_transformer": {
+            "visit1": "BL",
+            "visit2": "FL1",
+            "strategies": None,
+        },
     },
-    "flags": {"longitudinal": True},
 }
 
 
@@ -23,9 +25,12 @@ def test_longitudinal_anova_oneway():
     input = deepcopy(base_input)
     input["inputdata"]["x"] = ["gender"]
     input["inputdata"]["y"] = ["lefthippocampus"]
-    input["parameters"]["strategies"] = {"gender": "first", "lefthippocampus": "diff"}
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
+        "gender": "first",
+        "lefthippocampus": "diff",
+    }
     response = algorithm_request("anova_oneway", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_anova_twoway():
@@ -33,25 +38,25 @@ def test_longitudinal_anova_twoway():
     input["inputdata"]["x"] = ["gender", "agegroup"]
     input["inputdata"]["y"] = ["lefthippocampus"]
     input["parameters"]["sstype"] = 2
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "gender": "first",
         "lefthippocampus": "diff",
         "agegroup": "first",
     }
     response = algorithm_request("anova", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_linear_regression():
     input = deepcopy(base_input)
     input["inputdata"]["x"] = ["lefthippocampus"]
     input["inputdata"]["y"] = ["righthippocampus"]
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "righthippocampus": "first",
         "lefthippocampus": "diff",
     }
     response = algorithm_request("linear_regression", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_linear_regression_cv():
@@ -59,12 +64,12 @@ def test_longitudinal_linear_regression_cv():
     input["inputdata"]["x"] = ["lefthippocampus"]
     input["inputdata"]["y"] = ["righthippocampus"]
     input["parameters"]["n_splits"] = 2
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "righthippocampus": "first",
         "lefthippocampus": "diff",
     }
     response = algorithm_request("linear_regression_cv", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_logistic_regression():
@@ -72,13 +77,13 @@ def test_longitudinal_logistic_regression():
     input["inputdata"]["x"] = ["lefthippocampus", "leftamygdala"]
     input["inputdata"]["y"] = ["gender"]
     input["parameters"]["positive_class"] = "F"
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "gender": "second",
         "leftamygdala": "first",
         "lefthippocampus": "diff",
     }
     response = algorithm_request("logistic_regression", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_logistic_regression_cv():
@@ -87,13 +92,13 @@ def test_longitudinal_logistic_regression_cv():
     input["inputdata"]["y"] = ["gender"]
     input["parameters"]["n_splits"] = 2
     input["parameters"]["positive_class"] = "F"
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "gender": "second",
         "leftamygdala": "first",
         "lefthippocampus": "diff",
     }
     response = algorithm_request("logistic_regression_cv", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_naive_bayes_gaussian_cv():
@@ -101,13 +106,13 @@ def test_longitudinal_naive_bayes_gaussian_cv():
     input["inputdata"]["x"] = ["lefthippocampus", "leftamygdala"]
     input["inputdata"]["y"] = ["gender"]
     input["parameters"]["n_splits"] = 2
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "gender": "second",
         "leftamygdala": "first",
         "lefthippocampus": "diff",
     }
     response = algorithm_request("naive_bayes_gaussian_cv", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
 def test_longitudinal_naive_bayes_categorical_cv():
@@ -115,9 +120,9 @@ def test_longitudinal_naive_bayes_categorical_cv():
     input["inputdata"]["x"] = ["agegroup"]
     input["inputdata"]["y"] = ["gender"]
     input["parameters"]["n_splits"] = 2
-    input["parameters"]["strategies"] = {
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
         "gender": "second",
         "agegroup": "first",
     }
     response = algorithm_request("naive_bayes_categorical_cv", input)
-    assert response.status_code == 200
+    assert response.status_code == 200, f"{response.status_code}: {response.content}"

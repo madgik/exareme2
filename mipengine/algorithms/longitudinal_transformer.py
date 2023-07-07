@@ -88,7 +88,7 @@ class LongitudinalTransformerRunner:
                     notblank=True,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitID"]
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
                     ),
                 ),
                 "visit2": ParameterSpecification(
@@ -98,12 +98,12 @@ class LongitudinalTransformerRunner:
                     notblank=True,
                     multiple=False,
                     enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitID"]
+                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
                     ),
                 ),
-                "strategy": ParameterSpecification(
-                    label="strategy",
-                    desc="strategy",
+                "strategies": ParameterSpecification(
+                    label="strategies",
+                    desc="strategies",
                     types=[ParameterType.DICT],
                     notblank=True,
                     multiple=False,

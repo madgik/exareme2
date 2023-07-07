@@ -50,7 +50,7 @@ class CommandIdGenerator:
     def __init__(self):
         self._index = 0
 
-    def get_next_command_id(self) -> int:
+    def get_next_command_id(self) -> str:
         current = self._index
         self._index += 1
         return str(current)

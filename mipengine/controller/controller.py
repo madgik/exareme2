@@ -22,8 +22,10 @@ from mipengine.algorithms.longitudinal_transformer import (
     InitializationParams as LongitudinalTransformerRunnerInitParams,
 )
 from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
+from mipengine.algorithms.specifications import TransformerName
 from mipengine.controller import algorithms_specifications
 from mipengine.controller import controller_logger as ctrl_logger
+from mipengine.controller import transformers_specifications
 from mipengine.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from mipengine.controller.algorithm_execution_engine import (
     AlgorithmExecutionEngineSingleLocalNode,
@@ -819,9 +821,11 @@ class Controller:
         )
 
         # Choose ExecutionStrategy
-        execution_strategy = None
-        if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
-            "longitudinal"
+        if (
+            algorithm_request_dto.preprocessing
+            and algorithm_request_dto.preprocessing.get(
+                TransformerName.LONGITUDINAL_TRANSFORMER
+            )
         ):
             execution_strategy = LongitudinalStrategy(
                 algorithm_name=algorithm_name,
@@ -876,25 +880,11 @@ class Controller:
     def validate_algorithm_execution_request(
         self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
     ):
-        # if the request is for a longitudinal type of dataset(s), check the requested
-        # algorithm is compatible with longitudinal datasets
-        if algorithm_request_dto.flags and algorithm_request_dto.flags.get(
-            "longitudinal"
-        ):
-            longitudinal_specs = LongitudinalTransformerRunner.get_specification()
-            longitudinal_algorithms = longitudinal_specs.compatible_algorithms
-            if algorithm_name not in longitudinal_algorithms:
-                msg = f"The algorithm provided '{algorithm_name}' is not compatible "
-                msg += "with the 'longitudinal' flag."
-                raise ValueError(msg)
-
-        available_datasets_per_data_model = (
-            self.get_all_available_datasets_per_data_model()
-        )
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=algorithm_request_dto,
             algorithms_specs=algorithms_specifications,
+            transformers_specs=transformers_specifications,
             node_landscape_aggregator=self._node_landscape_aggregator,
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
