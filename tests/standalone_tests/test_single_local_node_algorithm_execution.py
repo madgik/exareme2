@@ -17,11 +17,11 @@ from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from mipengine.controller.controller import CommandIdGenerator
 from mipengine.controller.controller import Controller
 from mipengine.controller.controller import DataModelViewsCreator
-from mipengine.controller.controller import DataModelViewsCreatorInitParams
 from mipengine.controller.controller import InitializationParams as ControllerInitParams
 from mipengine.controller.controller import Nodes
+from mipengine.controller.controller import NodesFederation
+from mipengine.controller.controller import _algorithm_run_in_event_loop
 from mipengine.controller.controller import _create_algorithm_execution_engine
-from mipengine.controller.controller import _get_nodes
 from mipengine.controller.controller import sanitize_request_variable
 from mipengine.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
@@ -323,27 +323,61 @@ def context_id():
 
 
 @pytest.fixture(scope="function")
-def nodes_case_1(controller, context_id, algorithm_request_case_1):
+def nodes_case_1(
+    controller,
+    context_id,
+    algorithm_request_case_1,
+    node_landscape_aggregator,
+    controller_config,
+):
     algorithm_request_dto = algorithm_request_case_1[1]
 
-    return controller._create_nodes(
+    controller_config = AttrDict(controller_config)
+
+    nodes_federation = NodesFederation(
         request_id=algorithm_request_dto.request_id,
         context_id=context_id,
         data_model=algorithm_request_dto.inputdata.data_model,
         datasets=algorithm_request_dto.inputdata.datasets,
+        var_filters=algorithm_request_dto.inputdata.filters,
+        node_landscape_aggregator=node_landscape_aggregator,
+        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        command_id_generator=command_id_generator,
+        logger=ctrl_logger.get_request_logger(
+            request_id=algorithm_request_dto.request_id
+        ),
     )
+    return nodes_federation.nodes
 
 
 @pytest.fixture(scope="function")
-def nodes_case_2(controller, context_id, algorithm_request_case_2):
+def nodes_case_2(
+    controller,
+    context_id,
+    algorithm_request_case_2,
+    node_landscape_aggregator,
+    controller_config,
+):
     algorithm_request_dto = algorithm_request_case_2[1]
 
-    return controller._create_nodes(
+    controller_config = AttrDict(controller_config)
+
+    nodes_federation = NodesFederation(
         request_id=algorithm_request_dto.request_id,
         context_id=context_id,
         data_model=algorithm_request_dto.inputdata.data_model,
         datasets=algorithm_request_dto.inputdata.datasets,
+        var_filters=algorithm_request_dto.inputdata.filters,
+        node_landscape_aggregator=node_landscape_aggregator,
+        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        command_id_generator=command_id_generator,
+        logger=ctrl_logger.get_request_logger(
+            request_id=algorithm_request_dto.request_id
+        ),
     )
+    return nodes_federation.nodes
 
 
 @pytest.fixture(scope="function")
@@ -376,25 +410,18 @@ def data_model_views_and_nodes_case_1(
     algorithm_request_dto = algorithm_request_case_1[1]
     nodes = nodes_case_1
 
-    nodes_datasets = controller._get_subset_of_nodes_containing_datasets(
-        nodes=nodes.local_nodes,
-        data_model=algorithm_request_dto.inputdata.data_model,
-        datasets=datasets,
-    )
-    init_params = DataModelViewsCreatorInitParams(
-        nodes_datasets=nodes_datasets,
-        data_model=algorithm_request_dto.inputdata.data_model,
-        datasets=datasets,
+    data_model_views_creator = DataModelViewsCreator(
+        local_nodes=nodes.local_nodes,
         variable_groups=algorithm_data_loader_case_1.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm_data_loader_case_1.get_dropna(),
         check_min_rows=algorithm_data_loader_case_1.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    data_model_views_creator = DataModelViewsCreator(init_params)
-    data_model_views = data_model_views_creator.create_data_model_views()
+    data_model_views_creator.create_data_model_views()
+    data_model_views = data_model_views_creator.data_model_views
 
-    local_nodes_filtered = _get_nodes(data_model_views)
+    local_nodes_filtered = data_model_views_creator.data_model_views.get_list_of_nodes()
     if not local_nodes_filtered:
         pytest.fail(
             f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
@@ -416,25 +443,18 @@ def data_model_views_and_nodes_case_2(
     algorithm_request_dto = algorithm_request_case_2[1]
     nodes = nodes_case_2
 
-    nodes_datasets = controller._get_subset_of_nodes_containing_datasets(
-        nodes=nodes.local_nodes,
-        data_model=algorithm_request_dto.inputdata.data_model,
-        datasets=datasets,
-    )
-    init_params = DataModelViewsCreatorInitParams(
-        nodes_datasets=nodes_datasets,
-        data_model=algorithm_request_dto.inputdata.data_model,
-        datasets=datasets,
+    data_model_views_creator = DataModelViewsCreator(
+        local_nodes=nodes.local_nodes,
         variable_groups=algorithm_data_loader_case_2.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm_data_loader_case_2.get_dropna(),
         check_min_rows=algorithm_data_loader_case_2.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    data_model_views_creator = DataModelViewsCreator(init_params)
-    data_model_views = data_model_views_creator.create_data_model_views()
+    data_model_views_creator.create_data_model_views()
+    data_model_views = data_model_views_creator.data_model_views
 
-    local_nodes_filtered = _get_nodes(data_model_views)
+    local_nodes_filtered = data_model_views_creator.data_model_views.get_list_of_nodes()
     if not local_nodes_filtered:
         pytest.fail(
             f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
@@ -457,7 +477,6 @@ def engine_case_1(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
-        context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
     )
     return _create_algorithm_execution_engine(
@@ -480,7 +499,6 @@ def engine_case_2(
         smpc_enabled=False,
         smpc_optional=False,
         request_id=algorithm_request_dto.request_id,
-        context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
     )
     return _create_algorithm_execution_engine(
@@ -519,7 +537,7 @@ async def test_single_local_node_algorithm_execution(
     data_model_views = request.getfixturevalue(data_model_views_and_nodes)
     metadata = request.getfixturevalue(metadata)
     try:
-        algorithm_result = await controller._algorithm_run_in_event_loop(
+        algorithm_result = await _algorithm_run_in_event_loop(
             algorithm=algorithm,
             data_model_views=data_model_views[0],
             metadata=metadata,
