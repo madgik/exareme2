@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import Any
 from typing import Dict
 from typing import List
@@ -8,10 +9,15 @@ from pydantic import BaseModel
 USE_SMPC_FLAG = "smpc"
 
 
-class AlgorithmInputDataDTO(BaseModel):
+class ImmutableBaseModel(BaseModel, ABC):
+    class Config:
+        allow_mutation = False
+
+
+class AlgorithmInputDataDTO(ImmutableBaseModel):
     data_model: str
     datasets: List[str]
-    filters: dict = None
+    filters: Optional[dict]
     y: Optional[List[str]]
     x: Optional[List[str]]
 
@@ -19,8 +25,12 @@ class AlgorithmInputDataDTO(BaseModel):
         allow_mutation = False
 
 
+PARAMETERS_TYPE = Dict[str, Any]
+
+
 class AlgorithmRequestDTO(BaseModel):
-    request_id: Optional[str] = None
+    request_id: Optional[str]
     inputdata: AlgorithmInputDataDTO
-    parameters: Optional[Dict[str, Any]] = None
-    flags: Optional[Dict[str, Any]] = None
+    parameters: Optional[PARAMETERS_TYPE]
+    flags: Optional[Dict[str, Any]]
+    preprocessing: Optional[Dict[str, PARAMETERS_TYPE]]

@@ -11,6 +11,7 @@ from mipengine.algorithms.specifications import InputDataStatType
 from mipengine.algorithms.specifications import InputDataType
 from mipengine.algorithms.specifications import ParameterEnumSpecification
 from mipengine.algorithms.specifications import ParameterSpecification
+from mipengine.algorithms.specifications import TransformerSpecification
 from mipengine.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
@@ -33,38 +34,17 @@ def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithms_specs: Dict[str, AlgorithmSpecification],
+    transformers_specs: Dict[str, TransformerSpecification],
     node_landscape_aggregator: NodeLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
     algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
-    _validate_algorithm_request_body(
-        algorithm_request_dto=algorithm_request_dto,
-        algorithm_specs=algorithm_specs,
-        node_landscape_aggregator=node_landscape_aggregator,
-        smpc_enabled=smpc_enabled,
-        smpc_optional=smpc_optional,
-    )
 
-
-def _get_algorithm_specs(
-    algorithm_name: str, algorithms_specs: Dict[str, AlgorithmSpecification]
-):
-    if algorithm_name not in algorithms_specs.keys():
-        raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    return algorithms_specs[algorithm_name]
-
-
-def _validate_algorithm_request_body(
-    algorithm_request_dto: AlgorithmRequestDTO,
-    algorithm_specs: AlgorithmSpecification,
-    node_landscape_aggregator: NodeLandscapeAggregator,
-    smpc_enabled: bool,
-    smpc_optional: bool,
-):
     available_datasets_per_data_model = (
         node_landscape_aggregator.get_all_available_datasets_per_data_model()
     )
+
     _validate_data_model(
         requested_data_model=algorithm_request_dto.inputdata.data_model,
         available_datasets_per_data_model=available_datasets_per_data_model,
@@ -74,6 +54,37 @@ def _validate_algorithm_request_body(
         algorithm_request_dto.inputdata.data_model
     )
 
+    _validate_algorithm_request_body(
+        algorithm_request_dto=algorithm_request_dto,
+        algorithm_specs=algorithm_specs,
+        transformers_specs=transformers_specs,
+        available_datasets_per_data_model=available_datasets_per_data_model,
+        data_model_cdes=data_model_cdes,
+        smpc_enabled=smpc_enabled,
+        smpc_optional=smpc_optional,
+    )
+
+
+def _get_algorithm_specs(
+    algorithm_name: str, algorithms_specs: Dict[str, AlgorithmSpecification]
+):
+    if (
+        algorithm_name not in algorithms_specs.keys()
+        or not algorithms_specs[algorithm_name].enabled
+    ):
+        raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
+    return algorithms_specs[algorithm_name]
+
+
+def _validate_algorithm_request_body(
+    algorithm_request_dto: AlgorithmRequestDTO,
+    algorithm_specs: AlgorithmSpecification,
+    transformers_specs: Dict[str, TransformerSpecification],
+    available_datasets_per_data_model: Dict[str, List[str]],
+    data_model_cdes: Dict[str, CommonDataElement],
+    smpc_enabled: bool,
+    smpc_optional: bool,
+):
     _validate_inputdata(
         inputdata=algorithm_request_dto.inputdata,
         inputdata_specs=algorithm_specs.inputdata,
@@ -92,6 +103,13 @@ def _validate_algorithm_request_body(
         flags=algorithm_request_dto.flags,
         smpc_enabled=smpc_enabled,
         smpc_optional=smpc_optional,
+    )
+
+    _validate_algorithm_preprocessing(
+        algorithm_request_dto=algorithm_request_dto,
+        algorithm_name=algorithm_specs.name,
+        transformers_specs=transformers_specs,
+        data_model_cdes=data_model_cdes,
     )
 
 
@@ -513,3 +531,33 @@ def _validate_flags(flags: Dict[str, Any], smpc_enabled: bool, smpc_optional: bo
 
     if USE_SMPC_FLAG in flags.keys():
         validate_smpc_usage(flags[USE_SMPC_FLAG], smpc_enabled, smpc_optional)
+
+
+def _validate_algorithm_preprocessing(
+    algorithm_request_dto: AlgorithmRequestDTO,
+    algorithm_name: str,
+    transformers_specs: Dict[str, TransformerSpecification],
+    data_model_cdes: Dict[str, CommonDataElement],
+):
+    if not algorithm_request_dto.preprocessing:
+        return
+
+    for name, params in algorithm_request_dto.preprocessing.items():
+        if (
+            name not in transformers_specs.keys()
+            or not transformers_specs[name].enabled
+        ):
+            raise BadUserInput(f"Transformer '{name}' does not exist.")
+
+        compatible_algos = transformers_specs[name].compatible_algorithms
+        if compatible_algos and algorithm_name not in compatible_algos:
+            raise BadUserInput(
+                f"Transformer '{name}' is not available for algorithm '{algorithm_name}'."
+            )
+
+        _validate_parameters(
+            parameters=params,
+            parameters_specs=transformers_specs[name].parameters,
+            inputdata=algorithm_request_dto.inputdata,
+            data_model_cdes=data_model_cdes,
+        )
