@@ -45,7 +45,7 @@ class InputDataSpecificationsDTO(ImmutableBaseModel):
 
 class ParameterEnumSpecificationDTO(ImmutableBaseModel):
     type: ParameterEnumType
-    source: Any
+    source: List[Any]
 
 
 class ParameterSpecificationDTO(ImmutableBaseModel):
@@ -201,18 +201,16 @@ def _convert_transformer_specification_to_dto(spec: TransformerSpecification):
     )
 
 
-def _convert_transformers_specs_to_algorithm_preprocessing(
+def _get_algorithm_compatible_transformers(
     algo_name: str, transformers: List[TransformerSpecification]
-) -> List[TransformerSpecificationDTO]:
+) -> List[TransformerSpecification]:
     compatible_transformers = []
     for transformer in transformers:
         if (
             not transformer.compatible_algorithms
             or algo_name in transformer.compatible_algorithms
         ):
-            compatible_transformers.append(
-                _convert_transformer_specification_to_dto(transformer)
-            )
+            compatible_transformers.append(transformer)
     return compatible_transformers if compatible_transformers else None
 
 
@@ -236,9 +234,10 @@ def _convert_algorithm_specification_to_dto(
             if spec.parameters
             else None
         ),
-        preprocessing=_convert_transformers_specs_to_algorithm_preprocessing(
-            spec.name, transformers
-        ),
+        preprocessing=[
+            _convert_transformer_specification_to_dto(spec)
+            for spec in _get_algorithm_compatible_transformers(spec.name, transformers)
+        ],
     )
 
 
