@@ -21,9 +21,6 @@ class AlgorithmInputDataDTO(ImmutableBaseModel):
     y: Optional[List[str]]
     x: Optional[List[str]]
 
-    class Config:
-        allow_mutation = False
-
 
 PARAMETERS_TYPE = Dict[str, Any]
 
