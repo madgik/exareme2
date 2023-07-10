@@ -211,7 +211,7 @@ def _get_algorithm_compatible_transformers(
             or algo_name in transformer.compatible_algorithms
         ):
             compatible_transformers.append(transformer)
-    return compatible_transformers if compatible_transformers else None
+    return compatible_transformers
 
 
 def _convert_algorithm_specification_to_dto(
