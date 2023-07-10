@@ -469,6 +469,12 @@ def transformers_specs():
             },
             compatible_algorithms=["algorithm_with_transformer"],
         ),
+        "transformer_compatible_with_all_algorithms": TransformerSpecification(
+            name="transformer_compatible_with_all_algorithms",
+            desc="transformer_compatible_with_all_algorithms",
+            label="transformer_compatible_with_all_algorithms",
+            enabled=True,
+        ),
     }
 
 
@@ -679,6 +685,18 @@ def get_parametrization_list_success_cases():
                 preprocessing={"transformer_with_real_param": {"real_param": 10.4}},
             ),
             id="Algorithm with transformer.",
+        ),
+        pytest.param(
+            "algorithm_with_transformer",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+                preprocessing={"transformer_compatible_with_all_algorithms": {}},
+            ),
+            id="Algorithm with transformer that is compatible with all algorithms.",
         ),
     ]
     return parametrization_list
