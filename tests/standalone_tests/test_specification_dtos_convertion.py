@@ -119,7 +119,7 @@ def test_convert_algorithm_specification_to_dto():
                 ),
             )
         },
-        preprocessing=None,
+        preprocessing=[],
     )
 
     dto = _convert_algorithm_specification_to_dto(

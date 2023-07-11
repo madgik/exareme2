@@ -253,15 +253,6 @@ def _get_algorithm_specifications_dtos(
     )
 
 
-def _get_transformer_specifications_dtos() -> TransformerSpecificationsDTO:
-    return TransformerSpecificationsDTO(
-        __root__=[
-            _convert_transformer_specification_to_dto(spec)
-            for spec in transformers_specifications.values()
-        ]
-    )
-
-
 algorithm_specifications_dtos = _get_algorithm_specifications_dtos(
     algorithms_specifications.values(), transformers_specifications.values()
 )
