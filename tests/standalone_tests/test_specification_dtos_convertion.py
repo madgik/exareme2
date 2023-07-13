@@ -1,26 +1,26 @@
-from mipengine.algorithms.specifications import AlgorithmSpecification
-from mipengine.algorithms.specifications import InputDataSpecification
-from mipengine.algorithms.specifications import InputDataSpecifications
-from mipengine.algorithms.specifications import InputDataStatType
-from mipengine.algorithms.specifications import InputDataType
-from mipengine.algorithms.specifications import ParameterEnumSpecification
-from mipengine.algorithms.specifications import ParameterEnumType
-from mipengine.algorithms.specifications import ParameterSpecification
-from mipengine.algorithms.specifications import ParameterType
-from mipengine.algorithms.specifications import TransformerSpecification
-from mipengine.controller.api.specifications_dtos import AlgorithmSpecificationDTO
-from mipengine.controller.api.specifications_dtos import InputDataSpecificationDTO
-from mipengine.controller.api.specifications_dtos import InputDataSpecificationsDTO
-from mipengine.controller.api.specifications_dtos import ParameterEnumSpecificationDTO
-from mipengine.controller.api.specifications_dtos import ParameterSpecificationDTO
-from mipengine.controller.api.specifications_dtos import TransformerSpecificationDTO
-from mipengine.controller.api.specifications_dtos import (
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.specifications import ParameterEnumSpecification
+from exareme2.algorithms.specifications import ParameterEnumType
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import ParameterType
+from exareme2.algorithms.specifications import TransformerSpecification
+from exareme2.controller.api.specifications_dtos import AlgorithmSpecificationDTO
+from exareme2.controller.api.specifications_dtos import InputDataSpecificationDTO
+from exareme2.controller.api.specifications_dtos import InputDataSpecificationsDTO
+from exareme2.controller.api.specifications_dtos import ParameterEnumSpecificationDTO
+from exareme2.controller.api.specifications_dtos import ParameterSpecificationDTO
+from exareme2.controller.api.specifications_dtos import TransformerSpecificationDTO
+from exareme2.controller.api.specifications_dtos import (
     _convert_algorithm_specification_to_dto,
 )
-from mipengine.controller.api.specifications_dtos import (
+from exareme2.controller.api.specifications_dtos import (
     _convert_transformer_specification_to_dto,
 )
-from mipengine.controller.api.specifications_dtos import (
+from exareme2.controller.api.specifications_dtos import (
     _get_algorithm_specifications_dtos,
 )
 

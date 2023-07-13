@@ -2,14 +2,14 @@ import typing as t
 
 from pydantic import BaseModel
 
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.crossvalidation import KFold
-from mipengine.algorithms.specifications import AlgorithmSpecification
-from mipengine.algorithms.specifications import InputDataSpecification
-from mipengine.algorithms.specifications import InputDataSpecifications
-from mipengine.algorithms.specifications import InputDataStatType
-from mipengine.algorithms.specifications import InputDataType
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.crossvalidation import KFold
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
 
 ALGNAME = "test_kfold"
 

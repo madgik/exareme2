@@ -4,13 +4,13 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine import AttrDict
-from mipengine.controller.controller_logger import init_logger
-from mipengine.controller.federation_info_logs import log_experiment_execution
-from mipengine.controller.node_landscape_aggregator import _log_data_model_changes
-from mipengine.controller.node_landscape_aggregator import _log_dataset_changes
-from mipengine.controller.node_landscape_aggregator import _log_node_changes
-from mipengine.node_info_DTOs import NodeInfo
+from exareme2 import AttrDict
+from exareme2.controller.controller_logger import init_logger
+from exareme2.controller.federation_info_logs import log_experiment_execution
+from exareme2.controller.node_landscape_aggregator import _log_data_model_changes
+from exareme2.controller.node_landscape_aggregator import _log_dataset_changes
+from exareme2.controller.node_landscape_aggregator import _log_node_changes
+from exareme2.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import MonetDBConfigurations
 
@@ -53,7 +53,7 @@ def controller_config_dict_mock():
 @pytest.fixture(scope="session")
 def patch_controller_logger_config(controller_config_dict_mock):
     with patch(
-        "mipengine.controller.controller_logger.ctrl_config",
+        "exareme2.controller.controller_logger.ctrl_config",
         AttrDict(controller_config_dict_mock),
     ):
         yield

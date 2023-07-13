@@ -1,16 +1,16 @@
 # type: ignore
 import pytest
 
-from mipengine.datatypes import DType
-from mipengine.udfgen.decorator import UDFBadDefinition
-from mipengine.udfgen.decorator import udf
-from mipengine.udfgen.iotypes import merge_transfer
-from mipengine.udfgen.iotypes import relation
-from mipengine.udfgen.iotypes import state
-from mipengine.udfgen.iotypes import tensor
-from mipengine.udfgen.iotypes import transfer
-from mipengine.udfgen.iotypes import udf_logger
-from mipengine.udfgen.smpc import secure_transfer
+from exareme2.datatypes import DType
+from exareme2.udfgen.decorator import UDFBadDefinition
+from exareme2.udfgen.decorator import udf
+from exareme2.udfgen.iotypes import merge_transfer
+from exareme2.udfgen.iotypes import relation
+from exareme2.udfgen.iotypes import state
+from exareme2.udfgen.iotypes import tensor
+from exareme2.udfgen.iotypes import transfer
+from exareme2.udfgen.iotypes import udf_logger
+from exareme2.udfgen.smpc import secure_transfer
 
 
 class TestUDFValidation:

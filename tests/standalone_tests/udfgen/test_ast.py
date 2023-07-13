@@ -1,12 +1,12 @@
 # type: ignore
 from inspect import cleandoc
 
-from mipengine.udfgen.ast import Column
-from mipengine.udfgen.ast import Join
-from mipengine.udfgen.ast import ScalarFunction
-from mipengine.udfgen.ast import Select
-from mipengine.udfgen.ast import Table
-from mipengine.udfgen.ast import TableFunction
+from exareme2.udfgen.ast import Column
+from exareme2.udfgen.ast import Join
+from exareme2.udfgen.ast import ScalarFunction
+from exareme2.udfgen.ast import Select
+from exareme2.udfgen.ast import Table
+from exareme2.udfgen.ast import TableFunction
 
 
 def test_column_alias():

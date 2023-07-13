@@ -5,36 +5,36 @@ from typing import TypeVar
 
 import pytest
 
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import SMPCTablesInfo
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.udfgen import secure_transfer
-from mipengine.udfgen.decorator import UdfRegistry
-from mipengine.udfgen.decorator import udf
-from mipengine.udfgen.iotypes import DEFERRED
-from mipengine.udfgen.iotypes import MIN_ROW_COUNT
-from mipengine.udfgen.iotypes import LiteralArg
-from mipengine.udfgen.iotypes import MergeTensorType
-from mipengine.udfgen.iotypes import RelationArg
-from mipengine.udfgen.iotypes import StateArg
-from mipengine.udfgen.iotypes import TensorArg
-from mipengine.udfgen.iotypes import TransferArg
-from mipengine.udfgen.iotypes import literal
-from mipengine.udfgen.iotypes import merge_transfer
-from mipengine.udfgen.iotypes import relation
-from mipengine.udfgen.iotypes import state
-from mipengine.udfgen.iotypes import tensor
-from mipengine.udfgen.iotypes import transfer
-from mipengine.udfgen.iotypes import udf_logger
-from mipengine.udfgen.py_udfgenerator import FlowArgsToUdfArgsConverter
-from mipengine.udfgen.py_udfgenerator import PyUdfGenerator
-from mipengine.udfgen.py_udfgenerator import UDFBadCall
-from mipengine.udfgen.py_udfgenerator import copy_types_from_udfargs
-from mipengine.udfgen.udfgen_DTOs import UDFGenSMPCResult
-from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
+from exareme2.datatypes import DType
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import SMPCTablesInfo
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
+from exareme2.udfgen import secure_transfer
+from exareme2.udfgen.decorator import UdfRegistry
+from exareme2.udfgen.decorator import udf
+from exareme2.udfgen.iotypes import DEFERRED
+from exareme2.udfgen.iotypes import MIN_ROW_COUNT
+from exareme2.udfgen.iotypes import LiteralArg
+from exareme2.udfgen.iotypes import MergeTensorType
+from exareme2.udfgen.iotypes import RelationArg
+from exareme2.udfgen.iotypes import StateArg
+from exareme2.udfgen.iotypes import TensorArg
+from exareme2.udfgen.iotypes import TransferArg
+from exareme2.udfgen.iotypes import literal
+from exareme2.udfgen.iotypes import merge_transfer
+from exareme2.udfgen.iotypes import relation
+from exareme2.udfgen.iotypes import state
+from exareme2.udfgen.iotypes import tensor
+from exareme2.udfgen.iotypes import transfer
+from exareme2.udfgen.iotypes import udf_logger
+from exareme2.udfgen.py_udfgenerator import FlowArgsToUdfArgsConverter
+from exareme2.udfgen.py_udfgenerator import PyUdfGenerator
+from exareme2.udfgen.py_udfgenerator import UDFBadCall
+from exareme2.udfgen.py_udfgenerator import copy_types_from_udfargs
+from exareme2.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 
 
 def test_copy_types_from_udfargs():

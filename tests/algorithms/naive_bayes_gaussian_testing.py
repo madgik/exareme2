@@ -3,10 +3,10 @@ from collections import Counter
 
 from pydantic import BaseModel
 
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNB
-from mipengine.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.naive_bayes_gaussian_cv import GaussianNB
+from exareme2.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
 
 ALGNAME_FIT = "test_nb_gaussian_fit"
 

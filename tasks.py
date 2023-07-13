@@ -1,5 +1,5 @@
 """
-Deployment script used for the development of the MIP-Engine.
+Deployment script used for the development of the Exareme2.
 
 In order to understand this script a basic knowledge of the system is required, this script
 does not contain the documentation of the engine. The documentation of the tasks,
@@ -8,19 +8,19 @@ in this script, is targeted to the specifics of the development deployment proce
 This script deploys all the containers and services natively on your machine.
 It deploys the containers on different ports and then configures the services to use the appropriate ports.
 
-A node service uses a configuration file either on the default location './mipengine/node/config.toml'
-or in the location of the env variable 'MIPENGINE_NODE_CONFIG_FILE', if the env variable is set.
+A node service uses a configuration file either on the default location './exareme2/node/config.toml'
+or in the location of the env variable 'EXAREME2_NODE_CONFIG_FILE', if the env variable is set.
 This deployment script used for development, uses the env variable logic, therefore before deploying each
 node service the env variable is changed to the location of the node services' config file.
 
 In order for this script's tasks to work the './configs/nodes' folder should contain all the node's config files
-following the './mipengine/node/config.toml' as template.
+following the './exareme2/node/config.toml' as template.
 You can either create the files manually or using a '.deployment.toml' file with the following template
 ```
 ip = "172.17.0.1"
 log_level = "INFO"
 framework_log_level ="INFO"
-monetdb_image = "madgik/mipenginedb:dev1.3"
+monetdb_image = "madgik/exareme2_db:dev1.3"
 
 [[nodes]]
 id = "globalnode"
@@ -66,20 +66,20 @@ from invoke import task
 from termcolor import colored
 
 import tests
-from mipengine.udfgen import udfio
+from exareme2.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
-NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "mipengine" / "node" / "config.toml"
+NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "node" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
 CONTROLLER_LOCALNODES_CONFIG_FILE = (
     PROJECT_ROOT / "configs" / "controller" / "localnodes_config.json"
 )
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
-    PROJECT_ROOT / "mipengine" / "controller" / "config.toml"
+    PROJECT_ROOT / "exareme2" / "controller" / "config.toml"
 )
-OUTDIR = Path("/tmp/mipengine/")
+OUTDIR = Path("/tmp/exareme2/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
@@ -90,7 +90,7 @@ if not CLEANUP_DIR.exists():
 TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
-MIPENGINE_NODE_CONFIG_FILE = "MIPENGINE_NODE_CONFIG_FILE"
+EXAREME2_NODE_CONFIG_FILE = "EXAREME2_NODE_CONFIG_FILE"
 
 SMPC_COORDINATOR_PORT = 12314
 SMPC_COORDINATOR_DB_PORT = 27017
@@ -291,7 +291,7 @@ def create_monetdb(
     :param nclients: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
 
     If an image is not provided it will use the 'monetdb_image' field from
-    the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/mipenginedb:dev1.2"
+    the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/exareme2_db:dev1.2"
 
     The data of the monetdb container are not persisted. If the container is recreated, all data will be lost.
     """
@@ -603,19 +603,19 @@ def start_node(
         message(f"Starting Node {node_id}...", Level.HEADER)
         node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
         with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
-            with c.prefix(f"export {MIPENGINE_NODE_CONFIG_FILE}={node_config_file}"):
+            with c.prefix(f"export {EXAREME2_NODE_CONFIG_FILE}={node_config_file}"):
                 outpath = OUTDIR / (node_id + ".out")
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A mipengine.node.node worker -l {framework_log_level} > {outpath} "
+                        f"-A exareme2.node.node worker -l {framework_log_level} > {outpath} "
                         f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"mipengine.node.node worker -l {framework_log_level} --pool=eventlet --purge"
+                        f"exareme2.node.node worker -l {framework_log_level} --pool=eventlet --purge"
                     )
                     run(c, cmd, attach_=True)
 
@@ -656,14 +656,14 @@ def start_controller(c, detached=False, algorithm_folders=None):
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
     with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
         with c.prefix(
-            f"export MIPENGINE_CONTROLLER_CONFIG_FILE={controller_config_file}"
+            f"export EXAREME2_CONTROLLER_CONFIG_FILE={controller_config_file}"
         ):
             outpath = OUTDIR / "controller.out"
             if detached:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app>> {outpath} 2>&1"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/api/app:app>> {outpath} 2>&1"
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:5000 mipengine/controller/api/app:app"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/api/app:app"
                 run(c, cmd, attach_=True)
 
 

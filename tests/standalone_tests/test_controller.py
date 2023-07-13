@@ -7,24 +7,24 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine.controller.algorithm_execution_engine import Nodes
-from mipengine.controller.algorithm_execution_engine_tasks_handler import (
+from exareme2.controller.algorithm_execution_engine import Nodes
+from exareme2.controller.algorithm_execution_engine_tasks_handler import (
     INodeAlgorithmTasksHandler,
 )
-from mipengine.controller.algorithm_flow_data_objects import LocalNodesTable
-from mipengine.controller.controller import DataModelViews
-from mipengine.controller.controller import DataModelViewsCreator
-from mipengine.controller.controller import NodesFederation
-from mipengine.controller.nodes import LocalNode
-from mipengine.exceptions import InsufficientDataError
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import NodeUDFDTO
-from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
-from mipengine.node_tasks_DTOs import NodeUDFPosArguments
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
+from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
+from exareme2.controller.controller import DataModelViews
+from exareme2.controller.controller import DataModelViewsCreator
+from exareme2.controller.controller import NodesFederation
+from exareme2.controller.nodes import LocalNode
+from exareme2.exceptions import InsufficientDataError
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import NodeUDFDTO
+from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
+from exareme2.node_tasks_DTOs import NodeUDFPosArguments
+from exareme2.node_tasks_DTOs import TableData
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
 
 
 def create_dummy_node(node_id: str, context_id: str, request_id: str):
@@ -243,7 +243,7 @@ class TestDataModelViews:
                     self._nodes_tables_info = nodes_tables_info
 
             with patch(
-                "mipengine.controller.controller.LocalNodesTable",
+                "exareme2.controller.controller.LocalNodesTable",
                 MockLocalNodesTable,
             ):
                 local_nodes_tables = (

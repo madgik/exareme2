@@ -1,30 +1,30 @@
 import pytest
 
-from mipengine.algorithms.specifications import AlgorithmSpecification
-from mipengine.algorithms.specifications import InputDataSpecification
-from mipengine.algorithms.specifications import InputDataSpecifications
-from mipengine.algorithms.specifications import ParameterEnumSpecification
-from mipengine.algorithms.specifications import ParameterSpecification
-from mipengine.algorithms.specifications import TransformerSpecification
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.specifications_dtos import InputDataStatType
-from mipengine.controller.api.specifications_dtos import InputDataType
-from mipengine.controller.api.specifications_dtos import ParameterEnumType
-from mipengine.controller.api.specifications_dtos import ParameterType
-from mipengine.controller.api.validator import BadRequest
-from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.node_landscape_aggregator import DataModelRegistry
-from mipengine.controller.node_landscape_aggregator import DataModelsCDES
-from mipengine.controller.node_landscape_aggregator import DatasetsLocations
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import ParameterEnumSpecification
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import TransformerSpecification
+from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from exareme2.controller.api.specifications_dtos import InputDataStatType
+from exareme2.controller.api.specifications_dtos import InputDataType
+from exareme2.controller.api.specifications_dtos import ParameterEnumType
+from exareme2.controller.api.specifications_dtos import ParameterType
+from exareme2.controller.api.validator import BadRequest
+from exareme2.controller.api.validator import validate_algorithm_request
+from exareme2.controller.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.node_landscape_aggregator import DatasetsLocations
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import _NLARegistries
-from mipengine.exceptions import BadUserInput
-from mipengine.node_tasks_DTOs import CommonDataElement
-from mipengine.node_tasks_DTOs import CommonDataElements
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.node_landscape_aggregator import _NLARegistries
+from exareme2.exceptions import BadUserInput
+from exareme2.node_tasks_DTOs import CommonDataElement
+from exareme2.node_tasks_DTOs import CommonDataElements
 
 
 @pytest.fixture

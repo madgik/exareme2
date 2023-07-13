@@ -1,9 +1,9 @@
 import pytest
 
-from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
+from exareme2.node.monetdb_interface.common_actions import create_table_name
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
 
 
 def test_create_table_name():

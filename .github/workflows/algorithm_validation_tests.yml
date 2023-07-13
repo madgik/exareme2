@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-3-monetdb-
 
@@ -56,7 +56,7 @@ jobs:
           file: monetdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipenginedb:testing
+          tags: madgik/exareme2_db:testing
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
@@ -75,7 +75,7 @@ jobs:
           file: rabbitmq/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_rabbitmq:testing
+          tags: madgik/exareme2_rabbitmq:testing
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
@@ -105,20 +105,20 @@ jobs:
           poetry run inv start-controller --detached
 
       - name: Controller logs
-        run: cat /tmp/mipengine/controller.out
+        run: cat /tmp/exareme2/controller.out
 
       - name: Localnode logs
-        run: cat /tmp/mipengine/localnode1.out
+        run: cat /tmp/exareme2/localnode1.out
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/mipengine/controller.out
+          run: cat /tmp/exareme2/controller.out
 
       - name: Localnode logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/mipengine/localnode1.out
+          run: cat /tmp/exareme2/localnode1.out
 
       - name: Run algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16
@@ -159,7 +159,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-3-monetdb-
 
@@ -170,7 +170,7 @@ jobs:
           file: monetdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipenginedb:testing
+          tags: madgik/exareme2_db:testing
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
@@ -189,7 +189,7 @@ jobs:
           file: rabbitmq/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_rabbitmq:testing
+          tags: madgik/exareme2_rabbitmq:testing
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
@@ -219,28 +219,28 @@ jobs:
           poetry run inv start-controller --detached
 
       - name: Controller logs
-        run: cat /tmp/mipengine/controller.out
+        run: cat /tmp/exareme2/controller.out
 
       - name: Globalnode logs
-        run: cat /tmp/mipengine/globalnode.out
+        run: cat /tmp/exareme2/globalnode.out
 
       - name: Localnode logs
-        run: cat /tmp/mipengine/localnode1.out
+        run: cat /tmp/exareme2/localnode1.out
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/mipengine/controller.out
+          run: cat /tmp/exareme2/controller.out
 
       - name: Globalnode logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/mipengine/globalnode.out
+          run: cat /tmp/exareme2/globalnode.out
 
       - name: Localnode logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/mipengine/localnode1.out
+          run: cat /tmp/exareme2/localnode1.out
 
       - name: Run algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16 -k "input1 and not input1-" # run tests 10-19

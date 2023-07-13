@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from mipengine.algorithms.preprocessing import DummyEncoderUdf
-from mipengine.udfgen.decorator import UDFBadCall
+from exareme2.algorithms.preprocessing import DummyEncoderUdf
+from exareme2.udfgen.decorator import UDFBadCall
 
 
 def test_dummy_encoder__only_numerical_vars():

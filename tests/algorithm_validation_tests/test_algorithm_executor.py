@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from mipengine.controller.api.error_handlers import HTTPStatusCode
+from exareme2.controller.api.error_handlers import HTTPStatusCode
 
 algorithm_name = "logistic_regression_cv"
 

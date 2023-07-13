@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-r"""Run MIP-Engine algorithms from the command line
+r"""Run Exareme2 algorithms from the command line
 
 
 USAGE

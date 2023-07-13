@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mipengine-controller-deployment
+  name: exareme2-controller-deployment
   labels:
-    app: mipengine-controller
+    app: exareme2-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mipengine-controller
+      app: exareme2-controller
   template:
     metadata:
       labels:
-        app: mipengine-controller
+        app: exareme2-controller
     spec:
       nodeSelector:
         master: "true"
@@ -22,7 +22,7 @@ spec:
           path: {{ .Values.controller.cleanup_file_folder }}
       containers:
       - name: controller
-        image: {{ .Values.mipengine_images.repository }}/mipengine_controller:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_controller:{{ .Values.exareme2_images.version }}
         ports:
           - containerPort: 5000
         volumeMounts:
@@ -44,7 +44,7 @@ spec:
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: LOCALNODES_DNS
-          value: "mipengine-nodes-service"
+          value: "exareme2-nodes-service"
         - name: LOCALNODES_PORT
           value: "5672"
         - name: SMPC_ENABLED
@@ -108,15 +108,15 @@ spec:
         - name: REDIS_PSWD
           value: "agora"
         - name: PLAYER_IP_0
-          value: mipengine-smpc-player0-service
+          value: exareme2-smpc-player0-service
         - name: PLAYER_REPO_0
           value: "http://$(PLAYER_IP_0):7000"
         - name: PLAYER_IP_1
-          value: mipengine-smpc-player1-service
+          value: exareme2-smpc-player1-service
         - name: PLAYER_REPO_1
           value: "http://$(PLAYER_IP_1):7001"
         - name: PLAYER_IP_2
-          value: mipengine-smpc-player2-service
+          value: exareme2-smpc-player2-service
         - name: PLAYER_REPO_2
           value: "http://$(PLAYER_IP_2):7002"
       {{ end }}
@@ -126,11 +126,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-controller-service
+  name: exareme2-controller-service
 spec:
   type: LoadBalancer
   selector:
-    app: mipengine-controller
+    app: exareme2-controller
   ports:
     - protocol: TCP
       port: 5000
@@ -142,11 +142,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-nodes-service
+  name: exareme2-nodes-service
 spec:
   clusterIP: None
   selector:
-    app: mipengine-node
+    app: exareme2-node
   ports:
     - protocol: TCP
       port: 5672
@@ -160,11 +160,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-smpc-coordinator-service
+  name: exareme2-smpc-coordinator-service
 spec:
   type: LoadBalancer
   selector:
-    app: mipengine-controller
+    app: exareme2-controller
   ports:
     - protocol: TCP
       port: 12314
@@ -179,10 +179,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-smpc-coordinator-db-service
+  name: exareme2-smpc-coordinator-db-service
 spec:
   selector:
-    app: mipengine-controller
+    app: exareme2-controller
   ports:
     - protocol: TCP
       port: 27017
@@ -194,9 +194,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mipengine-smpc-player0
+  name: exareme2-smpc-player0
   labels:
-    app: mipengine-smpc-players
+    app: exareme2-smpc-players
     smpc_player: player0
 spec:
   nodeSelector:
@@ -209,7 +209,7 @@ spec:
           - key: app
             operator: In
             values:
-            - mipengine-smpc-players
+            - exareme2-smpc-players
         topologyKey: "kubernetes.io/hostname"
   containers:
   - name: smpc-player
@@ -222,11 +222,11 @@ spec:
       - containerPort: 14000
     env:
     - name: COORDINATOR_IP
-      value: mipengine-smpc-coordinator-service
+      value: exareme2-smpc-coordinator-service
     - name: COORDINATOR_URL
       value: "http://$(COORDINATOR_IP):12314"
     - name: DB_IP
-      value: mipengine-smpc-coordinator-db-service
+      value: exareme2-smpc-coordinator-db-service
     - name: DB_URL
       value: "$(DB_IP):27017"
     - name: DB_UNAME
@@ -236,15 +236,15 @@ spec:
     - name: PORT
       value: "7000"
     - name: PLAYER_IP_0
-      value: mipengine-smpc-player0-service
+      value: exareme2-smpc-player0-service
     - name: PLAYER_REPO_0
       value: "http://$(PLAYER_IP_0):7000"
     - name: PLAYER_IP_1
-      value: mipengine-smpc-player1-service
+      value: exareme2-smpc-player1-service
     - name: PLAYER_REPO_1
       value: "http://$(PLAYER_IP_1):7001"
     - name: PLAYER_IP_2
-      value: mipengine-smpc-player2-service
+      value: exareme2-smpc-player2-service
     - name: PLAYER_REPO_2
       value: "http://$(PLAYER_IP_2):7002"
 
@@ -253,7 +253,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-smpc-player0-service
+  name: exareme2-smpc-player0-service
 spec:
   selector:
     smpc_player: player0
@@ -276,9 +276,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mipengine-smpc-player1
+  name: exareme2-smpc-player1
   labels:
-    app: mipengine-smpc-players
+    app: exareme2-smpc-players
     smpc_player: player1
 spec:
   nodeSelector:
@@ -291,7 +291,7 @@ spec:
           - key: app
             operator: In
             values:
-            - mipengine-smpc-players
+            - exareme2-smpc-players
         topologyKey: "kubernetes.io/hostname"
   containers:
   - name: smpc-player
@@ -304,11 +304,11 @@ spec:
       - containerPort: 14001
     env:
     - name: COORDINATOR_IP
-      value: mipengine-smpc-coordinator-service
+      value: exareme2-smpc-coordinator-service
     - name: COORDINATOR_URL
       value: "http://$(COORDINATOR_IP):12314"
     - name: DB_IP
-      value: mipengine-smpc-coordinator-db-service
+      value: exareme2-smpc-coordinator-db-service
     - name: DB_URL
       value: "$(DB_IP):27017"
     - name: DB_UNAME
@@ -318,15 +318,15 @@ spec:
     - name: PORT
       value: "7000"
     - name: PLAYER_IP_0
-      value: mipengine-smpc-player0-service
+      value: exareme2-smpc-player0-service
     - name: PLAYER_REPO_0
       value: "http://$(PLAYER_IP_0):7000"
     - name: PLAYER_IP_1
-      value: mipengine-smpc-player1-service
+      value: exareme2-smpc-player1-service
     - name: PLAYER_REPO_1
       value: "http://$(PLAYER_IP_1):7001"
     - name: PLAYER_IP_2
-      value: mipengine-smpc-player2-service
+      value: exareme2-smpc-player2-service
     - name: PLAYER_REPO_2
       value: "http://$(PLAYER_IP_2):7002"
 
@@ -335,7 +335,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-smpc-player1-service
+  name: exareme2-smpc-player1-service
 spec:
   selector:
     smpc_player: player1
@@ -358,9 +358,9 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mipengine-smpc-player2
+  name: exareme2-smpc-player2
   labels:
-    app: mipengine-smpc-players
+    app: exareme2-smpc-players
     smpc_player: player2
 spec:
   nodeSelector:
@@ -373,7 +373,7 @@ spec:
           - key: app
             operator: In
             values:
-            - mipengine-smpc-players
+            - exareme2-smpc-players
         topologyKey: "kubernetes.io/hostname"
   containers:
   - name: smpc-player
@@ -386,11 +386,11 @@ spec:
       - containerPort: 14002
     env:
     - name: COORDINATOR_IP
-      value: mipengine-smpc-coordinator-service
+      value: exareme2-smpc-coordinator-service
     - name: COORDINATOR_URL
       value: "http://$(COORDINATOR_IP):12314"
     - name: DB_IP
-      value: mipengine-smpc-coordinator-db-service
+      value: exareme2-smpc-coordinator-db-service
     - name: DB_URL
       value: "$(DB_IP):27017"
     - name: DB_UNAME
@@ -400,15 +400,15 @@ spec:
     - name: PORT
       value: "7000"
     - name: PLAYER_IP_0
-      value: mipengine-smpc-player0-service
+      value: exareme2-smpc-player0-service
     - name: PLAYER_REPO_0
       value: "http://$(PLAYER_IP_0):7000"
     - name: PLAYER_IP_1
-      value: mipengine-smpc-player1-service
+      value: exareme2-smpc-player1-service
     - name: PLAYER_REPO_1
       value: "http://$(PLAYER_IP_1):7001"
     - name: PLAYER_IP_2
-      value: mipengine-smpc-player2-service
+      value: exareme2-smpc-player2-service
     - name: PLAYER_REPO_2
       value: "http://$(PLAYER_IP_2):7002"
 
@@ -417,7 +417,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: mipengine-smpc-player2-service
+  name: exareme2-smpc-player2-service
 spec:
   selector:
     smpc_player: player2

@@ -3,31 +3,31 @@ from os import path
 import pytest
 from pydantic import BaseModel
 
-from mipengine import AttrDict
-from mipengine import algorithm_classes
-from mipengine import algorithm_data_loaders
-from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from mipengine.algorithms.algorithm import Variables
-from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_engine import (
+from exareme2 import AttrDict
+from exareme2 import algorithm_classes
+from exareme2 import algorithm_data_loaders
+from exareme2.algorithms.algorithm import InitializationParams as AlgorithmInitParams
+from exareme2.algorithms.algorithm import Variables
+from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller.algorithm_execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.controller import CommandIdGenerator
-from mipengine.controller.controller import Controller
-from mipengine.controller.controller import DataModelViewsCreator
-from mipengine.controller.controller import InitializationParams as ControllerInitParams
-from mipengine.controller.controller import Nodes
-from mipengine.controller.controller import NodesFederation
-from mipengine.controller.controller import _algorithm_run_in_event_loop
-from mipengine.controller.controller import _create_algorithm_execution_engine
-from mipengine.controller.controller import sanitize_request_variable
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from exareme2.controller.controller import CommandIdGenerator
+from exareme2.controller.controller import Controller
+from exareme2.controller.controller import DataModelViewsCreator
+from exareme2.controller.controller import InitializationParams as ControllerInitParams
+from exareme2.controller.controller import Nodes
+from exareme2.controller.controller import NodesFederation
+from exareme2.controller.controller import _algorithm_run_in_event_loop
+from exareme2.controller.controller import _create_algorithm_execution_engine
+from exareme2.controller.controller import sanitize_request_variable
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.uid_generator import UIDGenerator
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
