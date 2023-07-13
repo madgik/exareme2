@@ -1,10 +1,10 @@
 import numpy as np
 import pytest
 
-from mipengine.udfgen.udfio import construct_secure_transfer_dict
-from mipengine.udfgen.udfio import merge_tensor_to_list
-from mipengine.udfgen.udfio import secure_transfers_to_merged_dict
-from mipengine.udfgen.udfio import split_secure_transfer_dict
+from exareme2.udfgen.udfio import construct_secure_transfer_dict
+from exareme2.udfgen.udfio import merge_tensor_to_list
+from exareme2.udfgen.udfio import secure_transfers_to_merged_dict
+from exareme2.udfgen.udfio import split_secure_transfer_dict
 
 
 def test_merge_tensor_to_list_2tables_0D():

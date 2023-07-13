@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from mipengine.node_info_DTOs import NodeInfo
+from exareme2.node_info_DTOs import NodeInfo
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger

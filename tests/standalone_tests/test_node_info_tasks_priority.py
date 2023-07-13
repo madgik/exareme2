@@ -1,14 +1,14 @@
 import pytest
 
-from mipengine.controller.celery_app import CeleryAppFactory
-from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.controller.node_info_tasks_handler import NodeInfoTasksHandler
-from mipengine.node import config as node_config
-from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
-from mipengine.node_tasks_DTOs import NodeUDFPosArguments
-from mipengine.udfgen import make_unique_func_name
+from exareme2.controller.celery_app import CeleryAppFactory
+from exareme2.controller.celery_app import CeleryTaskTimeoutException
+from exareme2.controller.node_info_tasks_handler import NodeInfoTasksHandler
+from exareme2.node import config as node_config
+from exareme2.node_info_DTOs import NodeInfo
+from exareme2.node_tasks_DTOs import NodeTableDTO
+from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
+from exareme2.node_tasks_DTOs import NodeUDFPosArguments
+from exareme2.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import one_second_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature

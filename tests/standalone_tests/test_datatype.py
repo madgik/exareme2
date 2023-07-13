@@ -1,4 +1,4 @@
-from mipengine import DType
+from exareme2 import DType
 
 
 def test_py_conversion():

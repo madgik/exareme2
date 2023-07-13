@@ -4,14 +4,14 @@ import uuid
 import pytest
 import requests
 
-from mipengine.datatypes import DType
-from mipengine.exceptions import DataModelUnavailable
-from mipengine.exceptions import DatasetUnavailable
-from mipengine.exceptions import InsufficientDataError
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
+from exareme2.datatypes import DType
+from exareme2.exceptions import DataModelUnavailable
+from exareme2.exceptions import DatasetUnavailable
+from exareme2.exceptions import InsufficientDataError
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableData
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import ALGORITHMS_URL
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger

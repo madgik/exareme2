@@ -11,14 +11,14 @@ nodes:
   - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_master
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/mipengine/data
+    containerPath: /opt/exareme2/data
 
 - role: worker
   extraMounts:
   - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker1
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/mipengine/csvs
+    containerPath: /opt/exareme2/csvs
   extraPortMappings:
   - containerPort: 32000	# Used for debugging smpc cluster
     hostPort: 9000		# Used for debugging smpc cluster
@@ -28,7 +28,7 @@ nodes:
   - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker2
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/mipengine/csvs
+    containerPath: /opt/exareme2/csvs
   extraPortMappings:
   - containerPort: 32000	# Used for debugging smpc cluster
     hostPort: 9001		# Used for debugging smpc cluster

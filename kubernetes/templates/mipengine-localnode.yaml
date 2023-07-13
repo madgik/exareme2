@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mipengine-localnode-deployment
+  name: exareme2-localnode-deployment
   labels:
-    app: mipengine-node
+    app: exareme2-node
     nodeType: localnode
 spec:
   replicas: {{ .Values.localnodes }}
   selector:
     matchLabels:
-      app: mipengine-node
+      app: exareme2-node
   template:
     metadata:
       labels:
-        app: mipengine-node
+        app: exareme2-node
         nodeType: localnode
     spec:
       nodeSelector:
@@ -26,7 +26,7 @@ spec:
               - key: app
                 operator: In
                 values:
-                - mipengine-node
+                - exareme2-node
             topologyKey: "kubernetes.io/hostname"
       volumes:
       - name: db-data
@@ -37,7 +37,7 @@ spec:
           path: {{ .Values.db.csvs_location }}
       containers:
       - name: monetdb
-        image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
         # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
         # resources:
         #  limits:
@@ -71,7 +71,7 @@ spec:
           periodSeconds: 30
 
       - name: db-importer
-        image: {{ .Values.mipengine_images.repository }}/mipengine_mipdb:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_mipdb:{{ .Values.exareme2_images.version }}
         env:
         - name: DB_IP
           valueFrom:
@@ -84,7 +84,7 @@ spec:
           name: csv-data
 
       - name: rabbitmq
-        image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
         env:
         - name: RABBITMQ_ADMIN_USER
           value: "user"
@@ -107,7 +107,7 @@ spec:
           timeoutSeconds: 10
 
       - name: node
-        image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_node:{{ .Values.exareme2_images.version }}
         env:
         - name: NODE_IDENTIFIER
           valueFrom:
@@ -166,19 +166,19 @@ spec:
         - name: PORT
           value: "9000"
         - name: COORDINATOR_IP
-          value: mipengine-smpc-coordinator-service
+          value: exareme2-smpc-coordinator-service
         - name: COORDINATOR_URL
           value: "http://$(COORDINATOR_IP):12314"
         - name: PLAYER_IP_0
-          value: mipengine-smpc-player0-service
+          value: exareme2-smpc-player0-service
         - name: PLAYER_REPO_0
           value: "http://$(PLAYER_IP_0):7000"
         - name: PLAYER_IP_1
-          value: mipengine-smpc-player1-service
+          value: exareme2-smpc-player1-service
         - name: PLAYER_REPO_1
           value: "http://$(PLAYER_IP_1):7001"
         - name: PLAYER_IP_2
-          value: mipengine-smpc-player2-service
+          value: exareme2-smpc-player2-service
         - name: PLAYER_REPO_2
           value: "http://$(PLAYER_IP_2):7002"
       {{ end }}
@@ -188,11 +188,11 @@ spec:
 #apiVersion: v1
 #kind: Service
 #metadata:
-#  name: mipengine-node-service
+#  name: exareme2-node-service
 #spec:
 #  type: LoadBalancer
 #  selector:
-#    app: mipengine-node
+#    app: exareme2-node
 #  ports:
 #    - protocol: TCP
 #      port: 9000

@@ -1,6 +1,6 @@
 import numpy as np
 
-from mipengine.algorithms.anova_oneway import get_min_max_ci_info
+from exareme2.algorithms.anova_oneway import get_min_max_ci_info
 
 
 def test_min_max_ci():

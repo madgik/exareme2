@@ -2,14 +2,14 @@ import uuid as uuid
 
 import pytest
 
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataInt
-from mipengine.table_data_DTOs import ColumnDataStr
+from exareme2.datatypes import DType
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableData
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.table_data_DTOs import ColumnDataFloat
+from exareme2.table_data_DTOs import ColumnDataInt
+from exareme2.table_data_DTOs import ColumnDataStr
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger

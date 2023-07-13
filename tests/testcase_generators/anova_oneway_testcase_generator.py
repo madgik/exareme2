@@ -9,7 +9,7 @@ from statsmodels.stats.libqsturng import psturng
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("mipengine", "algorithms", "anova_oneway.json")
+SPECS_PATH = Path("exareme2", "algorithms", "anova_oneway.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",

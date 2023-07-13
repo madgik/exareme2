@@ -1,7 +1,7 @@
-# MIP-Engine devops with Kubernetes
+# Exareme2 devops with Kubernetes
 
 - [Cluster installation with microk8s.](docs/ClusterInstallWithMicrok8s.md)
 - [Cluster installation with kubeadm.](docs/ClusterInstallWithKubeadm.md)
-- [MIP-Engine deployment with helm.](docs/MIPEngineDeployment.md)
+- [Exareme2 deployment with helm.](docs/Exareme2Deployment.md)
 - [Import data in the local nodes.](docs/ImportNodeData.md)
 - [Node data backup.](docs/NodeDataBackup.md)

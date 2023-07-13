@@ -1,24 +1,24 @@
 import pytest
 
-from mipengine import AttrDict
-from mipengine.controller.node_landscape_aggregator import DataModelMetadata
-from mipengine.controller.node_landscape_aggregator import DataModelRegistry
-from mipengine.controller.node_landscape_aggregator import DataModelsAttributes
-from mipengine.controller.node_landscape_aggregator import DataModelsCDES
-from mipengine.controller.node_landscape_aggregator import DataModelsMetadata
-from mipengine.controller.node_landscape_aggregator import DataModelsMetadataPerNode
-from mipengine.controller.node_landscape_aggregator import DatasetsLabels
-from mipengine.controller.node_landscape_aggregator import DatasetsLocations
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2 import AttrDict
+from exareme2.controller.node_landscape_aggregator import DataModelMetadata
+from exareme2.controller.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.node_landscape_aggregator import DataModelsAttributes
+from exareme2.controller.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.node_landscape_aggregator import DataModelsMetadata
+from exareme2.controller.node_landscape_aggregator import DataModelsMetadataPerNode
+from exareme2.controller.node_landscape_aggregator import DatasetsLabels
+from exareme2.controller.node_landscape_aggregator import DatasetsLocations
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.node_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
-from mipengine.node_tasks_DTOs import CommonDataElement
-from mipengine.node_tasks_DTOs import CommonDataElements
-from mipengine.node_tasks_DTOs import DataModelAttributes
+from exareme2.node_tasks_DTOs import CommonDataElement
+from exareme2.node_tasks_DTOs import CommonDataElements
+from exareme2.node_tasks_DTOs import DataModelAttributes
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
 
 

@@ -2,11 +2,11 @@ openapi: 3.0.0
 servers:
   # Added by API Auto Mocking Plugin
   - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/ThanKarab/MIP_Engine_Interface/1.0.0
+    url: https://virtserver.swaggerhub.com/ThanKarab/Exareme2_Interface/1.0.0
 info:
   description: The interface that the engine will have with MIP backend.
   version: "1.0.0"
-  title: MIP Engine Interface
+  title: Exareme2 Interface
 
 paths:
   /algorithms:
@@ -130,7 +130,7 @@ components:
 
     AlgorithmParameters:
       description: Algorithm parameters controlling the fitting process.
-      example: 
+      example:
         $ref: '#/components/examples/AlgorithmParameters'
       type: object
       additionalProperties:
@@ -172,7 +172,7 @@ components:
 
     AlgorithmRequestBody:
       description: The request body of the call to run an algorithm.
-      example: 
+      example:
         $ref: '#/components/examples/AlgorithmRequestBody'
       type: object
       required:
@@ -231,7 +231,7 @@ components:
 
     AlgorithmResult:
       description: The result of an algorithm execution. A dictionairy of the available visualization types, containing a list of the different visualizations. Possible MIMETypes here https://redmine.hbpmip.link/issues/186
-      example: 
+      example:
         $ref: '#/components/examples/AlgorithmResult'
       type: object
       additionalProperties:
@@ -457,14 +457,14 @@ components:
               "single":
                 {
                   "num_datapoints": 45
-  
+
                 }
             },
             {
               "double":
                 {
                   "num_datapoints": 437
-  
+
                 }
             }
           ],
@@ -477,4 +477,3 @@ components:
             }
           ]
         }
-        

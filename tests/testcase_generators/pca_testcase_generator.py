@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("mipengine", "algorithms", "ttest_paired.json")
+SPECS_PATH = Path("exareme2", "algorithms", "ttest_paired.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",
@@ -30,7 +30,7 @@ class PCATestCaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    with open("mipengine/algorithms/pca.json") as specs_file:
+    with open("exareme2/algorithms/pca.json") as specs_file:
         pcagen = PCATestCaseGenerator(specs_file)
     with open(EXPECTED_PATH, "w") as expected_file:
         pcagen.write_test_cases(expected_file)

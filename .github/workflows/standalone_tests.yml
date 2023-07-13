@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-3-monetdb-
 
@@ -56,7 +56,7 @@ jobs:
           file: monetdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipenginedb:dev
+          tags: madgik/exareme2_db:dev
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
@@ -75,7 +75,7 @@ jobs:
           file: rabbitmq/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_rabbitmq:dev
+          tags: madgik/exareme2_rabbitmq:dev
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
@@ -90,17 +90,17 @@ jobs:
       - name: SMPC Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/mipengine/test_smpc_controller.out
+          run: cat /tmp/exareme2/test_smpc_controller.out
 
       - name: Run all standalone tests except the SMPC
         id: non_smpc_tests
-        run: poetry run pytest -s -m "not smpc" --cov=mipengine --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+        run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Run SMPC specific standalone tests after releasing previous test resources
         if: success() || ( failure() && steps.non_smpc_tests.outcome == 'failure' )
         run:  |
           poetry run inv cleanup
-          poetry run pytest -s -m "smpc" --cov=mipengine --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
+          poetry run pytest -s -m "smpc" --cov=exareme2 --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4
 
       - name: Publish coverage on codeclimate
         uses: paambaati/codeclimate-action@v3.2.0

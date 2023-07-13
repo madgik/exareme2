@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mip-engine"
+name = "exareme2"
 version = "0.1.0"
 description = "Core engine for the Medical Informatics Platform"
 authors = ["Your Name <you@example.com>"]
@@ -14,7 +14,7 @@ pymonetdb = "1.6.3" # Must be updated together with mipdb Dockerfile
 astor = "~0.8"
 numpy = "1.24.1" # Must be updated together with monetdb Dockerfile
 scipy = "1.10.0" # Must be updated together with monetdb Dockerfile
-pandas = "1.5.2" # Must be updated together with monetdb Dockerfile
+pandas = "1.5.2" # Must be updated together with moneEnb Dockerfile
 scikit-learn = "1.2.0"  # Must be updated together with monetdb Dockerfile
 dnspython = "2.2.1" # TODO upgrade this when: https://github.com/eventlet/eventlet/issues/781
 pydantic = "~1.10"
@@ -66,7 +66,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 norecursedirs = ["tests/testcase_generators"]
 
 [tool.coverage.run]
-source_pkgs = ['mipengine']
+source_pkgs = ['exareme2']
 dynamic_context = 'test_function'
 
 [tool.coverage.report]

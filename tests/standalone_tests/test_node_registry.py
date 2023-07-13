@@ -1,14 +1,14 @@
 import pytest
 
-from mipengine import AttrDict
-from mipengine.controller.node_landscape_aggregator import DataModelRegistry
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2 import AttrDict
+from exareme2.controller.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import NodeRegistry
-from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_info_DTOs import NodeRole
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.node_landscape_aggregator import NodeRegistry
+from exareme2.node_info_DTOs import NodeInfo
+from exareme2.node_info_DTOs import NodeRole
 
 mocked_node_addresses = [
     "127.0.0.1:5672",

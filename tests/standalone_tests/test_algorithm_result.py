@@ -1,8 +1,8 @@
-from mipengine import DType
-from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataInt
-from mipengine.table_data_DTOs import ColumnDataStr
+from exareme2 import DType
+from exareme2.algorithm_result_DTOs import TabularDataResult
+from exareme2.table_data_DTOs import ColumnDataFloat
+from exareme2.table_data_DTOs import ColumnDataInt
+from exareme2.table_data_DTOs import ColumnDataStr
 
 
 def test_tabular_data_result():

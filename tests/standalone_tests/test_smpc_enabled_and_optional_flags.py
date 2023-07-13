@@ -1,7 +1,7 @@
 import pytest
 
-from mipengine.smpc_cluster_comm_helpers import SMPCUsageError
-from mipengine.smpc_cluster_comm_helpers import validate_smpc_usage
+from exareme2.smpc_cluster_comm_helpers import SMPCUsageError
+from exareme2.smpc_cluster_comm_helpers import validate_smpc_usage
 
 
 def get_validate_smpc_usage_success_cases():

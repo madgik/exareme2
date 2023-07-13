@@ -4,15 +4,15 @@ from unittest.mock import patch
 import pytest
 import toml
 
-from mipengine import AttrDict
-from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2 import AttrDict
+from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import _NLARegistries
-from mipengine.controller.nodes_addresses import NodesAddresses
-from mipengine.controller.nodes_addresses import NodesAddressesFactory
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.node_landscape_aggregator import _NLARegistries
+from exareme2.controller.nodes_addresses import NodesAddresses
+from exareme2.controller.nodes_addresses import NodesAddressesFactory
 from tests.standalone_tests.conftest import GLOBALNODE_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_CONFIG_FILE
@@ -52,7 +52,7 @@ def init_background_controller_logger():
 @pytest.fixture(autouse=True, scope="session")
 def patch_celery_app(controller_config):
     with patch(
-        "mipengine.controller.celery_app.controller_config", AttrDict(controller_config)
+        "exareme2.controller.celery_app.controller_config", AttrDict(controller_config)
     ):
         yield
 

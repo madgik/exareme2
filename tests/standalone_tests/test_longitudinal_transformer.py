@@ -4,10 +4,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from mipengine import DType
-from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformer
-from mipengine.algorithms.longitudinal_transformer import LongitudinalTransformerUdf
-from mipengine.exceptions import BadUserInput
+from exareme2 import DType
+from exareme2.algorithms.longitudinal_transformer import LongitudinalTransformer
+from exareme2.algorithms.longitudinal_transformer import LongitudinalTransformerUdf
+from exareme2.exceptions import BadUserInput
 
 
 class TestLongitudinalTransformerUdf:

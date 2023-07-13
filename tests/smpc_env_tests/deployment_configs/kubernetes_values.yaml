@@ -1,6 +1,6 @@
 localnodes: 2
 
-mipengine_images:
+exareme2_images:
   repository: madgik
   version: dev
 
@@ -8,8 +8,8 @@ log_level: DEBUG
 framework_log_level: INFO
 
 db:
-  storage_location: /opt/mipengine/db
-  csvs_location: /opt/mipengine/csvs
+  storage_location: /opt/exareme2/db
+  csvs_location: /opt/exareme2/csvs
   max_memory: 1024Mi    # k8s memory limit
 
 controller:

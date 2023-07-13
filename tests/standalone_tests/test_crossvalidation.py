@@ -2,7 +2,7 @@ from unittest.mock import Mock
 from unittest.mock import call
 from unittest.mock import sentinel as s
 
-from mipengine.algorithms.crossvalidation import cross_validate
+from exareme2.algorithms.crossvalidation import cross_validate
 
 
 class FakeSplitter:

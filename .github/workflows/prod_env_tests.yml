@@ -45,7 +45,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('mipengine/udfgen/udfio.py')}}
+          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
           restore-keys: |
             ${{ runner.os }}-buildx-3-monetdb-
 
@@ -56,7 +56,7 @@ jobs:
           file: monetdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipenginedb:dev
+          tags: madgik/exareme2_db:dev
           cache-from: type=local,src=/tmp/.buildx-cache/monetdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
 
@@ -75,7 +75,7 @@ jobs:
           file: mipdb/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_mipdb:dev
+          tags: madgik/exareme2_mipdb:dev
           cache-from: type=local,src=/tmp/.buildx-cache/mipdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
 
@@ -94,7 +94,7 @@ jobs:
           file: rabbitmq/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_rabbitmq:dev
+          tags: madgik/exareme2_rabbitmq:dev
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
@@ -102,7 +102,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/node
-          key: ${{ runner.os }}-buildx-node-${{hashFiles('mipengine/**')}}
+          key: ${{ runner.os }}-buildx-node-${{hashFiles('exareme2/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-node-
 
@@ -110,10 +110,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: mipengine/node/Dockerfile
+          file: exareme2/node/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_node:dev
+          tags: madgik/exareme2_node:dev
           cache-from: type=local,src=/tmp/.buildx-cache/node
           cache-to: type=local,dest=/tmp/.buildx-cache-new/node
 
@@ -121,7 +121,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('mipengine/**')}}
+          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-controller-
 
@@ -129,10 +129,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: mipengine/controller/Dockerfile
+          file: exareme2/controller/Dockerfile
           push: false
           load: true
-          tags: madgik/mipengine_controller:dev
+          tags: madgik/exareme2_controller:dev
           cache-from: type=local,src=/tmp/.buildx-cache/controller
           cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
 
@@ -178,16 +178,16 @@ jobs:
 
       - name: Load docker images to kind containers and delete them locally
         run: |
-          kind load docker-image madgik/mipengine_node:dev
-          docker image rm madgik/mipengine_node:dev
-          kind load docker-image madgik/mipengine_controller:dev --nodes kind-control-plane
-          docker image rm madgik/mipengine_controller:dev
-          kind load docker-image madgik/mipenginedb:dev
-          docker image rm madgik/mipenginedb:dev
-          kind load docker-image madgik/mipengine_mipdb:dev
-          docker image rm madgik/mipengine_mipdb:dev
-          kind load docker-image madgik/mipengine_rabbitmq:dev
-          docker image rm madgik/mipengine_rabbitmq:dev
+          kind load docker-image madgik/exareme2_node:dev
+          docker image rm madgik/exareme2_node:dev
+          kind load docker-image madgik/exareme2_controller:dev --nodes kind-control-plane
+          docker image rm madgik/exareme2_controller:dev
+          kind load docker-image madgik/exareme2_db:dev
+          docker image rm madgik/exareme2_db:dev
+          kind load docker-image madgik/exareme2_mipdb:dev
+          docker image rm madgik/exareme2_mipdb:dev
+          kind load docker-image madgik/exareme2_rabbitmq:dev
+          docker image rm madgik/exareme2_rabbitmq:dev
 
       - name: Get container disk space
         run: df -h
@@ -199,7 +199,7 @@ jobs:
         run: helm template kubernetes/
 
       - name: Deploy Helm
-        run: helm install mipengine kubernetes/ --debug
+        run: helm install exareme2 kubernetes/ --debug
 
       - name: Wait for MONETDB container to start
         uses: jakejarvis/wait-action@master
@@ -288,7 +288,7 @@ jobs:
           time: '60s'  #https://team-1617704806227.atlassian.net/browse/MIP-248
 
       - name: Controller logs
-        run: kubectl logs -l app=mipengine-controller --tail -1
+        run: kubectl logs -l app=exareme2-controller --tail -1
 
       - name: Globalnode logs
         run: kubectl logs -l nodeType=globalnode -c node --tail -1
@@ -299,7 +299,7 @@ jobs:
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: kubectl logs -l app=mipengine-controller --tail -1
+          run: kubectl logs -l app=exareme2-controller --tail -1
 
       - name: Globalnode logs (post run)
         uses: webiny/action-post-run@3.0.0

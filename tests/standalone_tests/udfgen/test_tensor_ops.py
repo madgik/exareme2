@@ -5,18 +5,18 @@ import pytest
 
 pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
 
-from mipengine.datatypes import DType
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.udfgen import generate_udf_queries
-from mipengine.udfgen.iotypes import LiteralArg
-from mipengine.udfgen.iotypes import TensorArg
-from mipengine.udfgen.tensor_ops import TensorBinaryOp
-from mipengine.udfgen.tensor_ops import get_matrix_transpose_template
-from mipengine.udfgen.tensor_ops import get_tensor_binary_op_template
-from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
+from exareme2.datatypes import DType
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
+from exareme2.udfgen import generate_udf_queries
+from exareme2.udfgen.iotypes import LiteralArg
+from exareme2.udfgen.iotypes import TensorArg
+from exareme2.udfgen.tensor_ops import TensorBinaryOp
+from exareme2.udfgen.tensor_ops import get_matrix_transpose_template
+from exareme2.udfgen.tensor_ops import get_tensor_binary_op_template
+from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.standalone_tests.udfgen.test_udfgenerator import TestUDFGenBase
 
 

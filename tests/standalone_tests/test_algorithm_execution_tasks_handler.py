@@ -2,9 +2,9 @@ import random
 
 import pytest
 
-from mipengine import DType
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableSchema
+from exareme2 import DType
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableSchema
 
 COMMON_TASKS_REQUEST_ID = "rqst1"
 
