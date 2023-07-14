@@ -65,7 +65,6 @@ from invoke import UnexpectedExit
 from invoke import task
 from termcolor import colored
 
-import tests
 from exareme2.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
@@ -87,7 +86,7 @@ CLEANUP_DIR = Path("/tmp/cleanup_entries/")
 if not CLEANUP_DIR.exists():
     CLEANUP_DIR.mkdir()
 
-TEST_DATA_FOLDER = Path(tests.__file__).parent / "test_data"
+TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
 EXAREME2_NODE_CONFIG_FILE = "EXAREME2_NODE_CONFIG_FILE"
