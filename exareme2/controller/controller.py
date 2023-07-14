@@ -573,7 +573,9 @@ class LongitudinalStrategy(ExecutionStrategy):
         init_params = LongitudinalTransformerRunnerInitParams(
             datasets=self._algorithm_request_dto.inputdata.datasets,
             var_filters=self._algorithm_request_dto.inputdata.filters,
-            algorithm_parameters=self._algorithm_request_dto.parameters,
+            algorithm_parameters=self._algorithm_request_dto.preprocessing.get(
+                TransformerName.LONGITUDINAL_TRANSFORMER
+            ),
         )
         longitudinal_transformer = LongitudinalTransformerRunner(
             initialization_params=init_params,
