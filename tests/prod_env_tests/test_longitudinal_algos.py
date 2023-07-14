@@ -7,7 +7,11 @@ base_input = {
         "y": None,
         "x": None,
         "data_model": "longitudinal_dementia:0.1",
-        "datasets": ["longitudinal_dementia"],
+        "datasets": [
+            "longitudinal_dementia0",
+            "longitudinal_dementia1",
+            "longitudinal_dementia2",
+        ],
         "filters": None,
     },
     "parameters": {},

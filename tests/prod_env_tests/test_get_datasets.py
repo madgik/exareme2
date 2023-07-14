@@ -53,6 +53,11 @@ def expected_datasets_per_data_model():
             "dummy_tbi8",
             "dummy_tbi9",
         },
+        "longitudinal_dementia:0.1": {
+            "longitudinal_dementia0",
+            "longitudinal_dementia1",
+            "longitudinal_dementia2",
+        },
     }
 
 
