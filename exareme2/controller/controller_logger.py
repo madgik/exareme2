@@ -34,7 +34,7 @@ def init_logger(request_id, log_level=None):
     return logger
 
 
-def get_background_service_logger():
+def get_background_service_logger() -> logging.Logger:
     """
     Used for logging information produced by any background service.
     """
