@@ -12,7 +12,6 @@ def log_experiment_execution(
     algorithm_parameters: str,
     local_node_ids: List[str],
 ):
-
     logger.info(
         f"Experiment with request id '{request_id}' and context id '{context_id}' is starting "
         f"algorithm '{algorithm_name}', touching datasets '{','.join(datasets)}' on local "

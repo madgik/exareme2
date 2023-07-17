@@ -133,7 +133,6 @@ def test_update_loop_data_properly_added(
 def test_update_loop_get_node_info_fail(
     patch_nodes_addresses, globalnode_node_service, node_landscape_aggregator
 ):
-
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_global_and_tmp
     node_landscape_aggregator._update()
     assert node_landscape_aggregator.get_nodes()

@@ -191,7 +191,6 @@ def find_min_max_local(data, column):
     return_type=[transfer()],
 )
 def find_min_max_global(locals_result):
-
     transfer_ = {
         "min_value": locals_result["min"],
         "max_value": locals_result["max"],

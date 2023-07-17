@@ -118,7 +118,6 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
     dropna = True
 
     def compute_expected_output(self, input_data, parameters, metadata: dict):
-
         numerical_vars = [md["code"] for md in metadata if not md["isCategorical"]]
         nominal_vars = [
             md["code"]

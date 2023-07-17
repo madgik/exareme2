@@ -312,7 +312,6 @@ class TestDataModelViewsCreator:
     def test_create_data_model_views_insufficient_data_error(
         self, data_model_views_creator_init_params
     ):
-
         local_node_mocks = [MagicMock(LocalNode) for number_of_nodes in range(10)]
         for node_mock in local_node_mocks:
             node_mock.node_id = "some_id.."

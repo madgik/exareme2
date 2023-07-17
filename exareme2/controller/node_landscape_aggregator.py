@@ -596,7 +596,6 @@ class NodeLandscapeAggregator:
 def _crunch_data_model_registry_data(
     data_models_metadata_per_node: DataModelsMetadataPerNode, logger
 ) -> DataModelRegistry:
-
     incompatible_data_models = _get_incompatible_data_models(
         data_models_metadata_per_node, logger
     )
@@ -796,7 +795,6 @@ def _get_incompatible_data_models(
             data_model,
             data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
-
             if (
                 data_model in incompatible_data_models
                 or not data_model_metadata.cdes

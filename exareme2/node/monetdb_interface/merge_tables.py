@@ -41,7 +41,9 @@ def create_merge_table(
 
     try:
         db_execute_query(merge_table_query)
-    except pymonetdb.exceptions.ProgrammingError or pymonetdb.exceptions.OperationalError as exc:
+    except (
+        pymonetdb.exceptions.ProgrammingError or pymonetdb.exceptions.OperationalError
+    ) as exc:
         if str(exc).startswith("3F000"):
             raise IncompatibleSchemasMergeException(merge_table_names)
         if str(exc).startswith("42S02"):
