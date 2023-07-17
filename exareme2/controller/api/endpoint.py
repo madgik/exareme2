@@ -70,13 +70,11 @@ async def post_algorithm(algorithm_name: str) -> str:
     if not algorithm_request_dto.request_id:
         algorithm_request_dto.request_id = UIDGenerator().get_a_uid()
 
-    # request_id = algorithm_request_dto.request_id or UIDGenerator().get_a_uid()
     controller.validate_algorithm_execution_request(
         algorithm_name=algorithm_name, algorithm_request_dto=algorithm_request_dto
     )
 
     algorithm_result = await controller.exec_algorithm(
-        # request_id=request_id,
         algorithm_name=algorithm_name,
         algorithm_request_dto=algorithm_request_dto,
     )
