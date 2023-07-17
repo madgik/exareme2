@@ -165,7 +165,6 @@ def _validate_algorithm_inputdatas(
     inputdata_specs: InputDataSpecifications,
     data_model_cdes: Dict[str, CommonDataElement],
 ):
-
     if inputdata_specs.x:
         _validate_algorithm_inputdata(inputdata.x, inputdata_specs.x, data_model_cdes)
     if inputdata_specs.y:

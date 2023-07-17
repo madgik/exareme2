@@ -194,7 +194,6 @@ class INodeAlgorithmTasksHandler(ABC):
 
 
 class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
-
     # TODO create custom type and validator for the socket address
     def __init__(
         self,

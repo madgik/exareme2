@@ -38,7 +38,6 @@ def test_create_and_get_remote_table(
     globalnode_node_service,
     globalnode_celery_app,
 ):
-
     local_node_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALNODE1_PORT}"
 
     table_schema = TableSchema(

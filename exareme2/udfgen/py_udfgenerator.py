@@ -577,7 +577,6 @@ class FlowArgsToUdfArgsConverter:
         return LiteralArg(value=arg)
 
     def _convert_tableinfo(self, table_info: TableInfo, smpc):
-
         if self._is_transfertype_schema(table_info.schema_.columns):
             return TransferArg(table_name=table_info.name)
 

@@ -6,7 +6,6 @@ from exareme2.table_data_DTOs import ColumnDataStr
 
 
 def test_tabular_data_result():
-
     columns = [
         ColumnDataFloat(name="float", data=[1.0, 10.0]),
         ColumnDataStr(name="str", data=["2", "20"]),

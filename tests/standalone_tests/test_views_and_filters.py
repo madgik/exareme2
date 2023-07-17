@@ -797,7 +797,6 @@ def test_multiple_data_model_views_null_constraints(
     localnode1_celery_app,
     use_localnode1_database,
 ):
-
     # datasets:"edsd2" of the data model dementia:0.1 has 53 rows. Nevertheless
     # column 'neurodegenerativescategories' contains 20 NULL values, whereas 'opticchiasm',
     # for the same respective rows contains numerical values

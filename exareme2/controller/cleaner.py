@@ -257,7 +257,6 @@ class Cleaner:
     def add_contextid_for_cleanup(
         self, context_id: str, algo_execution_node_ids: List[str]
     ):
-
         """
         Create a new cleanup entry for the specified context_id along with the
         respective node_ids. Calling this method will not call the cleanup task on any

@@ -353,7 +353,6 @@ def test_synchronous_cleanup(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
     db_cursors,
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
     wait_nla(node_landscape_aggregator)
@@ -388,7 +387,6 @@ def test_synchronous_cleanup(
 
     start = time.time()
     while any(tables_after_cleanup.values()):
-
         cleaner.cleanup_context_id(context_id=context_id)
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
@@ -413,7 +411,6 @@ def test_asynchronous_cleanup(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
     db_cursors,
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
     wait_nla(node_landscape_aggregator)
@@ -543,7 +540,6 @@ def test_cleanup_after_rabbitmq_restart(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
     db_cursors,
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
     wait_nla(node_landscape_aggregator)
@@ -674,7 +670,6 @@ def test_cleanup_after_node_service_restart(
     }
     start = time.time()
     while any(tables_after_cleanup.values()):
-
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
             for node_id, cursor in db_cursors.items()
@@ -736,7 +731,6 @@ def wait_nla(node_landscape_aggregator):
         or not node_landscape_aggregator.get_cdes_per_data_model()
         or not node_landscape_aggregator.get_datasets_locations()
     ):
-
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node landscape aggregator to"

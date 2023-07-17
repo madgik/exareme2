@@ -394,7 +394,6 @@ def load_data(c, use_sockets=False, port=None):
         TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
     ]
     for data_model_folder in data_model_folders:
-
         # Load all data models in each db
         with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
             data_model_metadata = json.load(data_model_metadata_file)
@@ -622,12 +621,11 @@ def start_node(
 @task
 def kill_controller(c):
     """Kill the controller service."""
-    res = run(c, "ps aux | grep '[h]ypercorn'", warn=True, show_ok=False)
+    HYPERCORN_PROCESS_NAME = "[f]rom multiprocessing.spawn import spawn_main;"
+    res = run(c, f"ps aux | grep '{HYPERCORN_PROCESS_NAME}'", warn=True, show_ok=False)
     if res.ok:
         message("Killing previous Hypercorn instances...", Level.HEADER)
-        cmd = (
-            "ps aux | grep '[h]ypercorn' | awk '{ print $2}' | xargs kill -9 && sleep 5"
-        )
+        cmd = f"ps aux | grep '{HYPERCORN_PROCESS_NAME}' | awk '{{ print $2}}' | xargs kill -9 && sleep 5"
         run(c, cmd)
     else:
         message("No hypercorn instance found", Level.HEADER)
