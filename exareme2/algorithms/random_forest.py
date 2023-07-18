@@ -6,16 +6,16 @@ from typing import Union
 import numpy
 from pydantic import BaseModel
 
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.helpers import get_transfer_data
-from mipengine.udfgen import MIN_ROW_COUNT
-from mipengine.udfgen import literal
-from mipengine.udfgen import merge_transfer
-from mipengine.udfgen import relation
-from mipengine.udfgen import secure_transfer
-from mipengine.udfgen import transfer
-from mipengine.udfgen import udf
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.helpers import get_transfer_data
+from exareme2.udfgen import MIN_ROW_COUNT
+from exareme2.udfgen import literal
+from exareme2.udfgen import merge_transfer
+from exareme2.udfgen import relation
+from exareme2.udfgen import secure_transfer
+from exareme2.udfgen import transfer
+from exareme2.udfgen import udf
 
 S = TypeVar("S")
 

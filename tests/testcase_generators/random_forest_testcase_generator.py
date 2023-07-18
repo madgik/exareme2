@@ -11,7 +11,7 @@ from sklearn import preprocessing
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import KFold
 
-from mipengine.algorithms.random_forest_cv import RandomForestCVAlgorithm
+from exareme2.algorithms.random_forest_cv import RandomForestCVAlgorithm
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
