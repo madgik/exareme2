@@ -265,9 +265,7 @@ class LocalNode(_Node):
         )
 
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeUDFDTO]:
-        return self._node_tasks_handler.get_queued_udf_result(
-            async_result=async_result, request_id=self.request_id
-        )
+        return self._node_tasks_handler.get_queued_udf_result(async_result=async_result)
 
     def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
         return self._node_tasks_handler.load_data_to_smpc_client(

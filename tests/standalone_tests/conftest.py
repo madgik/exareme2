@@ -131,6 +131,8 @@ TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
 
+REQUEST_ID = "STANDALONETEST"
+
 # ------------ SMPC Cluster ------------ #
 
 SMPC_CLUSTER_IMAGE = "gpikra/coordinator:v7.0.7.4"
@@ -915,6 +917,7 @@ def create_node_tasks_handler_celery(node_config_filepath):
     db_address = ":".join([str(db_domain), str(db_port)])
 
     return NodeAlgorithmTasksHandler(
+        request_id=REQUEST_ID,
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,

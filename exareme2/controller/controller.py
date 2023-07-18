@@ -438,6 +438,7 @@ class NodesFederation:
         localnodesinfo = self._get_nodeinfo_for_requested_datasets()
         tasks_handlers = [
             _create_node_tasks_handler(
+                request_id=self._request_id,
                 nodeinfo=nodeinfo,
                 tasks_timeout=self._celery_tasks_timeout,
                 run_udf_task_timeout=self._celery_run_udf_task_timeout,
@@ -462,6 +463,7 @@ class NodesFederation:
         globalnodeinfo = self._get_globalnodeinfo()
         if globalnodeinfo:
             tasks_handler = _create_node_tasks_handler(
+                request_id=self._request_id,
                 nodeinfo=globalnodeinfo,
                 tasks_timeout=self._celery_tasks_timeout,
                 run_udf_task_timeout=self._celery_run_udf_task_timeout,
@@ -921,9 +923,10 @@ class Controller:
 
 
 def _create_node_tasks_handler(
-    nodeinfo: NodeInfo, tasks_timeout: int, run_udf_task_timeout: int
+    request_id: str, nodeinfo: NodeInfo, tasks_timeout: int, run_udf_task_timeout: int
 ):
     return NodeAlgorithmTasksHandler(
+        request_id=request_id,
         node_id=nodeinfo.id,
         node_queue_addr=str(nodeinfo.ip) + ":" + str(nodeinfo.port),
         node_db_addr=str(nodeinfo.db_ip) + ":" + str(nodeinfo.db_port),

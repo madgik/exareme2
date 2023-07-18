@@ -196,7 +196,6 @@ class Cleaner:
             node_task_handlers_to_async_results[
                 task_handler
             ] = task_handler.queue_cleanup(
-                request_id=CLEANER_REQUEST_ID,
                 context_id=entry.context_id,
             )
 
@@ -204,7 +203,6 @@ class Cleaner:
             try:
                 task_handler.wait_queued_cleanup_complete(
                     async_result=async_result,
-                    request_id=CLEANER_REQUEST_ID,
                 )
             except Exception as exc:
                 failed_node_ids.append(task_handler.node_id)
@@ -316,6 +314,7 @@ class Cleaner:
 
 def _get_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler:
     return NodeAlgorithmTasksHandler(
+        request_id=CLEANER_REQUEST_ID,
         node_id=node_info.node_id,
         node_queue_addr=node_info.queue_address,
         node_db_addr=node_info.db_address,
