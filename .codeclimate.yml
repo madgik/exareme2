@@ -27,4 +27,4 @@ plugins:
 exclude_patterns:
   - "**/.*"
   - "**/*"
-  - "!mipengine/"
+  - "!exareme2/"

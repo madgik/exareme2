@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import LinearRegression as LinearRegressionSKL
 
-from mipengine.algorithms.linear_regression import LinearRegression
+from exareme2.algorithms.linear_regression import LinearRegression
 
 np.random.seed(0)
 

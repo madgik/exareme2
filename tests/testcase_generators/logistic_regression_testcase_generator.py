@@ -7,7 +7,7 @@ import statsmodels.formula.api as smf
 from statsmodels.discrete.discrete_model import PerfectSeparationError
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
-from mipengine.algorithms.logistic_regression import LogisticRegressionSummary
+from exareme2.algorithms.logistic_regression import LogisticRegressionSummary
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 warnings.filterwarnings("error")
@@ -89,7 +89,7 @@ class LogisticRegressionTestCaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    with open("mipengine/algorithms/logistic_regression.json") as specs_file:
+    with open("exareme2/algorithms/logistic_regression.json") as specs_file:
         gen = LogisticRegressionTestCaseGenerator(specs_file)
     with open("logistic_regression.json", "w") as expected_file:
         gen.write_test_cases(expected_file, num_test_cases=100)

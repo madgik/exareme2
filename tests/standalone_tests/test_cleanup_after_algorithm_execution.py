@@ -7,30 +7,30 @@ from unittest.mock import patch
 import pytest
 from freezegun import freeze_time
 
-from mipengine import AttrDict
-from mipengine import algorithm_classes
-from mipengine.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from mipengine.algorithms.algorithm import Variables
-from mipengine.controller import controller_logger as ctrl_logger
-from mipengine.controller.algorithm_execution_engine import (
+from exareme2 import AttrDict
+from exareme2 import algorithm_classes
+from exareme2.algorithms.algorithm import InitializationParams as AlgorithmInitParams
+from exareme2.algorithms.algorithm import Variables
+from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller.algorithm_execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.cleaner import Cleaner
-from mipengine.controller.cleaner import InitializationParams as CleanerInitParams
-from mipengine.controller.controller import CommandIdGenerator
-from mipengine.controller.controller import Controller
-from mipengine.controller.controller import InitializationParams as ControllerInitParams
-from mipengine.controller.controller import Nodes
-from mipengine.controller.controller import _create_algorithm_execution_engine
-from mipengine.controller.controller import _get_data_model_views_nodes
-from mipengine.controller.controller import sanitize_request_variable
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from exareme2.controller.cleaner import Cleaner
+from exareme2.controller.cleaner import InitializationParams as CleanerInitParams
+from exareme2.controller.controller import CommandIdGenerator
+from exareme2.controller.controller import Controller
+from exareme2.controller.controller import DataModelViewsCreator
+from exareme2.controller.controller import InitializationParams as ControllerInitParams
+from exareme2.controller.controller import Nodes
+from exareme2.controller.controller import _create_algorithm_execution_engine
+from exareme2.controller.controller import sanitize_request_variable
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.uid_generator import UIDGenerator
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import (
     CONTROLLER_GLOBALNODE_LOCALNODE1_LOCALNODE2_LOCALNODETMP_ADDRESSES_FILE,
@@ -111,7 +111,7 @@ def controller(controller_config, cleaner, node_landscape_aggregator):
 @pytest.fixture(autouse=True)
 def patch_celery_app(controller_config):
     with patch(
-        "mipengine.controller.celery_app.controller_config",
+        "exareme2.controller.celery_app.controller_config",
         AttrDict(controller_config),
     ):
         yield
@@ -236,17 +236,18 @@ def nodes(controller, context_id, algorithm_request_dto):
 def data_model_views_and_nodes(
     controller, datasets, algorithm_request_dto, nodes, algorithm, command_id_generator
 ):
-    data_model_views = controller._create_data_model_views(
-        local_nodes=nodes.local_nodes,
-        datasets=datasets,
-        data_model=algorithm_request_dto.inputdata.data_model,
+    data_model_views_creator = DataModelViewsCreator(
+        nodes=nodes.local_nodes,
         variable_groups=algorithm.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm.get_dropna(),
         check_min_rows=algorithm.get_check_min_rows(),
         command_id=command_id_generator.get_next_command_id(),
     )
-    local_nodes_filtered = _get_data_model_views_nodes(data_model_views)
+    data_model_views_creator.create_data_model_views()
+    data_model_views = data_model_views_creator.data_model_views
+
+    local_nodes_filtered = data_model_views_creator.data_model_views.get_list_of_nodes()
     nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
     return (data_model_views, nodes)
 
@@ -352,7 +353,6 @@ def test_synchronous_cleanup(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
     db_cursors,
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
     wait_nla(node_landscape_aggregator)
@@ -387,7 +387,6 @@ def test_synchronous_cleanup(
 
     start = time.time()
     while any(tables_after_cleanup.values()):
-
         cleaner.cleanup_context_id(context_id=context_id)
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
@@ -412,7 +411,6 @@ def test_asynchronous_cleanup(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
     db_cursors,
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
     wait_nla(node_landscape_aggregator)
@@ -542,7 +540,6 @@ def test_cleanup_after_rabbitmq_restart(
     reset_celery_app_factory,  # celery tasks fail if this is not reset
     db_cursors,
 ):
-
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
     # Poll NodeLandscapeAggregator until it has some node info
     wait_nla(node_landscape_aggregator)
@@ -673,7 +670,6 @@ def test_cleanup_after_node_service_restart(
     }
     start = time.time()
     while any(tables_after_cleanup.values()):
-
         tables_after_cleanup = {
             node_id: get_tables(cursor, context_id)
             for node_id, cursor in db_cursors.items()
@@ -735,7 +731,6 @@ def wait_nla(node_landscape_aggregator):
         or not node_landscape_aggregator.get_cdes_per_data_model()
         or not node_landscape_aggregator.get_datasets_locations()
     ):
-
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
                 "Exceeded max retries while waiting for the node landscape aggregator to"

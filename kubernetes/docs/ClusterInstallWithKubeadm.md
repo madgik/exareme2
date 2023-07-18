@@ -104,7 +104,7 @@ in the **master** node:
 
 ```
 firewall-cmd --permanent --add-port=6443/tcp       # Kubelet api port
-firewall-cmd --permanent --add-port=30000/tcp      # MIPEngine Controller port
+firewall-cmd --permanent --add-port=30000/tcp      # Exareme2 Controller port
 ```
 
 on all nodes:

@@ -3,10 +3,10 @@ from collections import Counter
 
 from pydantic import BaseModel
 
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.naive_bayes_categorical_cv import CategoricalNB
-from mipengine.algorithms.naive_bayes_categorical_cv import CategoricalNBAlgorithm
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.naive_bayes_categorical_cv import CategoricalNB
+from exareme2.algorithms.naive_bayes_categorical_cv import CategoricalNBAlgorithm
 
 ALGNAME_FIT = "test_nb_categorical_fit"
 

@@ -1,10 +1,10 @@
 # type: ignore
 import pytest
 
-from mipengine.udfgen.helpers import mapping_inverse
-from mipengine.udfgen.helpers import mappings_coincide
-from mipengine.udfgen.helpers import merge_mappings_consistently
-from mipengine.udfgen.helpers import recursive_repr
+from exareme2.udfgen.helpers import mapping_inverse
+from exareme2.udfgen.helpers import mappings_coincide
+from exareme2.udfgen.helpers import merge_mappings_consistently
+from exareme2.udfgen.helpers import recursive_repr
 
 
 class TestMergeMappings:

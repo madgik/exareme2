@@ -1,22 +1,22 @@
 import json
 from typing import TypeVar
 
-from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import merge_transfer
-from mipengine.udfgen import relation
-from mipengine.udfgen import state
-from mipengine.udfgen import tensor
-from mipengine.udfgen import transfer
-from mipengine.udfgen import udf
+from exareme2.algorithm_result_DTOs import TabularDataResult
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.table_data_DTOs import ColumnDataFloat
+from exareme2.table_data_DTOs import ColumnDataStr
+from exareme2.udfgen import merge_transfer
+from exareme2.udfgen import relation
+from exareme2.udfgen import state
+from exareme2.udfgen import tensor
+from exareme2.udfgen import transfer
+from exareme2.udfgen import udf
 
 ALGORITHM_NAME = "standard_deviation_pos_and_kw_args"
 

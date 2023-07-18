@@ -1,9 +1,9 @@
 import pytest
 
-from mipengine.filters import FilterError
-from mipengine.filters import build_filter_clause
-from mipengine.filters import validate_filter
-from mipengine.node_tasks_DTOs import CommonDataElement
+from exareme2.filters import FilterError
+from exareme2.filters import build_filter_clause
+from exareme2.filters import validate_filter
+from exareme2.node_tasks_DTOs import CommonDataElement
 
 DATA_MODEL = "test_data_model1:0.1"
 

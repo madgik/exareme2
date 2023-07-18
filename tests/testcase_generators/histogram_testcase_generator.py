@@ -118,7 +118,6 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
     dropna = True
 
     def compute_expected_output(self, input_data, parameters, metadata: dict):
-
         numerical_vars = [md["code"] for md in metadata if not md["isCategorical"]]
         nominal_vars = [
             md["code"]
@@ -262,7 +261,7 @@ class HistogramTestcaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    with open("mipengine/algorithms/multiple_histograms.json") as specs_file:
+    with open("exareme2/algorithms/multiple_histograms.json") as specs_file:
         gen = HistogramTestcaseGenerator(specs_file)
     with open("new_histogram.json", "w") as expected_file:
         gen.write_test_cases(expected_file, 2)

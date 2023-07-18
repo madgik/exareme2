@@ -3,9 +3,9 @@ from unittest.mock import patch
 
 import pytest
 
-from mipengine import AttrDict
-from mipengine.node import node_logger
-from mipengine.node.node_logger import initialise_logger
+from exareme2 import AttrDict
+from exareme2.node import node_logger
+from exareme2.node.node_logger import initialise_logger
 
 task_loggers = {}
 
@@ -21,7 +21,7 @@ def mock_node_config():
     )
 
     with patch(
-        "mipengine.node.node_logger.node_config",
+        "exareme2.node.node_logger.node_config",
         node_config,
     ):
         yield
@@ -34,7 +34,7 @@ def mock_current_task():
     current_task = AttrDict({"request": {"id": "1234"}})
 
     with patch(
-        "mipengine.node.node_logger.current_task",
+        "exareme2.node.node_logger.current_task",
         current_task,
     ):
         yield
