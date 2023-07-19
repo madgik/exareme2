@@ -252,9 +252,7 @@ class LocalNode(_Node):
         return self._node_tasks_handler.get_queued_udf_result(async_result=async_result)
 
     def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
-        return self._node_tasks_handler.load_data_to_smpc_client(
-            self.request_id, table_name, jobid
-        )
+        return self._node_tasks_handler.load_data_to_smpc_client(table_name, jobid)
 
 
 class GlobalNode(_Node):
@@ -271,9 +269,7 @@ class GlobalNode(_Node):
         self,
         table_name: str,
     ):
-        self._node_tasks_handler.validate_smpc_templates_match(
-            self.request_id, table_name
-        )
+        self._node_tasks_handler.validate_smpc_templates_match(table_name)
 
     def get_smpc_result(
         self,
