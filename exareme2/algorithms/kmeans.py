@@ -80,8 +80,9 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         print(centers_to_compute)
         # breakpoint()
         # init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
-        init_centers = get_transfer_data(centers_to_compute)["centers"]
-        print(init_centers)
+        init_centers = get_transfer_data(global_state)["centers"]
+        # init_centers = global_state
+        # print(init_centers)
 
         init_centers_array = numpy.array(init_centers)
         init_centers_list = init_centers_array.tolist()
@@ -98,7 +99,7 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 share_to_global=[True],
             )
 
-            new_centers = global_run(
+            new_centers_state, new_centers = global_run(
                 func=compute_centers_from_metrics,
                 positional_args=[metrics_local, min_max_transfer, n_clusters],
                 share_to_locals=[True],
@@ -106,9 +107,10 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
             curr_iter += 1
 
-            old_centers = json.loads(centers_to_compute.get_table_data()[0][0])[
-                "centers"
-            ]
+            # old_centers = json.loads(centers_to_compute.get_table_data()[0][0])[
+            #    "centers"
+            # ]
+            old_centers = new_centers_state["centers"]
             # old_centers = get_transfer_data(centers_to_compute)['centers']
             old_centers_array = numpy.array(old_centers)
 
@@ -326,4 +328,4 @@ def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
     # raise ValueError(centers_array.shape)
     ret_val = centers_array.tolist()
     ret_val2 = {"centers": ret_val}
-    return ret_val2
+    return ret_val2, ret_val2
