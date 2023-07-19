@@ -7,34 +7,38 @@ import pandas as pd
 from pydantic import BaseModel
 from sklearn.metrics.pairwise import euclidean_distances
 
-from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.algorithm_specification import ParameterType
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.helpers import get_transfer_data
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataStr
+from exareme2.algorithm_result_DTOs import TabularDataResult
+from exareme2.algorithm_specification import AlgorithmSpecification
+from exareme2.algorithm_specification import InputDataSpecification
+from exareme2.algorithm_specification import InputDataSpecifications
+from exareme2.algorithm_specification import InputDataStatType
+from exareme2.algorithm_specification import InputDataType
+from exareme2.algorithm_specification import ParameterSpecification
+from exareme2.algorithm_specification import ParameterType
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.helpers import get_transfer_data
+from exareme2.algorithms.specifications import AlgorithmName
+from exareme2.table_data_DTOs import ColumnDataFloat
+from exareme2.table_data_DTOs import ColumnDataStr
 
-# from mipengine.udfgen import scalar
-# from mipengine.udfgen import TensorBinaryOp
-# from mipengine.udfgen import TensorUnaryOp
-from mipengine.udfgen import literal
-from mipengine.udfgen import merge_tensor
-from mipengine.udfgen import merge_transfer
-from mipengine.udfgen import relation
-from mipengine.udfgen import secure_transfer
-from mipengine.udfgen import state
-from mipengine.udfgen import tensor
-from mipengine.udfgen import transfer
-from mipengine.udfgen import udf
+# from exareme2.udfgen import scalar
+# from exareme2.udfgen import TensorBinaryOp
+# from exareme2.udfgen import TensorUnaryOp
+from exareme2.udfgen import literal
+from exareme2.udfgen import merge_tensor
+from exareme2.udfgen import merge_transfer
+from exareme2.udfgen import relation
+from exareme2.udfgen import secure_transfer
+from exareme2.udfgen import state
+from exareme2.udfgen import tensor
+from exareme2.udfgen import transfer
+from exareme2.udfgen import udf
 
 T = TypeVar("T")
 S = TypeVar("S")
+
+ALGORITHM_NAME = "kmeans"
 
 
 class KmeansResult(BaseModel):
@@ -42,67 +46,19 @@ class KmeansResult(BaseModel):
     centers: List[List[float]]
 
 
-class KMeansAlgorithm(Algorithm, algname="kmeans"):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="K-Means",
-            label="K-Means",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="y",
-                    desc="Features",
-                    types=[InputDataType.REAL],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-            ),
-            parameters={
-                "k": ParameterSpecification(
-                    label="k",
-                    desc="k",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=4,
-                    min=1,
-                    max=100,
-                ),
-                "maxiter": ParameterSpecification(
-                    label="maxiter",
-                    desc="maxiter",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=1,
-                    min=1,
-                    max=100,
-                ),
-                "tol": ParameterSpecification(
-                    label="tol",
-                    desc="tol",
-                    types=[ParameterType.REAL],
-                    notblank=True,
-                    multiple=False,
-                    default=0.0001,
-                    min=0.0,
-                    max=1.0,
-                ),
-            },
-        )
-
+class KMeansDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
     def get_variable_groups(self):
-        # return [self.executor.y_variables]
-        return [self.variables.y]
+        return [self._variables.y]
 
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
 
-        [X_relation] = engine.data_model_views
+class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
+
+        X_relation = data
+
+        # [X_relation] = engine.data_model_views
 
         n_clusters = self.algorithm_parameters["k"]
         tol = self.algorithm_parameters["tol"]
