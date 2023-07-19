@@ -8,13 +8,6 @@ from pydantic import BaseModel
 from sklearn.metrics.pairwise import euclidean_distances
 
 from exareme2.algorithm_result_DTOs import TabularDataResult
-from exareme2.algorithm_specification import AlgorithmSpecification
-from exareme2.algorithm_specification import InputDataSpecification
-from exareme2.algorithm_specification import InputDataSpecifications
-from exareme2.algorithm_specification import InputDataStatType
-from exareme2.algorithm_specification import InputDataType
-from exareme2.algorithm_specification import ParameterSpecification
-from exareme2.algorithm_specification import ParameterType
 from exareme2.algorithms.algorithm import Algorithm
 from exareme2.algorithms.algorithm import AlgorithmDataLoader
 from exareme2.algorithms.helpers import get_transfer_data
@@ -56,9 +49,10 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         local_run = self.engine.run_udf_on_local_nodes
         global_run = self.engine.run_udf_on_global_node
 
-        X_relation = data
+        [y] = data
+        X_relation = y
 
-        # [X_relation] = engine.data_model_views
+        # [X_relation] = self.engine.data_model_views
 
         n_clusters = self.algorithm_parameters["k"]
         tol = self.algorithm_parameters["tol"]
@@ -83,9 +77,12 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         curr_iter = 0
         centers_to_compute = global_result
-        init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
+        print(centers_to_compute)
+        # breakpoint()
+        # init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
+        init_centers = get_transfer_data(centers_to_compute)["centers"]
+        print(init_centers)
 
-        # init_centers = get_transfer_data(centers_to_compute)['centers']
         init_centers_array = numpy.array(init_centers)
         init_centers_list = init_centers_array.tolist()
         while True:

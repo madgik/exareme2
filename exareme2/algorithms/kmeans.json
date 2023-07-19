@@ -12,7 +12,7 @@
                 "numerical"
             ],
             "notblank": true,
-            "multiple": false
+            "multiple": true
         }
     },
     "parameters": {
