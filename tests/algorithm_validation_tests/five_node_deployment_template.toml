@@ -1,13 +1,13 @@
 ip = "172.17.0.1"
 log_level = "INFO"
 framework_log_level ="INFO"
-monetdb_image = "madgik/mipenginedb:testing"
-rabbitmq_image = "madgik/mipengine_rabbitmq:testing"
+monetdb_image = "madgik/exareme2_db:testing"
+rabbitmq_image = "madgik/exareme2_rabbitmq:testing"
 
 monetdb_nclients = 128
 monetdb_memory_limit = 2048 # MB
 
-algorithm_folders = "./mipengine/algorithms"
+algorithm_folders = "./exareme2/algorithms,./tests/algorithms"
 
 node_landscape_aggregator_update_interval = 30
 celery_tasks_timeout = 120

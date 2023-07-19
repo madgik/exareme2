@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from mipengine.algorithms.preprocessing import LabelBinarizer
+from exareme2.algorithms.preprocessing import LabelBinarizer
 
 
 @pytest.fixture

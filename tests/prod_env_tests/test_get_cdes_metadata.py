@@ -10,6 +10,6 @@ def test_get_cdes_metadata():
     response = json.loads(request.text)
 
     for data_model, cdes in response.items():
-        assert data_model in ["dementia:0.1", "tbi:0.1"]
+        assert data_model in ["dementia:0.1", "tbi:0.1", "longitudinal_dementia:0.1"]
         assert len(cdes) > 0
         assert "dataset" in cdes

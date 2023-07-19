@@ -2,9 +2,9 @@ import random
 
 import pytest
 
-from mipengine import DType
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableSchema
+from exareme2 import DType
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableSchema
 
 COMMON_TASKS_REQUEST_ID = "rqst1"
 
@@ -25,7 +25,6 @@ def test_table_params():
 def test_create_table(
     localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
-
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
@@ -46,7 +45,6 @@ def test_create_table(
 def test_get_tables(
     localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
-
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
@@ -67,7 +65,6 @@ def test_get_tables(
 def test_get_table_schema(
     localnode1_tasks_handler, use_localnode1_database, test_table_params
 ):
-
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]

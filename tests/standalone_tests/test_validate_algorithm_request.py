@@ -1,29 +1,30 @@
 import pytest
 
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import ParameterEnumSpecification
-from mipengine.algorithm_specification import ParameterEnumType
-from mipengine.algorithm_specification import ParameterSpecification
-from mipengine.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from mipengine.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from mipengine.controller.api.algorithm_specifications_dtos import InputDataStatType
-from mipengine.controller.api.algorithm_specifications_dtos import InputDataType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterEnumType
-from mipengine.controller.api.algorithm_specifications_dtos import ParameterType
-from mipengine.controller.api.validator import BadRequest
-from mipengine.controller.api.validator import validate_algorithm_request
-from mipengine.controller.node_landscape_aggregator import DataModelRegistry
-from mipengine.controller.node_landscape_aggregator import DataModelsCDES
-from mipengine.controller.node_landscape_aggregator import (
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import ParameterEnumSpecification
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import TransformerSpecification
+from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from exareme2.controller.api.specifications_dtos import InputDataStatType
+from exareme2.controller.api.specifications_dtos import InputDataType
+from exareme2.controller.api.specifications_dtos import ParameterEnumType
+from exareme2.controller.api.specifications_dtos import ParameterType
+from exareme2.controller.api.validator import BadRequest
+from exareme2.controller.api.validator import validate_algorithm_request
+from exareme2.controller.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.node_landscape_aggregator import DatasetsLocations
+from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import _NLARegistries
-from mipengine.exceptions import BadUserInput
-from mipengine.node_tasks_DTOs import CommonDataElement
-from mipengine.node_tasks_DTOs import CommonDataElements
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.node_landscape_aggregator import _NLARegistries
+from exareme2.exceptions import BadUserInput
+from exareme2.node_tasks_DTOs import CommonDataElement
+from exareme2.node_tasks_DTOs import CommonDataElements
 
 
 @pytest.fixture
@@ -35,6 +36,7 @@ def node_landscape_aggregator():
         deployment_type="",
         localnodes=[],
     )
+    NodeLandscapeAggregator._delete_instance()
     nla = NodeLandscapeAggregator(node_landscape_aggregator_init_params)
 
     data_models = {
@@ -97,24 +99,40 @@ def node_landscape_aggregator():
     }
     _data_model_registry = DataModelRegistry(
         data_models_cdes=DataModelsCDES(data_models_cdes=data_models),
+        datasets_locations=DatasetsLocations(
+            datasets_locations={
+                "data_model_with_all_cde_types:0.1": {
+                    "sample_dataset1": "sample_node",
+                    "sample_dataset2": "sample_node",
+                },
+                "sample_data_model:0.1": {"sample_dataset": "sample_node"},
+            }
+        ),
     )
     nla._registries = _NLARegistries(data_model_registry=_data_model_registry)
 
     return nla
 
 
-@pytest.fixture()
-def available_datasets_per_data_model():
-    d = {
-        "data_model_with_all_cde_types:0.1": ["sample_dataset1", "sample_dataset2"],
-        "sample_data_model:0.1": ["sample_dataset"],
-    }
-    return d
-
-
 @pytest.fixture(scope="module")
 def algorithms_specs():
-    algorithms_specifications = {
+    return {
+        "disabled_algorithm": AlgorithmSpecification(
+            name="disabled_algorithm",
+            desc="disabled_algorithm",
+            label="disabled_algorithm",
+            enabled=False,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+        ),
         "algorithm_with_y_int": AlgorithmSpecification(
             name="algorithm_with_y_int",
             desc="algorithm_with_y_int",
@@ -346,7 +364,7 @@ def algorithms_specs():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.INPUT_VAR_CDE_ENUMS,
-                        source="y",
+                        source=["y"],
                     ),
                 ),
                 "param_with_enum_type_fixed_var_CDE_enums": ParameterSpecification(
@@ -357,7 +375,7 @@ def algorithms_specs():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
-                        source="text_cde_categ",
+                        source=["text_cde_categ"],
                     ),
                 ),
                 "param_with_enum_type_fixed_var_CDE_enums_wrong_CDE": ParameterSpecification(
@@ -368,7 +386,7 @@ def algorithms_specs():
                     multiple=False,
                     enums=ParameterEnumSpecification(
                         type=ParameterEnumType.FIXED_VAR_CDE_ENUMS,
-                        source="non_existing_CDE",
+                        source=["non_existing_CDE"],
                     ),
                 ),
                 "param_with_enum_type_input_var_names": ParameterSpecification(
@@ -406,8 +424,58 @@ def algorithms_specs():
                 ),
             },
         ),
+        "algorithm_with_transformer": AlgorithmSpecification(
+            name="algorithm_with_transformer",
+            desc="algorithm_with_transformer",
+            label="algorithm_with_transformer",
+            enabled=True,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="y",
+                    desc="y",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            ),
+        ),
     }
-    return algorithms_specifications
+
+
+@pytest.fixture(scope="module")
+def transformers_specs():
+    return {
+        "disabled_transformer": TransformerSpecification(
+            name="disabled_transformer",
+            desc="disabled_transformer",
+            label="disabled_transformer",
+            enabled=False,
+            compatible_algorithms=["algorithm_with_transformer"],
+        ),
+        "transformer_with_real_param": TransformerSpecification(
+            name="transformer_with_real_param",
+            desc="transformer_with_real_param",
+            label="transformer_with_real_param",
+            enabled=True,
+            parameters={
+                "real_param": ParameterSpecification(
+                    label="real_param",
+                    desc="real_param",
+                    types=[ParameterType.REAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+            },
+            compatible_algorithms=["algorithm_with_transformer"],
+        ),
+        "transformer_compatible_with_all_algorithms": TransformerSpecification(
+            name="transformer_compatible_with_all_algorithms",
+            desc="transformer_compatible_with_all_algorithms",
+            label="transformer_compatible_with_all_algorithms",
+            enabled=True,
+        ),
+    }
 
 
 def get_parametrization_list_success_cases():
@@ -606,6 +674,30 @@ def get_parametrization_list_success_cases():
             ),
             id="Parameter with dict enums.",
         ),
+        pytest.param(
+            "algorithm_with_transformer",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+                preprocessing={"transformer_with_real_param": {"real_param": 10.4}},
+            ),
+            id="Algorithm with transformer.",
+        ),
+        pytest.param(
+            "algorithm_with_transformer",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+                preprocessing={"transformer_compatible_with_all_algorithms": {}},
+            ),
+            id="Algorithm with transformer that is compatible with all algorithms.",
+        ),
     ]
     return parametrization_list
 
@@ -616,15 +708,15 @@ def get_parametrization_list_success_cases():
 def test_validate_algorithm_success(
     algorithm_name,
     request_dto,
-    available_datasets_per_data_model,
     node_landscape_aggregator,
     algorithms_specs,
+    transformers_specs,
 ):
     validate_algorithm_request(
         algorithm_name=algorithm_name,
         algorithm_request_dto=request_dto,
-        available_datasets_per_data_model=available_datasets_per_data_model,
         algorithms_specs=algorithms_specs,
+        transformers_specs=transformers_specs,
         node_landscape_aggregator=node_landscape_aggregator,
         smpc_enabled=False,
         smpc_optional=False,
@@ -1010,6 +1102,73 @@ def get_parametrization_list_exception_cases():
             ),
             id="Parameter with 'dict_keys_enums' given wrong value enum.",
         ),
+        pytest.param(
+            "algorithm_with_transformer",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+                preprocessing={"non_existing_transformer": {"real_param": 10.1}},
+            ),
+            (BadUserInput, "Transformer .* does not exist."),
+            id="Transformer does not exist.",
+        ),
+        pytest.param(
+            "algorithm_with_y_int",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["int_cde"],
+                ),
+                preprocessing={"transformer_with_real_param": {"real_param": 10.1}},
+            ),
+            (
+                BadUserInput,
+                "Transformer .* is not available for algorithm .*",
+            ),
+            id="Transformer provided to incompatible algorithm.",
+        ),
+        pytest.param(
+            "algorithm_with_transformer",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+                preprocessing={"transformer_with_real_param": {"wrong_param": 10.1}},
+            ),
+            (BadUserInput, "Parameter .* should not be blank."),
+            id="Bad parameter input in transformer.",
+        ),
+        pytest.param(
+            "disabled_algorithm",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+            ),
+            (BadRequest, "Algorithm .* does not exist."),
+            id="Disabled algorithm.",
+        ),
+        pytest.param(
+            "algorithm_with_transformer",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["real_cde"],
+                ),
+                preprocessing={"disabled_transformer": {"real_param": 10.1}},
+            ),
+            (BadUserInput, "Transformer .* does not exist."),
+            id="Disabled Transformer.",
+        ),
     ]
     return parametrization_list
 
@@ -1021,8 +1180,8 @@ def test_validate_algorithm_exceptions(
     algorithm_name,
     request_dto,
     exception,
-    available_datasets_per_data_model,
     algorithms_specs,
+    transformers_specs,
     node_landscape_aggregator,
 ):
     exception_type, exception_message = exception
@@ -1030,8 +1189,8 @@ def test_validate_algorithm_exceptions(
         validate_algorithm_request(
             algorithm_name=algorithm_name,
             algorithm_request_dto=request_dto,
-            available_datasets_per_data_model=available_datasets_per_data_model,
             algorithms_specs=algorithms_specs,
+            transformers_specs=transformers_specs,
             node_landscape_aggregator=node_landscape_aggregator,
             smpc_enabled=False,
             smpc_optional=False,

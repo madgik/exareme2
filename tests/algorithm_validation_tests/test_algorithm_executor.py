@@ -3,7 +3,7 @@ import json
 import pytest
 import requests
 
-from mipengine.controller.api.error_handlers import HTTPStatusCode
+from exareme2.controller.api.error_handlers import HTTPStatusCode
 
 algorithm_name = "logistic_regression_cv"
 
@@ -145,11 +145,6 @@ def input_subset_of_nodes_has_sufficient_data():
     return request
 
 
-@pytest.mark.skip(
-    reason="DummyEncoder is temporarily disabled due to changes in "
-    "the UDF generator API. Will be re-implemented in ticket "
-    "https://team-1617704806227.atlassian.net/browse/MIP-757"
-)
 def test_exec_algorithm_removing_nodes_after_create_data_model_views(
     input_subset_of_nodes_has_sufficient_data,
 ):

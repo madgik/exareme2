@@ -3,7 +3,7 @@ import re
 import pandas as pd
 import statsmodels.formula.api as smf
 
-from mipengine.algorithms.linear_regression import LinearRegressionResult
+from exareme2.algorithms.linear_regression import LinearRegressionResult
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
@@ -21,7 +21,7 @@ class LinearRegressionTestCaseGenerator(TestCaseGenerator):
         # NOTE: Statsmodels uses patsy to parse formula which names dummy variables
         # using a "T" to signify "Treatment" (another name for dummy coding).
         # The line below removes the "T" to match the dummy variable names from
-        # MIP-Engine. E.g. gender[T.F] -> gender[F]
+        # Exareme2. E.g. gender[T.F] -> gender[F]
         dummy_xnames = [
             re.sub(r"(\w+)\[T\.([\w\d-]+)\]", r"\1[\2]", name)
             for name in model.model.exog_names
@@ -49,7 +49,7 @@ class LinearRegressionTestCaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    with open("mipengine/algorithms/linear_regression.json") as specs_file:
+    with open("exareme2/algorithms/linear_regression.json") as specs_file:
         pcagen = LinearRegressionTestCaseGenerator(specs_file)
     with open("linear_regression_expected.json", "w") as expected_file:
         pcagen.write_test_cases(expected_file)

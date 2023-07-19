@@ -1,15 +1,13 @@
 import pytest
 
-from mipengine.controller.controller_logger import get_request_logger
-
 # TODO the testing should be better once the datasets are properly distributed and the are no duplicates.
-from mipengine.controller.node_landscape_aggregator import DataModelRegistry
-from mipengine.controller.node_landscape_aggregator import DataModelsAttributes
-from mipengine.controller.node_landscape_aggregator import DataModelsCDES
-from mipengine.controller.node_landscape_aggregator import DatasetsLocations
-from mipengine.node_tasks_DTOs import CommonDataElement
-from mipengine.node_tasks_DTOs import CommonDataElements
-from mipengine.node_tasks_DTOs import DataModelAttributes
+from exareme2.controller.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.node_landscape_aggregator import DataModelsAttributes
+from exareme2.controller.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.node_landscape_aggregator import DatasetsLocations
+from exareme2.node_tasks_DTOs import CommonDataElement
+from exareme2.node_tasks_DTOs import CommonDataElements
+from exareme2.node_tasks_DTOs import DataModelAttributes
 
 
 @pytest.fixture
@@ -109,7 +107,9 @@ def mocked_data_models_attributes():
             "dementia:0.1": DataModelAttributes(
                 tags=["dementia"], properties={"key": ["value"]}
             ),
-            "tbi:0.1": DataModelAttributes(tags=["tbi"], properties={"key": ["value"]}),
+            "tbi:0.1": DataModelAttributes(
+                tags=["tbi", "longitudinal"], properties={"key": ["value"]}
+            ),
         }
     )
 
@@ -156,12 +156,17 @@ def test_get_node_specific_datasets(mocked_data_model_registry):
     ) == {"edsd0", "ppmi0"}
 
 
+def test_is_longitudinal(mocked_data_model_registry):
+    assert mocked_data_model_registry.is_longitudinal("tbi:0.1")
+    assert not mocked_data_model_registry.is_longitudinal("dementia:0.1")
+
+
 def test_get_data_models_attributes(mocked_data_model_registry):
     data_models_attributes = mocked_data_model_registry.get_data_models_attributes()
     assert "tbi:0.1" in data_models_attributes
     assert "dementia:0.1" in data_models_attributes
     assert (
-        DataModelAttributes(tags=["tbi"], properties={"key": ["value"]})
+        DataModelAttributes(tags=["tbi", "longitudinal"], properties={"key": ["value"]})
         == data_models_attributes["tbi:0.1"]
     )
     assert (

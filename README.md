@@ -1,4 +1,4 @@
-# MIP-Engine [![Maintainability](https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/maintainability)](https://codeclimate.com/github/madgik/MIP-Engine/maintainability) <a href="https://codeclimate.com/github/madgik/MIP-Engine/test_coverage"><img src="https://api.codeclimate.com/v1/badges/3e022eaf87579b79cf0f/test_coverage" /></a>
+# Exareme2 [![Maintainability](https://api.codeclimate.com/v1/badges/48216c43e4acff2fd7eb/maintainability)](https://codeclimate.com/github/madgik/exareme2/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/48216c43e4acff2fd7eb/test_coverage)](https://codeclimate.com/github/madgik/exareme2/test_coverage)
 
 ### Prerequisites
 
@@ -44,13 +44,13 @@
    ip = "172.17.0.1"
    log_level = "DEBUG"
    framework_log_level ="INFO"
-   monetdb_image = "madgik/mipenginedb:dev"
-   rabbitmq_image = "madgik/mipengine_rabbitmq:dev"
+   monetdb_image = "madgik/exareme2_db:dev"
+   rabbitmq_image = "madgik/exareme2_rabbitmq:dev"
 
    monetdb_nclients = 128
    monetdb_memory_limit = 2048 # MB
 
-   algorithm_folders = "./mipengine/algorithms,./tests/algorithms"
+   algorithm_folders = "./exareme2/algorithms,./tests/algorithms"
 
    node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 20
@@ -137,12 +137,12 @@
 
 #### Local Deployment (without single configuration file)
 
-1. Create the node configuration files inside the `./configs/nodes/` directory following the `./mipengine/node/config.toml` template.
+1. Create the node configuration files inside the `./configs/nodes/` directory following the `./exareme2/node/config.toml` template.
 
 1. Install dependencies, start the containers and then the services with
 
    ```
-   inv deploy --monetdb-image madgik/mipenginedb:dev1.2 --celery-log-level info
+   inv deploy --monetdb-image madgik/exareme2_db:dev1.2 --celery-log-level info
    ```
 
 #### Start monitoring tools
@@ -178,3 +178,7 @@
   ```
   ./run_algorithm -a pearson -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1 -p alpha 0.95
   ```
+
+# Acknowledgement
+
+This project/research received funding from the European Union’s Horizon 2020 Framework Programme for Research and Innovation under the Framework Partnership Agreement No. 650003 (HBP FPA).

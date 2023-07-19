@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mipengine-globalnode-deployment
+  name: exareme2-globalnode-deployment
   labels:
-    app: mipengine-node
+    app: exareme2-node
     nodeType: globalnode
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mipengine-node
+      app: exareme2-node
   template:
     metadata:
       labels:
-        app: mipengine-node
+        app: exareme2-node
         nodeType: globalnode
     spec:
       nodeSelector:
@@ -25,18 +25,21 @@ spec:
           path: {{ .Values.db.storage_location }}
       containers:
       - name: monetdb
-        image: {{ .Values.mipengine_images.repository }}/mipenginedb:{{ .Values.mipengine_images.version }}
-        resources:
-          limits:
-            memory: "{{ .Values.db.max_memory }}Mi"
+        image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
+        # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
+        # resources:
+        #  limits:
+        #    memory: "{{ .Values.db.max_memory }}Mi"
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
         - name: MONETDB_NCLIENTS
           value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
-        - name: SOFT_RESTART_MEMORY_LIMIT
+        - name: MAX_MEMORY   # Value in bytes
+          value: {{ mul .Values.db.max_memory 1048576 | quote }} # Conversion to bytes
+        - name: SOFT_RESTART_MEMORY_LIMIT   # Value in megabytes
           value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
-        - name: HARD_RESTART_MEMORY_LIMIT
+        - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
           value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
         ports:
           - containerPort: 50000
@@ -49,12 +52,12 @@ spec:
             - mclient
             - db
             - -s
-            - "select name from sys.tables;"
+            - "select 1;"
           initialDelaySeconds: 30
           periodSeconds: 30
 
       - name: rabbitmq
-        image: {{ .Values.mipengine_images.repository }}/mipengine_rabbitmq:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
         env:
         - name: RABBITMQ_ADMIN_USER
           value: "user"
@@ -77,7 +80,7 @@ spec:
           timeoutSeconds: 10
 
       - name: node
-        image: {{ .Values.mipengine_images.repository }}/mipengine_node:{{ .Values.mipengine_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_node:{{ .Values.exareme2_images.version }}
         env:
         - name: NODE_IDENTIFIER
           value: "globalnode"
@@ -113,7 +116,7 @@ spec:
             fieldRef:
               fieldPath: spec.nodeName
         - name: SMPC_COORDINATOR_IP
-          value: mipengine-smpc-coordinator-service
+          value: exareme2-smpc-coordinator-service
         - name: SMPC_COORDINATOR_ADDRESS
           value: "http://$(SMPC_COORDINATOR_IP):12314"
         {{ end }}

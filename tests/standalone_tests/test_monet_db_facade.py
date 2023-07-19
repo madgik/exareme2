@@ -5,13 +5,13 @@ from pymonetdb import DatabaseError
 from pymonetdb import OperationalError
 from pymonetdb import ProgrammingError
 
-from mipengine import AttrDict
-from mipengine.node.monetdb_interface.monet_db_facade import _DBExecutionDTO
-from mipengine.node.monetdb_interface.monet_db_facade import _execute_and_fetchall
-from mipengine.node.monetdb_interface.monet_db_facade import (
+from exareme2 import AttrDict
+from exareme2.node.monetdb_interface.monet_db_facade import _DBExecutionDTO
+from exareme2.node.monetdb_interface.monet_db_facade import _execute_and_fetchall
+from exareme2.node.monetdb_interface.monet_db_facade import (
     _validate_exception_is_recoverable,
 )
-from mipengine.node.node_logger import init_logger
+from exareme2.node.node_logger import init_logger
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_NAME
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
@@ -24,7 +24,7 @@ def patch_node_logger():
     current_task = AttrDict({"request": {"id": "1234"}})
 
     with patch(
-        "mipengine.node.node_logger.node_config",
+        "exareme2.node.node_logger.node_config",
         AttrDict(
             {
                 "log_level": "DEBUG",
@@ -33,10 +33,10 @@ def patch_node_logger():
             },
         ),
     ), patch(
-        "mipengine.node.node_logger.task_loggers",
+        "exareme2.node.node_logger.task_loggers",
         {"1234": init_logger("1234")},
     ), patch(
-        "mipengine.node.node_logger.current_task",
+        "exareme2.node.node_logger.current_task",
         current_task,
     ):
         yield
@@ -45,7 +45,7 @@ def patch_node_logger():
 @pytest.fixture(autouse=True, scope="module")
 def patch_node_config():
     with patch(
-        "mipengine.node.monetdb_interface.monet_db_facade.node_config",
+        "exareme2.node.monetdb_interface.monet_db_facade.node_config",
         AttrDict(
             {
                 "monetdb": {

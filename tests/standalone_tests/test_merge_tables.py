@@ -2,13 +2,13 @@ import uuid
 
 import pytest
 
-from mipengine.datatypes import DType
-from mipengine.exceptions import IncompatibleSchemasMergeException
-from mipengine.exceptions import TablesNotFound
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
+from exareme2.datatypes import DType
+from exareme2.exceptions import IncompatibleSchemasMergeException
+from exareme2.exceptions import TablesNotFound
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger

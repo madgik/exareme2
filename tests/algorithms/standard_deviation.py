@@ -1,24 +1,32 @@
 import json
 from typing import TypeVar
 
-from mipengine.algorithm_result_DTOs import TabularDataResult
-from mipengine.algorithm_specification import AlgorithmSpecification
-from mipengine.algorithm_specification import InputDataSpecification
-from mipengine.algorithm_specification import InputDataSpecifications
-from mipengine.algorithm_specification import InputDataStatType
-from mipengine.algorithm_specification import InputDataType
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataStr
-from mipengine.udfgen import merge_transfer
-from mipengine.udfgen import relation
-from mipengine.udfgen import state
-from mipengine.udfgen import tensor
-from mipengine.udfgen import transfer
-from mipengine.udfgen import udf
+from exareme2.algorithm_result_DTOs import TabularDataResult
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.table_data_DTOs import ColumnDataFloat
+from exareme2.table_data_DTOs import ColumnDataStr
+from exareme2.udfgen import merge_transfer
+from exareme2.udfgen import relation
+from exareme2.udfgen import state
+from exareme2.udfgen import tensor
+from exareme2.udfgen import transfer
+from exareme2.udfgen import udf
+
+ALGORITHM_NAME = "standard_deviation"
 
 
-class StandardDeviationAlgorithm(Algorithm, algname="standard_deviation"):
+class StandardDeviationDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
+    def get_variable_groups(self):
+        return [self._variables.y]
+
+
+class StandardDeviationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     @classmethod
     def get_specification(cls):
         return AlgorithmSpecification(
@@ -38,14 +46,11 @@ class StandardDeviationAlgorithm(Algorithm, algname="standard_deviation"):
             ),
         )
 
-    def get_variable_groups(self):
-        return [self.variables.y]
+    def run(self, data, metadata):
+        local_run = self.engine.run_udf_on_local_nodes
+        global_run = self.engine.run_udf_on_global_node
 
-    def run(self, engine):
-        local_run = engine.run_udf_on_local_nodes
-        global_run = engine.run_udf_on_global_node
-
-        [Y_relation] = engine.data_model_views
+        [Y_relation] = data
 
         Y = local_run(
             func=relation_to_matrix,

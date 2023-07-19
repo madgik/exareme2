@@ -5,15 +5,15 @@ import pytest
 from celery import Celery
 from celery.result import AsyncResult
 
-from mipengine.controller.celery_app import CeleryAppFactory
-from mipengine.controller.celery_app import CeleryConnectionError
-from mipengine.controller.celery_app import CeleryTaskTimeoutException
-from mipengine.controller.celery_app import CeleryWrapper
-from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
-from mipengine.node_tasks_DTOs import NodeUDFPosArguments
-from mipengine.udfgen import make_unique_func_name
+from exareme2.controller.celery_app import CeleryAppFactory
+from exareme2.controller.celery_app import CeleryConnectionError
+from exareme2.controller.celery_app import CeleryTaskTimeoutException
+from exareme2.controller.celery_app import CeleryWrapper
+from exareme2.node_info_DTOs import NodeInfo
+from exareme2.node_tasks_DTOs import NodeTableDTO
+from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
+from exareme2.node_tasks_DTOs import NodeUDFPosArguments
+from exareme2.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import five_seconds_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
@@ -103,6 +103,7 @@ def test_celery_app_is_the_same_after_executing_task(
     ), "Celery app is different after a queue/get of a task, even though the node never went down."
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
@@ -208,6 +209,7 @@ def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
     ), "The new celery app is not an instance of Celery. Something unexpected occurred during the reset."
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_res_with_node_down(
@@ -310,6 +312,7 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
     kill_service(localnodetmp_node_service)
 
 
+@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_when_rabbitmq_restarted(

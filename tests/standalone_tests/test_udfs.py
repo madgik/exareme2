@@ -6,23 +6,22 @@ from typing import Tuple
 import pytest
 from billiard.exceptions import TimeLimitExceeded
 
-from mipengine import DType
-from mipengine.node.monetdb_interface.common_actions import create_table_name
-from mipengine.node.tasks.udfs import _convert_output_schema
-from mipengine.node.tasks.udfs import _convert_result
-from mipengine.node.tasks.udfs import _convert_result_schema
-from mipengine.node.tasks.udfs import _make_output_table_names
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
-from mipengine.node_tasks_DTOs import NodeUDFPosArguments
-from mipengine.node_tasks_DTOs import NodeUDFResults
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.udfgen import make_unique_func_name
-from mipengine.udfgen.udfgen_DTOs import UDFGenTableResult
+from exareme2 import DType
+from exareme2.node.monetdb_interface.common_actions import create_table_name
+from exareme2.node.tasks.udfs import _convert_output_schema
+from exareme2.node.tasks.udfs import _convert_result
+from exareme2.node.tasks.udfs import _make_output_table_names
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import NodeTableDTO
+from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
+from exareme2.node_tasks_DTOs import NodeUDFPosArguments
+from exareme2.node_tasks_DTOs import NodeUDFResults
+from exareme2.node_tasks_DTOs import TableData
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
+from exareme2.udfgen import make_unique_func_name
+from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
@@ -267,12 +266,6 @@ def test_parse_output_schema():
     ).json()
     result = _convert_output_schema(output_schema)
     assert result == [("a", DType.INT), ("b", DType.FLOAT)]
-
-
-def test_convert_schema():
-    input = [("a", DType.INT)]
-    result = _convert_result_schema(input)
-    assert result == TableSchema(columns=[ColumnInfo(name="a", dtype=DType.INT)])
 
 
 def test_create_table_name():

@@ -1,4 +1,4 @@
-FROM madgik/mipenginedb_base:0.1
+FROM madgik/exareme2_db_base:0.1
 
 #######################################################
 # Download monetdb source files
@@ -38,9 +38,11 @@ RUN dpkg -i libstreams0v5_0.7.8-2.2_amd64.deb libstreams-dev_0.7.8-2.2_amd64.deb
 COPY monetdb/bootstrap.sh /home/bootstrap.sh
 COPY monetdb/configure_users.sh /home/configure_users.sh
 COPY monetdb/configure_monit.sh /home/configure_monit.sh
+COPY monetdb/reset_database.sh /home/reset_database.sh
 RUN chmod 775 /home/bootstrap.sh
 RUN chmod 775 /home/configure_users.sh
 RUN chmod 775 /home/configure_monit.sh
+RUN chmod 775 /home/reset_database.sh
 
 #######################################################
 # Setup logrotate file
@@ -60,15 +62,9 @@ RUN pip3 install statsmodels==0.13.2 # Must be updated together with pyproject.t
 # Add /home/udflib to python path and copy
 # necessary tools
 #######################################################
-COPY mipengine/udfgen/udfio.py /home/udflib/
+COPY exareme2/udfgen/udfio.py /home/udflib/
 ENV PYTHONPATH "/home/udflib/"
 ENV LOG_LEVEL "INFO"
-
-#######################################################
-# Default username/password
-#######################################################
-RUN echo "user=monetdb" > /home/.monetdb
-RUN echo "password=monetdb" >> /home/.monetdb
 
 #######################################################
 # Initializing the default users passwords, that will be configured with configure_users.sh
@@ -90,6 +86,12 @@ VOLUME $MONETDB_STORAGE
 ENV MONIT_CONFIG_FOLDER=/home/monit
 RUN mkdir $MONIT_CONFIG_FOLDER
 
+# MAX monetdb memory in bytes
+ENV MAX_MEMORY=2147483648
+# Soft monetdb restart memory limit in megabytes
+ENV SOFT_RESTART_MEMORY_LIMIT=1200
+# Hard monetdb restart memory limit in megabytes
+ENV HARD_RESTART_MEMORY_LIMIT=1600
 
 WORKDIR /home
-CMD ["/bin/bash","/home/bootstrap.sh"]
+CMD ["sh", "-c", "/home/bootstrap.sh; tail -fn +1 $MONETDB_STORAGE/merovingian.log -fn +1 $MONIT_CONFIG_FOLDER/monit.log"]

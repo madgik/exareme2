@@ -1,8 +1,8 @@
 import pandas as pd
 
-from mipengine.algorithms.descriptive_stats import Result
-from mipengine.algorithms.descriptive_stats import Variable
-from mipengine.algorithms.descriptive_stats import reduce_recs_for_var
+from exareme2.algorithms.descriptive_stats import Result
+from exareme2.algorithms.descriptive_stats import Variable
+from exareme2.algorithms.descriptive_stats import reduce_recs_for_var
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 # TODO privacy threshold is hardcoded. Find beter solution.
@@ -124,7 +124,7 @@ def group_by_dataset(data, datasets):
 
 
 if __name__ == "__main__":
-    with open("mipengine/algorithms/descriptive_stats.json") as specs_file:
+    with open("exareme2/algorithms/descriptive_stats.json") as specs_file:
         gen = DesciptiveStatistics(specs_file)
     with open("descriptive_stats_expected.json", "w") as expected_file:
         gen.write_test_cases(expected_file, 50)

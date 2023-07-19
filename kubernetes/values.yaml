@@ -1,24 +1,24 @@
 localnodes: 2
 
-mipengine_images:
+exareme2_images:
   repository: madgik
   version: latest
 
-log_level: DEBUG
-framework_log_level: INFO
+log_level: INFO
+framework_log_level: ERROR
 
 max_concurrent_experiments: 32
 
 db:
-  storage_location: /opt/mipengine/db
-  csvs_location: /opt/mipengine/csvs
+  storage_location: /opt/exareme2/db
+  csvs_location: /opt/exareme2/csvs
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
 
 controller:
   node_landscape_aggregator_update_interval: 30
-  celery_tasks_timeout: 120
+  celery_tasks_timeout: 300
   nodes_cleanup_interval: 60
   cleanup_file_folder: /opt/cleanup
 

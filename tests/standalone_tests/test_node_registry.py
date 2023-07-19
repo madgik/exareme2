@@ -1,10 +1,14 @@
 import pytest
 
-from mipengine.controller.node_landscape_aggregator import DataModelRegistry
-from mipengine.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from mipengine.controller.node_landscape_aggregator import NodeRegistry
-from mipengine.node_info_DTOs import NodeInfo
-from mipengine.node_info_DTOs import NodeRole
+from exareme2 import AttrDict
+from exareme2.controller.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.node_landscape_aggregator import (
+    InitializationParams as NodeLandscapeAggregatorInitParams,
+)
+from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.node_landscape_aggregator import NodeRegistry
+from exareme2.node_info_DTOs import NodeInfo
+from exareme2.node_info_DTOs import NodeRole
 
 mocked_node_addresses = [
     "127.0.0.1:5672",
@@ -14,9 +18,17 @@ mocked_node_addresses = [
 ]
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def mocked_nla():
-    nla = NodeLandscapeAggregator()
+    dummy_init_params = NodeLandscapeAggregatorInitParams(
+        node_landscape_aggregator_update_interval=0,
+        celery_tasks_timeout=0,
+        celery_run_udf_task_timeout=0,
+        deployment_type="",
+        localnodes=AttrDict({}),
+    )
+    NodeLandscapeAggregator._delete_instance()
+    nla = NodeLandscapeAggregator(dummy_init_params)
     nla.stop()
     nla.keep_updating = False
 
