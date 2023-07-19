@@ -186,7 +186,6 @@ class INodeAlgorithmTasksHandler(ABC):
 
 
 class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
-
     # TODO create custom type and validator for the socket address
     def __init__(
         self,
@@ -237,7 +236,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         )
         return list(result)
 
-    def get_table_data(self, request_id, table_name: str) -> TableData:
+    def get_table_data(self, table_name: str) -> TableData:
         logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_table_data"]
@@ -296,7 +295,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def create_data_model_views(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         data_model: str,
@@ -349,7 +347,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def create_merge_table(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         table_infos: List[TableInfo],
@@ -393,7 +390,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def create_remote_table(
         self,
-        request_id,
         table_name: str,
         table_schema: TableSchema,
         original_db_url: str,
@@ -423,7 +419,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # UDFs functionality
     def queue_run_udf(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -472,7 +467,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # return the generated monetdb pythonudf
     def get_run_udf_query(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -500,7 +494,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(
         self,
-        request_id: str,
         table_name: str,
     ):
         logger = ctrl_logger.get_request_logger(request_id=self._request_id)
@@ -536,7 +529,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def get_smpc_result(
         self,
-        request_id: str,
         jobid: str,
         context_id: str,
         command_id: str,

@@ -260,7 +260,7 @@ class LocalNode(_Node):
 class GlobalNode(_Node):
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeTableDTO]:
         node_udf_dtos = self._node_tasks_handler.get_queued_udf_result(
-            async_result=async_result, request_id=self.request_id
+            async_result=async_result
         )
         for dto in node_udf_dtos:
             if isinstance(dto, NodeSMPCDTO):
