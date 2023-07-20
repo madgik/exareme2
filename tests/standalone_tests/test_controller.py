@@ -349,23 +349,22 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     def tasks_timeout(self) -> int:
         pass
 
-    def get_tables(self, request_id: str, context_id: str) -> List[str]:
+    def get_tables(self, context_id: str) -> List[str]:
         pass
 
-    def get_table_data(self, request_id: str, table_name: str) -> TableData:
+    def get_table_data(self, table_name: str) -> TableData:
         pass
 
     def create_table(
-        self, request_id: str, context_id: str, command_id: str, schema: TableSchema
+        self, context_id: str, command_id: str, schema: TableSchema
     ) -> TableInfo:
         pass
 
-    def get_views(self, request_id: str, context_id: str) -> List[str]:
+    def get_views(self, context_id: str) -> List[str]:
         pass
 
     def create_data_model_views(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         data_model: str,
@@ -377,24 +376,22 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> List[TableInfo]:
         pass
 
-    def get_merge_tables(self, request_id: str, context_id: str) -> List[str]:
+    def get_merge_tables(self, context_id: str) -> List[str]:
         pass
 
     def create_merge_table(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         table_infos: List[TableInfo],
     ) -> TableInfo:
         pass
 
-    def get_remote_tables(self, request_id: str, context_id: str) -> List[str]:
+    def get_remote_tables(self, context_id: str) -> List[str]:
         pass
 
     def create_remote_table(
         self,
-        request_id: str,
         table_name: str,
         table_schema: TableSchema,
         original_db_url: str,
@@ -403,7 +400,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def queue_run_udf(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -419,12 +415,11 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> List[NodeUDFDTO]:
         pass
 
-    def get_udfs(self, request_id: str, algorithm_name) -> List[str]:
+    def get_udfs(self, algorithm_name) -> List[str]:
         pass
 
     def get_run_udf_query(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -432,7 +427,7 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> Tuple[str, str]:
         pass
 
-    def queue_cleanup(self, request_id: str, context_id: str):
+    def queue_cleanup(self, context_id: str):
         pass
 
     def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
@@ -452,7 +447,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def get_smpc_result(
         self,
-        request_id: str,
         jobid: str,
         context_id: str,
         command_id: str,

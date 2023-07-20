@@ -57,28 +57,27 @@ class INodeAlgorithmTasksHandler(ABC):
 
     # TABLES functionality
     @abstractmethod
-    def get_tables(self, request_id: str, context_id: str) -> List[str]:
+    def get_tables(self, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
-    def get_table_data(self, request_id: str, table_name: str) -> TableData:
+    def get_table_data(self, table_name: str) -> TableData:
         pass
 
     @abstractmethod
     def create_table(
-        self, request_id: str, context_id: str, command_id: str, schema: TableSchema
+        self, context_id: str, command_id: str, schema: TableSchema
     ) -> TableInfo:
         pass
 
     # VIEWS functionality
     @abstractmethod
-    def get_views(self, request_id: str, context_id: str) -> List[str]:
+    def get_views(self, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
     def create_data_model_views(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         data_model: str,
@@ -92,13 +91,12 @@ class INodeAlgorithmTasksHandler(ABC):
 
     # MERGE TABLES functionality
     @abstractmethod
-    def get_merge_tables(self, request_id: str, context_id: str) -> List[str]:
+    def get_merge_tables(self, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
     def create_merge_table(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         table_infos: List[TableInfo],
@@ -107,13 +105,12 @@ class INodeAlgorithmTasksHandler(ABC):
 
     # REMOTE TABLES functionality
     @abstractmethod
-    def get_remote_tables(self, request_id: str, context_id: str) -> List[str]:
+    def get_remote_tables(self, context_id: str) -> List[str]:
         pass
 
     @abstractmethod
     def create_remote_table(
         self,
-        request_id: str,
         table_name: str,
         table_schema: TableSchema,
         original_db_url: str,
@@ -124,7 +121,6 @@ class INodeAlgorithmTasksHandler(ABC):
     @abstractmethod
     def queue_run_udf(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -136,20 +132,17 @@ class INodeAlgorithmTasksHandler(ABC):
         pass
 
     @abstractmethod
-    def get_queued_udf_result(
-        self, async_result: AsyncResult, request_id: str
-    ) -> List[NodeUDFDTO]:
+    def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeUDFDTO]:
         pass
 
     @abstractmethod
-    def get_udfs(self, request_id: str, algorithm_name) -> List[str]:
+    def get_udfs(self, algorithm_name) -> List[str]:
         pass
 
     # return the generated monetdb python udf
     @abstractmethod
     def get_run_udf_query(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -159,11 +152,11 @@ class INodeAlgorithmTasksHandler(ABC):
 
     # CLEANUP functionality
     @abstractmethod
-    def queue_cleanup(self, request_id: str, context_id: str):
+    def queue_cleanup(self, context_id: str):
         pass
 
     @abstractmethod
-    def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
+    def wait_queued_cleanup_complete(self, async_result: AsyncResult):
         pass
 
     # ------------- SMPC functionality ---------------
@@ -184,7 +177,6 @@ class INodeAlgorithmTasksHandler(ABC):
     @abstractmethod
     def get_smpc_result(
         self,
-        request_id: str,
         jobid: str,
         context_id: str,
         command_id: str,
@@ -197,12 +189,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # TODO create custom type and validator for the socket address
     def __init__(
         self,
+        request_id: str,
         node_id: str,
         node_queue_addr: str,
         node_db_addr: str,
         tasks_timeout: int,
         run_udf_task_timeout: int,
     ):
+        self._request_id = request_id
         self._node_id = node_id
         self._node_queue_addr = node_queue_addr
         self._db_address = node_db_addr
@@ -225,14 +219,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         return CeleryAppFactory().get_celery_app(socket_addr=self._node_queue_addr)
 
     # TABLES functionality
-    def get_tables(self, request_id: str, context_id: str) -> List[str]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_tables(self, context_id: str) -> List[str]:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_tables"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
         )
         result = celery_app.get_result(
@@ -242,14 +236,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         )
         return list(result)
 
-    def get_table_data(self, request_id, table_name: str) -> TableData:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_table_data(self, table_name: str) -> TableData:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_table_data"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             table_name=table_name,
         )
         result = celery_app.get_result(
@@ -260,16 +254,16 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         return TableData.parse_raw(result)
 
     def create_table(
-        self, request_id: str, context_id: str, command_id: str, schema: TableSchema
+        self, context_id: str, command_id: str, schema: TableSchema
     ) -> TableInfo:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         schema_json = schema.json()
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["create_table"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
             command_id=command_id,
             schema_json=schema_json,
@@ -283,14 +277,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         return TableInfo.parse_raw(result)
 
     # VIEWS functionality
-    def get_views(self, request_id: str, context_id: str) -> List[str]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_views(self, context_id: str) -> List[str]:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_views"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
         )
         result = celery_app.get_result(
@@ -301,7 +295,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def create_data_model_views(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         data_model: str,
@@ -311,13 +304,13 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         dropna: bool = True,
         check_min_rows: bool = True,
     ) -> List[TableInfo]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["create_data_model_views"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
             command_id=command_id,
             data_model=data_model,
@@ -334,14 +327,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         return result
 
     # MERGE TABLES functionality
-    def get_merge_tables(self, request_id: str, context_id: str) -> List[str]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_merge_tables(self, context_id: str) -> List[str]:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_merge_tables"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
         )
         result = celery_app.get_result(
@@ -354,19 +347,18 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def create_merge_table(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         table_infos: List[TableInfo],
     ) -> TableInfo:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["create_merge_table"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
             command_id=command_id,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
             table_infos_json=[table_info.json() for table_info in table_infos],
         )
@@ -379,14 +371,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         return TableInfo.parse_raw(result)
 
     # REMOTE TABLES functionality
-    def get_remote_tables(self, request_id: str, context_id: str) -> List[str]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_remote_tables(self, context_id: str) -> List[str]:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_remote_tables"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
         )
         result = celery_app.get_result(
@@ -398,12 +390,11 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def create_remote_table(
         self,
-        request_id,
         table_name: str,
         table_schema: TableSchema,
         original_db_url: str,
     ) -> TableInfo:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         table_schema_json = table_schema.json()
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["create_remote_table"]
@@ -413,7 +404,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             table_name=table_name,
             table_schema_json=table_schema_json,
             monetdb_socket_address=original_db_url,
-            request_id=request_id,
+            request_id=self._request_id,
         )
         celery_app.get_result(
             async_result=async_result, timeout=self._tasks_timeout, logger=logger
@@ -428,7 +419,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # UDFs functionality
     def queue_run_udf(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
@@ -437,14 +427,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["run_udf"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
             command_id=command_id,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
             func_name=func_name,
             positional_args_json=positional_args.json(),
@@ -454,18 +444,16 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         )
         return async_result
 
-    def get_queued_udf_result(
-        self, async_result: AsyncResult, request_id: str
-    ) -> List[NodeUDFDTO]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeUDFDTO]:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         result = celery_app.get_result(
             async_result=async_result, timeout=self._run_udf_task_timeout, logger=logger
         )
         return (NodeUDFResults.parse_raw(result)).results
 
-    def get_udfs(self, algorithm_name, request_id: str) -> List[str]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def get_udfs(self, algorithm_name) -> List[str]:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_udfs"]
         async_result = celery_app.queue_task(
@@ -479,20 +467,19 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # return the generated monetdb pythonudf
     def get_run_udf_query(
         self,
-        request_id: str,
         context_id: str,
         command_id: str,
         func_name: str,
         positional_args: NodeUDFPosArguments,
     ) -> Tuple[str, str]:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_run_udf_query"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
             command_id=command_id,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
             func_name=func_name,
             positional_args_json=positional_args.json(),
@@ -507,16 +494,15 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(
         self,
-        request_id: str,
         table_name: str,
     ):
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["validate_smpc_templates_match"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             table_name=table_name,
         )
         celery_app.get_result(
@@ -525,16 +511,14 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             logger=logger,
         )
 
-    def load_data_to_smpc_client(
-        self, request_id: str, table_name: str, jobid: str
-    ) -> str:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["load_data_to_smpc_client"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             table_name=table_name,
             jobid=jobid,
         )
@@ -545,19 +529,18 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def get_smpc_result(
         self,
-        request_id: str,
         jobid: str,
         context_id: str,
         command_id: str,
         command_subid: Optional[str] = "0",
     ) -> TableInfo:
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["get_smpc_result"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             jobid=jobid,
             context_id=context_id,
             command_id=command_id,
@@ -570,21 +553,21 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         return TableInfo.parse_raw(result)
 
     # CLEANUP functionality
-    def queue_cleanup(self, request_id: str, context_id: str):
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def queue_cleanup(self, context_id: str):
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["cleanup"]
         async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
-            request_id=request_id,
+            request_id=self._request_id,
             context_id=context_id,
         )
 
         return async_result
 
-    def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
-        logger = ctrl_logger.get_request_logger(request_id=request_id)
+    def wait_queued_cleanup_complete(self, async_result: AsyncResult):
+        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         celery_app.get_result(
             async_result=async_result,

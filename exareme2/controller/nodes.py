@@ -100,19 +100,16 @@ class _Node(_INode, ABC):
     # TABLES functionality
     def get_tables(self) -> List[str]:
         return self._node_tasks_handler.get_tables(
-            request_id=self.request_id,
             context_id=self.context_id,
         )
 
     def get_table_data(self, table_name: str) -> TableData:
         return self._node_tasks_handler.get_table_data(
-            request_id=self.request_id,
             table_name=table_name,
         )
 
     def create_table(self, command_id: str, schema: TableSchema) -> TableInfo:
         return self._node_tasks_handler.create_table(
-            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             schema=schema,
@@ -120,21 +117,16 @@ class _Node(_INode, ABC):
 
     # VIEWS functionality
     def get_views(self) -> List[str]:
-        return self._node_tasks_handler.get_views(
-            request_id=self.request_id, context_id=self.context_id
-        )
+        return self._node_tasks_handler.get_views(context_id=self.context_id)
 
     # MERGE TABLES functionality
     def get_merge_tables(self) -> List[str]:
-        return self._node_tasks_handler.get_merge_tables(
-            request_id=self.request_id, context_id=self.context_id
-        )
+        return self._node_tasks_handler.get_merge_tables(context_id=self.context_id)
 
     def create_merge_table(
         self, command_id: str, table_infos: List[TableInfo]
     ) -> TableInfo:
         return self._node_tasks_handler.create_merge_table(
-            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             table_infos=table_infos,
@@ -142,9 +134,7 @@ class _Node(_INode, ABC):
 
     # REMOTE TABLES functionality
     def get_remote_tables(self) -> List[str]:
-        return self._node_tasks_handler.get_remote_tables(
-            request_id=self.request_id, context_id=self.context_id
-        )
+        return self._node_tasks_handler.get_remote_tables(context_id=self.context_id)
 
     def create_remote_table(
         self,
@@ -154,7 +144,6 @@ class _Node(_INode, ABC):
     ) -> TableInfo:
         monetdb_socket_addr = native_node.node_address
         return self._node_tasks_handler.create_remote_table(
-            request_id=self.request_id,
             table_name=table_name,
             table_schema=table_schema,
             original_db_url=monetdb_socket_addr,
@@ -171,7 +160,6 @@ class _Node(_INode, ABC):
         output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
         return self._node_tasks_handler.queue_run_udf(
-            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -182,15 +170,12 @@ class _Node(_INode, ABC):
         )
 
     def get_udfs(self, algorithm_name) -> List[str]:
-        return self._node_tasks_handler.get_udfs(
-            request_id=self.request_id, algorithm_name=algorithm_name
-        )
+        return self._node_tasks_handler.get_udfs(algorithm_name=algorithm_name)
 
     def get_run_udf_query(
         self, command_id: str, func_name: str, positional_args: List[NodeUDFDTO]
     ) -> Tuple[str, str]:
         return self._node_tasks_handler.get_run_udf_query(
-            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -253,7 +238,6 @@ class LocalNode(_Node):
             A list of views(TableInfo) created, corresponding to the columns_per_view list.
         """
         return self._node_tasks_handler.create_data_model_views(
-            request_id=self.request_id,
             context_id=self.context_id,
             command_id=command_id,
             data_model=self._data_model,
@@ -265,20 +249,16 @@ class LocalNode(_Node):
         )
 
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeUDFDTO]:
-        return self._node_tasks_handler.get_queued_udf_result(
-            async_result=async_result, request_id=self.request_id
-        )
+        return self._node_tasks_handler.get_queued_udf_result(async_result=async_result)
 
     def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
-        return self._node_tasks_handler.load_data_to_smpc_client(
-            self.request_id, table_name, jobid
-        )
+        return self._node_tasks_handler.load_data_to_smpc_client(table_name, jobid)
 
 
 class GlobalNode(_Node):
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeTableDTO]:
         node_udf_dtos = self._node_tasks_handler.get_queued_udf_result(
-            async_result=async_result, request_id=self.request_id
+            async_result=async_result
         )
         for dto in node_udf_dtos:
             if isinstance(dto, NodeSMPCDTO):
@@ -289,9 +269,7 @@ class GlobalNode(_Node):
         self,
         table_name: str,
     ):
-        self._node_tasks_handler.validate_smpc_templates_match(
-            self.request_id, table_name
-        )
+        self._node_tasks_handler.validate_smpc_templates_match(table_name)
 
     def get_smpc_result(
         self,
@@ -300,7 +278,6 @@ class GlobalNode(_Node):
         command_subid: Optional[str] = "0",
     ) -> TableInfo:
         return self._node_tasks_handler.get_smpc_result(
-            request_id=self.request_id,
             jobid=jobid,
             context_id=self.context_id,
             command_id=str(command_id),

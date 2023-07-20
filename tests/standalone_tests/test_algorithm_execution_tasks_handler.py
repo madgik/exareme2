@@ -30,7 +30,6 @@ def test_create_table(
     schema = test_table_params["schema"]
 
     table_info = localnode1_tasks_handler.create_table(
-        request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
         schema=schema,
@@ -49,14 +48,11 @@ def test_get_tables(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_info = localnode1_tasks_handler.create_table(
-        request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
         schema=schema,
     )
-    tables = localnode1_tasks_handler.get_tables(
-        request_id=COMMON_TASKS_REQUEST_ID, context_id=context_id
-    )
+    tables = localnode1_tasks_handler.get_tables(context_id=context_id)
 
     assert table_info.name in tables
 
@@ -69,7 +65,6 @@ def test_get_table_schema(
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
     table_info = localnode1_tasks_handler.create_table(
-        request_id=COMMON_TASKS_REQUEST_ID,
         context_id=context_id,
         command_id=command_id,
         schema=schema,
