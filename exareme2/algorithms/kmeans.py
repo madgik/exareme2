@@ -69,18 +69,19 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             share_to_global=[True],
         )
 
-        global_state, global_result = global_run(
+        global_result, global_result2 = global_run(
             func=init_centers_global2,
             positional_args=[min_max_transfer, n_clusters],
             share_to_locals=[False, True],
         )
 
         curr_iter = 0
-        centers_to_compute = global_result
+        centers_to_compute = global_result2
+        centers_to_compute_global = global_result
         print(centers_to_compute)
         # breakpoint()
         # init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
-        init_centers = get_transfer_data(global_state)["centers"]
+        init_centers = get_transfer_data(global_result)["centers"]
         # init_centers = global_state
         # print(init_centers)
 
@@ -99,10 +100,10 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 share_to_global=[True],
             )
 
-            new_centers_state, new_centers = global_run(
+            new_centers_global, new_centers = global_run(
                 func=compute_centers_from_metrics,
                 positional_args=[metrics_local, min_max_transfer, n_clusters],
-                share_to_locals=[True],
+                share_to_locals=[False, True],
             )
 
             curr_iter += 1
@@ -110,13 +111,13 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             # old_centers = json.loads(centers_to_compute.get_table_data()[0][0])[
             #    "centers"
             # ]
-            old_centers = new_centers_state["centers"]
-            # old_centers = get_transfer_data(centers_to_compute)['centers']
+            # old_centers = new_centers_state["centers"]
+            old_centers = get_transfer_data(centers_to_compute_global)["centers"]
             old_centers_array = numpy.array(old_centers)
 
-            print(new_centers.get_table_data())
-            new_centers_obj = json.loads(new_centers.get_table_data()[0][0])["centers"]
-            # new_centers_obj = get_transfer_data(new_centers)['centers']
+            # print(new_centers.get_table_data())
+            # new_centers_obj = json.loads(new_centers.get_table_data()[0][0])["centers"]
+            new_centers_obj = get_transfer_data(new_centers_global)["centers"]
             new_centers_array = numpy.array(new_centers_obj)
 
             diff = numpy.linalg.norm(new_centers_array - old_centers_array, "fro")
@@ -131,6 +132,7 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
             else:
                 centers_to_compute = new_centers
+                centers_to_compute_global = new_centers_global
         return ret_obj
 
 
@@ -180,7 +182,7 @@ def init_centers_local2(X):
 @udf(
     min_max_transfer=secure_transfer(sum_op=True, min_op=True, max_op=True),
     n_clusters=literal(),
-    return_type=[state(), transfer()],
+    return_type=[transfer(), transfer()],
 )
 def init_centers_global2(min_max_transfer, n_clusters):
     import numpy
@@ -198,8 +200,8 @@ def init_centers_global2(min_max_transfer, n_clusters):
     )
 
     transfer_ = {"centers": centers_global.tolist()}
-    state_ = {"centers": centers_global.tolist()}
-    return state_, transfer_
+    # state_ = {"centers": centers_global.tolist()}
+    return transfer_, transfer_
 
 
 @udf(
@@ -272,7 +274,7 @@ def compute_metrics(X, label_state, n_clusters):
     transfers=secure_transfer(sum_op=True, min_op=True, max_op=True),
     min_max_transfer=secure_transfer(sum_op=True, min_op=True, max_op=True),
     n_clusters=literal(),
-    return_type=transfer(),
+    return_type=[transfer(), transfer()],
 )
 def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
     centers = []
