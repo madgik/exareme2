@@ -117,6 +117,11 @@ class AlgorithmExecutionEngine:
     def use_smpc(self):
         return self._get_use_smpc_flag()
 
+    @property
+    def num_local_nodes(self):
+        # used by fed_average strategy
+        return len(self._nodes.local_nodes)
+
     # UDFs functionality
     def run_udf_on_local_nodes(
         self,

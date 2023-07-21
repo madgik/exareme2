@@ -57,6 +57,7 @@ class AlgorithmName(str, Enum):
     LINEAR_REGRESSION_CV = "linear_regression_cv"
     LOGISTIC_REGRESSION = "logistic_regression"
     LOGISTIC_REGRESSION_CV = "logistic_regression_cv"
+    LOGISTIC_REGRESSION_CV_FEDAVERAGE = "logistic_regression_cv_fedaverage"
     MULTIPLE_HISTOGRAMS = "multiple_histograms"
     NAIVE_BAYES_CATEGORICAL_CV = "naive_bayes_categorical_cv"
     NAIVE_BAYES_GAUSSIAN_CV = "naive_bayes_gaussian_cv"
