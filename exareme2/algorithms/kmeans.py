@@ -79,15 +79,13 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         centers_to_compute = global_result2
         centers_to_compute_global = global_result
         print(centers_to_compute)
-        # breakpoint()
-        # init_centers = json.loads(centers_to_compute.get_table_data()[0][0])["centers"]
+
         init_centers = get_transfer_data(global_result)["centers"]
-        # init_centers = global_state
-        # print(init_centers)
 
         init_centers_array = numpy.array(init_centers)
         init_centers_list = init_centers_array.tolist()
         while True:
+            """
             label_state = local_run(
                 func=compute_cluster_labels,
                 positional_args=[X_not_null, centers_to_compute],
@@ -99,7 +97,12 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 positional_args=[X_not_null, label_state, n_clusters],
                 share_to_global=[True],
             )
-
+            """
+            metrics_local = local_run(
+                func=compute_metrics2,
+                positional_args=[X_not_null, centers_to_compute, n_clusters],
+                share_to_global=[True],
+            )
             new_centers_global, new_centers = global_run(
                 func=compute_centers_from_metrics,
                 positional_args=[metrics_local, min_max_transfer, n_clusters],
@@ -108,15 +111,9 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
             curr_iter += 1
 
-            # old_centers = json.loads(centers_to_compute.get_table_data()[0][0])[
-            #    "centers"
-            # ]
-            # old_centers = new_centers_state["centers"]
             old_centers = get_transfer_data(centers_to_compute_global)["centers"]
             old_centers_array = numpy.array(old_centers)
 
-            # print(new_centers.get_table_data())
-            # new_centers_obj = json.loads(new_centers.get_table_data()[0][0])["centers"]
             new_centers_obj = get_transfer_data(new_centers_global)["centers"]
             new_centers_array = numpy.array(new_centers_obj)
 
@@ -243,6 +240,48 @@ def compute_cluster_labels(X, global_transfer):
 )
 def compute_metrics(X, label_state, n_clusters):
     labels = numpy.array(label_state["labels"])
+    sum_list = []
+    count_list = []
+    for i in range(n_clusters):
+        relevant_features = numpy.where(labels == i)
+        X_clust = X[relevant_features, :]
+        X_clust = X_clust[0, :, :]
+        X_sum = numpy.sum(X_clust, axis=0)
+        X_count = X_clust.shape[0]
+        # raise ValueError(str(relevant_features)+''+str(labels.shape)+' '+str(X.shape)+' '+str(X_sum.shape)+' '+str(X_clust.shape))
+        # metrics[i] = {'X_sum': X_sum.tolist(),'X_count':X_count}
+        sum_list.append(X_sum.tolist())
+        count_list.append(X_count)
+
+    secure_transfer_ = {}
+    secure_transfer_["sum_list"] = {
+        "data": sum_list,
+        "operation": "sum",
+        "type": "float",
+    }
+    secure_transfer_["count_list"] = {
+        "data": count_list,
+        "operation": "sum",
+        "type": "int",
+    }
+    return secure_transfer_
+
+
+@udf(
+    X=tensor(dtype=T, ndims=2),
+    global_transfer=transfer(),
+    n_clusters=literal(),
+    return_type=secure_transfer(sum_op=True, min_op=True, max_op=True),
+)
+def compute_metrics2(X, global_transfer, n_clusters):
+    from sklearn.metrics.pairwise import euclidean_distances
+
+    centers = numpy.array(global_transfer["centers"])
+    distances = euclidean_distances(X, centers)
+
+    labels = numpy.argmin(distances, axis=1)
+
+    labels = numpy.array(labels)
     sum_list = []
     count_list = []
     for i in range(n_clusters):
