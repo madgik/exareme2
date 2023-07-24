@@ -85,19 +85,7 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         init_centers_array = numpy.array(init_centers)
         init_centers_list = init_centers_array.tolist()
         while True:
-            """
-            label_state = local_run(
-                func=compute_cluster_labels,
-                positional_args=[X_not_null, centers_to_compute],
-                share_to_global=[False],
-            )
 
-            metrics_local = local_run(
-                func=compute_metrics,
-                positional_args=[X_not_null, label_state, n_clusters],
-                share_to_global=[True],
-            )
-            """
             metrics_local = local_run(
                 func=compute_metrics2,
                 positional_args=[X_not_null, centers_to_compute, n_clusters],
@@ -105,7 +93,7 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             )
             new_centers_global, new_centers = global_run(
                 func=compute_centers_from_metrics,
-                positional_args=[metrics_local, min_max_transfer, n_clusters],
+                positional_args=[metrics_local, n_clusters],
                 share_to_locals=[False, True],
             )
 
@@ -311,24 +299,17 @@ def compute_metrics2(X, global_transfer, n_clusters):
 
 @udf(
     transfers=secure_transfer(sum_op=True, min_op=True, max_op=True),
-    min_max_transfer=secure_transfer(sum_op=True, min_op=True, max_op=True),
     n_clusters=literal(),
     return_type=[transfer(), transfer()],
 )
-def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
+def compute_centers_from_metrics(transfers, n_clusters):
     centers = []
     # raise ValueError(transfers)
     sum_list_sum = transfers["sum_list"]
     count_list_sum = transfers["count_list"]
 
-    min_array = min_max_transfer["min"]
-    max_array = min_max_transfer["max"]
-
     sum_array = numpy.array(sum_list_sum)
     count_array = numpy.array(count_list_sum)
-
-    generate_random = False
-    generate_uniform_clusters = True
 
     n_dim = sum_array.shape[1]
     for i in range(n_clusters):
@@ -340,28 +321,7 @@ def compute_centers_from_metrics(transfers, min_max_transfer, n_clusters):
         if curr_count != 0:
             final_i = curr_sum / curr_count
         else:
-            if generate_random:
-                min_array2 = numpy.array(min_array)
-                max_array2 = numpy.array(max_array)
-                if generate_uniform_clusters:
-                    final_i = numpy.random.uniform(
-                        low=0.0, high=n_clusters + 1, size=(1, n_dim)
-                    )
-                elif generate_uniform:
-                    final_i = numpy.random.uniform(
-                        low=min_array2, high=max_array, size=(1, n_dim)
-                    )
-                else:
-                    for i in range(n_dim):
-                        min_value = min_array2[i]
-                        max_value = max_array2[i]
-                        curr_value = (
-                            min_value + (max_value - min_value) * numpy.random.randn()
-                        )
-                        final_i[0][i] = curr_value
-
-            else:
-                final_i = numpy.zeros((1, n_dim))
+            final_i = numpy.zeros((1, n_dim))
 
         # final_i = curr_sum / curr_count
         centers.append(final_i)
