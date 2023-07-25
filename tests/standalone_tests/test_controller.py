@@ -260,6 +260,39 @@ class TestDataModelViews:
 
 
 class TestDataModelViewsCreator:
+    class TableInfoMock:
+        name: str
+        schema_: TableSchema
+        type_: TableType
+
+        @property
+        def column_names(self):
+            pass
+
+        @property
+        def _tablename_parts(self) -> Tuple[str, str, str, str]:
+            pass
+
+        @property
+        def node_id(self) -> str:
+            pass
+
+        @property
+        def context_id(self) -> str:
+            pass
+
+        @property
+        def command_id(self) -> str:
+            pass
+
+        @property
+        def result_id(self) -> str:
+            pass
+
+        @property
+        def name_without_node_id(self) -> str:
+            return "nodename"
+
     @pytest.fixture
     def local_node_mocks(self):
         return [MagicMock(LocalNode) for number_of_nodes in range(10)]
@@ -284,7 +317,7 @@ class TestDataModelViewsCreator:
             command_id=123,
         )
 
-    def test_create_data_model_views(
+    def test_create_data_model_views_called_on_all_nodes(
         self, local_node_mocks, data_model_views_creator_init_params
     ):
         data_model_views_creator = DataModelViewsCreator(
@@ -295,9 +328,10 @@ class TestDataModelViewsCreator:
             check_min_rows=data_model_views_creator_init_params.check_min_rows,
             command_id=data_model_views_creator_init_params.command_id,
         )
-        # assert that create_data_model_views was called for all self._local_nodes with the args
-        data_model_views_creator.create_data_model_views()
 
+        # assert that create_data_model_views was called for all local nodes with the
+        # expected args
+        data_model_views_creator.create_data_model_views()
         for node in local_node_mocks:
             node.create_data_model_views.assert_called_once_with(
                 columns_per_view=data_model_views_creator_init_params.variable_groups,
@@ -309,9 +343,50 @@ class TestDataModelViewsCreator:
 
         assert isinstance(data_model_views_creator.data_model_views, DataModelViews)
 
-    def test_create_data_model_views_insufficient_data_error(
+    def test_create_data_model_views_contains_only_nodes_with_sufficient_data(
         self, data_model_views_creator_init_params
     ):
+        # Instantiate some local node mocks
+        local_node_mocks_sufficient_data = [
+            MagicMock(LocalNode) for number_of_nodes in range(5)
+        ]
+        local_node_mocks_insufficient_data = [
+            MagicMock(LocalNode) for number_of_nodes in range(5)
+        ]
+
+        # some of them with sufficient data
+        for node in local_node_mocks_sufficient_data:
+            node.node_id = "sufficientdatanode"
+            table_info = self.TableInfoMock()
+            table_info.schema_ = "dummy_schema"
+            node.create_data_model_views.return_value = [table_info]
+        # and some of them without sufficient data
+        for node in local_node_mocks_insufficient_data:
+            node.node_id = "insufficientdatanode"
+            node.create_data_model_views.side_effect = InsufficientDataError("")
+
+        data_model_views_creator = DataModelViewsCreator(
+            local_nodes=(
+                local_node_mocks_sufficient_data + local_node_mocks_insufficient_data
+            ),
+            variable_groups=data_model_views_creator_init_params.variable_groups,
+            var_filters=data_model_views_creator_init_params.var_filters,
+            dropna=data_model_views_creator_init_params.dropna,
+            check_min_rows=data_model_views_creator_init_params.check_min_rows,
+            command_id=data_model_views_creator_init_params.command_id,
+        )
+
+        data_model_views_creator.create_data_model_views()
+
+        # check that the data model views contains only nodes with sufficient data
+        data_model_views = data_model_views_creator.data_model_views.to_list()[0]
+        nodes = list(data_model_views.nodes_tables_info.keys())
+        assert set(nodes) == set(local_node_mocks_sufficient_data)
+
+    def test_create_data_model_views_raises_error_when_all_nodes_insufficient_data(
+        self, data_model_views_creator_init_params
+    ):
+        # Instantiate local node mocks, all of them without sufficient data
         local_node_mocks = [MagicMock(LocalNode) for number_of_nodes in range(10)]
         for node_mock in local_node_mocks:
             node_mock.node_id = "some_id.."
