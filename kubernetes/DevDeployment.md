@@ -1,4 +1,4 @@
-# MIP-Engine Development deployment with Kubernetes in one node
+# Exareme2 Development deployment with Kubernetes in one node
 
 ## Configuration
 
@@ -21,11 +21,11 @@ MonetDB needs to have the data loaded from a volume and not imported due to a me
 
 ```
 sudo rm -rf /opt/monetdb
-docker run --name monetdb_tmp -d -p 50010:50000 -v /opt/monetdb:/home/monetdb madgik/mipenginedb:latest
+docker run --name monetdb_tmp -d -p 50010:50000 -v /opt/monetdb:/home/monetdb madgik/exareme2_db:latest
 ```
 
 2. Load the data into that container:
-   <br />inside the root folder of the project `MIP-Engine/`
+   <br />inside the root folder of the project `Exareme2/`
 
 ```
 poetry run inv load-data --port 50010
@@ -97,25 +97,25 @@ First, build the images:
 <br />(you can execute these in separate terminals, concurrently)
 
 ```
-docker build -f monetdb/Dockerfile -t madgik/mipenginedb:latest ./
-docker build -f rabbitmq/Dockerfile -t madgik/mipengine_rabbitmq:latest ./
-docker build -f mipengine/node/Dockerfile -t madgik/mipengine_node:latest ./
-docker build -f mipengine/controller/Dockerfile -t madgik/mipengine_controller:latest ./
+docker build -f monetdb/Dockerfile -t madgik/exareme2_db:latest ./
+docker build -f rabbitmq/Dockerfile -t madgik/exareme2_rabbitmq:latest ./
+docker build -f exareme2/node/Dockerfile -t madgik/exareme2_node:latest ./
+docker build -f exareme2/controller/Dockerfile -t madgik/exareme2_controller:latest ./
 ```
 
 Second, load the docker images to the kuberentes cluster
 
 ```
-kind load docker-image madgik/mipenginedb:latest
-kind load docker-image madgik/mipengine_rabbitmq:latest
-kind load docker-image madgik/mipengine_node:latest
-kind load docker-image madgik/mipengine_controller:latest --nodes kind-control-plane
+kind load docker-image madgik/exareme2_db:latest
+kind load docker-image madgik/exareme2_rabbitmq:latest
+kind load docker-image madgik/exareme2_node:latest
+kind load docker-image madgik/exareme2_controller:latest --nodes kind-control-plane
 ```
 
-5. Deploy the MIP-Engine kubernetes pods using helm charts:
+5. Deploy the Exareme2 kubernetes pods using helm charts:
 
 ```
-helm install mipengine kubernetes/
+helm install exareme2 kubernetes/
 ```
 
 6. (Validation) You can then run the prod_env_tests to see if the deploymnt is working (it might take about a minute for services to sync):

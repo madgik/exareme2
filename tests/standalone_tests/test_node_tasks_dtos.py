@@ -3,24 +3,24 @@ from typing import List
 import pytest
 from pydantic import ValidationError
 
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import DType
-from mipengine.node_tasks_DTOs import NodeLiteralDTO
-from mipengine.node_tasks_DTOs import NodeSMPCDTO
-from mipengine.node_tasks_DTOs import NodeTableDTO
-from mipengine.node_tasks_DTOs import NodeUDFDTO
-from mipengine.node_tasks_DTOs import NodeUDFKeyArguments
-from mipengine.node_tasks_DTOs import NodeUDFPosArguments
-from mipengine.node_tasks_DTOs import NodeUDFResults
-from mipengine.node_tasks_DTOs import SMPCTablesInfo
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
-from mipengine.node_tasks_DTOs import TableType
-from mipengine.node_tasks_DTOs import _NodeUDFDTOType
-from mipengine.table_data_DTOs import ColumnDataFloat
-from mipengine.table_data_DTOs import ColumnDataInt
-from mipengine.table_data_DTOs import ColumnDataStr
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import DType
+from exareme2.node_tasks_DTOs import NodeLiteralDTO
+from exareme2.node_tasks_DTOs import NodeSMPCDTO
+from exareme2.node_tasks_DTOs import NodeTableDTO
+from exareme2.node_tasks_DTOs import NodeUDFDTO
+from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
+from exareme2.node_tasks_DTOs import NodeUDFPosArguments
+from exareme2.node_tasks_DTOs import NodeUDFResults
+from exareme2.node_tasks_DTOs import SMPCTablesInfo
+from exareme2.node_tasks_DTOs import TableData
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
+from exareme2.node_tasks_DTOs import _NodeUDFDTOType
+from exareme2.table_data_DTOs import ColumnDataFloat
+from exareme2.table_data_DTOs import ColumnDataInt
+from exareme2.table_data_DTOs import ColumnDataStr
 
 
 @pytest.fixture

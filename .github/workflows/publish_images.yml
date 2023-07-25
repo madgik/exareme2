@@ -35,15 +35,15 @@ jobs:
 #          context: .
 #          file: monetdb/DockerfileBaseImage
 #          push: true
-#          tags: madgik/mipenginedb_base:latest
+#          tags: madgik/exareme2_db_base:latest
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v4
         with:
           images: |
-            madgik/mipenginedb
-            docker-registry.ebrains.eu/medical-informatics-platform/mipenginedb
+            madgik/exareme2_db
+            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_db
 
       - name: Build and Push MONETDB docker image to dockerhub
         uses: docker/build-push-action@v3
@@ -82,8 +82,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            madgik/mipengine_mipdb
-            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_mipdb
+            madgik/exareme2_mipdb
+            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_mipdb
 
       - name: Load MIPDB cached image
         uses: actions/cache@v3
@@ -140,8 +140,8 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            madgik/mipengine_rabbitmq
-            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_rabbitmq
+            madgik/exareme2_rabbitmq
+            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_rabbitmq
 
       - name: Load RABBITMQ cached image
         uses: actions/cache@v3
@@ -198,14 +198,14 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            madgik/mipengine_controller
-            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_controller
+            madgik/exareme2_controller
+            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_controller
 
       - name: Load CONTROLLER service cached image
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('mipengine/**')}}
+          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-controller-
 
@@ -213,7 +213,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: mipengine/controller/Dockerfile
+          file: exareme2/controller/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -256,14 +256,14 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            madgik/mipengine_node
-            docker-registry.ebrains.eu/medical-informatics-platform/mipengine_node
+            madgik/exareme2_node
+            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_node
 
       - name: Load NODE service cached image
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/node
-          key: ${{ runner.os }}-buildx-node-${{hashFiles('mipengine/**')}}
+          key: ${{ runner.os }}-buildx-node-${{hashFiles('exareme2/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-node-
 
@@ -271,7 +271,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: mipengine/node/Dockerfile
+          file: exareme2/node/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

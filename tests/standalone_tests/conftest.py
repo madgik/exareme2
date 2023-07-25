@@ -14,23 +14,23 @@ import pytest
 import sqlalchemy as sql
 import toml
 
-from mipengine import AttrDict
-from mipengine.controller.algorithm_execution_engine_tasks_handler import (
+from exareme2 import AttrDict
+from exareme2.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
-from mipengine.controller.celery_app import CeleryAppFactory
-from mipengine.controller.controller_logger import init_logger
-from mipengine.udfgen import udfio
+from exareme2.controller.celery_app import CeleryAppFactory
+from exareme2.controller.controller_logger import init_logger
+from exareme2.udfgen import udfio
 
-ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./mipengine/algorithms,./tests/algorithms"
-TESTING_RABBITMQ_CONT_IMAGE = "madgik/mipengine_rabbitmq:dev"
-TESTING_MONETDB_CONT_IMAGE = "madgik/mipenginedb:dev"
+ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms,./tests/algorithms"
+TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
+TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
 TEST_DATA_FOLDER = Path(this_mod_path).parent / "test_data"
 
-OUTDIR = Path("/tmp/mipengine/")
+OUTDIR = Path("/tmp/exareme2/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
@@ -130,6 +130,8 @@ SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
 TASKS_TIMEOUT = 10
 RUN_UDF_TASK_TIMEOUT = 120
 SMPC_CLUSTER_SLEEP_TIME = 60
+
+REQUEST_ID = "STANDALONETEST"
 
 # ------------ SMPC Cluster ------------ #
 
@@ -776,9 +778,9 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
-    env["MIPENGINE_NODE_CONFIG_FILE"] = node_config_filepath
+    env["EXAREME2_NODE_CONFIG_FILE"] = node_config_filepath
 
-    cmd = f"poetry run celery -A mipengine.node.node worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
+    cmd = f"poetry run celery -A exareme2.node.node worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -915,6 +917,7 @@ def create_node_tasks_handler_celery(node_config_filepath):
     db_address = ":".join([str(db_domain), str(db_port)])
 
     return NodeAlgorithmTasksHandler(
+        request_id=REQUEST_ID,
         node_id=node_id,
         node_queue_addr=queue_address,
         node_db_addr=db_address,
@@ -1052,10 +1055,10 @@ def _create_controller_service(
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
-    env["MIPENGINE_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
+    env["EXAREME2_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = f"poetry run hypercorn --config python:mipengine.controller.api.hypercorn_config -b 0.0.0.0:{service_port} mipengine/controller/api/app:app >> {logpath} 2>&1 "
+    cmd = f"poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:{service_port} exareme2/controller/api/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true

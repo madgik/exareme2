@@ -10,7 +10,11 @@ def make_test_input(visit1: str, visit2: str) -> dict:
             "data_model": "longitudinal_dementia:0.1",
             "y": ["lefthippocampus"],
             "x": ["righthippocampus", "agegroup", "gender"],
-            "datasets": ["longitudinal_dementia"],
+            "datasets": [
+                "longitudinal_dementia0",
+                "longitudinal_dementia1",
+                "longitudinal_dementia2",
+            ],
             "filters": None,
         },
         "parameters": {

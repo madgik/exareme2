@@ -3,12 +3,12 @@ from typing import List
 
 import pytest
 
-from mipengine.controller.nodes import _INode
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import DType
-from mipengine.node_tasks_DTOs import TableData
-from mipengine.node_tasks_DTOs import TableInfo
-from mipengine.node_tasks_DTOs import TableSchema
+from exareme2.controller.nodes import _INode
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import DType
+from exareme2.node_tasks_DTOs import TableData
+from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_tasks_DTOs import TableSchema
 
 # TODO does not contain any test, just a placeholder..
 

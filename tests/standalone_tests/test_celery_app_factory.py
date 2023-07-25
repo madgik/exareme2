@@ -4,12 +4,12 @@ from unittest.mock import patch
 import celery
 import pytest
 
-from mipengine import AttrDict
-from mipengine import DType
-from mipengine.controller.celery_app import CeleryConnectionError
-from mipengine.controller.celery_app import CeleryWrapper
-from mipengine.node_tasks_DTOs import ColumnInfo
-from mipengine.node_tasks_DTOs import TableSchema
+from exareme2 import AttrDict
+from exareme2 import DType
+from exareme2.controller.celery_app import CeleryConnectionError
+from exareme2.controller.celery_app import CeleryWrapper
+from exareme2.node_tasks_DTOs import ColumnInfo
+from exareme2.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
@@ -38,7 +38,7 @@ def controller_config_dict_mock():
 @pytest.fixture(autouse=True, scope="session")
 def patch_celery_app(controller_config_dict_mock):
     with patch(
-        "mipengine.controller.celery_app.controller_config",
+        "exareme2.controller.celery_app.controller_config",
         AttrDict(controller_config_dict_mock),
     ):
         yield
@@ -47,7 +47,7 @@ def patch_celery_app(controller_config_dict_mock):
 @pytest.fixture(scope="session")
 def task_signatures():
     return {
-        "create_table": "mipengine.node.tasks.tables.create_table",
+        "create_table": "exareme2.node.tasks.tables.create_table",
     }
 
 

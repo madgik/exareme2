@@ -2,16 +2,16 @@ from collections import namedtuple
 
 import pytest
 
-from mipengine.node.monetdb_interface.guard import InvalidSQLParameter
-from mipengine.node.monetdb_interface.guard import is_datamodel
-from mipengine.node.monetdb_interface.guard import is_list_of_identifiers
-from mipengine.node.monetdb_interface.guard import is_primary_data_table
-from mipengine.node.monetdb_interface.guard import is_socket_address
-from mipengine.node.monetdb_interface.guard import is_valid_filter
-from mipengine.node.monetdb_interface.guard import is_valid_literal_value
-from mipengine.node.monetdb_interface.guard import is_valid_request_id
-from mipengine.node.monetdb_interface.guard import is_valid_table_schema
-from mipengine.node.monetdb_interface.guard import sql_injection_guard
+from exareme2.node.monetdb_interface.guard import InvalidSQLParameter
+from exareme2.node.monetdb_interface.guard import is_datamodel
+from exareme2.node.monetdb_interface.guard import is_list_of_identifiers
+from exareme2.node.monetdb_interface.guard import is_primary_data_table
+from exareme2.node.monetdb_interface.guard import is_socket_address
+from exareme2.node.monetdb_interface.guard import is_valid_filter
+from exareme2.node.monetdb_interface.guard import is_valid_literal_value
+from exareme2.node.monetdb_interface.guard import is_valid_request_id
+from exareme2.node.monetdb_interface.guard import is_valid_table_schema
+from exareme2.node.monetdb_interface.guard import sql_injection_guard
 
 
 @pytest.mark.parametrize(

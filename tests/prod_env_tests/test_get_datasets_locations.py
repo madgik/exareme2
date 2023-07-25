@@ -9,6 +9,11 @@ from tests.prod_env_tests import datasets_locations_url
 @pytest.fixture
 def expected_datasets_locations():
     return {
+        "longitudinal_dementia:0.1": {
+            "longitudinal_dementia0": "localnode1",
+            "longitudinal_dementia1": "localnode2",
+            "longitudinal_dementia2": "localnode3",
+        },
         "tbi:0.1": {
             "dummy_tbi0": "localnode1",
             "dummy_tbi1": "localnode2",
