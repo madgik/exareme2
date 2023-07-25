@@ -1,18 +1,18 @@
 from typing import List
 from typing import TypeVar
 
-from mipengine.algorithms.algorithm import Algorithm
-from mipengine.algorithms.algorithm import AlgorithmDataLoader
-from mipengine.algorithms.fedaverage import fed_average
-from mipengine.algorithms.helpers import get_transfer_data
-from mipengine.algorithms.helpers import sum_secure_transfers
-from mipengine.exceptions import BadUserInput
 from pydantic import BaseModel
 
-from mipengine.udfgen import literal
-from mipengine.udfgen import relation
-from mipengine.udfgen import secure_transfer
-from mipengine.udfgen import udf
+from exareme2.algorithms.algorithm import Algorithm
+from exareme2.algorithms.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.fedaverage import fed_average
+from exareme2.algorithms.helpers import get_transfer_data
+from exareme2.algorithms.helpers import sum_secure_transfers
+from exareme2.exceptions import BadUserInput
+from exareme2.udfgen import literal
+from exareme2.udfgen import relation
+from exareme2.udfgen import secure_transfer
+from exareme2.udfgen import udf
 
 ALGORITHM_NAME = "svm_scikit"
 
@@ -102,7 +102,6 @@ class SVMFedAverage:
         import numpy as np
         from sklearn.svm import SVC
 
-        n_obs = y.shape[0]
         y = y.to_numpy()
         X = x.to_numpy()
 
