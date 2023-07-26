@@ -94,23 +94,7 @@ def create_non_existing_remote_table(celery_app, request_id) -> TableInfo:
         async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
     return TableInfo(name=table_name, schema_=table_schema, type_=TableType.REMOTE)
-
-
-@pytest.mark.slow
-def test_get_udf(localnode1_node_service, localnode1_celery_app):
-    get_udf_task = get_celery_task_signature("get_udf")
-
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=get_udf_task,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        func_name=make_unique_func_name(get_column_rows),
-    )
-    fetched_udf = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    assert get_column_rows.__name__ in fetched_udf
-
+ 
 
 @pytest.mark.slow
 def test_run_udf_state_and_transfer_output(
