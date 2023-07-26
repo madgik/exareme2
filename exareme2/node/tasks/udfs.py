@@ -105,9 +105,6 @@ def _convert_output_schema(output_schema: str) -> List[Tuple[str, DType]]:
     return table_schema.to_list()
 
 
-
-
-
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
     """
     Creates a udf name with the format <func_name>_<commandId>_<contextId>

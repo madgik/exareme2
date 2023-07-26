@@ -435,7 +435,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         )
         return (NodeUDFResults.parse_raw(result)).results
 
-
     # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(
         self,

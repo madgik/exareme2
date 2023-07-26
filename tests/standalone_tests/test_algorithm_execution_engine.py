@@ -72,6 +72,7 @@ class NodeMock(_INode):
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[str]:
         pass
 
+
 @pytest.fixture
 def test_table_schema_a():
     command_id = "cmndid1"
