@@ -443,7 +443,7 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         logger = ctrl_logger.get_request_logger(request_id=self._request_id)
         celery_app = self._get_node_celery_app()
         task_signature = TASK_SIGNATURES["validate_smpc_templates_match"]
-        async_result = celery_app.queue_tsk(
+        async_result = celery_app.queue_task(
             task_signature=task_signature,
             logger=logger,
             request_id=self._request_id,
