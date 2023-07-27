@@ -26,6 +26,11 @@ ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms,./tests/algorithms
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
 TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"
 
+# This is used in the github actions CI. In CI images are built and not pulled.
+PULL_DOCKER_IMAGES_STR = os.getenv("PULL_DOCKER_IMAGES", "true")
+PULL_DOCKER_IMAGES = PULL_DOCKER_IMAGES_STR.lower() == "true"
+
+
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
 TEST_DATA_FOLDER = Path(this_mod_path).parent / "test_data"
@@ -165,12 +170,6 @@ SMPC_CLIENT2_PORT = 9006
 #####################################
 
 
-# TODO Instead of the fixtures having scope session, it could be function,
-# but when the fixture start, it should check if it already exists, thus
-# not creating it again (fast). This could solve the problem of some
-# tests destroying some containers to test things.
-
-
 class MonetDBConfigurations:
     def __init__(self, port):
         self.ip = COMMON_IP
@@ -215,6 +214,10 @@ def _create_monetdb_container(cont_name, cont_port):
     client = docker.from_env()
     container_names = [container.name for container in client.containers.list(all=True)]
     if cont_name not in container_names:
+        if PULL_DOCKER_IMAGES:
+            print(f"\nPulling monetdb image '{TESTING_MONETDB_CONT_IMAGE}'.")
+            client.images.pull(TESTING_MONETDB_CONT_IMAGE)
+            print(f"\nPulled monetdb image '{TESTING_MONETDB_CONT_IMAGE}'.")
         # A volume is used to pass the udfio inside the monetdb container.
         # This is done so that we don't need to rebuild every time the udfio.py file is changed.
         udfio_full_path = path.abspath(udfio.__file__)
@@ -654,6 +657,11 @@ def _create_rabbitmq_container(cont_name, cont_port):
     client = docker.from_env()
     container_names = [container.name for container in client.containers.list(all=True)]
     if cont_name not in container_names:
+        if PULL_DOCKER_IMAGES:
+            print(f"\nPulling rabbitmq image '{TESTING_RABBITMQ_CONT_IMAGE}'.")
+            client.images.pull(TESTING_RABBITMQ_CONT_IMAGE)
+            print(f"\nPulled rabbitmq image '{TESTING_RABBITMQ_CONT_IMAGE}'.")
+
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,
