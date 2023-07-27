@@ -490,18 +490,6 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
     ) -> List[NodeUDFDTO]:
         pass
 
-    def get_udfs(self, algorithm_name) -> List[str]:
-        pass
-
-    def get_run_udf_query(
-        self,
-        context_id: str,
-        command_id: str,
-        func_name: str,
-        positional_args: NodeUDFPosArguments,
-    ) -> Tuple[str, str]:
-        pass
-
     def queue_cleanup(self, context_id: str):
         pass
 

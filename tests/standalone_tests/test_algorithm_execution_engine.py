@@ -72,9 +72,6 @@ class NodeMock(_INode):
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[str]:
         pass
 
-    def get_udfs(self, algorithm_name) -> List[str]:
-        pass
-
 
 @pytest.fixture
 def test_table_schema_a():

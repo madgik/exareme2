@@ -39,12 +39,6 @@ from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 
 @shared_task
 @initialise_logger
-def get_udf(request_id: str, func_name: str) -> str:
-    return str(udf.registry[func_name])
-
-
-@shared_task
-@initialise_logger
 def run_udf(
     request_id: str,
     command_id: str,
@@ -109,61 +103,6 @@ def run_udf(
 def _convert_output_schema(output_schema: str) -> List[Tuple[str, DType]]:
     table_schema = TableSchema.parse_raw(output_schema)
     return table_schema.to_list()
-
-
-@shared_task
-@initialise_logger
-def get_run_udf_query(
-    command_id: str,
-    request_id: str,
-    context_id: str,
-    func_name: str,
-    positional_args_json: str,
-    keyword_args_json: str,
-    use_smpc: bool = False,
-) -> List[str]:
-    """
-    Fetches the sql statements that represent the execution of the udf.
-
-    Parameters
-    ----------
-        command_id: str
-            The command identifier, common among all nodes for this action.
-        request_id : str
-            The identifier for the logging
-        context_id: str
-            The experiment identifier, common among all experiment related actions.
-        func_name: str
-            Name of function from which to generate UDF.
-        positional_args_json: str(UDFPosArguments)
-            Positional arguments of the udf call.
-        keyword_args_json: str(UDFKeyArguments)
-            Keyword arguments of the udf call.
-        use_smpc: bool
-            Should SMPC be used?
-    Returns
-    -------
-        List[str]
-            A list of the statements that would be executed in the DB.
-
-    """
-    # TODO why should we validate here?
-    validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
-
-    positional_args = NodeUDFPosArguments.parse_raw(positional_args_json)
-    keyword_args = NodeUDFKeyArguments.parse_raw(keyword_args_json)
-
-    udf_definitions, udf_exec_stmt, _ = _generate_udf_statements(
-        request_id=request_id,
-        command_id=command_id,
-        context_id=context_id,
-        func_name=func_name,
-        positional_args=positional_args,
-        keyword_args=keyword_args,
-        use_smpc=use_smpc,
-    )
-
-    return udf_definitions + [udf_exec_stmt]
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
