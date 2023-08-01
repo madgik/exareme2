@@ -85,7 +85,6 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         init_centers_array = numpy.array(init_centers)
         init_centers_list = init_centers_array.tolist()
         while True:
-
             metrics_local = local_run(
                 func=compute_metrics2,
                 positional_args=[X_not_null, centers_to_compute, n_clusters],
