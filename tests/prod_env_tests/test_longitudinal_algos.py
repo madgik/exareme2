@@ -90,6 +90,25 @@ def test_longitudinal_logistic_regression():
     assert response.status_code == 200, f"{response.status_code}: {response.content}"
 
 
+def test_longitudinal_logistic_regression_error_less_strategies():
+    input = deepcopy(base_input)
+    input["inputdata"]["x"] = [
+        "cerebellarvermallobulesviiix",
+        "rightpcggposteriorcingulategyrus",
+        "leftacgganteriorcingulategyrus",
+    ]
+    input["inputdata"]["y"] = ["alzheimerbroadcategory"]
+    input["parameters"]["positive_class"] = "Other"
+    input["preprocessing"]["longitudinal_transformer"]["strategies"] = {
+        "cerebellarvermallobulesviiix": "first",
+        "rightpcggposteriorcingulategyrus": "diff",
+        "leftacgganteriorcingulategyrus": "diff",
+    }
+
+    response = algorithm_request("logistic_regression", input)
+    assert response.status_code == 460, f"{response.status_code}: {response.content}"
+
+
 def test_longitudinal_logistic_regression_cv():
     input = deepcopy(base_input)
     input["inputdata"]["x"] = ["lefthippocampus", "leftamygdala"]
