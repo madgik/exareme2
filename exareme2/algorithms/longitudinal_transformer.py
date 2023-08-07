@@ -135,6 +135,16 @@ class LongitudinalTransformerRunner:
         visit2 = self.algorithm_parameters["visit2"]
         strategies = self.algorithm_parameters["strategies"]
 
+        # Following, there is a check that all variables have a strategy
+        # Subject id and visit id, do not need a strategy, so we exclude them
+        excluded_vars = ["subjectid", "visitid"]
+        # These variable names should exist in the strategies parameters for the transformation to work
+        vars_in_strategies = X.columns + y.columns
+        var_names = set(vars_in_strategies) - set(excluded_vars)
+
+        if set(strategies.keys()) != var_names:
+            raise BadUserInput(f"A strategy must be selected for all variables.")
+
         # Split strategies to X and Y part
         x_strats = {
             name: strat
