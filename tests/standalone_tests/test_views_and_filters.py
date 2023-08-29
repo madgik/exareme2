@@ -16,7 +16,8 @@ from tests.standalone_tests.conftest import ALGORITHMS_URL
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 from tests.standalone_tests.test_smpc_node_tasks import TASKS_TIMEOUT
-
+from tests.standalone_tests.conftest import insert_data_to_localnode
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 
 @pytest.fixture
 def request_id():
@@ -115,17 +116,19 @@ def test_view_without_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    task_signature = get_celery_task_signature("insert_data_to_table")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    # task_signature = get_celery_task_signature("insert_data_to_table")
+    # async_result = localnode1_celery_app.queue_task(
+    #     task_signature=task_signature,
+    #     logger=StdOutputLogger(),
+    #     request_id=request_id,
+    #     table_name=table_info.name,
+    #     values=values,
+    # )
+    # localnode1_celery_app.get_result(
+    #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    # )
+    insert_data_to_localnode(table_info.name,values,MONETDB_LOCALNODE1_PORT)
+
 
     columns = ["col1", "col3"]
     task_signature = get_celery_task_signature("create_view")
@@ -217,17 +220,18 @@ def test_view_with_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    task_signature = get_celery_task_signature("insert_data_to_table")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    # task_signature = get_celery_task_signature("insert_data_to_table")
+    # async_result = localnode1_celery_app.queue_task(
+    #     task_signature=task_signature,
+    #     logger=StdOutputLogger(),
+    #     request_id=request_id,
+    #     table_name=table_info.name,
+    #     values=values,
+    # )
+    # localnode1_celery_app.get_result(
+    #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
+    # )
+    insert_data_to_localnode(table_info.name,values,MONETDB_LOCALNODE1_PORT)
 
     columns = ["col1", "col3"]
     filters = {

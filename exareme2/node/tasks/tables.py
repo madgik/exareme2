@@ -85,4 +85,4 @@ def insert_data_to_table(
     values : List[List[Union[str, int, float, bool]]
         The data of the table to be inserted
     """
-    tables.insert_data_to_table(table_name, values)
+    return tables.insert_data_to_table(table_name, values)

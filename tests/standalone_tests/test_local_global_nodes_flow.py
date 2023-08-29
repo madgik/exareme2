@@ -13,9 +13,12 @@ from tests.standalone_tests.conftest import MONETDB_LOCALNODE2_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.conftest import insert_data_to_localnode
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE2_PORT
 
 create_table_task_signature = get_celery_task_signature("create_table")
-insert_task_signature = get_celery_task_signature("insert_data_to_table")
+# insert_task_signature = get_celery_task_signature("insert_data_to_table")
 create_remote_task_signature = get_celery_task_signature("create_remote_table")
 get_remote_tables_task_signature = get_celery_task_signature("get_remote_tables")
 create_merge_task_signature = get_celery_task_signature("create_merge_table")
@@ -92,32 +95,36 @@ def test_create_merge_table_with_remote_tables(
 
     # Insert data into local tables
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=insert_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=local_node_1_table_info.name,
-        values=values,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
+    # async_result = localnode1_celery_app.queue_task(
+    #     task_signature=insert_task_signature,
+    #     logger=StdOutputLogger(),
+    #     request_id=request_id,
+    #     table_name=local_node_1_table_info.name,
+    #     values=values,
+    # )
+    # localnode1_celery_app.get_result(
+    #     async_result=async_result,
+    #     logger=StdOutputLogger(),
+    #     timeout=TASKS_TIMEOUT,
+    # )
+    insert_data_to_localnode(local_node_1_table_info.name,values,MONETDB_LOCALNODE1_PORT)
 
-    async_result = localnode2_celery_app.queue_task(
-        task_signature=insert_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=local_node_2_table_info.name,
-        values=values,
-    )
 
-    localnode2_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
+    # async_result = localnode2_celery_app.queue_task(
+    #     task_signature=insert_task_signature,
+    #     logger=StdOutputLogger(),
+    #     request_id=request_id,
+    #     table_name=local_node_2_table_info.name,
+    #     values=values,
+    # )
+
+    # localnode2_celery_app.get_result(
+    #     async_result=async_result,
+    #     logger=StdOutputLogger(),
+    #     timeout=TASKS_TIMEOUT,
+    # )
+    insert_data_to_localnode(local_node_2_table_info.name,values,MONETDB_LOCALNODE2_PORT)
+
 
     # Create remote tables
     local_node_1_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALNODE1_PORT}"
