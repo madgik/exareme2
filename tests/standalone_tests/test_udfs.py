@@ -25,17 +25,15 @@ from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.conftest import insert_data_to_localnode
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-from tests.standalone_tests.conftest import insert_data_to_localnode
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
-
 
 command_id = "command123"
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
-
 
 
 # Alias locslnode1_db_cursor to db
@@ -45,7 +43,7 @@ def db(localnode1_db_cursor):
 
 
 def create_table_with_one_column_and_ten_rows(
-        celery_app, request_id,db
+    celery_app, request_id, db
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
     # insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
@@ -79,7 +77,7 @@ def create_table_with_one_column_and_ten_rows(
     # celery_app.get_result(
     #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT)
 
-    insert_data_to_localnode(table_info.name,values,MONETDB_LOCALNODE1_PORT)
+    insert_data_to_localnode(table_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     # breakpoint()
     # sql = f"""
@@ -132,14 +130,14 @@ def test_run_udf_state_and_transfer_output(
     use_localnode1_database,
     localnode1_db_cursor,
     localnode1_celery_app,
-    db
+    db,
 ):
     run_udf_task = get_celery_task_signature("run_udf")
 
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, request_id,db
+        localnode1_celery_app, request_id, db
     )
 
     kw_args_str = NodeUDFKeyArguments(
@@ -245,12 +243,12 @@ def test_run_udf_with_remote_state_table_passed_as_normal_table(
 @pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-473")
 @pytest.mark.slow
 def test_slow_udf_exception(
-        localnode1_node_service, use_localnode1_database, localnode1_celery_app,db
+    localnode1_node_service, use_localnode1_database, localnode1_celery_app, db
 ):
     run_udf_task = get_celery_task_signature("run_udf")
 
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, request_id,db
+        localnode1_celery_app, request_id, db
     )
 
     kw_args_str = NodeUDFKeyArguments(

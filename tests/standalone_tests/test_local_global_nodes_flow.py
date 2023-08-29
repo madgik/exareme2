@@ -11,11 +11,9 @@ from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE2_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.conftest import insert_data_to_localnode
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-from tests.standalone_tests.conftest import insert_data_to_localnode
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE2_PORT
 
 create_table_task_signature = get_celery_task_signature("create_table")
 # insert_task_signature = get_celery_task_signature("insert_data_to_table")
@@ -107,8 +105,9 @@ def test_create_merge_table_with_remote_tables(
     #     logger=StdOutputLogger(),
     #     timeout=TASKS_TIMEOUT,
     # )
-    insert_data_to_localnode(local_node_1_table_info.name,values,MONETDB_LOCALNODE1_PORT)
-
+    insert_data_to_localnode(
+        local_node_1_table_info.name, values, MONETDB_LOCALNODE1_PORT
+    )
 
     # async_result = localnode2_celery_app.queue_task(
     #     task_signature=insert_task_signature,
@@ -123,8 +122,9 @@ def test_create_merge_table_with_remote_tables(
     #     logger=StdOutputLogger(),
     #     timeout=TASKS_TIMEOUT,
     # )
-    insert_data_to_localnode(local_node_2_table_info.name,values,MONETDB_LOCALNODE2_PORT)
-
+    insert_data_to_localnode(
+        local_node_2_table_info.name, values, MONETDB_LOCALNODE2_PORT
+    )
 
     # Create remote tables
     local_node_1_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALNODE1_PORT}"

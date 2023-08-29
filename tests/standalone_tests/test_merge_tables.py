@@ -9,11 +9,11 @@ from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
 from exareme2.node_tasks_DTOs import TableType
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.conftest import insert_data_to_localnode
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-from tests.standalone_tests.conftest import insert_data_to_localnode
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 
 create_table_task_signature = get_celery_task_signature("create_table")
 create_merge_table_task_signature = get_celery_task_signature("create_merge_table")
@@ -97,7 +97,7 @@ def create_three_column_table_with_data(
     #     logger=StdOutputLogger(),
     #     timeout=TASKS_TIMEOUT,
     # )
-    insert_data_to_localnode(table_info.name,values,MONETDB_LOCALNODE1_PORT)
+    insert_data_to_localnode(table_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     return table_info
 
