@@ -37,7 +37,7 @@ from tests.standalone_tests.conftest import MONETDB_SMPC_LOCALNODE2_PORT
 from tests.standalone_tests.conftest import SMPC_COORDINATOR_ADDRESS
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import get_node_config_by_id
-from tests.standalone_tests.conftest import insert_data_to_localnode
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
@@ -51,7 +51,6 @@ def create_table_with_one_column_and_ten_rows(
     celery_app: Celery, monetdb_localnode_port
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
-    # insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
     table_schema = TableSchema(
         columns=[
@@ -71,13 +70,7 @@ def create_table_with_one_column_and_ten_rows(
 
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
 
-    # celery_app.signature(insert_data_to_table_task).delay(
-    #     request_id=request_id,
-    #     table_name=table_info.name,
-    #     values=values,
-    # ).get(timeout=TASKS_TIMEOUT)
-
-    insert_data_to_localnode(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
 
     return table_info, 55
 
@@ -109,8 +102,6 @@ def create_secure_transfer_table(celery_app: Celery) -> TableInfo:
 def create_table_with_secure_transfer_results_with_smpc_off(
     celery_app: Celery, monetdb_localnode_port
 ) -> Tuple[TableInfo, int]:
-    # task_signature = get_celery_task_signature("insert_data_to_table")
-
     table_info = create_secure_transfer_table(celery_app)
 
     secure_transfer_1_value = 100
@@ -127,12 +118,7 @@ def create_table_with_secure_transfer_results_with_smpc_off(
         [json.dumps(secure_transfer_2)],
     ]
 
-    # celery_app.signature(task_signature).delay(
-    #     request_id=request_id,
-    #     table_name=table_info.name,
-    #     values=values,
-    # ).get(timeout=TASKS_TIMEOUT)
-    insert_data_to_localnode(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
 
     return table_info, secure_transfer_1_value + secure_transfer_2_value
 
@@ -140,8 +126,6 @@ def create_table_with_secure_transfer_results_with_smpc_off(
 def create_table_with_multiple_secure_transfer_templates(
     celery_app: Celery, monetdb_localnode_port: int, similar: bool
 ) -> TableInfo:
-    # task_signature = get_celery_task_signature("insert_data_to_table")
-
     table_info = create_secure_transfer_table(celery_app)
 
     secure_transfer_template = {
@@ -162,12 +146,7 @@ def create_table_with_multiple_secure_transfer_templates(
             [json.dumps(different_secure_transfer_template)],
         ]
 
-    # celery_app.signature(task_signature).delay(
-    #     request_id=request_id,
-    #     table_name=table_info.name,
-    #     values=values,
-    # ).get(timeout=TASKS_TIMEOUT)
-    insert_data_to_localnode(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
 
     return table_info
 
@@ -175,8 +154,6 @@ def create_table_with_multiple_secure_transfer_templates(
 def create_table_with_smpc_sum_op_values(
     celery_app: Celery, monetdb_localnode_port: int
 ) -> Tuple[TableInfo, str]:
-    # task_signature = get_celery_task_signature("insert_data_to_table")
-
     table_info = create_secure_transfer_table(celery_app)
 
     sum_op_values = [0, 1, 2, 3, 4, 5]
@@ -184,12 +161,7 @@ def create_table_with_smpc_sum_op_values(
         [json.dumps(sum_op_values)],
     ]
 
-    # celery_app.signature(task_signature).delay(
-    #     request_id=request_id,
-    #     table_name=table_info.name,
-    #     values=values,
-    # ).get(timeout=TASKS_TIMEOUT)
-    insert_data_to_localnode(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
 
     return table_info, json.dumps(sum_op_values)
 

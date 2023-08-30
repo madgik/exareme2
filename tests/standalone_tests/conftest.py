@@ -559,10 +559,10 @@ def localnodetmp_db_cursor():
     return _create_db_cursor(MONETDB_LOCALNODETMP_PORT)
 
 
-def insert_data_to_localnode(
+def insert_data_to_db(
     table_name: str,
     table_values: List[List[Union[str, int, float]]],
-    monetdb_localnode_port,
+    db_port,
 ):
     row_length = len(table_values[0])
     if all(len(row) != row_length for row in table_values):
@@ -576,7 +576,7 @@ def insert_data_to_localnode(
     )
     sql_clause = f"INSERT INTO {table_name} VALUES {values}"
 
-    cursor = _create_db_cursor(monetdb_localnode_port)
+    cursor = _create_db_cursor(db_port)
     cursor.execute(sql_clause, list(chain(*table_values)))
 
 

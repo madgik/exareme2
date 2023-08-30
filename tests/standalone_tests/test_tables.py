@@ -12,7 +12,7 @@ from exareme2.table_data_DTOs import ColumnDataInt
 from exareme2.table_data_DTOs import ColumnDataStr
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
-from tests.standalone_tests.conftest import insert_data_to_localnode
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
@@ -92,7 +92,7 @@ def test_create_and_find_tables(
     #     logger=StdOutputLogger(),
     #     timeout=TASKS_TIMEOUT,
     # )
-    insert_data_to_localnode(table_1_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_1_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,
@@ -158,7 +158,7 @@ def test_create_and_find_tables(
     #     logger=StdOutputLogger(),
     #     timeout=TASKS_TIMEOUT,
     # )
-    insert_data_to_localnode(table_2_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_2_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,

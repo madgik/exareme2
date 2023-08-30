@@ -14,7 +14,7 @@ from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import ALGORITHMS_URL
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
-from tests.standalone_tests.conftest import insert_data_to_localnode
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 from tests.standalone_tests.test_smpc_node_tasks import TASKS_TIMEOUT
@@ -128,7 +128,7 @@ def test_view_without_filters(
     # localnode1_celery_app.get_result(
     #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     # )
-    insert_data_to_localnode(table_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     columns = ["col1", "col3"]
     task_signature = get_celery_task_signature("create_view")
@@ -231,7 +231,7 @@ def test_view_with_filters(
     # localnode1_celery_app.get_result(
     #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     # )
-    insert_data_to_localnode(table_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     columns = ["col1", "col3"]
     filters = {
