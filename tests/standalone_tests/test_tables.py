@@ -18,7 +18,6 @@ from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 create_table_task_signature = get_celery_task_signature("create_table")
 get_tables_task_signature = get_celery_task_signature("get_tables")
-# insert_data_to_table_task_signature = get_celery_task_signature("insert_data_to_table")
 get_table_data_task_signature = get_celery_task_signature("get_table_data")
 
 
@@ -80,18 +79,6 @@ def test_create_and_find_tables(
     assert table_1_info.name in tables
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    # async_result = localnode1_celery_app.queue_task(
-    #     task_signature=insert_data_to_table_task_signature,
-    #     logger=StdOutputLogger(),
-    #     request_id=request_id,
-    #     table_name=table_1_info.name,
-    #     values=values,
-    # )
-    # localnode1_celery_app.get_result(
-    #     async_result=async_result,
-    #     logger=StdOutputLogger(),
-    #     timeout=TASKS_TIMEOUT,
-    # )
     insert_data_to_db(table_1_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     async_result = localnode1_celery_app.queue_task(
@@ -145,19 +132,6 @@ def test_create_and_find_tables(
     assert table_2_info.name in tables
 
     values = [[1, 0.1, "test1"], [2, None, "None"], [3, 0.3, None]]
-
-    # async_result = localnode1_celery_app.queue_task(
-    #     task_signature=insert_data_to_table_task_signature,
-    #     logger=StdOutputLogger(),
-    #     request_id=request_id,
-    #     table_name=table_2_info.name,
-    #     values=values,
-    # )
-    # localnode1_celery_app.get_result(
-    #     async_result=async_result,
-    #     logger=StdOutputLogger(),
-    #     timeout=TASKS_TIMEOUT,
-    # )
     insert_data_to_db(table_2_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     async_result = localnode1_celery_app.queue_task(

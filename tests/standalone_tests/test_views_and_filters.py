@@ -117,17 +117,6 @@ def test_view_without_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    # task_signature = get_celery_task_signature("insert_data_to_table")
-    # async_result = localnode1_celery_app.queue_task(
-    #     task_signature=task_signature,
-    #     logger=StdOutputLogger(),
-    #     request_id=request_id,
-    #     table_name=table_info.name,
-    #     values=values,
-    # )
-    # localnode1_celery_app.get_result(
-    #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    # )
     insert_data_to_db(table_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     columns = ["col1", "col3"]
@@ -220,17 +209,6 @@ def test_view_with_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    # task_signature = get_celery_task_signature("insert_data_to_table")
-    # async_result = localnode1_celery_app.queue_task(
-    #     task_signature=task_signature,
-    #     logger=StdOutputLogger(),
-    #     request_id=request_id,
-    #     table_name=table_info.name,
-    #     values=values,
-    # )
-    # localnode1_celery_app.get_result(
-    #     async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    # )
     insert_data_to_db(table_info.name, values, MONETDB_LOCALNODE1_PORT)
 
     columns = ["col1", "col3"]
