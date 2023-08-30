@@ -5,6 +5,7 @@ import pathlib
 import re
 import subprocess
 import time
+from itertools import chain
 from os import path
 from pathlib import Path
 from typing import List
@@ -567,31 +568,16 @@ def insert_data_to_localnode(
     if all(len(row) != row_length for row in table_values):
         raise Exception("Not all rows have the same number of values")
 
-    # rows= ["(" + ",".join(map(str, sublist)) + ")" for sublist in table_values]
-    table_values = [
-        [item if item is not None else "None" for item in sublist]
-        for sublist in table_values
-    ]
-    rows = ["(" + ",".join(map(repr, sublist)) + ")" for sublist in table_values]
-
-    # rows = [str(tuple(sub)) for sub in table_values]
-    # rows = [item.replace('None', "'None'") for item in rows]
-
     # In order to achieve insertion with parameters we need to create query to the following format:
     # INSERT INTO <table_name> VALUES (%s, %s), (%s, %s);
     # The following variable 'values' create that specific str according to row_length and the amount of the rows.
-    # values = ", ".join(
-    #     "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
-    # )
-
-    # sql_clause = f"INSERT INTO {table_name} VALUES {values}"
-    sql_clause = f"INSERT INTO {table_name} VALUES {', '.join(rows)}"
+    values = ", ".join(
+        "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
+    )
+    sql_clause = f"INSERT INTO {table_name} VALUES {values}"
 
     cursor = _create_db_cursor(monetdb_localnode_port)
-    cursor.execute(sql_clause)
-    # breakpoint()
-    # with cursor(commit=True) as cur:
-    #     cursor.execute(sql_clause,list(chain(*table_values)))
+    cursor.execute(sql_clause, list(chain(*table_values)))
 
 
 def _clean_db(cursor):
