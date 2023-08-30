@@ -37,7 +37,7 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 def create_table_with_one_column_and_ten_rows(
-    celery_app, monetdb_port, request_id
+    celery_app, db_port, request_id
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
 
@@ -61,7 +61,7 @@ def create_table_with_one_column_and_ten_rows(
     )
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
 
-    insert_data_to_db(table_info.name, values, monetdb_port)
+    insert_data_to_db(table_info.name, values, db_port)
 
     return table_info, 55
 
