@@ -10,7 +10,6 @@ from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
 from exareme2.node_tasks_DTOs import NodeUDFPosArguments
 from exareme2.udfgen import make_unique_func_name
 from tests.algorithms.orphan_udfs import one_second_udf
-from tests.standalone_tests.conftest import MONETDB_GLOBALNODE_PORT
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
@@ -48,13 +47,14 @@ def queue_one_second_udf(
 @pytest.mark.very_slow
 def test_node_info_tasks_have_higher_priority_over_other_tasks(
     globalnode_node_service,
+    globalnode_db_cursor,
     reset_celery_app_factory,
     get_controller_testing_logger,
 ):
     cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALNODE_ADDR)
 
     input_table_name, _ = create_table_with_one_column_and_ten_rows(
-        cel_app_wrapper, MONETDB_GLOBALNODE_PORT, request_id
+        cel_app_wrapper, globalnode_db_cursor, request_id
     )
 
     # Queue an X amount of udfs to fill the rabbitmq.
