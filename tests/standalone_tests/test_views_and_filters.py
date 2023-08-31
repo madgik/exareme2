@@ -117,7 +117,7 @@ def test_view_without_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    insert_data_to_db(table_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_info.name, values, localnode1_db_cursor)
 
     columns = ["col1", "col3"]
     task_signature = get_celery_task_signature("create_view")
@@ -182,8 +182,8 @@ def test_view_with_filters(
     context_id,
     load_data_localnode1,
     localnode1_node_service,
-    localnode1_celery_app,
     use_localnode1_database,
+    localnode1_db_cursor,
 ):
     table_schema = TableSchema(
         columns=[
@@ -209,7 +209,7 @@ def test_view_with_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    insert_data_to_db(table_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_info.name, values, localnode1_db_cursor)
 
     columns = ["col1", "col3"]
     filters = {

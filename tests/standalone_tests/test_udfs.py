@@ -37,7 +37,7 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 def create_table_with_one_column_and_ten_rows(
-    celery_app, db_port, request_id
+    celery_app, db_cursor, request_id
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
 
@@ -60,8 +60,7 @@ def create_table_with_one_column_and_ten_rows(
         )
     )
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
-
-    insert_data_to_db(table_info.name, values, db_port)
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info, 55
 
@@ -100,7 +99,7 @@ def test_run_udf_state_and_transfer_output(
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, MONETDB_LOCALNODE1_PORT, request_id
+        localnode1_celery_app, localnode1_db_cursor, request_id
     )
 
     kw_args_str = NodeUDFKeyArguments(

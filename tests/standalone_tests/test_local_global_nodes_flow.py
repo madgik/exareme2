@@ -42,8 +42,10 @@ def test_create_merge_table_with_remote_tables(
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
     localnode2_node_service,
     localnode2_celery_app,
+    localnode2_db_cursor,
     globalnode_node_service,
     globalnode_celery_app,
 ):
@@ -92,8 +94,8 @@ def test_create_merge_table_with_remote_tables(
 
     # Insert data into local tables
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
-    insert_data_to_db(local_node_1_table_info.name, values, MONETDB_LOCALNODE1_PORT)
-    insert_data_to_db(local_node_2_table_info.name, values, MONETDB_LOCALNODE2_PORT)
+    insert_data_to_db(local_node_1_table_info.name, values, localnode1_db_cursor)
+    insert_data_to_db(local_node_2_table_info.name, values, localnode2_db_cursor)
 
     # Create remote tables
     local_node_1_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALNODE1_PORT}"

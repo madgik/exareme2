@@ -39,6 +39,7 @@ def test_create_and_find_tables(
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
 ):
     table_schema = TableSchema(
         columns=[
@@ -79,7 +80,7 @@ def test_create_and_find_tables(
     assert table_1_info.name in tables
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    insert_data_to_db(table_1_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_1_info.name, values, localnode1_db_cursor)
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,
@@ -132,7 +133,7 @@ def test_create_and_find_tables(
     assert table_2_info.name in tables
 
     values = [[1, 0.1, "test1"], [2, None, "None"], [3, 0.3, None]]
-    insert_data_to_db(table_2_info.name, values, MONETDB_LOCALNODE1_PORT)
+    insert_data_to_db(table_2_info.name, values, localnode1_db_cursor)
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,

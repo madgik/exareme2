@@ -48,7 +48,7 @@ SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
 
 
 def create_table_with_one_column_and_ten_rows(
-    celery_app: Celery, monetdb_localnode_port
+    celery_app: Celery, db_cursor
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
 
@@ -70,7 +70,7 @@ def create_table_with_one_column_and_ten_rows(
 
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
 
-    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info, 55
 
@@ -100,7 +100,7 @@ def create_secure_transfer_table(celery_app: Celery) -> TableInfo:
 
 # TODO More dynamic so it can receive any secure_transfer values
 def create_table_with_secure_transfer_results_with_smpc_off(
-    celery_app: Celery, monetdb_localnode_port
+    celery_app: Celery, db_cursor
 ) -> Tuple[TableInfo, int]:
     table_info = create_secure_transfer_table(celery_app)
 
@@ -118,13 +118,13 @@ def create_table_with_secure_transfer_results_with_smpc_off(
         [json.dumps(secure_transfer_2)],
     ]
 
-    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info, secure_transfer_1_value + secure_transfer_2_value
 
 
 def create_table_with_multiple_secure_transfer_templates(
-    celery_app: Celery, monetdb_localnode_port: int, similar: bool
+    celery_app: Celery, db_cursor, similar: bool
 ) -> TableInfo:
     table_info = create_secure_transfer_table(celery_app)
 
@@ -146,13 +146,13 @@ def create_table_with_multiple_secure_transfer_templates(
             [json.dumps(different_secure_transfer_template)],
         ]
 
-    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info
 
 
 def create_table_with_smpc_sum_op_values(
-    celery_app: Celery, monetdb_localnode_port: int
+    celery_app: Celery, db_cursor
 ) -> Tuple[TableInfo, str]:
     table_info = create_secure_transfer_table(celery_app)
 
@@ -161,7 +161,7 @@ def create_table_with_smpc_sum_op_values(
         [json.dumps(sum_op_values)],
     ]
 
-    insert_data_to_db(table_info.name, values, monetdb_localnode_port)
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info, json.dumps(sum_op_values)
 
@@ -187,14 +187,17 @@ def validate_table_data_match_expected(
 
 @pytest.mark.slow
 def test_secure_transfer_output_with_smpc_off(
-    localnode1_node_service, use_localnode1_database, localnode1_celery_app
+    localnode1_node_service,
+    use_localnode1_database,
+    localnode1_celery_app,
+    localnode1_db_cursor,
 ):
     localnode1_celery_app = localnode1_celery_app._celery_app
     run_udf_task = get_celery_task_signature("run_udf")
     get_table_data_task = get_celery_task_signature("get_table_data")
 
     input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, MONETDB_LOCALNODE1_PORT
+        localnode1_celery_app, localnode1_db_cursor
     )
 
     pos_args_str = NodeUDFPosArguments(
@@ -232,7 +235,10 @@ def test_secure_transfer_output_with_smpc_off(
 
 @pytest.mark.slow
 def test_secure_transfer_input_with_smpc_off(
-    localnode1_node_service, use_localnode1_database, localnode1_celery_app
+    localnode1_node_service,
+    use_localnode1_database,
+    localnode1_celery_app,
+    localnode1_db_cursor,
 ):
     localnode1_celery_app = localnode1_celery_app._celery_app
     run_udf_task = get_celery_task_signature("run_udf")
@@ -242,7 +248,7 @@ def test_secure_transfer_input_with_smpc_off(
         secure_transfer_results_tableinfo,
         secure_transfer_results_values_sum,
     ) = create_table_with_secure_transfer_results_with_smpc_off(
-        localnode1_celery_app, MONETDB_LOCALNODE1_PORT
+        localnode1_celery_app, localnode1_db_cursor
     )
 
     pos_args_str = NodeUDFPosArguments(
@@ -284,6 +290,7 @@ def test_validate_smpc_templates_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    localnode1_smpc_db_cursor,
 ):
     smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     validate_smpc_templates_match_task = get_celery_task_signature(
@@ -291,7 +298,7 @@ def test_validate_smpc_templates_match(
     )
 
     table_info = create_table_with_multiple_secure_transfer_templates(
-        smpc_localnode1_celery_app, MONETDB_SMPC_LOCALNODE1_PORT, True
+        smpc_localnode1_celery_app, localnode1_smpc_db_cursor, True
     )
 
     try:
@@ -310,6 +317,7 @@ def test_validate_smpc_templates_dont_match(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    localnode1_smpc_db_cursor,
 ):
     smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     validate_smpc_templates_match_task = get_celery_task_signature(
@@ -317,7 +325,7 @@ def test_validate_smpc_templates_dont_match(
     )
 
     table_info = create_table_with_multiple_secure_transfer_templates(
-        smpc_localnode1_celery_app, MONETDB_SMPC_LOCALNODE1_PORT, False
+        smpc_localnode1_celery_app, localnode1_smpc_db_cursor, False
     )
 
     with pytest.raises(ValueError) as exc:
@@ -335,6 +343,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    localnode1_smpc_db_cursor,
 ):
     smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     run_udf_task = get_celery_task_signature("run_udf")
@@ -342,7 +351,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 
     # ----------------------- SECURE TRANSFER OUTPUT ----------------------
     input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        smpc_localnode1_celery_app, MONETDB_SMPC_LOCALNODE1_PORT
+        smpc_localnode1_celery_app, localnode1_smpc_db_cursor
     )
 
     pos_args_str = NodeUDFPosArguments(
@@ -448,11 +457,12 @@ def test_load_data_to_smpc_client(
     smpc_localnode1_node_service,
     use_smpc_localnode1_database,
     smpc_localnode1_celery_app,
+    localnode1_smpc_db_cursor,
     smpc_cluster,
 ):
     smpc_localnode1_celery_app = smpc_localnode1_celery_app._celery_app
     table_info, sum_op_values_str = create_table_with_smpc_sum_op_values(
-        smpc_localnode1_celery_app, MONETDB_SMPC_LOCALNODE1_PORT
+        smpc_localnode1_celery_app, localnode1_smpc_db_cursor
     )
     load_data_to_smpc_client_task = get_celery_task_signature(
         "load_data_to_smpc_client"
@@ -598,6 +608,8 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
     smpc_globalnode_celery_app,
     smpc_localnode1_celery_app,
     smpc_localnode2_celery_app,
+    localnode1_smpc_db_cursor,
+    localnode2_smpc_db_cursor,
     smpc_cluster,
 ):
     smpc_globalnode_celery_app = smpc_globalnode_celery_app._celery_app
@@ -639,13 +651,13 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
         input_table_1_name,
         input_table_1_name_sum,
     ) = create_table_with_one_column_and_ten_rows(
-        smpc_localnode1_celery_app, MONETDB_SMPC_LOCALNODE1_PORT
+        smpc_localnode1_celery_app, localnode1_smpc_db_cursor
     )
     (
         input_table_2_name,
         input_table_2_name_sum,
     ) = create_table_with_one_column_and_ten_rows(
-        smpc_localnode2_celery_app, MONETDB_SMPC_LOCALNODE2_PORT
+        smpc_localnode2_celery_app, localnode2_smpc_db_cursor
     )
 
     # ---------------- RUN LOCAL UDFS WITH SECURE TRANSFER OUTPUT ----------------------
