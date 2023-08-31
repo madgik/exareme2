@@ -89,7 +89,7 @@ def test_view_without_filters(
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
-    use_localnode1_database,
+    localnode1_db_cursor,
 ):
     table_schema = TableSchema(
         columns=[
@@ -182,6 +182,7 @@ def test_view_with_filters(
     context_id,
     load_data_localnode1,
     localnode1_node_service,
+    localnode1_celery_app,
     use_localnode1_database,
     localnode1_db_cursor,
 ):
