@@ -25,7 +25,9 @@ from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
@@ -35,10 +37,9 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 def create_table_with_one_column_and_ten_rows(
-    celery_app, request_id
+    celery_app, db_cursor, request_id
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
-    insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
     table_schema = TableSchema(
         columns=[
@@ -58,18 +59,8 @@ def create_table_with_one_column_and_ten_rows(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     )
-
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
-    async_result = celery_app.queue_task(
-        task_signature=insert_data_to_table_task,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info, 55
 
@@ -108,7 +99,7 @@ def test_run_udf_state_and_transfer_output(
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, request_id
+        localnode1_celery_app, localnode1_db_cursor, request_id
     )
 
     kw_args_str = NodeUDFKeyArguments(

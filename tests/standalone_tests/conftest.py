@@ -5,8 +5,11 @@ import pathlib
 import re
 import subprocess
 import time
+from itertools import chain
 from os import path
 from pathlib import Path
+from typing import List
+from typing import Union
 
 import docker
 import psutil
@@ -554,6 +557,21 @@ def localnode2_smpc_db_cursor():
 @pytest.fixture(scope="function")
 def localnodetmp_db_cursor():
     return _create_db_cursor(MONETDB_LOCALNODETMP_PORT)
+
+
+def insert_data_to_db(
+    table_name: str, table_values: List[List[Union[str, int, float]]], db_cursor
+):
+    row_length = len(table_values[0])
+    if all(len(row) != row_length for row in table_values):
+        raise Exception("Not all rows have the same number of values")
+
+    values = ", ".join(
+        "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
+    )
+    sql_clause = f"INSERT INTO {table_name} VALUES {values}"
+
+    db_cursor.execute(sql_clause, list(chain(*table_values)))
 
 
 def _clean_db(cursor):

@@ -9,13 +9,14 @@ from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
 from exareme2.node_tasks_DTOs import TableType
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 create_table_task_signature = get_celery_task_signature("create_table")
 create_merge_table_task_signature = get_celery_task_signature("create_merge_table")
-insert_data_to_table_task_signature = get_celery_task_signature("insert_data_to_table")
 get_merge_tables_task_signature = get_celery_task_signature("get_merge_tables")
 
 
@@ -57,7 +58,7 @@ def create_two_column_table(request_id, context_id, table_id: int, celery_app):
 
 
 def create_three_column_table_with_data(
-    request_id, context_id, table_id: int, celery_app
+    request_id, context_id, table_id: int, celery_app, db_cursor
 ):
     table_schema = TableSchema(
         columns=[
@@ -83,18 +84,7 @@ def create_three_column_table_with_data(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
-    async_result = celery_app.queue_task(
-        task_signature=insert_data_to_table_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info
 
@@ -105,10 +95,11 @@ def test_create_and_get_merge_table(
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
 ):
     tables_to_be_merged = [
         create_three_column_table_with_data(
-            request_id, context_id, count, localnode1_celery_app
+            request_id, context_id, count, localnode1_celery_app, localnode1_db_cursor
         )
         for count in range(0, 5)
     ]
@@ -148,15 +139,16 @@ def test_incompatible_schemas_merge(
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
 ):
     incompatible_partition_tables = [
         create_three_column_table_with_data(
-            request_id, context_id, 1, localnode1_celery_app
+            request_id, context_id, 1, localnode1_celery_app, localnode1_db_cursor
         ),
         create_two_column_table(request_id, context_id, 2, localnode1_celery_app),
         create_two_column_table(request_id, context_id, 3, localnode1_celery_app),
         create_three_column_table_with_data(
-            request_id, context_id, 4, localnode1_celery_app
+            request_id, context_id, 4, localnode1_celery_app, localnode1_db_cursor
         ),
     ]
     async_result = localnode1_celery_app.queue_task(
@@ -184,13 +176,14 @@ def test_table_cannot_be_found(
     context_id,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
 ):
     not_found_tables = [
         create_three_column_table_with_data(
-            request_id, context_id, 1, localnode1_celery_app
+            request_id, context_id, 1, localnode1_celery_app, localnode1_db_cursor
         ),
         create_three_column_table_with_data(
-            request_id, context_id, 2, localnode1_celery_app
+            request_id, context_id, 2, localnode1_celery_app, localnode1_db_cursor
         ),
         TableInfo(
             name="non_existing_table",
