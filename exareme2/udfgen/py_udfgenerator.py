@@ -407,7 +407,7 @@ class PyUdfGenerator(UdfGenerator):
             main_output_type = relation(schema=self.output_schema)
             return (main_output_type,)
 
-        # case: output type has to be infered at execution time
+        # case: output type has to be inferred at execution time
         main_output_type, *_ = self.funcparts.output_types
         if (
             isinstance(main_output_type, ParametrizedType)
@@ -520,7 +520,7 @@ class PyUdfGenerator(UdfGenerator):
         List[UDFGenResult]
             UDF results
         """
-        builder = UdfResultBuilder(self.output_types, self.smpc_used)
+        builder = UdfResultBuilder(self.output_types)
         results = builder.build_results(output_table_names)
         return results
 
@@ -920,9 +920,8 @@ class UdfExecStmtBuildfer:
 class UdfResultBuilder:
     """Builder class for the UDF result objects"""
 
-    def __init__(self, output_types: List[OutputType], smpc_used: bool = False) -> None:
+    def __init__(self, output_types: List[OutputType]) -> None:
         self.output_types = output_types
-        self.smpc_used = smpc_used
 
     def build_results(self, output_table_names: List[str]) -> List[UDFGenResult]:
         main_table_name, *sec_table_names = output_table_names
@@ -935,26 +934,44 @@ class UdfResultBuilder:
         ]
         return udf_outputs
 
+    @staticmethod
+    def _is_output_type_shareable(output_type: OutputType) -> bool:
+        # TransferType tables are meant to be shared with the remote nodes
+        if isinstance(output_type, TransferType):
+            return True
+
+        # SecureTransferType should be shared if smpc is disabled.
+        # If smpc is enabled SecureTransferType results would be cast to SMPCSecureTransferType as well
+        if isinstance(output_type, SecureTransferType) and not isinstance(
+            output_type, SMPCSecureTransferType
+        ):
+            return True
+        return False
+
     def _make_result(
         self,
         output_type: OutputType,
         table_name: str,
     ) -> UDFGenResult:
-        if isinstance(output_type, SecureTransferType) and self.smpc_used:
+        if isinstance(output_type, SMPCSecureTransferType):
             return self._make_smpc_result(output_type, table_name)
         else:
-            return self._make_table_result(output_type, table_name)
+            return self._make_table_result(
+                output_type, table_name, self._is_output_type_shareable(output_type)
+            )
 
     @staticmethod
     def _make_table_result(
         output_type: OutputType,
         table_name: str,
+        share: bool,
     ) -> UDFGenResult:
         create = CreateTable(table_name, output_type.schema).compile()
         return UDFGenTableResult(
             table_name=table_name,
             table_schema=output_type.schema,
             create_query=create,
+            share=share,
         )
 
     def _make_smpc_result(
@@ -965,15 +982,15 @@ class UdfResultBuilder:
         placeholders = get_smpc_tablename_placeholders(table_name_prefix)
         template_ph, sum_op_ph, min_op_ph, max_op_ph = placeholders
 
-        template = self._make_table_result(output_type, template_ph)
+        template = self._make_table_result(output_type, template_ph, True)
 
         sum_op, min_op, max_op = None, None, None
         if output_type.sum_op:
-            sum_op = self._make_table_result(output_type, sum_op_ph)
+            sum_op = self._make_table_result(output_type, sum_op_ph, False)
         if output_type.min_op:
-            min_op = self._make_table_result(output_type, min_op_ph)
+            min_op = self._make_table_result(output_type, min_op_ph, False)
         if output_type.max_op:
-            max_op = self._make_table_result(output_type, max_op_ph)
+            max_op = self._make_table_result(output_type, max_op_ph, False)
 
         return UDFGenSMPCResult(
             template=template,

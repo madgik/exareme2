@@ -23,6 +23,7 @@ from exareme2.controller.algorithm_execution_engine_tasks_handler import (
 )
 from exareme2.controller.celery_app import CeleryAppFactory
 from exareme2.controller.controller_logger import init_logger
+from exareme2.node_tasks_DTOs import TableSchema
 from exareme2.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms,./tests/algorithms"
@@ -557,6 +558,22 @@ def localnode2_smpc_db_cursor():
 @pytest.fixture(scope="function")
 def localnodetmp_db_cursor():
     return _create_db_cursor(MONETDB_LOCALNODETMP_PORT)
+
+
+def create_table_in_db(
+    db_cursor,
+    table_name: str,
+    table_schema: TableSchema,
+    publish_table: bool = False,
+):
+    query_schema = ",".join(
+        [f"{column.name} {column.dtype.to_sql()}" for column in table_schema.columns]
+    )
+    create_table_query = f"CREATE TABLE {table_name} ({query_schema});"
+    publish_table_query = (
+        f"GRANT SELECT ON TABLE {table_name} TO guest;" if publish_table else ""
+    )
+    db_cursor.execute(create_table_query + publish_table_query)
 
 
 def insert_data_to_db(

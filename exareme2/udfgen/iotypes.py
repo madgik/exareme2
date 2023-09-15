@@ -1,5 +1,5 @@
 from abc import ABC
-from abc import abstractproperty
+from abc import abstractmethod
 from typing import TypeVar
 
 from exareme2 import DType as dt
@@ -50,7 +50,8 @@ class InputType(IOType):
 
 
 class OutputType(IOType):
-    @abstractproperty
+    @property
+    @abstractmethod
     def schema(self):
         raise NotImplementedError
 
@@ -100,7 +101,8 @@ MIN_ROW_COUNT = placeholder("min_row_count")
 
 
 class TableType(ABC):
-    @abstractproperty
+    @property
+    @abstractmethod
     def schema(self):
         raise NotImplementedError
 

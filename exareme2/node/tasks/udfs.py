@@ -16,7 +16,6 @@ from exareme2.node.monetdb_interface.guard import sql_injection_guard
 from exareme2.node.monetdb_interface.guard import udf_kwargs_validator
 from exareme2.node.monetdb_interface.guard import udf_posargs_validator
 from exareme2.node.node_logger import initialise_logger
-from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import NodeLiteralDTO
 from exareme2.node_tasks_DTOs import NodeSMPCDTO
 from exareme2.node_tasks_DTOs import NodeTableDTO
@@ -228,14 +227,15 @@ def _generate_udf_statements(
     output_names = _make_output_table_names(outputnum, node_id, context_id, command_id)
 
     # UDF generation
-    # --------------
     udf_definition = udfgen.get_definition(udf_name, output_names)
     udf_exec_stmt = udfgen.get_exec_stmt(udf_name, output_names)
     udf_results = udfgen.get_results(output_names)
 
-    # Create list of udf statements
-    udf_definitions = [res.create_query for res in udf_results]
-    udf_definitions.append(udf_definition)
+    # Create list of udf definitions
+    table_creation_queries = _get_udf_table_creation_queries(udf_results)
+    public_username = node_config.monetdb.public_username
+    table_sharing_queries = _get_udf_table_sharing_queries(udf_results, public_username)
+    udf_definitions = [*table_creation_queries, *table_sharing_queries, udf_definition]
 
     # Convert results
     results = [_convert_result(res) for res in udf_results]
@@ -257,6 +257,58 @@ def _make_output_table_names(
         )
         for id in range(outputlen)
     ]
+
+
+def _get_udf_table_creation_queries(udf_results: List[UDFGenResult]) -> List[str]:
+    queries = []
+    for result in udf_results:
+        if isinstance(result, UDFGenTableResult):
+            queries.append(result.create_query)
+        elif isinstance(result, UDFGenSMPCResult):
+            queries.extend(_get_udf_smpc_table_creation_queries(result))
+        else:
+            raise NotImplementedError
+    return queries
+
+
+def _get_udf_smpc_table_creation_queries(result: UDFGenSMPCResult) -> List[str]:
+    assert isinstance(result, UDFGenSMPCResult)
+    queries = [result.template.create_query]
+    if result.sum_op_values is not None:
+        queries.append(result.sum_op_values.create_query)
+    if result.min_op_values is not None:
+        queries.append(result.min_op_values.create_query)
+    if result.max_op_values is not None:
+        queries.append(result.max_op_values.create_query)
+    return queries
+
+
+def _get_table_share_query(tablename: str, public_username: str) -> str:
+    return f"GRANT SELECT ON TABLE {tablename} TO {public_username}"
+
+
+def _get_udf_table_sharing_queries(
+    udf_results: List[UDFGenResult], public_username
+) -> List[str]:
+    """
+    Tables should be shared (accessible through the "public" user) in the following cases:
+    1) The result is of UDFGenTableResult type and the share property is True,
+    2) The result is of UDFGenSMPCResult type, so the template should be shared, the rest of the tables
+        will pass through the SMPC.
+    """
+    queries = []
+    for result in udf_results:
+        if isinstance(result, UDFGenTableResult):
+            queries.append(
+                _get_table_share_query(result.table_name, public_username)
+            ) if result.share else None
+        elif isinstance(result, UDFGenSMPCResult):
+            queries.append(
+                _get_table_share_query(result.template.table_name, public_username)
+            )
+        else:
+            raise NotImplementedError
+    return queries
 
 
 def _convert_result(result: UDFGenResult) -> NodeUDFDTO:
