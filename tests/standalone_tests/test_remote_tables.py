@@ -169,5 +169,5 @@ def test_remote_table_error_on_non_published_table(
         globalnode_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),
-            timeout=300,
+            timeout=TASKS_TIMEOUT,
         )
