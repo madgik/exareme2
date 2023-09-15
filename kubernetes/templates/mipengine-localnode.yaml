@@ -133,8 +133,14 @@ spec:
               fieldPath: status.podIP
         - name: MONETDB_PORT
           value: "50000"
-        - name: MONETDB_PASSWORD
+        - name: MONETDB_LOCAL_USERNAME
           value: "executor"
+        - name: MONETDB_LOCAL_PASSWORD
+          value: "executor"
+        - name: MONETDB_PUBLIC_USERNAME
+          value: "guest"
+        - name: MONETDB_PUBLIC_PASSWORD
+          value: "guest"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{ if .Values.smpc.enabled }}

@@ -66,8 +66,8 @@ def _connection():
     conn = pymonetdb.connect(
         hostname=node_config.monetdb.ip,
         port=node_config.monetdb.port,
-        username=node_config.monetdb.username,
-        password=node_config.monetdb.password,
+        username=node_config.monetdb.local_username,
+        password=node_config.monetdb.local_password,
         database=node_config.monetdb.database,
     )
     yield conn
@@ -95,14 +95,23 @@ def _lock(query_lock, timeout):
         query_lock.release()
 
 
-def _validate_exception_is_recoverable(exc):
+def _validate_exception_could_be_recovered(exc):
     """
-    Check whether the query needs to be re-executed and return True or False accordingly.
+    Check the error message and decide if this is an exception that could be successful if re-executed.
+    ValueError: Cannot be recovered since it's thrown from the udfs.
+    InsufficientPrivileges: Cannot be recovered since the user provided doesn't have access.
+    ProgrammingError: Cannot be recovered due to udf error.
     """
     if isinstance(exc, (BrokenPipeError, ConnectionResetError)):
         return True
     elif isinstance(exc, DatabaseError):
-        return "ValueError" not in str(exc) and not isinstance(exc, ProgrammingError)
+        if "ValueError" in str(exc):
+            return False
+        elif "insufficient privileges" in str(exc):
+            return False
+        elif isinstance(exc, ProgrammingError):
+            return False
+        return True
     else:
         return False
 
@@ -128,7 +137,7 @@ def _execute_queries_with_error_handling(func):
             try:
                 return func(**kwargs)
             except Exception as exc:
-                if not _validate_exception_is_recoverable(exc):
+                if not _validate_exception_could_be_recovered(exc):
                     logger.error(
                         f"Error occurred: Exception type: '{type(exc)}' and exception message: '{exc}'"
                     )

@@ -9,7 +9,7 @@ from exareme2 import AttrDict
 from exareme2.node.monetdb_interface.monet_db_facade import _DBExecutionDTO
 from exareme2.node.monetdb_interface.monet_db_facade import _execute_and_fetchall
 from exareme2.node.monetdb_interface.monet_db_facade import (
-    _validate_exception_is_recoverable,
+    _validate_exception_could_be_recovered,
 )
 from exareme2.node.node_logger import init_logger
 from tests.standalone_tests.conftest import COMMON_IP
@@ -52,8 +52,8 @@ def patch_node_config():
                     "ip": COMMON_IP,
                     "port": MONETDB_LOCALNODETMP_PORT,
                     "database": "db",
-                    "username": "executor",
-                    "password": "executor",
+                    "local_username": "executor",
+                    "local_password": "executor",
                 },
                 "celery": {
                     "tasks_timeout": 60,
@@ -146,6 +146,13 @@ def get_exception_cases():
             False,
             id="generic ProgrammingError",
         ),
+        pytest.param(
+            OperationalError(
+                "42000!CREATE TABLE: insufficient privileges for user 'executor' in schema 'guest'"
+            ),
+            False,
+            id="Insufficient privileges Error",
+        ),
     ]
 
 
@@ -154,4 +161,4 @@ def get_exception_cases():
     get_exception_cases(),
 )
 def test_validate_exception_is_recoverable(exception: Exception, expected):
-    assert _validate_exception_is_recoverable(exception) == expected
+    assert _validate_exception_could_be_recovered(exception) == expected
