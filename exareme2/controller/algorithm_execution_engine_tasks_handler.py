@@ -29,9 +29,7 @@ TASK_SIGNATURES: Final = {
     "create_remote_table": "exareme2.node.tasks.remote_tables.create_remote_table",
     "get_merge_tables": "exareme2.node.tasks.merge_tables.get_merge_tables",
     "create_merge_table": "exareme2.node.tasks.merge_tables.create_merge_table",
-    "get_udfs": "exareme2.node.tasks.udfs.get_udfs",
     "run_udf": "exareme2.node.tasks.udfs.run_udf",
-    "get_run_udf_query": "exareme2.node.tasks.udfs.get_run_udf_query",
     "cleanup": "exareme2.node.tasks.common.cleanup",
     "validate_smpc_templates_match": "exareme2.node.tasks.smpc.validate_smpc_templates_match",
     "load_data_to_smpc_client": "exareme2.node.tasks.smpc.load_data_to_smpc_client",
@@ -133,21 +131,6 @@ class INodeAlgorithmTasksHandler(ABC):
 
     @abstractmethod
     def get_queued_udf_result(self, async_result: AsyncResult) -> List[NodeUDFDTO]:
-        pass
-
-    @abstractmethod
-    def get_udfs(self, algorithm_name) -> List[str]:
-        pass
-
-    # return the generated monetdb python udf
-    @abstractmethod
-    def get_run_udf_query(
-        self,
-        context_id: str,
-        command_id: str,
-        func_name: str,
-        positional_args: NodeUDFPosArguments,
-    ) -> Tuple[str, str]:
         pass
 
     # CLEANUP functionality
@@ -451,45 +434,6 @@ class NodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
             async_result=async_result, timeout=self._run_udf_task_timeout, logger=logger
         )
         return (NodeUDFResults.parse_raw(result)).results
-
-    def get_udfs(self, algorithm_name) -> List[str]:
-        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
-        celery_app = self._get_node_celery_app()
-        task_signature = TASK_SIGNATURES["get_udfs"]
-        async_result = celery_app.queue_task(
-            task_signature=task_signature, logger=logger, algorithm_name=algorithm_name
-        )
-        result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout, logger=logger
-        )
-        return result
-
-    # return the generated monetdb pythonudf
-    def get_run_udf_query(
-        self,
-        context_id: str,
-        command_id: str,
-        func_name: str,
-        positional_args: NodeUDFPosArguments,
-    ) -> Tuple[str, str]:
-        logger = ctrl_logger.get_request_logger(request_id=self._request_id)
-        celery_app = self._get_node_celery_app()
-        task_signature = TASK_SIGNATURES["get_run_udf_query"]
-        async_result = celery_app.queue_task(
-            task_signature=task_signature,
-            logger=logger,
-            command_id=command_id,
-            request_id=self._request_id,
-            context_id=context_id,
-            func_name=func_name,
-            positional_args_json=positional_args.json(),
-            keyword_args_json=NodeUDFKeyArguments(args={}).json(),
-        )
-        result = celery_app.get_result(
-            async_result=async_result, timeout=self._tasks_timeout, logger=logger
-        )
-
-        return result
 
     # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(

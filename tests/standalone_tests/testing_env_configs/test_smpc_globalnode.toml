@@ -23,8 +23,10 @@ vhost = "user_vhost"
 ip = "172.17.0.1"
 port = 61004
 database = "db"
-username = "executor"
-password = "executor"
+local_username = "executor"
+local_password = "executor"
+public_username = "guest"
+public_password = "guest"
 
 [smpc]
 enabled = true

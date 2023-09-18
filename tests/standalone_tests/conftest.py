@@ -5,8 +5,11 @@ import pathlib
 import re
 import subprocess
 import time
+from itertools import chain
 from os import path
 from pathlib import Path
+from typing import List
+from typing import Union
 
 import docker
 import psutil
@@ -20,11 +23,17 @@ from exareme2.controller.algorithm_execution_engine_tasks_handler import (
 )
 from exareme2.controller.celery_app import CeleryAppFactory
 from exareme2.controller.controller_logger import init_logger
+from exareme2.node_tasks_DTOs import TableSchema
 from exareme2.udfgen import udfio
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
 TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"
+
+# This is used in the github actions CI. In CI images are built and not pulled.
+PULL_DOCKER_IMAGES_STR = os.getenv("PULL_DOCKER_IMAGES", "true")
+PULL_DOCKER_IMAGES = PULL_DOCKER_IMAGES_STR.lower() == "true"
+
 
 this_mod_path = os.path.dirname(os.path.abspath(__file__))
 TEST_ENV_CONFIG_FOLDER = path.join(this_mod_path, "testing_env_configs")
@@ -165,12 +174,6 @@ SMPC_CLIENT2_PORT = 9006
 #####################################
 
 
-# TODO Instead of the fixtures having scope session, it could be function,
-# but when the fixture start, it should check if it already exists, thus
-# not creating it again (fast). This could solve the problem of some
-# tests destroying some containers to test things.
-
-
 class MonetDBConfigurations:
     def __init__(self, port):
         self.ip = COMMON_IP
@@ -215,6 +218,10 @@ def _create_monetdb_container(cont_name, cont_port):
     client = docker.from_env()
     container_names = [container.name for container in client.containers.list(all=True)]
     if cont_name not in container_names:
+        if PULL_DOCKER_IMAGES:
+            print(f"\nPulling monetdb image '{TESTING_MONETDB_CONT_IMAGE}'.")
+            client.images.pull(TESTING_MONETDB_CONT_IMAGE)
+            print(f"\nPulled monetdb image '{TESTING_MONETDB_CONT_IMAGE}'.")
         # A volume is used to pass the udfio inside the monetdb container.
         # This is done so that we don't need to rebuild every time the udfio.py file is changed.
         udfio_full_path = path.abspath(udfio.__file__)
@@ -553,6 +560,37 @@ def localnodetmp_db_cursor():
     return _create_db_cursor(MONETDB_LOCALNODETMP_PORT)
 
 
+def create_table_in_db(
+    db_cursor,
+    table_name: str,
+    table_schema: TableSchema,
+    publish_table: bool = False,
+):
+    query_schema = ",".join(
+        [f"{column.name} {column.dtype.to_sql()}" for column in table_schema.columns]
+    )
+    create_table_query = f"CREATE TABLE {table_name} ({query_schema});"
+    publish_table_query = (
+        f"GRANT SELECT ON TABLE {table_name} TO guest;" if publish_table else ""
+    )
+    db_cursor.execute(create_table_query + publish_table_query)
+
+
+def insert_data_to_db(
+    table_name: str, table_values: List[List[Union[str, int, float]]], db_cursor
+):
+    row_length = len(table_values[0])
+    if all(len(row) != row_length for row in table_values):
+        raise Exception("Not all rows have the same number of values")
+
+    values = ", ".join(
+        "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
+    )
+    sql_clause = f"INSERT INTO {table_name} VALUES {values}"
+
+    db_cursor.execute(sql_clause, list(chain(*table_values)))
+
+
 def _clean_db(cursor):
     class TableType(enum.Enum):
         NORMAL = 0
@@ -654,6 +692,11 @@ def _create_rabbitmq_container(cont_name, cont_port):
     client = docker.from_env()
     container_names = [container.name for container in client.containers.list(all=True)]
     if cont_name not in container_names:
+        if PULL_DOCKER_IMAGES:
+            print(f"\nPulling rabbitmq image '{TESTING_RABBITMQ_CONT_IMAGE}'.")
+            client.images.pull(TESTING_RABBITMQ_CONT_IMAGE)
+            print(f"\nPulled rabbitmq image '{TESTING_RABBITMQ_CONT_IMAGE}'.")
+
         container = client.containers.run(
             TESTING_RABBITMQ_CONT_IMAGE,
             detach=True,

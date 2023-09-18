@@ -13,6 +13,8 @@ from exareme2.node_tasks_DTOs import TableData
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
 from tests.standalone_tests.conftest import ALGORITHMS_URL
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 from tests.standalone_tests.test_smpc_node_tasks import TASKS_TIMEOUT
@@ -87,7 +89,7 @@ def test_view_without_filters(
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
-    use_localnode1_database,
+    localnode1_db_cursor,
 ):
     table_schema = TableSchema(
         columns=[
@@ -115,17 +117,7 @@ def test_view_without_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    task_signature = get_celery_task_signature("insert_data_to_table")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    insert_data_to_db(table_info.name, values, localnode1_db_cursor)
 
     columns = ["col1", "col3"]
     task_signature = get_celery_task_signature("create_view")
@@ -192,6 +184,7 @@ def test_view_with_filters(
     localnode1_node_service,
     localnode1_celery_app,
     use_localnode1_database,
+    localnode1_db_cursor,
 ):
     table_schema = TableSchema(
         columns=[
@@ -217,17 +210,7 @@ def test_view_with_filters(
     )
 
     values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    task_signature = get_celery_task_signature("insert_data_to_table")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    insert_data_to_db(table_info.name, values, localnode1_db_cursor)
 
     columns = ["col1", "col3"]
     filters = {

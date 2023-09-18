@@ -17,6 +17,7 @@ class UDFGenTableResult(UDFGenResult):
     table_name: str
     table_schema: List[Tuple[str, DType]]
     create_query: str
+    share: bool = False
 
 
 class UDFGenSMPCResult(UDFGenResult):
@@ -24,14 +25,3 @@ class UDFGenSMPCResult(UDFGenResult):
     sum_op_values: Optional[UDFGenTableResult] = None
     min_op_values: Optional[UDFGenTableResult] = None
     max_op_values: Optional[UDFGenTableResult] = None
-
-    @property
-    def create_query(self):
-        queries = [self.template.create_query]
-        if self.sum_op_values is not None:
-            queries.append(self.sum_op_values.create_query)
-        if self.min_op_values is not None:
-            queries.append(self.min_op_values.create_query)
-        if self.max_op_values is not None:
-            queries.append(self.max_op_values.create_query)
-        return "".join(queries)

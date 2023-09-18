@@ -1,0 +1,56 @@
+{
+    "name": "kmeans",
+    "desc": "K-Means",
+    "label": "K-Means",
+    "enabled": true,
+    "inputdata": {
+        "y": {
+            "label": "y",
+            "desc": "data",
+            "types": ["real"],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": true
+        }
+    },
+    "parameters": {
+        "k": {
+            "label": "k",
+            "desc": "k",
+            "types": [
+                "int"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 4,
+            "min": 1,
+            "max": 100
+        },
+        "maxiter": {
+            "label": "maxiter",
+            "desc": "Maximum number of iterations",
+            "types": [
+                "int"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 1,
+            "min": 1,
+            "max": 100
+        },
+        "tol": {
+            "label": "tol",
+            "desc": "Tolerance",
+            "types": [
+                "real"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 0.0001,
+            "min": 0.0,
+            "max": 1.0
+        }
+    }
+}

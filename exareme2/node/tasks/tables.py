@@ -67,22 +67,3 @@ def create_table(
         schema_=schema,
         type_=TableType.NORMAL,
     ).json()
-
-
-# TODO: https://team-1617704806227.atlassian.net/browse/MIP-762
-@shared_task
-@initialise_logger
-def insert_data_to_table(
-    request_id: str, table_name: str, values: List[List[Union[str, int, float, bool]]]
-):
-    """
-    Parameters
-    ----------
-    request_id : str
-        The identifier for the logging
-    table_name : str
-        The name of the table
-    values : List[List[Union[str, int, float, bool]]
-        The data of the table to be inserted
-    """
-    tables.insert_data_to_table(table_name, values)

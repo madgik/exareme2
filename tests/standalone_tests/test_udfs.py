@@ -10,6 +10,7 @@ from exareme2 import DType
 from exareme2.node.monetdb_interface.common_actions import create_table_name
 from exareme2.node.tasks.udfs import _convert_output_schema
 from exareme2.node.tasks.udfs import _convert_result
+from exareme2.node.tasks.udfs import _get_udf_table_sharing_queries
 from exareme2.node.tasks.udfs import _make_output_table_names
 from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import NodeTableDTO
@@ -21,11 +22,14 @@ from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
 from exareme2.node_tasks_DTOs import TableType
 from exareme2.udfgen import make_unique_func_name
+from exareme2.udfgen.udfgen_DTOs import UDFGenSMPCResult
 from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from tests.algorithms.orphan_udfs import get_column_rows
 from tests.algorithms.orphan_udfs import local_step
 from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
+from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
+from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
@@ -35,10 +39,9 @@ context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 
 
 def create_table_with_one_column_and_ten_rows(
-    celery_app, request_id
+    celery_app, db_cursor, request_id
 ) -> Tuple[TableInfo, int]:
     create_table_task = get_celery_task_signature("create_table")
-    insert_data_to_table_task = get_celery_task_signature("insert_data_to_table")
 
     table_schema = TableSchema(
         columns=[
@@ -58,18 +61,8 @@ def create_table_with_one_column_and_ten_rows(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     )
-
     values = [[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]]
-    async_result = celery_app.queue_task(
-        task_signature=insert_data_to_table_task,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=table_info.name,
-        values=values,
-    )
-    celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
+    insert_data_to_db(table_info.name, values, db_cursor)
 
     return table_info, 55
 
@@ -97,22 +90,6 @@ def create_non_existing_remote_table(celery_app, request_id) -> TableInfo:
 
 
 @pytest.mark.slow
-def test_get_udf(localnode1_node_service, localnode1_celery_app):
-    get_udf_task = get_celery_task_signature("get_udf")
-
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=get_udf_task,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        func_name=make_unique_func_name(get_column_rows),
-    )
-    fetched_udf = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    assert get_column_rows.__name__ in fetched_udf
-
-
-@pytest.mark.slow
 def test_run_udf_state_and_transfer_output(
     localnode1_node_service,
     use_localnode1_database,
@@ -124,7 +101,7 @@ def test_run_udf_state_and_transfer_output(
     local_node_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, request_id
+        localnode1_celery_app, localnode1_db_cursor, request_id
     )
 
     kw_args_str = NodeUDFKeyArguments(
@@ -227,36 +204,6 @@ def test_run_udf_with_remote_state_table_passed_as_normal_table(
     )
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-473")
-@pytest.mark.slow
-def test_slow_udf_exception(
-    localnode1_node_service, use_localnode1_database, localnode1_celery_app
-):
-    run_udf_task = get_celery_task_signature("run_udf")
-
-    input_table_name, input_table_name_sum = create_table_with_one_column_and_ten_rows(
-        localnode1_celery_app, request_id
-    )
-
-    kw_args_str = NodeUDFKeyArguments(
-        args={"table": NodeTableDTO(value=input_table_name)}
-    ).json()
-
-    with pytest.raises(TimeLimitExceeded):
-        async_result = localnode1_celery_app.queue_task(
-            task_signature=run_udf_task,
-            logger=StdOutputLogger(),
-            command_id="1",
-            context_id=context_id,
-            func_name=make_unique_func_name(one_hundred_seconds_udf),
-            positional_args_json=NodeUDFPosArguments(args=[]).json(),
-            keyword_args_json=kw_args_str,
-        )
-        localnode1_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
-
-
 def test_parse_output_schema():
     output_schema = TableSchema(
         columns=[
@@ -302,3 +249,85 @@ def test_create_output_table_names():
         "normal_node1_context2_command3_0",
         "normal_node1_context2_command3_1",
     ]
+
+
+def get_udf_table_sharing_queries_params():
+    return [
+        pytest.param(
+            [
+                UDFGenTableResult(
+                    table_name="not_shared",
+                    table_schema=[],
+                    create_query="",
+                    share=False,
+                )
+            ],
+            [],
+            id="udf result is not shared, so there are no sharing queries",
+        ),
+        pytest.param(
+            [
+                UDFGenTableResult(
+                    table_name="shared",
+                    table_schema=[],
+                    create_query="",
+                    share=True,
+                )
+            ],
+            ["GRANT SELECT ON TABLE shared TO guest"],
+            id="udf result is shared",
+        ),
+        pytest.param(
+            [
+                UDFGenSMPCResult(
+                    template=UDFGenTableResult(
+                        table_name="template",
+                        table_schema=[],
+                        create_query="",
+                    ),
+                    sum_op_values=UDFGenTableResult(
+                        table_name="sum_op",
+                        table_schema=[],
+                        create_query="",
+                        share=True,
+                    ),
+                )
+            ],
+            ["GRANT SELECT ON TABLE template TO guest"],
+            id="udf smpc result, template only is shared, no matter the share value",
+        ),
+        pytest.param(
+            [
+                UDFGenTableResult(
+                    table_name="shared1",
+                    table_schema=[],
+                    create_query="",
+                    share=True,
+                ),
+                UDFGenTableResult(
+                    table_name="not_shared",
+                    table_schema=[],
+                    create_query="",
+                    share=False,
+                ),
+                UDFGenTableResult(
+                    table_name="shared2",
+                    table_schema=[],
+                    create_query="",
+                    share=True,
+                ),
+            ],
+            [
+                "GRANT SELECT ON TABLE shared1 TO guest",
+                "GRANT SELECT ON TABLE shared2 TO guest",
+            ],
+            id="multiple udf results, grant only to the shared ones",
+        ),
+    ]
+
+
+@pytest.mark.parametrize(
+    "udf_results, expected_queries", get_udf_table_sharing_queries_params()
+)
+def test_get_udf_table_sharing_queries(udf_results, expected_queries):
+    assert _get_udf_table_sharing_queries(udf_results, "guest") == expected_queries

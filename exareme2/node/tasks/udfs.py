@@ -16,7 +16,6 @@ from exareme2.node.monetdb_interface.guard import sql_injection_guard
 from exareme2.node.monetdb_interface.guard import udf_kwargs_validator
 from exareme2.node.monetdb_interface.guard import udf_posargs_validator
 from exareme2.node.node_logger import initialise_logger
-from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import NodeLiteralDTO
 from exareme2.node_tasks_DTOs import NodeSMPCDTO
 from exareme2.node_tasks_DTOs import NodeTableDTO
@@ -35,12 +34,6 @@ from exareme2.udfgen import udf
 from exareme2.udfgen.udfgen_DTOs import UDFGenResult
 from exareme2.udfgen.udfgen_DTOs import UDFGenSMPCResult
 from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
-
-
-@shared_task
-@initialise_logger
-def get_udf(request_id: str, func_name: str) -> str:
-    return str(udf.registry[func_name])
 
 
 @shared_task
@@ -109,61 +102,6 @@ def run_udf(
 def _convert_output_schema(output_schema: str) -> List[Tuple[str, DType]]:
     table_schema = TableSchema.parse_raw(output_schema)
     return table_schema.to_list()
-
-
-@shared_task
-@initialise_logger
-def get_run_udf_query(
-    command_id: str,
-    request_id: str,
-    context_id: str,
-    func_name: str,
-    positional_args_json: str,
-    keyword_args_json: str,
-    use_smpc: bool = False,
-) -> List[str]:
-    """
-    Fetches the sql statements that represent the execution of the udf.
-
-    Parameters
-    ----------
-        command_id: str
-            The command identifier, common among all nodes for this action.
-        request_id : str
-            The identifier for the logging
-        context_id: str
-            The experiment identifier, common among all experiment related actions.
-        func_name: str
-            Name of function from which to generate UDF.
-        positional_args_json: str(UDFPosArguments)
-            Positional arguments of the udf call.
-        keyword_args_json: str(UDFKeyArguments)
-            Keyword arguments of the udf call.
-        use_smpc: bool
-            Should SMPC be used?
-    Returns
-    -------
-        List[str]
-            A list of the statements that would be executed in the DB.
-
-    """
-    # TODO why should we validate here?
-    validate_smpc_usage(use_smpc, node_config.smpc.enabled, node_config.smpc.optional)
-
-    positional_args = NodeUDFPosArguments.parse_raw(positional_args_json)
-    keyword_args = NodeUDFKeyArguments.parse_raw(keyword_args_json)
-
-    udf_definitions, udf_exec_stmt, _ = _generate_udf_statements(
-        request_id=request_id,
-        command_id=command_id,
-        context_id=context_id,
-        func_name=func_name,
-        positional_args=positional_args,
-        keyword_args=keyword_args,
-        use_smpc=use_smpc,
-    )
-
-    return udf_definitions + [udf_exec_stmt]
 
 
 def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
@@ -289,14 +227,15 @@ def _generate_udf_statements(
     output_names = _make_output_table_names(outputnum, node_id, context_id, command_id)
 
     # UDF generation
-    # --------------
     udf_definition = udfgen.get_definition(udf_name, output_names)
     udf_exec_stmt = udfgen.get_exec_stmt(udf_name, output_names)
     udf_results = udfgen.get_results(output_names)
 
-    # Create list of udf statements
-    udf_definitions = [res.create_query for res in udf_results]
-    udf_definitions.append(udf_definition)
+    # Create list of udf definitions
+    table_creation_queries = _get_udf_table_creation_queries(udf_results)
+    public_username = node_config.monetdb.public_username
+    table_sharing_queries = _get_udf_table_sharing_queries(udf_results, public_username)
+    udf_definitions = [*table_creation_queries, *table_sharing_queries, udf_definition]
 
     # Convert results
     results = [_convert_result(res) for res in udf_results]
@@ -318,6 +257,58 @@ def _make_output_table_names(
         )
         for id in range(outputlen)
     ]
+
+
+def _get_udf_table_creation_queries(udf_results: List[UDFGenResult]) -> List[str]:
+    queries = []
+    for result in udf_results:
+        if isinstance(result, UDFGenTableResult):
+            queries.append(result.create_query)
+        elif isinstance(result, UDFGenSMPCResult):
+            queries.extend(_get_udf_smpc_table_creation_queries(result))
+        else:
+            raise NotImplementedError
+    return queries
+
+
+def _get_udf_smpc_table_creation_queries(result: UDFGenSMPCResult) -> List[str]:
+    assert isinstance(result, UDFGenSMPCResult)
+    queries = [result.template.create_query]
+    if result.sum_op_values is not None:
+        queries.append(result.sum_op_values.create_query)
+    if result.min_op_values is not None:
+        queries.append(result.min_op_values.create_query)
+    if result.max_op_values is not None:
+        queries.append(result.max_op_values.create_query)
+    return queries
+
+
+def _get_table_share_query(tablename: str, public_username: str) -> str:
+    return f"GRANT SELECT ON TABLE {tablename} TO {public_username}"
+
+
+def _get_udf_table_sharing_queries(
+    udf_results: List[UDFGenResult], public_username
+) -> List[str]:
+    """
+    Tables should be shared (accessible through the "public" user) in the following cases:
+    1) The result is of UDFGenTableResult type and the share property is True,
+    2) The result is of UDFGenSMPCResult type, so the template should be shared, the rest of the tables
+        will pass through the SMPC.
+    """
+    queries = []
+    for result in udf_results:
+        if isinstance(result, UDFGenTableResult):
+            queries.append(
+                _get_table_share_query(result.table_name, public_username)
+            ) if result.share else None
+        elif isinstance(result, UDFGenSMPCResult):
+            queries.append(
+                _get_table_share_query(result.template.table_name, public_username)
+            )
+        else:
+            raise NotImplementedError
+    return queries
 
 
 def _convert_result(result: UDFGenResult) -> NodeUDFDTO:

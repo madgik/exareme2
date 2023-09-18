@@ -47,13 +47,14 @@ def queue_one_second_udf(
 @pytest.mark.very_slow
 def test_node_info_tasks_have_higher_priority_over_other_tasks(
     globalnode_node_service,
+    globalnode_db_cursor,
     reset_celery_app_factory,
     get_controller_testing_logger,
 ):
     cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALNODE_ADDR)
 
     input_table_name, _ = create_table_with_one_column_and_ten_rows(
-        cel_app_wrapper, request_id
+        cel_app_wrapper, globalnode_db_cursor, request_id
     )
 
     # Queue an X amount of udfs to fill the rabbitmq.

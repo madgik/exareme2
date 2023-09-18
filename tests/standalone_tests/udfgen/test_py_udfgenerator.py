@@ -6,6 +6,7 @@ from typing import TypeVar
 import pytest
 
 from exareme2.datatypes import DType
+from exareme2.node.tasks.udfs import _get_udf_table_creation_queries
 from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import SMPCTablesInfo
 from exareme2.node_tasks_DTOs import TableInfo
@@ -294,6 +295,19 @@ class TestUDFGenBase:
                  (0, 1, 4),
                  (0, 2, 7)"""
         )
+
+    @pytest.fixture(scope="function")
+    def execute_udf_queries_in_db(
+        self,
+        globalnode_db_cursor,
+        expected_udf_outputs,
+        expected_udfdef,
+        expected_udfexec,
+    ):
+        for query in _get_udf_table_creation_queries(expected_udf_outputs):
+            globalnode_db_cursor.execute(query)
+        globalnode_db_cursor.execute(expected_udfdef)
+        globalnode_db_cursor.execute(expected_udfexec)
 
 
 class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
@@ -796,17 +810,11 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database", "create_tensor_table")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
         create_tensor_table,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         output_table_values = db.execute("SELECT * FROM __main").fetchall()
 
@@ -2489,16 +2497,10 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -2599,16 +2601,10 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database", "create_state_table")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -2684,6 +2680,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             )
         ]
 
@@ -2692,16 +2689,10 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
@@ -2794,6 +2785,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             )
         ]
 
@@ -2802,16 +2794,10 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
@@ -2913,16 +2899,10 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -3042,16 +3022,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -3162,6 +3136,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             )
         ]
 
@@ -3174,16 +3149,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
@@ -3296,6 +3265,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __lt0("transfer" CLOB);',
+                share=True,
             ),
         ]
 
@@ -3308,16 +3278,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [state] = db.execute("SELECT state FROM __main").fetchone()
         result1 = pickle.loads(state)
@@ -3433,6 +3397,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             ),
             UDFGenTableResult(
                 table_name="__lt0",
@@ -3590,6 +3555,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __lt0("transfer" CLOB);',
+                share=True,
             ),
         ]
 
@@ -3602,16 +3568,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [state_] = db.execute("SELECT state FROM __main").fetchone()
         result1 = pickle.loads(state_)
@@ -3718,6 +3678,7 @@ FROM
                     ("secure_transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("secure_transfer" CLOB);',
+                share=True,
             ),
         ]
 
@@ -3729,16 +3690,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         secure_transfer_, *_ = db.execute(
             "SELECT secure_transfer FROM __main"
@@ -3843,6 +3798,7 @@ FROM
                         ("secure_transfer", DType.JSON),
                     ],
                     create_query='CREATE TABLE __main("secure_transfer" CLOB);',
+                    share=True,
                 ),
                 sum_op_values=UDFGenTableResult(
                     table_name="__mainsum",
@@ -3870,16 +3826,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         template_str, *_ = db.execute("SELECT secure_transfer FROM __main").fetchone()
         template = json.loads(template_str)
@@ -4005,6 +3955,7 @@ FROM
                     ("secure_transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __lt0("secure_transfer" CLOB);',
+                share=True,
             ),
         ]
 
@@ -4016,16 +3967,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         secure_transfer_, *_ = db.execute(
             "SELECT secure_transfer FROM __lt0"
@@ -4149,6 +4094,7 @@ FROM
                         ("secure_transfer", DType.JSON),
                     ],
                     create_query='CREATE TABLE __lt0("secure_transfer" CLOB);',
+                    share=True,
                 ),
                 sum_op_values=UDFGenTableResult(
                     table_name="__lt0sum",
@@ -4182,16 +4128,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         template_str, *_ = db.execute("SELECT secure_transfer FROM __lt0").fetchone()
         template = json.loads(template_str)
@@ -4307,6 +4247,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             ),
         ]
 
@@ -4318,16 +4259,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         transfer, *_ = db.execute("SELECT transfer FROM __main").fetchone()
         result = json.loads(transfer)
@@ -4441,6 +4376,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             ),
         ]
 
@@ -4454,16 +4390,10 @@ FROM
     )
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         transfer, *_ = db.execute("SELECT transfer FROM __main").fetchone()
         result = json.loads(transfer)
@@ -4547,6 +4477,7 @@ FROM
                     ("transfer", DType.JSON),
                 ],
                 create_query='CREATE TABLE __main("transfer" CLOB);',
+                share=True,
             )
         ]
 
@@ -4555,16 +4486,10 @@ FROM
     @pytest.mark.usefixtures("use_globalnode_database")
     def test_udf_with_db(
         self,
-        expected_udf_outputs,
-        expected_udfdef,
-        expected_udfexec,
+        execute_udf_queries_in_db,
         globalnode_db_cursor,
     ):
         db = globalnode_db_cursor
-        for output in expected_udf_outputs:
-            db.execute(output.create_query)
-        db.execute(expected_udfdef)
-        db.execute(expected_udfexec)
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
