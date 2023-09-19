@@ -21,7 +21,6 @@
 					"filters": null
 				},
 				"parameters": {
-					"n_splits":4,
 					"k": 4,
 					"tol": 0.0001,
 					"maxiter": 100
@@ -62,7 +61,6 @@
 					"filters": null
 				},
 				"parameters": {
-					"n_splits": 4,
 					"k": 4,
 					"tol": 0.0001,
 					"maxiter": 100
