@@ -11,12 +11,12 @@ from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
 from exareme2.controller.nodes import GlobalNode
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.smpc_cluster_comm_helpers import SMPCComputationError
-from exareme2.smpc_cluster_comm_helpers import trigger_smpc
 from exareme2.smpc_cluster_comm_helpers import create_payload
+from exareme2.smpc_cluster_comm_helpers import trigger_smpc
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from exareme2.smpc_DTOs import SMPCRequestType
 from exareme2.smpc_DTOs import SMPCResponse
 from exareme2.smpc_DTOs import SMPCResponseStatus
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 
 def get_smpc_job_id(

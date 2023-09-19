@@ -4,9 +4,9 @@ from typing import List
 
 import requests
 
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from exareme2.smpc_DTOs import SMPCRequestData
 from exareme2.smpc_DTOs import SMPCRequestType
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 ADD_DATASET_ENDPOINT = "/api/update-dataset/"
 TRIGGER_COMPUTATION_ENDPOINT = "/api/secure-aggregation/job-id/"
