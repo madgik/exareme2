@@ -15,6 +15,8 @@ from exareme2.smpc_cluster_comm_helpers import trigger_smpc
 from exareme2.smpc_DTOs import SMPCRequestType
 from exareme2.smpc_DTOs import SMPCResponse
 from exareme2.smpc_DTOs import SMPCResponseStatus
+from exareme2.smpc_cluster_comm_helpers import create_payload
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 
 def get_smpc_job_id(
@@ -65,6 +67,7 @@ def trigger_smpc_operation(
     command_id: int,
     op_type: SMPCRequestType,
     smpc_op_clients: List[str],
+    dp_params: DifferentialPrivacyParams = None,
 ) -> bool:
     trigger_smpc(
         logger=logger,
@@ -74,8 +77,11 @@ def trigger_smpc_operation(
             command_id=command_id,
             operation=op_type,
         ),
-        computation_type=op_type,
-        clients=smpc_op_clients,
+        payload=create_payload(
+            computation_type=op_type,
+            clients=smpc_op_clients,
+            dp_params=dp_params,
+        ),
     ) if smpc_op_clients else None
 
     return True if smpc_op_clients else False
