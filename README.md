@@ -95,7 +95,7 @@
    id = "localnode2"
    role = "LOCALNODE"
    rabbitmq_port=5672
-   monetdb_port=50001
+   monetdb_port=50002
    local_monetdb_username="executor"
    local_monetdb_password="executor"
    public_monetdb_username="guest"
