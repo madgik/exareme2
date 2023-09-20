@@ -41,6 +41,10 @@ The are usually two approaches for computing the principal components. The first
 
 [Documentation](https://github.com/madgik/exareme/tree/master/Exareme-Docker/src/mip-algorithms/PCA)
 
+### Support Vector Machine (SVM)
+In machine learning, support vector machines (SVMs, also support vector networks[1]) are supervised learning models with associated learning algorithms that analyze data for classification and regression analysis. [Wikipedia](https://en.wikipedia.org/wiki/Support_vector_machine)
+[Documentation](https://github.com/madgik/exareme/tree/master/Exareme-Docker/src/mip-algorithms/TTEST_INDEPENDENT)
+
 ### T-Test Independent
 The Student’s Independent samples t-test (sometimes called a two-samples t-test) is used to test the null hypothesis that two groups have the same mean. A low p-value suggests that the null hypothesis is not true, and therefore the group means are different. In each local dataset, let x and y be the variables of interest.y is the grouping variable with two levels.  
 
