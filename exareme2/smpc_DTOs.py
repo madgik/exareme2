@@ -37,7 +37,8 @@ class SMPCRequestData(BaseModel):
     computationType: SMPCRequestType
     clients: List[str]
     dp: Optional[DPRequestData]
-    
+
+
 class DifferentialPrivacyParams(BaseModel):
     sensitivity: float
     privacy_budget: float
