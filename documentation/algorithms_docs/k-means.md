@@ -7,8 +7,8 @@ As a consequence, every algorithm has to be refactored in a form that fits this 
 
 In general, this means two things.
 
-1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.  
-2. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
+1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.
+1. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
 
 Our naming convention is that procedures run on Workers are given the adjective _local_ whereas those running on Master are called _global_.
 
@@ -22,4 +22,4 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 The purpose of the k-means algorithm is to partition the data into *k* clusters. Here, all attributes should be numerical and we use the Euclidean distance as our metric.
 
 <b><h4>k-MEANS Train</b></h4>
-![pseudo](pseudocode.png)
+![pseudo](algorithm_images/kmeans_pseudocode.png)

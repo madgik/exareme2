@@ -7,8 +7,8 @@ As a consequence, every algorithm has to be refactored in a form that fits this 
 
 In general, this means two things.
 
-1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.  
-2. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
+1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.
+1. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
 
 Our naming convention is that procedures run on Workers are given the adjective _local_ whereas those running on Master are called _global_.
 
@@ -20,13 +20,13 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 <b><h4> Algorithm Description </h4></b>
 Linear regression is a linear approach to modeling the relationship between a dependent variable and one or more independent variables. Here, _y_ should be numerical while _X_ should be continuous or categorical.
 
-![pseudo](pseudocode.png)
+![pseudo](algorithm_images/linear_reg_pseudocode.png)
 
 Once the process has been completed we compute the usual diagnostics as follows.
 The local nodes compute and broadcast to the central node the quantities min(ε<sub>i</sub>), max(ε<sub>i</sub>), sum(ε<sub>i</sub>), max(ε<sub>i</sub><sup>2</sup>), where ε<sub>i</sub> are the residuals, as well as the partial *SST* and *SSE*. The central node then integrates these values to compute the corresponding global ones.
 From these quantities the central node then computes the following diagnostic quantities:
 
 1. For each coefficient β<sub>k</sub>, the *SE*, *t*-statistic and Pr(>|t|)
-2. min, max, mean and SE of residuals ε<sub>i</sub> and the degrees of freedom
-3. R^2 and Adjusted R^2
-4. *F*-statistic and *p*-value
+1. min, max, mean and SE of residuals ε<sub>i</sub> and the degrees of freedom
+1. R^2 and Adjusted R^2
+1. *F*-statistic and *p*-value

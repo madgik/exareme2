@@ -7,8 +7,8 @@ As a consequence, every algorithm has to be refactored in a form that fits this 
 
 In general, this means two things.
 
-1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.  
-2. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
+1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.
+1. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
 
 Our naming convention is that procedures run on Workers are given the adjective _local_ whereas those running on Master are called _global_.
 
@@ -20,4 +20,4 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 <b><h4> Algorithm Description </h4></b>
 The Student’s Independent samples t-test (sometimes called a two-samples t-test) is used to test the null hypothesis that two groups have the same mean. A low p-value suggests that the null hypothesis is not true, and therefore the group means are different. In each local dataset, let *x* and *y* be the variables of interest.*y* is the grouping variable with two levels.
 
-![pseudo](pseudocode.png)
+![pseudo](algorithm_imagess/IndependentTtest_pseudocode.png)

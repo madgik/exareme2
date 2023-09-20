@@ -7,8 +7,8 @@ As a consequence, every algorithm has to be refactored in a form that fits this 
 
 In general, this means two things.
 
-1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.  
-2. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
+1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.
+1. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
 
 Our naming convention is that procedures run on Workers are given the adjective _local_ whereas those running on Master are called _global_.
 
@@ -20,7 +20,6 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 <b><h4> Algorithm Description </h4></b>
 In Naive Bayes algorithm the attributes of *X* can be both categorical and continuous, while the *y* is always categorical. Once we have the likelihood terms from the training procedure we can compute the maximum a posteriori probability for the class of a new query datapoint *q* with the following procedure:
 
+![pseudo](algorithm_images/nb_train_pseudocode.png)
 
-![pseudo](../NAIVE_BAYES_TRAINING/pseudocode.png)
-
-![pseudo](pseudocode.png)
+![pseudo](algorithm_images/nb_predict_pseudocode.png)
