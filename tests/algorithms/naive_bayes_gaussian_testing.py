@@ -1,3 +1,4 @@
+import copy
 import typing as t
 from collections import Counter
 
@@ -7,6 +8,7 @@ from exareme2.algorithms.algorithm import Algorithm
 from exareme2.algorithms.algorithm import AlgorithmDataLoader
 from exareme2.algorithms.naive_bayes_gaussian_cv import GaussianNB
 from exareme2.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
+from exareme2.algorithms.specifications import AlgorithmSpecification
 
 ALGNAME_FIT = "test_nb_gaussian_fit"
 
@@ -24,7 +26,18 @@ class GaussianNBTesting_fit(Algorithm, algname=ALGNAME_FIT):
 
     @classmethod
     def get_specification(cls):
-        return GaussianNBAlgorithm.get_specification()
+        # Use the Gaussian Naive Bayes with CV specification
+        # but remove the "n_splits" parameter since this is a CV specific parameter
+        gaussianNB_with_cv_specification = GaussianNBAlgorithm.get_specification()
+        gaussianNB_fit_specification = AlgorithmSpecification(
+            name=ALGNAME_FIT,
+            desc=gaussianNB_with_cv_specification.desc,
+            label=gaussianNB_with_cv_specification.label,
+            enabled=gaussianNB_with_cv_specification.enabled,
+            inputdata=gaussianNB_with_cv_specification.inputdata,
+            parameters=None,  # Parameters are not passed
+        )
+        return gaussianNB_fit_specification
 
     def run(self, data, metadata):
         engine = self.engine
@@ -54,7 +67,18 @@ class GaussianNBTesting_predict(Algorithm, algname=ALGNAME_PRED):
 
     @classmethod
     def get_specification(cls):
-        return GaussianNBAlgorithm.get_specification()
+        # Use the Gaussian Naive Bayes with CV specification
+        # but remove the "n_splits" parameter since this is a CV specific parameter
+        gaussianNB_with_cv_specification = GaussianNBAlgorithm.get_specification()
+        gaussianNB_predict_specification = AlgorithmSpecification(
+            name=ALGNAME_PRED,
+            desc=gaussianNB_with_cv_specification.desc,
+            label=gaussianNB_with_cv_specification.label,
+            enabled=gaussianNB_with_cv_specification.enabled,
+            inputdata=gaussianNB_with_cv_specification.inputdata,
+            parameters=None,  # Parameters are not passed
+        )
+        return gaussianNB_predict_specification
 
     def run(self, data, metadata):
         engine = self.engine
