@@ -621,11 +621,11 @@ def start_node(
 @task
 def kill_controller(c):
     """Kill the controller service."""
-    HYPERCORN_PROCESS_NAME = "hypercorn"
-    res = run(c, f"ps -e | grep '{HYPERCORN_PROCESS_NAME}'", warn=True, show_ok=False)
+    HYPERCORN_PROCESS_NAME = "[f]rom multiprocessing.spawn import spawn_main;"
+    res = run(c, f"ps aux | grep '{HYPERCORN_PROCESS_NAME}'", warn=True, show_ok=False)
     if res.ok:
         message("Killing previous Hypercorn instances...", Level.HEADER)
-        cmd = f"killall -9 {HYPERCORN_PROCESS_NAME}"
+        cmd = f"ps aux | grep '{HYPERCORN_PROCESS_NAME}' | awk '{{ print $2}}' | xargs kill -9 && sleep 5"
         run(c, cmd)
     else:
         message("No hypercorn instance found", Level.HEADER)

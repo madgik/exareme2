@@ -5,6 +5,7 @@ from typing import List
 import requests
 
 from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_DTOs import DPRequestData
 from exareme2.smpc_DTOs import SMPCRequestData
 from exareme2.smpc_DTOs import SMPCRequestType
 
@@ -81,32 +82,13 @@ def create_payload(
         return SMPCRequestData(
             computationType=computation_type,
             clients=clients,
-            c=dp_params.sensitivity,
-            e=dp_params.privacy_budget,
+            dp=DPRequestData(
+                c=dp_params.sensitivity,
+                e=dp_params.privacy_budget,
+            ),
         ).json()
     else:
         return SMPCRequestData(computationType=computation_type, clients=clients).json()
-
-
-def trigger_dp(
-    logger: Logger,
-    coordinator_address: str,
-    jobid: str,
-    computation_type: SMPCRequestType,
-    clients: List[str],
-):
-    #     http://{{coordinator}}:{{coordinator-port}}/api/secure-aggregation/job-id/testKey13
-
-    # {
-    #     "computationType": "sum",
-    #     "returnUrl": "http://localhost:4100",
-    #     "clients": ["ZuellingPharma"],
-    #     "dp": {
-    #         "c": 1,
-    #         "e": 1
-    #     }
-    # }
-    pass
 
 
 def validate_smpc_usage(use_smpc: bool, smpc_enabled: bool, smpc_optional: bool):

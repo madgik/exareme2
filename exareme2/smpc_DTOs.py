@@ -28,13 +28,16 @@ class SMPCResponseStatus(enum.Enum):
         return self.name
 
 
-class SMPCRequestData(BaseModel):
-    computationType: SMPCRequestType
-    clients: List[str]
+class DPRequestData(BaseModel):
     c: Optional[float]  # Differential Privacy - sensitivity
     e: Optional[float]  # Differential Privacy - privacy budget
 
 
+class SMPCRequestData(BaseModel):
+    computationType: SMPCRequestType
+    clients: List[str]
+    dp: Optional[DPRequestData]
+    
 class DifferentialPrivacyParams(BaseModel):
     sensitivity: float
     privacy_budget: float
