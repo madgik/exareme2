@@ -9,15 +9,22 @@ from exareme2.exceptions import DataModelUnavailable
 from exareme2.exceptions import DatasetUnavailable
 from exareme2.exceptions import InsufficientDataError
 from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableData
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_tasks_DTOs import TableType
 from tests.standalone_tests.conftest import ALGORITHMS_URL
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
+from tests.standalone_tests.conftest import create_table_in_db
+from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 from tests.standalone_tests.test_smpc_node_tasks import TASKS_TIMEOUT
+
+create_view_task_signature = get_celery_task_signature("create_view")
+create_data_model_views_task_signature = get_celery_task_signature(
+    "create_data_model_views"
+)
+get_views_task_signature = get_celery_task_signature("get_views")
 
 
 @pytest.fixture
@@ -91,6 +98,7 @@ def test_view_without_filters(
     localnode1_celery_app,
     localnode1_db_cursor,
 ):
+    table_name = f"test_view_without_filters_{context_id}"
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
@@ -98,37 +106,20 @@ def test_view_without_filters(
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
+    table_values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
 
-    task_signature = get_celery_task_signature("create_table")
+    create_table_in_db(localnode1_db_cursor, table_name, table_schema)
+    insert_data_to_db(table_name, table_values, localnode1_db_cursor)
+
+    view_columns = ["col1", "col3"]
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_view_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        schema_json=table_schema.json(),
-    )
-    table_info = TableInfo.parse_raw(
-        localnode1_celery_app.get_result(
-            async_result=async_result,
-            logger=StdOutputLogger(),
-            timeout=TASKS_TIMEOUT,
-        )
-    )
-
-    values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    insert_data_to_db(table_info.name, values, localnode1_db_cursor)
-
-    columns = ["col1", "col3"]
-    task_signature = get_celery_task_signature("create_view")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        table_name=table_info.name,
-        columns=columns,
+        table_name=table_name,
+        columns=view_columns,
         filters=None,
     )
     view_info = TableInfo.parse_raw(
@@ -138,42 +129,11 @@ def test_view_without_filters(
             timeout=TASKS_TIMEOUT,
         )
     )
+    assert view_info.type_ == TableType.VIEW
 
-    task_signature = get_celery_task_signature("get_views")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-    )
-    views = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-    assert view_info.name in views
-
-    view_intended_schema = TableSchema(
-        columns=[
-            ColumnInfo(name="col1", dtype=DType.INT),
-            ColumnInfo(name="col3", dtype=DType.STR),
-        ]
-    )
-    assert view_intended_schema == view_info.schema_
-
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info.name,
-    )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    view_data = TableData.parse_raw(view_data_json)
-    assert len(view_data.columns) == len(view_intended_schema.columns)
-    assert view_data.name == view_info.name
+    view_data = get_table_data_from_db(localnode1_db_cursor, view_info.name)
+    assert len(view_data[0]) == len(view_columns)  # Assert column count
+    assert len(view_data) == len(table_values)  # Assert row count
 
 
 @pytest.mark.slow
@@ -186,6 +146,7 @@ def test_view_with_filters(
     use_localnode1_database,
     localnode1_db_cursor,
 ):
+    table_name = f"test_view_with_filters_{context_id}"
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
@@ -193,26 +154,12 @@ def test_view_with_filters(
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
+    table_values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
 
-    task_signature = get_celery_task_signature("create_table")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        schema_json=table_schema.json(),
-    )
-    table_info = TableInfo.parse_raw(
-        localnode1_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
-    )
+    create_table_in_db(localnode1_db_cursor, table_name, table_schema)
+    insert_data_to_db(table_name, table_values, localnode1_db_cursor)
 
-    values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    insert_data_to_db(table_info.name, values, localnode1_db_cursor)
-
-    columns = ["col1", "col3"]
+    view_columns = ["col1", "col3"]
     filters = {
         "condition": "AND",
         "rules": [
@@ -232,15 +179,14 @@ def test_view_with_filters(
         ],
         "valid": True,
     }
-    task_signature = get_celery_task_signature("create_view")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_view_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
         command_id=uuid.uuid4().hex,
-        table_name=table_info.name,
-        columns=columns,
+        table_name=table_name,
+        columns=view_columns,
         filters=filters,
     )
     view_info = TableInfo.parse_raw(
@@ -249,48 +195,19 @@ def test_view_with_filters(
         )
     )
 
-    task_signature = get_celery_task_signature("get_views")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-    )
-    views = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    assert view_info.name in views
-    view_intended_schema = TableSchema(
-        columns=[
-            ColumnInfo(name="col1", dtype=DType.INT),
-            ColumnInfo(name="col3", dtype=DType.STR),
-        ]
-    )
-    assert view_intended_schema == view_info.schema_
-
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info.name,
-    )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    view_data = TableData.parse_raw(view_data_json)
-    assert len(view_data.columns) == 2
-    assert len(view_data.columns) == len(view_intended_schema.columns)
-    assert view_data.name == view_info.name
+    view_data = get_table_data_from_db(localnode1_db_cursor, view_info.name)
+    assert len(view_data[0]) == len(view_columns)  # Assert column count
+    assert len(view_data) == 1  # All but one row have been filtered out
 
 
 @pytest.mark.slow
-def test_data_model_view_without_filters(
+def test_data_model_view(
     request_id,
     context_id,
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
     use_localnode1_database,
 ):
     columns = [
@@ -300,9 +217,8 @@ def test_data_model_view_without_filters(
         "pupil_reactivity_right_eye_result",
     ]
     data_model = "tbi:0.1"
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -317,9 +233,8 @@ def test_data_model_view_without_filters(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
     ]
-    task_signature = get_celery_task_signature("get_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=get_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -340,112 +255,8 @@ def test_data_model_view_without_filters(
     )
     assert schema == view_info.schema_
 
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info.name,
-    )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    view_data = TableData.parse_raw(view_data_json)
-    assert len(view_data.columns) == len(schema.columns)
-    assert view_data.name == view_info.name
-
-
-@pytest.mark.slow
-def test_data_model_view_with_filters(
-    request_id,
-    context_id,
-    load_data_localnode1,
-    localnode1_node_service,
-    localnode1_celery_app,
-    use_localnode1_database,
-):
-    columns = [
-        "dataset",
-        "age_value",
-        "gcs_motor_response_scale",
-        "pupil_reactivity_right_eye_result",
-    ]
-    data_model = "tbi:0.1"
-    filters = {
-        "condition": "AND",
-        "rules": [
-            {
-                "condition": "OR",
-                "rules": [
-                    {
-                        "id": "age_value",
-                        "field": "age_value",
-                        "type": "int",
-                        "input": "number",
-                        "operator": "greater",
-                        "value": 30,
-                    }
-                ],
-            }
-        ],
-        "valid": True,
-    }
-    task_signature = get_celery_task_signature("create_data_model_views")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        data_model=data_model,
-        datasets=[],
-        columns_per_view=[columns],
-        filters=filters,
-        dropna=False,
-    )
-    view_info, *_ = [
-        TableInfo.parse_raw(table)
-        for table in localnode1_celery_app.get_result(
-            async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-        )
-    ]
-
-    task_signature = get_celery_task_signature("get_views")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-    )
-    views = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    assert view_info.name in views
-
-    schema = TableSchema(
-        columns=[
-            ColumnInfo(name="row_id", dtype=DType.INT),
-            ColumnInfo(name="dataset", dtype=DType.STR),
-            ColumnInfo(name="age_value", dtype=DType.INT),
-            ColumnInfo(name="gcs_motor_response_scale", dtype=DType.STR),
-            ColumnInfo(name="pupil_reactivity_right_eye_result", dtype=DType.STR),
-        ]
-    )
-    assert schema == view_info.schema_
-
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info.name,
-    )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    view_data = TableData.parse_raw(view_data_json)
-    assert len(view_data.columns) == len(schema.columns)
-    assert view_data.name == view_info.name
+    view_data = get_table_data_from_db(localnode1_db_cursor, view_info.name)
+    assert len(view_data[0]) == len(schema.columns)
 
 
 @pytest.mark.slow
@@ -455,15 +266,15 @@ def test_data_model_view_dataset_constraint(
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
     use_localnode1_database,
 ):
     columns = [
         "dataset",
     ]
     data_model = "tbi:0.1"
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -480,19 +291,9 @@ def test_data_model_view_dataset_constraint(
         )
     ]
 
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info.name,
-    )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-
-    _, dataset_column = TableData.parse_raw(view_data_json).columns
-    assert set(dataset_column.data) == {"dummy_tbi1"}
+    view_data = get_table_data_from_db(localnode1_db_cursor, view_info.name)
+    for _, dataset in view_data:
+        assert dataset == "dummy_tbi1"
 
 
 @pytest.mark.slow
@@ -502,6 +303,7 @@ def test_data_model_view_null_constraints(
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
     use_localnode1_database,
 ):
     columns = [
@@ -509,9 +311,8 @@ def test_data_model_view_null_constraints(
     ]
     data_model = "tbi:0.1"
     datasets = ["dummy_tbi1"]
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -528,22 +329,14 @@ def test_data_model_view_null_constraints(
         )
     ]
 
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info_without_nulls.name,
+    view_data = get_table_data_from_db(
+        localnode1_db_cursor, view_info_without_nulls.name
     )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    _, gose_score_column = TableData.parse_raw(view_data_json).columns
-    assert None not in gose_score_column.data
+    for row in view_data:
+        assert None not in row
 
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -561,23 +354,18 @@ def test_data_model_view_null_constraints(
         )
     ]
 
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_info_with_nulls.name,
-    )
-    view_data_json = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    _, gose_score_column = TableData.parse_raw(view_data_json).columns
+    view_data = get_table_data_from_db(localnode1_db_cursor, view_info_with_nulls.name)
+    none_found = False
+    for _, gose_score_column in view_data:
+        if gose_score_column is None:
+            none_found = True
+            break
 
-    assert None in gose_score_column.data
+    assert none_found is True
 
 
 @pytest.mark.slow
-def test_insuficient_data_error_raised_when_data_model_view_generated(
+def test_insufficient_data_error_raised_when_data_model_view_generated_with_zero_rows(
     request_id,
     context_id,
     load_data_localnode1,
@@ -585,13 +373,10 @@ def test_insuficient_data_error_raised_when_data_model_view_generated(
     localnode1_celery_app,
     use_localnode1_database,
     zero_rows_data_model_view_generating_params,
-    five_rows_data_model_view_generating_params,
 ):
-    # check InsufficientDataError raised when empty data model view generated
     with pytest.raises(InsufficientDataError):
-        task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
-            task_signature=task_signature,
+            task_signature=create_data_model_views_task_signature,
             logger=StdOutputLogger(),
             request_id=request_id,
             context_id=context_id,
@@ -605,12 +390,22 @@ def test_insuficient_data_error_raised_when_data_model_view_generated(
             async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
         )
 
+
+@pytest.mark.slow
+def test_insufficient_data_error_raised_when_data_model_view_generated_with_fewer_rows_than_limit(
+    request_id,
+    context_id,
+    load_data_localnode1,
+    localnode1_node_service,
+    localnode1_celery_app,
+    use_localnode1_database,
+    five_rows_data_model_view_generating_params,
+):
     # check InsufficientDataError raised when data model view with less than
     # minimum_row_count (defined in testing_env_configs/test_localnode1.toml)
     with pytest.raises(InsufficientDataError):
-        task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
-            task_signature=task_signature,
+            task_signature=create_data_model_views_task_signature,
             logger=StdOutputLogger(),
             request_id=request_id,
             context_id=context_id,
@@ -639,9 +434,8 @@ def test_data_model_view_with_data_model_unavailable_exception(
     ]
     data_model = "non_existing"
     with pytest.raises(DataModelUnavailable) as exc:
-        task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
-            task_signature=task_signature,
+            task_signature=create_data_model_views_task_signature,
             logger=StdOutputLogger(),
             request_id=request_id,
             context_id=context_id,
@@ -674,9 +468,8 @@ def test_data_model_view_with_dataset_unavailable_exception(
     ]
     data_model = "tbi:0.1"
     with pytest.raises(DatasetUnavailable) as exc:
-        task_signature = get_celery_task_signature("create_data_model_views")
         async_result = localnode1_celery_app.queue_task(
-            task_signature=task_signature,
+            task_signature=create_data_model_views_task_signature,
             logger=StdOutputLogger(),
             request_id=request_id,
             context_id=context_id,
@@ -715,9 +508,8 @@ def test_multiple_data_model_views(
         ],
     ]
     data_model = "tbi:0.1"
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -733,9 +525,8 @@ def test_multiple_data_model_views(
         )
     ]
 
-    task_signature = get_celery_task_signature("get_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=get_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -778,9 +569,10 @@ def test_multiple_data_model_views_null_constraints(
     load_data_localnode1,
     localnode1_node_service,
     localnode1_celery_app,
+    localnode1_db_cursor,
     use_localnode1_database,
 ):
-    # datasets:"edsd2" of the data model dementia:0.1 has 53 rows. Nevertheless
+    # datasets:"edsd2" of the data model dementia:0.1 has 53 rows. Nevertheless,
     # column 'neurodegenerativescategories' contains 20 NULL values, whereas 'opticchiasm',
     # for the same respective rows contains numerical values
     # The test checks that calling task "create_data_model_view" with "dropna" flag set to
@@ -802,9 +594,8 @@ def test_multiple_data_model_views_null_constraints(
 
     # Create data model passing only column 'neurodegenerativescategories' with dropna=False
     # This data model view will contain null values
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -819,37 +610,25 @@ def test_multiple_data_model_views_null_constraints(
     result = localnode1_celery_app.get_result(
         async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
     )
-
     view_neurodegenerativescategories_nulls_included = TableInfo.parse_raw(result[0])
 
     # Get count of how many null values
-    task_signature = get_celery_task_signature("get_table_data")
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_neurodegenerativescategories_nulls_included.name,
+    view_neurodegenerativescategories_nulls_included_data = get_table_data_from_db(
+        localnode1_db_cursor, view_neurodegenerativescategories_nulls_included.name
     )
-    result = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-    _, view_neurodegenerativescategories_nulls_included_column = TableData.parse_raw(
-        result
-    ).columns
-    view_neurodegenerativescategories_nulls_included_num_of_nulls = (
-        view_neurodegenerativescategories_nulls_included_column.data.count(None)
-    )
+    view_neurodegenerativescategories_nulls_included_num_of_nulls = [
+        neuro_column
+        for _, neuro_column in view_neurodegenerativescategories_nulls_included_data
+    ].count(None)
+
     view_neurodegenerativescategories_nulls_included_num_of_rows = len(
-        view_neurodegenerativescategories_nulls_included_column.data
+        view_neurodegenerativescategories_nulls_included_data
     )
 
     # Create data model with of both columns and dropna=True per view will drop the
     # rows with null values
-    task_signature = get_celery_task_signature("create_data_model_views")
     async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
+        task_signature=create_data_model_views_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
@@ -869,35 +648,19 @@ def test_multiple_data_model_views_null_constraints(
     ]
 
     # Get data of the created data model views
-    task_signature = get_celery_task_signature("get_table_data")
     # neurodegenerativescategories data model view
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_neurodegenerativescategories.name,
+    view_neurodegenerativescategories_data = get_table_data_from_db(
+        localnode1_db_cursor, view_neurodegenerativescategories.name
     )
-    result = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-
-    _, neurodegenerativescategories_column = TableData.parse_raw(result).columns
     view_neurodegenerativescategories_num_of_rows = len(
-        neurodegenerativescategories_column.data
+        view_neurodegenerativescategories_data
     )
 
     # opticchiasm data model view
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=view_opticchiasm.name,
+    view_opticchiasm_data = get_table_data_from_db(
+        localnode1_db_cursor, view_opticchiasm.name
     )
-    result = localnode1_celery_app.get_result(
-        async_result=async_result, logger=StdOutputLogger(), timeout=TASKS_TIMEOUT
-    )
-    _, opticchiasm_column = TableData.parse_raw(result).columns
-    view_opticchiasm_num_of_rows = len(opticchiasm_column.data)
+    view_opticchiasm_num_of_rows = len(view_opticchiasm_data)
 
     # check that the 2 data model views generated are of the same row count
     assert view_neurodegenerativescategories_num_of_rows == view_opticchiasm_num_of_rows

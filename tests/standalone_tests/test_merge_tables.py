@@ -6,7 +6,6 @@ from exareme2.datatypes import DType
 from exareme2.exceptions import IncompatibleSchemasMergeException
 from exareme2.exceptions import TablesNotFound
 from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableData
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
 from exareme2.node_tasks_DTOs import TableType
@@ -15,6 +14,7 @@ from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE2_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import create_table_in_db
+from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
@@ -22,7 +22,6 @@ from tests.standalone_tests.std_output_logger import StdOutputLogger
 create_remote_task_signature = get_celery_task_signature("create_remote_table")
 create_merge_table_task_signature = get_celery_task_signature("create_merge_table")
 get_merge_tables_task_signature = get_celery_task_signature("get_merge_tables")
-get_table_data_task_signature = get_celery_task_signature("get_table_data")
 
 
 @pytest.fixture(autouse=True)
@@ -210,6 +209,7 @@ def test_create_merge_table_on_top_of_remote_tables(
     use_localnode2_database,
     globalnode_node_service,
     globalnode_celery_app,
+    globalnode_db_cursor,
     use_globalnode_database,
 ):
     """
@@ -224,7 +224,7 @@ def test_create_merge_table_on_top_of_remote_tables(
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
-    table_values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
+    initial_table_values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
     localnode1_tableinfo = TableInfo(
         name=f"normal_testlocalnode1_{context_id}",
         schema_=table_schema,
@@ -247,8 +247,12 @@ def test_create_merge_table_on_top_of_remote_tables(
         localnode2_tableinfo.schema_,
         True,
     )
-    insert_data_to_db(localnode1_tableinfo.name, table_values, localnode1_db_cursor)
-    insert_data_to_db(localnode2_tableinfo.name, table_values, localnode2_db_cursor)
+    insert_data_to_db(
+        localnode1_tableinfo.name, initial_table_values, localnode1_db_cursor
+    )
+    insert_data_to_db(
+        localnode2_tableinfo.name, initial_table_values, localnode2_db_cursor
+    )
 
     # Create remote tables
     local_node_1_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALNODE1_PORT}"
@@ -305,21 +309,15 @@ def test_create_merge_table_on_top_of_remote_tables(
         )
     )
 
-    # Validate merge table row count
-    async_result = globalnode_celery_app.queue_task(
-        task_signature=get_table_data_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        table_name=merge_table_info.name,
+    # Validate merge tables contains both remote tables' values
+    merge_table_values = get_table_data_from_db(
+        globalnode_db_cursor, merge_table_info.name
     )
 
-    table_data_json = globalnode_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-    table_data = TableData.parse_raw(table_data_json)
-    column_count = len(table_data.columns)
-    assert column_count == len(table_values)
-    row_count = len(table_data.columns[0].data)
-    assert row_count == len(table_values[0] * 2)
+    column_count = len(initial_table_values[0])
+    assert column_count == len(merge_table_values[0])
+
+    row_count = len(initial_table_values)
+    assert row_count * 2 == len(
+        merge_table_values
+    )  # The rows are doubled since we have 2 localnodes with N rows each.

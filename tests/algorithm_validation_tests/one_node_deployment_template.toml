@@ -16,6 +16,7 @@ celery_run_udf_task_timeout = 120
 
 [privacy]
 minimum_row_count = 1
+protect_local_data = false
 
 [cleanup]
 nodes_cleanup_interval=30

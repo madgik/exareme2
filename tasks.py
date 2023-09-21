@@ -155,6 +155,12 @@ def create_configs(c):
         node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
             "minimum_row_count"
         ]
+        if node["role"] == "GLOBALNODE":
+            node_config["privacy"]["protect_local_data"] = False
+        else:
+            node_config["privacy"]["protect_local_data"] = deployment_config["privacy"][
+                "protect_local_data"
+            ]
 
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         if node_config["smpc"]["enabled"]:
@@ -163,11 +169,15 @@ def create_configs(c):
                 node_config["smpc"][
                     "coordinator_address"
                 ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+                node_config["privacy"]["protect_local_data"] = False
             else:
                 node_config["smpc"]["client_id"] = node["id"]
                 node_config["smpc"][
                     "client_address"
                 ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
+                node_config["privacy"]["protect_local_data"] = deployment_config[
+                    "privacy"
+                ]["protect_local_data"]
 
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:

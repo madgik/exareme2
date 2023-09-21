@@ -59,6 +59,7 @@
 
    [privacy]
    minimum_row_count = 10
+   protect_local_data = false
 
    [cleanup]
    nodes_cleanup_interval=10

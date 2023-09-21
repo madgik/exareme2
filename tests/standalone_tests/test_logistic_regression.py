@@ -9,7 +9,6 @@ from tests.standalone_tests.test_linear_regression import InMemoryExecutionEngin
 np.random.seed(1)
 
 
-@pytest.mark.slow
 class TestLogisticRegression:
     @pytest.mark.parametrize("nrows", range(10, 100, 10))
     @pytest.mark.parametrize("ncols", range(1, 20))
