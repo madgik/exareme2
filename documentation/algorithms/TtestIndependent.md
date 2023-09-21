@@ -21,3 +21,5 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 The Student’s Independent samples t-test (sometimes called a two-samples t-test) is used to test the null hypothesis that two groups have the same mean. A low p-value suggests that the null hypothesis is not true, and therefore the group means are different. In each local dataset, let *x* and *y* be the variables of interest.*y* is the grouping variable with two levels.
 
 ![pseudo](images/independent_ttest_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/ttest_independent.py)

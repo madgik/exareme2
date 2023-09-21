@@ -21,3 +21,5 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 The Student’s One-sample t-test is used to test the null hypothesis that the true mean is equal to a particular value (typically zero). A low p-value suggests that the null hypothesis is not true, and therefore the true mean (μ) must be different from the test value. In each local dataset, let *x<sub>j</sub>* be the variable of interest.
 
 ![pseudo](images/one_sample_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/ttest_onesample.py)

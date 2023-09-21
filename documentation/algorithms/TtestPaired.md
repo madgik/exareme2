@@ -21,3 +21,5 @@ In each local dataset, the independent attributes are denoted as a matrix *X<sup
 The Student’s paired samples t-test (sometimes called a dependent-samples t-test) is used to test the null hypothesis that the difference between pairs of measurements is equal to zero. A low p-value suggests that the null hypothesis is not true, and that the difference between the measurement pairs is not zero. In each local dataset, let *x<sub>j1</sub>* and *x<sub>j2</sub>* be the variables of interest.
 
 ![pseudo](images/paired_ttest_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/ttest_paired.py)

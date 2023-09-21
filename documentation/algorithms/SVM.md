@@ -10,3 +10,7 @@ Our naming convention is that procedures run on Workers are given the adjective 
 <b><h4>Algorithm Description</b></h4>
 
 The SVM algorithm uses the state-of-art python library, scikit-learn to calculate the local models. The model from each Worker is then averaged on the Master to return the result of the averaging process.
+
+[Algorithm Implementation](../../exareme2/algorithms/svm_scikit.py)
+
+[Federated Averaging Strategy](../../exareme2/algorithms/fedaverage.py)

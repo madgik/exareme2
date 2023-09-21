@@ -30,3 +30,9 @@ From these quantities the central node then computes the following diagnostic qu
 1. min, max, mean and SE of residuals ε<sub>i</sub> and the degrees of freedom
 1. R^2 and Adjusted R^2
 1. *F*-statistic and *p*-value
+
+[Algorithm Implementation](../../exareme2/algorithms/linear_regression.py)
+
+[Algorithm Implementation with Cross - Validation](../../exareme2/algorithms/linear_regression_cv.py)
+
+[Algorithm Implementation for Longitudinal Data](../../exareme2/algorithms/linear_regression_longitudinal.py)

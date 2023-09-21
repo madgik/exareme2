@@ -27,3 +27,7 @@ following algorithm, called __Iteratively Reweighted Least Squares__ (IRLS). Her
 the dependent variable *y* has to be binary.
 
 ![pseudo](images/logistic_regression_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/logistic_regression.py)
+
+[Algorithm Implementation with Cross - Validation](../../exareme2/algorithms/logistic_regression_cv.py)

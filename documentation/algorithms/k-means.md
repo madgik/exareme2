@@ -23,3 +23,5 @@ The purpose of the k-means algorithm is to partition the data into *k* clusters.
 
 <b><h4>k-MEANS Train</b></h4>
 ![pseudo](images/kmeans_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/kmeans.py)

@@ -72,3 +72,7 @@ Let <img src="https://render.githubusercontent.com/render/math?math=SS(A,B,AB)">
 <b><h4>Federated ANOVA</b></h4>
 
 Based on the type of sum of squares selected by the user as well as the full model, a set of models is defined as described above. Federated linear regressions are executed for each of these models. Once the federated linear regressions are computed, we compute and output all the relevant statistics and p-values of standard ANOVA.
+
+[ANOVA one-way Implementation](../../exareme2/algorithms/anova_oneway.py)
+
+[ANOVA two-way Implementation](../../exareme2/algorithms/anova.py)

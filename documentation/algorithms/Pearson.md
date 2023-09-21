@@ -25,3 +25,5 @@ This algorithm computes the Pearson correlation coefficient between two vectors 
 *y* using the eq.(1)
 
 ![pseudo](images/pearson_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/pearson_correlation.py)

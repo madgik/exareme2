@@ -28,3 +28,5 @@ stability. Here however, we took the first approach since it better fits with ou
 requirements. Additionally, as a first step, data is centered and standardized.
 
 ![pseudo](images/pca_pseudocode.png)
+
+[Algorithm Implementation](../../exareme2/algorithms/pca.py)
