@@ -31,8 +31,8 @@ From these quantities the central node then computes the following diagnostic qu
 1. R^2 and Adjusted R^2
 1. *F*-statistic and *p*-value
 
-[Algorithm Implementation](../../exareme2/algorithms/linear_regression.py)
+<b><h4>Algorithm Implementation</b></h4>
 
-[Algorithm Implementation with Cross - Validation](../../exareme2/algorithms/linear_regression_cv.py)
+[Linear Regression](../../exareme2/algorithms/linear_regression.py)
 
-[Algorithm Implementation for Longitudinal Data](../../exareme2/algorithms/linear_regression_longitudinal.py)
+[Linear Regression with Cross - Validation](../../exareme2/algorithms/linear_regression_cv.py)
