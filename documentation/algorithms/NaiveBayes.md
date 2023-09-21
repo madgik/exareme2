@@ -25,6 +25,7 @@ In Naive Bayes algorithm the attributes of *X* can be both categorical and conti
 ![pseudo](images/nb_predict_pseudocode.png)
 
 
+
 <b><h4>Algorithm Implementation</b></h4>
 
 [Categorical Naive Bayes with Cross - Validation](../../exareme2/algorithms/naive_bayes_categorical_cv.py)
