@@ -23,25 +23,34 @@ udf_execution_lock = Semaphore()
 class _DBExecutionDTO(BaseModel):
     query: str
     parameters: Optional[List[Any]]
+    use_public_user: bool = False
     timeout: Optional[int]
 
     class Config:
         allow_mutation = False
 
 
-def db_execute_and_fetchall(query: str, parameters=None) -> List:
+def db_execute_and_fetchall(
+    query: str, parameters=None, use_public_user: bool = False
+) -> List:
     query_execution_timeout = node_config.celery.tasks_timeout
     db_execution_dto = _DBExecutionDTO(
-        query=query, parameters=parameters, timeout=query_execution_timeout
+        query=query,
+        parameters=parameters,
+        use_public_user=use_public_user,
+        timeout=query_execution_timeout,
     )
     return _execute_and_fetchall(db_execution_dto=db_execution_dto)
 
 
-def db_execute_query(query: str, parameters=None):
+def db_execute_query(query: str, parameters=None, use_public_user: bool = False):
     query_execution_timeout = node_config.celery.tasks_timeout
     query = convert_to_idempotent(query)
     db_execution_dto = _DBExecutionDTO(
-        query=query, parameters=parameters, timeout=query_execution_timeout
+        query=query,
+        parameters=parameters,
+        use_public_user=use_public_user,
+        timeout=query_execution_timeout,
     )
     _execute(db_execution_dto=db_execution_dto, lock=query_execution_lock)
 
@@ -62,12 +71,19 @@ def db_execute_udf(query: str, parameters=None):
 
 # Connection Pool disabled due to bugs in maintaining connections
 @contextmanager
-def _connection():
+def _connection(use_public_user: bool):
+    if use_public_user:
+        username = node_config.monetdb.public_username
+        password = node_config.monetdb.public_password
+    else:
+        username = node_config.monetdb.local_username
+        password = node_config.monetdb.local_password
+
     conn = pymonetdb.connect(
         hostname=node_config.monetdb.ip,
         port=node_config.monetdb.port,
-        username=node_config.monetdb.local_username,
-        password=node_config.monetdb.local_password,
+        username=username,
+        password=password,
         database=node_config.monetdb.database,
     )
     yield conn
@@ -75,8 +91,8 @@ def _connection():
 
 
 @contextmanager
-def _cursor(commit=False):
-    with _connection() as conn:
+def _cursor(use_public_user: bool, commit: bool = False):
+    with _connection(use_public_user) as conn:
         cur = conn.cursor()
         yield cur
         cur.close()
@@ -163,7 +179,7 @@ def _execute_and_fetchall(db_execution_dto) -> List:
     Used to execute only select queries that return a result.
     'parameters' option to provide the functionality of bind-parameters.
     """
-    with _cursor() as cur:
+    with _cursor(use_public_user=db_execution_dto.use_public_user) as cur:
         cur.execute(db_execution_dto.query, db_execution_dto.parameters)
         result = cur.fetchall()
     return result
@@ -249,7 +265,10 @@ def _execute(db_execution_dto: _DBExecutionDTO, lock):
 
     try:
         with _lock(lock, db_execution_dto.timeout):
-            with _cursor(commit=True) as cur:
+            with _cursor(
+                use_public_user=db_execution_dto.use_public_user,
+                commit=True,
+            ) as cur:
                 cur.execute(db_execution_dto.query, db_execution_dto.parameters)
     except TimeoutError:
         error_msg = f"""

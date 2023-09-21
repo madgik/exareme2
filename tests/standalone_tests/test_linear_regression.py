@@ -15,7 +15,6 @@ class InMemoryExecutionEngine:
     run_udf_on_global_node = run_udf_on_local_nodes
 
 
-@pytest.mark.slow
 class TestLinearRegression:
     @pytest.mark.parametrize("nrows", range(10, 100, 10))
     @pytest.mark.parametrize("ncols", range(1, 20))

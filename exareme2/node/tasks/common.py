@@ -112,7 +112,12 @@ def get_table_data(request_id: str, table_name: str) -> str:
     str(TableData)
         An object of TableData in a jsonified format
     """
-    columns = common_actions.get_table_data(table_name)
+    # If the public user is used, its ensured that the table won't hold private data.
+    # Tables are published to the public DB user when they are meant for sending to other nodes.
+    # The "protect_local_data" config allows for turning this logic off in testing scenarios.
+    use_public_user = True if node_config.privacy.protect_local_data else False
+
+    columns = common_actions.get_table_data(table_name, use_public_user)
 
     return TableData(name=table_name, columns=columns).json()
 

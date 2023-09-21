@@ -43,7 +43,7 @@ def validate_smpc_templates_match(
     Nothing, only throws exception if they don't match.
     """
 
-    templates = _get_smpc_values_from_table_data(get_table_data(table_name))
+    templates = _get_smpc_values_from_table_data(get_table_data(table_name, False))
     first_template, *_ = templates
     for template in templates[1:]:
         if template != first_template:
@@ -73,7 +73,9 @@ def load_data_to_smpc_client(request_id: str, table_name: str, jobid: str) -> st
             "load_data_to_smpc_client is allowed only for a LOCALNODE."
         )
 
-    smpc_values, *_ = _get_smpc_values_from_table_data(get_table_data(table_name))
+    smpc_values, *_ = _get_smpc_values_from_table_data(
+        get_table_data(table_name, False)
+    )
 
     smpc_cluster.load_data_to_smpc_client(
         node_config.smpc.client_address, jobid, smpc_values

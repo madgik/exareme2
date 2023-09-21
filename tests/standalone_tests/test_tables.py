@@ -1,18 +1,15 @@
 import uuid as uuid
 
 import pytest
+from pymonetdb import OperationalError
 
 from exareme2.datatypes import DType
 from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableData
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.table_data_DTOs import ColumnDataFloat
-from exareme2.table_data_DTOs import ColumnDataInt
-from exareme2.table_data_DTOs import ColumnDataStr
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
-from tests.standalone_tests.conftest import insert_data_to_db
+from tests.standalone_tests.conftest import create_table_in_db
+from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
@@ -34,7 +31,7 @@ def context_id(request_id):
 
 
 @pytest.mark.slow
-def test_create_and_find_tables(
+def test_create_table(
     request_id,
     context_id,
     localnode1_node_service,
@@ -65,6 +62,28 @@ def test_create_and_find_tables(
         )
     )
 
+    table_values = get_table_data_from_db(localnode1_db_cursor, table_1_info.name)
+    assert len(table_values) == 0
+
+
+@pytest.mark.slow
+def test_get_tables(
+    request_id,
+    context_id,
+    localnode1_node_service,
+    localnode1_celery_app,
+    localnode1_db_cursor,
+):
+    table_name = f"normal_testlocalnode1_{context_id}"
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
+        ]
+    )
+    create_table_in_db(localnode1_db_cursor, table_name, table_schema)
+
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_tables_task_signature,
         logger=StdOutputLogger(),
@@ -76,82 +95,75 @@ def test_create_and_find_tables(
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
     )
+    assert table_name in tables
 
-    assert table_1_info.name in tables
 
-    values = [[1, 0.1, "test1"], [2, 0.2, None], [3, 0.3, "test3"]]
-    insert_data_to_db(table_1_info.name, values, localnode1_db_cursor)
+@pytest.mark.slow
+def test_get_table_data_not_working_from_unpublished_table(
+    request_id,
+    context_id,
+    localnode1_node_service,
+    localnode1_celery_app,
+    localnode1_db_cursor,
+):
+    table_name = f"normal_testlocalnode1_{context_id}"
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
+        ]
+    )
+    create_table_in_db(localnode1_db_cursor, table_name, table_schema)
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=table_1_info.name,
+        table_name=table_name,
     )
-    table_data_json = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-
-    table_data = TableData.parse_raw(table_data_json)
-    expected_columns = [
-        ColumnDataInt(name="col1", data=[1, 2, 3]),
-        ColumnDataFloat(name="col2", data=[0.1, 0.2, 0.3]),
-        ColumnDataStr(name="col3", data=["test1", None, "test3"]),
-    ]
-    assert table_data.name == table_1_info.name
-    assert table_data.columns == expected_columns
-
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=create_table_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-        command_id=uuid.uuid4().hex,
-        schema_json=table_schema.json(),
-    )
-    table_2_info = TableInfo.parse_raw(
+    with pytest.raises(OperationalError):
         localnode1_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),
             timeout=TASKS_TIMEOUT,
         )
-    )
 
-    async_result = localnode1_celery_app.queue_task(
-        task_signature=get_tables_task_signature,
-        logger=StdOutputLogger(),
-        request_id=request_id,
-        context_id=context_id,
-    )
-    tables = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-    assert table_2_info.name in tables
 
-    values = [[1, 0.1, "test1"], [2, None, "None"], [3, 0.3, None]]
-    insert_data_to_db(table_2_info.name, values, localnode1_db_cursor)
+@pytest.mark.slow
+def test_get_table_data_works_on_published_table(
+    request_id,
+    context_id,
+    localnode1_node_service,
+    localnode1_celery_app,
+    localnode1_db_cursor,
+):
+    table_name = f"normal_testlocalnode1_{context_id}"
+    table_schema = TableSchema(
+        columns=[
+            ColumnInfo(name="col1", dtype=DType.INT),
+            ColumnInfo(name="col2", dtype=DType.FLOAT),
+            ColumnInfo(name="col3", dtype=DType.STR),
+        ]
+    )
+    create_table_in_db(
+        localnode1_db_cursor, table_name, table_schema, publish_table=True
+    )
 
     async_result = localnode1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=table_2_info.name,
+        table_name=table_name,
     )
-    table_data_json = localnode1_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
-    )
-    table_data = TableData.parse_raw(table_data_json)
-    expected_columns = [
-        ColumnDataInt(name="col1", data=[1, 2, 3]),
-        ColumnDataFloat(name="col2", data=[0.1, None, 0.3]),
-        ColumnDataStr(name="col3", data=["test1", "None", None]),
-    ]
-    assert table_data.name == table_2_info.name
-    assert table_data.columns == expected_columns
-    assert table_schema == table_2_info.schema_
+
+    try:
+        localnode1_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
+    except OperationalError:
+        pytest.fail(
+            "The table data should be fetched without error since the table is published."
+        )

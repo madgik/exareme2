@@ -119,6 +119,8 @@ spec:
           value: {{ .Values.log_level }}
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
+        - name: PROTECT_LOCAL_DATA
+          value: "true"
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: RABBITMQ_IP

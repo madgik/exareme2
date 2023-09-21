@@ -6,6 +6,7 @@ monetdb_nclients = 64
 
 [privacy]
 minimum_row_count = 10
+protect_local_data = false
 
 [celery]
 worker_concurrency = 16
