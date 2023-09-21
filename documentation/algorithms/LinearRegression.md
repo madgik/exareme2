@@ -36,3 +36,4 @@ From these quantities the central node then computes the following diagnostic qu
 [Linear Regression](../../exareme2/algorithms/linear_regression.py)
 
 [Linear Regression with Cross - Validation](../../exareme2/algorithms/linear_regression_cv.py)
+
