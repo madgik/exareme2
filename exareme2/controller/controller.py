@@ -56,6 +56,7 @@ from exareme2.controller.uid_generator import UIDGenerator
 from exareme2.exceptions import InsufficientDataError
 from exareme2.node_info_DTOs import NodeInfo
 from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,8 @@ class NodesTasksHandlers:
 class InitializationParams:
     smpc_enabled: bool
     smpc_optional: bool
+    dp_params: DifferentialPrivacyParams
+
     celery_tasks_timeout: int
     celery_run_udf_task_timeout: int
 
@@ -737,6 +740,8 @@ class Controller:
 
         self._smpc_enabled = initialization_params.smpc_enabled
         self._smpc_optional = initialization_params.smpc_optional
+        self._dp_params = initialization_params.dp_params
+
         self._celery_tasks_timeout = initialization_params.celery_tasks_timeout
         self._celery_run_udf_task_timeout = (
             initialization_params.celery_run_udf_task_timeout
@@ -811,6 +816,7 @@ class Controller:
         engine_init_params = EngineInitParams(
             smpc_enabled=self._smpc_enabled,
             smpc_optional=self._smpc_optional,
+            dp_params=self._dp_params,
             request_id=algorithm_request_dto.request_id,
             algo_flags=algorithm_request_dto.flags,
         )

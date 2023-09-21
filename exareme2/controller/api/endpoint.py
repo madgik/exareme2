@@ -18,6 +18,7 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
@@ -118,6 +119,12 @@ def create_controller(
     controller_init_params = ControllerInitParams(
         smpc_enabled=controller_config.smpc.enabled or False,
         smpc_optional=controller_config.smpc.optional or False,
+        dp_params=DifferentialPrivacyParams(
+            sensitivity=controller_config.dp.sensitivity,
+            privacy_budget=controller_config.dp.privacy_budget,
+        )
+        if controller_config.dp.enabled
+        else None,
         celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
     )

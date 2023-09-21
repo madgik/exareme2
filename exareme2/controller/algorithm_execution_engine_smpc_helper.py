@@ -90,6 +90,7 @@ def trigger_smpc_operations(
     context_id: str,
     command_id: int,
     smpc_clients_per_op: Tuple[List[str], List[str], List[str]],
+    dp_params: DifferentialPrivacyParams = None,
 ) -> Tuple[bool, bool, bool]:
     (
         sum_op_smpc_clients,
@@ -97,13 +98,28 @@ def trigger_smpc_operations(
         max_op_smpc_clients,
     ) = smpc_clients_per_op
     sum_op = _trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.SUM, sum_op_smpc_clients
+        logger,
+        context_id,
+        command_id,
+        SMPCRequestType.SUM,
+        sum_op_smpc_clients,
+        dp_params,
     )
     min_op = _trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.MIN, min_op_smpc_clients
+        logger,
+        context_id,
+        command_id,
+        SMPCRequestType.MIN,
+        min_op_smpc_clients,
+        dp_params,
     )
     max_op = _trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.MAX, max_op_smpc_clients
+        logger,
+        context_id,
+        command_id,
+        SMPCRequestType.MAX,
+        max_op_smpc_clients,
+        dp_params,
     )
     return sum_op, min_op, max_op
 
