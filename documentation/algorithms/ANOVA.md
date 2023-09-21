@@ -80,3 +80,4 @@ Based on the type of sum of squares selected by the user as well as the full mod
 
 [ANOVA two-way](../../exareme2/algorithms/anova.py)
 
+
