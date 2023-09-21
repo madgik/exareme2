@@ -1,4 +1,4 @@
-## Logistic Regression
+## Principal Components Analysis
 
 #### Some General Remarks
 
@@ -21,9 +21,10 @@ whereas those running on Master are called _global_.
 
 #### Algorithm Description
 
-Logistic Regression training is done by Maximum Likelihood Estimation (MLE) by gradient
-descent using, for example, Newton's method. Applying Newton's method leads to the
-following algorithm, called __Iteratively Reweighted Least Squares__ (IRLS). Here
-the dependent variable *y* has to be binary.
+The are usually two approaches for computing the *principal components*. The first is by
+diagonalizing the covariance matrix, while the second is by *SVD* decomposition on the data
+matrix *X*. In most implementations the second approach is preferred due to its numerical
+stability. Here however, we took the first approach since it better fits with our privacy
+requirements. Additionally, as a first step, data is centered and standardized.
 
-![pseudo](algorithm_images/logistic_regression_pseudocode.png)
+![pseudo](images/pca_pseudocode.png)

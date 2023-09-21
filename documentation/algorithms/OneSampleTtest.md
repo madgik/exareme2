@@ -1,4 +1,4 @@
-<b><h2><center>Linear Regression</center></h1></b>
+<b><h2><center>One Sample T-Test  </center></h1></b>
 
 <b><h4> Some General Remarks </h4></b>
 The general architecture of the MIP follows a Master/Worker paradigm where many Workers, operating in multiple medical centers, are coordinated by one Master. Only Workers are allowed access to the anonymized data in each medical center and the Master only sees aggregate data, derived from the full data and sent to him by the Workers.
@@ -18,15 +18,6 @@ Each local dataset *D<sup>(l)</sup>*, where *l*=1,...,*L*, is represented as a m
 In each local dataset, the independent attributes are denoted as a matrix *X<sup>(l)</sup>* and the dependent variable is denoted as a vector *y<sup>(l)</sup>*. *x*<sub>(*ij*)</sub><sup>(*l*)</sup> is the value of the *i*<sup>(*th*)</sup> patient of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital, while *x*<sub>(*j*)</sub><sup>(*l*)</sup> denotes the vector of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital. For categorical attributes,  we use the notation *C*<sub>m</sub> <img src="https://render.githubusercontent.com/render/math?math=\epsilon"> { *C*<sub>1</sub>, *C*<sub>2</sub>, ..., *C*<sub>M</sub>} for their domain.
 
 <b><h4> Algorithm Description </h4></b>
-Linear regression is a linear approach to modeling the relationship between a dependent variable and one or more independent variables. Here, _y_ should be numerical while _X_ should be continuous or categorical.
+The Student’s One-sample t-test is used to test the null hypothesis that the true mean is equal to a particular value (typically zero). A low p-value suggests that the null hypothesis is not true, and therefore the true mean (μ) must be different from the test value. In each local dataset, let *x<sub>j</sub>* be the variable of interest.
 
-![pseudo](algorithm_images/linear_reg_pseudocode.png)
-
-Once the process has been completed we compute the usual diagnostics as follows.
-The local nodes compute and broadcast to the central node the quantities min(ε<sub>i</sub>), max(ε<sub>i</sub>), sum(ε<sub>i</sub>), max(ε<sub>i</sub><sup>2</sup>), where ε<sub>i</sub> are the residuals, as well as the partial *SST* and *SSE*. The central node then integrates these values to compute the corresponding global ones.
-From these quantities the central node then computes the following diagnostic quantities:
-
-1. For each coefficient β<sub>k</sub>, the *SE*, *t*-statistic and Pr(>|t|)
-1. min, max, mean and SE of residuals ε<sub>i</sub> and the degrees of freedom
-1. R^2 and Adjusted R^2
-1. *F*-statistic and *p*-value
+![pseudo](images/one_sample_pseudocode.png)

@@ -1,4 +1,4 @@
-<b><h2><center>Paired T-Test  </center></h1></b>
+<b><h2><center>k-means</center></h1></b>
 
 <b><h4> Some General Remarks </h4></b>
 The general architecture of the MIP follows a Master/Worker paradigm where many Workers, operating in multiple medical centers, are coordinated by one Master. Only Workers are allowed access to the anonymized data in each medical center and the Master only sees aggregate data, derived from the full data and sent to him by the Workers.
@@ -18,6 +18,8 @@ Each local dataset *D<sup>(l)</sup>*, where *l*=1,...,*L*, is represented as a m
 In each local dataset, the independent attributes are denoted as a matrix *X<sup>(l)</sup>* and the dependent variable is denoted as a vector *y<sup>(l)</sup>*. *x*<sub>(*ij*)</sub><sup>(*l*)</sup> is the value of the *i*<sup>(*th*)</sup> patient of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital, while *x*<sub>(*j*)</sub><sup>(*l*)</sup> denotes the vector of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital. For categorical attributes,  we use the notation *C*<sub>m</sub> <img src="https://render.githubusercontent.com/render/math?math=\epsilon"> { *C*<sub>1</sub>, *C*<sub>2</sub>, ..., *C*<sub>M</sub>} for their domain.
 
 <b><h4> Algorithm Description </h4></b>
-The Student’s paired samples t-test (sometimes called a dependent-samples t-test) is used to test the null hypothesis that the difference between pairs of measurements is equal to zero. A low p-value suggests that the null hypothesis is not true, and that the difference between the measurement pairs is not zero. In each local dataset, let *x<sub>j1</sub>* and *x<sub>j2</sub>* be the variables of interest.
 
-![pseudo](algorithm_images/paired_ttest_pseudocode.png)
+The purpose of the k-means algorithm is to partition the data into *k* clusters. Here, all attributes should be numerical and we use the Euclidean distance as our metric.
+
+<b><h4>k-MEANS Train</b></h4>
+![pseudo](images/kmeans_pseudocode.png)

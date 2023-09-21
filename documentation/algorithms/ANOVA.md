@@ -7,8 +7,8 @@ As a consequence, every algorithm has to be refactored in a form that fits this 
 
 In general, this means two things.
 
-1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.  
-2. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
+1. On the one hand, isolating the parts of the algorithm that operate on the full data and implement them in procedures that run on Workers.
+1. On the other hand, identifying the parts of the algorithm that need to see the aggregates from all Workers and implementing these parts in procedures that run on Master.
 
 Our naming convention is that procedures run on Workers are given the adjective _local_ whereas those running on Master are called _global_.
 
@@ -27,9 +27,9 @@ It is handy to define incremental sums of squares to represent these differences
 
 <img src="https://render.githubusercontent.com/render/math?math=SS(A|A,AB)=SS(A,B,AB)-SS(A,AB)">
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(A|B)=SS(A,B)-SS(B)">  
+<img src="https://render.githubusercontent.com/render/math?math=SS(A|B)=SS(A,B)-SS(B)">
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(B|A)=SS(A,B)-SS(A)">  
+<img src="https://render.githubusercontent.com/render/math?math=SS(B|A)=SS(A,B)-SS(A)">
 
 The notation shows the incremental differences in sums of squares, for example <img src="https://render.githubusercontent.com/render/math?math=SS(AB|A,B)"> represents the sum of squares for interaction after the main effects, and  <img src="https://render.githubusercontent.com/render/math?math=SS(A|B)"> is the sum of squares for the <img src="https://render.githubusercontent.com/render/math?math=A">  main effect after the <img src="https://render.githubusercontent.com/render/math?math=B"> main effect and ignoring interactions.
 

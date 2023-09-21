@@ -1,4 +1,4 @@
-## Pearson Correlation
+## Logistic Regression
 
 #### Some General Remarks
 
@@ -21,7 +21,9 @@ whereas those running on Master are called _global_.
 
 #### Algorithm Description
 
-This algorithm computes the Pearson correlation coefficient between two vectors *x* and
-*y* using the eq.(1)
+Logistic Regression training is done by Maximum Likelihood Estimation (MLE) by gradient
+descent using, for example, Newton's method. Applying Newton's method leads to the
+following algorithm, called __Iteratively Reweighted Least Squares__ (IRLS). Here
+the dependent variable *y* has to be binary.
 
-![pseudo](algorithm_images/pearson_pseudocode.png)
+![pseudo](images/logistic_regression_pseudocode.png)

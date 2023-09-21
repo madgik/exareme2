@@ -1,4 +1,4 @@
-<b><h2><center>Independent T-Test  </center></h1></b>
+<b><h2><center>Naive Bayes Classifier</center></h1></b>
 
 <b><h4> Some General Remarks </h4></b>
 The general architecture of the MIP follows a Master/Worker paradigm where many Workers, operating in multiple medical centers, are coordinated by one Master. Only Workers are allowed access to the anonymized data in each medical center and the Master only sees aggregate data, derived from the full data and sent to him by the Workers.
@@ -18,6 +18,8 @@ Each local dataset *D<sup>(l)</sup>*, where *l*=1,...,*L*, is represented as a m
 In each local dataset, the independent attributes are denoted as a matrix *X<sup>(l)</sup>* and the dependent variable is denoted as a vector *y<sup>(l)</sup>*. *x*<sub>(*ij*)</sub><sup>(*l*)</sup> is the value of the *i*<sup>(*th*)</sup> patient of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital, while *x*<sub>(*j*)</sub><sup>(*l*)</sup> denotes the vector of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital. For categorical attributes,  we use the notation *C*<sub>m</sub> <img src="https://render.githubusercontent.com/render/math?math=\epsilon"> { *C*<sub>1</sub>, *C*<sub>2</sub>, ..., *C*<sub>M</sub>} for their domain.
 
 <b><h4> Algorithm Description </h4></b>
-The Student’s Independent samples t-test (sometimes called a two-samples t-test) is used to test the null hypothesis that two groups have the same mean. A low p-value suggests that the null hypothesis is not true, and therefore the group means are different. In each local dataset, let *x* and *y* be the variables of interest.*y* is the grouping variable with two levels.
+In Naive Bayes algorithm the attributes of *X* can be both categorical and continuous, while the *y* is always categorical. Once we have the likelihood terms from the training procedure we can compute the maximum a posteriori probability for the class of a new query datapoint *q* with the following procedure:
 
-![pseudo](algorithm_images/independent_ttest_pseudocode.png)
+![pseudo](images/nb_train_pseudocode.png)
+
+![pseudo](images/nb_predict_pseudocode.png)

@@ -1,4 +1,4 @@
-<b><h2><center>Naive Bayes Classifier</center></h1></b>
+<b><h2><center>Linear Regression</center></h1></b>
 
 <b><h4> Some General Remarks </h4></b>
 The general architecture of the MIP follows a Master/Worker paradigm where many Workers, operating in multiple medical centers, are coordinated by one Master. Only Workers are allowed access to the anonymized data in each medical center and the Master only sees aggregate data, derived from the full data and sent to him by the Workers.
@@ -18,8 +18,15 @@ Each local dataset *D<sup>(l)</sup>*, where *l*=1,...,*L*, is represented as a m
 In each local dataset, the independent attributes are denoted as a matrix *X<sup>(l)</sup>* and the dependent variable is denoted as a vector *y<sup>(l)</sup>*. *x*<sub>(*ij*)</sub><sup>(*l*)</sup> is the value of the *i*<sup>(*th*)</sup> patient of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital, while *x*<sub>(*j*)</sub><sup>(*l*)</sup> denotes the vector of the *j*<sup>(*th*)</sup> attribute in the *l*<sup>(*th*)</sup> hospital. For categorical attributes,  we use the notation *C*<sub>m</sub> <img src="https://render.githubusercontent.com/render/math?math=\epsilon"> { *C*<sub>1</sub>, *C*<sub>2</sub>, ..., *C*<sub>M</sub>} for their domain.
 
 <b><h4> Algorithm Description </h4></b>
-In Naive Bayes algorithm the attributes of *X* can be both categorical and continuous, while the *y* is always categorical. Once we have the likelihood terms from the training procedure we can compute the maximum a posteriori probability for the class of a new query datapoint *q* with the following procedure:
+Linear regression is a linear approach to modeling the relationship between a dependent variable and one or more independent variables. Here, _y_ should be numerical while _X_ should be continuous or categorical.
 
-![pseudo](algorithm_images/nb_train_pseudocode.png)
+![pseudo](images/linear_reg_pseudocode.png)
 
-![pseudo](algorithm_images/nb_predict_pseudocode.png)
+Once the process has been completed we compute the usual diagnostics as follows.
+The local nodes compute and broadcast to the central node the quantities min(ε<sub>i</sub>), max(ε<sub>i</sub>), sum(ε<sub>i</sub>), max(ε<sub>i</sub><sup>2</sup>), where ε<sub>i</sub> are the residuals, as well as the partial *SST* and *SSE*. The central node then integrates these values to compute the corresponding global ones.
+From these quantities the central node then computes the following diagnostic quantities:
+
+1. For each coefficient β<sub>k</sub>, the *SE*, *t*-statistic and Pr(>|t|)
+1. min, max, mean and SE of residuals ε<sub>i</sub> and the degrees of freedom
+1. R^2 and Adjusted R^2
+1. *F*-statistic and *p*-value
