@@ -5,10 +5,12 @@ from typing import List
 
 from exareme2 import DType
 from exareme2.exceptions import TablesNotFound
+from exareme2.node import config as node_config
 from exareme2.node.monetdb_interface.guard import is_datamodel
 from exareme2.node.monetdb_interface.guard import sql_injection_guard
 from exareme2.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
 from exareme2.node.monetdb_interface.monet_db_facade import db_execute_query
+from exareme2.node_info_DTOs import NodeRole
 from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import CommonDataElement
 from exareme2.node_tasks_DTOs import CommonDataElements
@@ -170,8 +172,11 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     return [table[0] for table in table_names]
 
 
-@sql_injection_guard(table_name=str.isidentifier)
-def get_table_data(table_name: str) -> List[ColumnData]:
+@sql_injection_guard(
+    table_name=str.isidentifier,
+    use_public_user=None,
+)
+def get_table_data(table_name: str, use_public_user: bool = True) -> List[ColumnData]:
     """
     Returns a list of columns data which will contain name, type and the data of the specific column.
 
@@ -179,24 +184,20 @@ def get_table_data(table_name: str) -> List[ColumnData]:
     ----------
     table_name : str
         The name of the table
+    use_public_user : bool
+        Will the public or local user be used to access the data?
 
     Returns
     ------
     List[ColumnData]
         A list of column data
     """
-    schema = get_table_schema(table_name)
-    # TODO: blocked by https://team-1617704806227.atlassian.net/browse/MIP-133 .
-    # Retrieving the data should be a simple select.
-    # row_stored_data = db_execute_and_fetchall(f"SELECT * FROM {table_name}")
 
+    schema = get_table_schema(table_name)
+
+    local_username = node_config.monetdb.local_username
     row_stored_data = db_execute_and_fetchall(
-        f"""
-        SELECT {table_name}.*
-        FROM {table_name}
-        INNER JOIN tables ON tables.name = '{table_name}'
-        WHERE tables.system=false
-        """
+        f"SELECT * FROM {local_username}.{table_name}", use_public_user=use_public_user
     )
 
     column_stored_data = list(zip(*row_stored_data))

@@ -137,7 +137,10 @@ def create_configs(c):
 
         node_config["monetdb"]["ip"] = deployment_config["ip"]
         node_config["monetdb"]["port"] = node["monetdb_port"]
-        node_config["monetdb"]["password"] = node["monetdb_password"]
+        node_config["monetdb"]["local_username"] = node["local_monetdb_username"]
+        node_config["monetdb"]["local_password"] = node["local_monetdb_password"]
+        node_config["monetdb"]["public_username"] = node["public_monetdb_username"]
+        node_config["monetdb"]["public_password"] = node["public_monetdb_password"]
 
         node_config["rabbitmq"]["ip"] = deployment_config["ip"]
         node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
@@ -152,6 +155,12 @@ def create_configs(c):
         node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
             "minimum_row_count"
         ]
+        if node["role"] == "GLOBALNODE":
+            node_config["privacy"]["protect_local_data"] = False
+        else:
+            node_config["privacy"]["protect_local_data"] = deployment_config["privacy"][
+                "protect_local_data"
+            ]
 
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         if node_config["smpc"]["enabled"]:

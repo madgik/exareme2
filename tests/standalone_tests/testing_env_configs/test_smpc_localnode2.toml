@@ -6,6 +6,7 @@ monetdb_nclients = 64
 
 [privacy]
 minimum_row_count = 10
+protect_local_data = true
 
 [celery]
 worker_concurrency = 16
@@ -23,8 +24,10 @@ vhost = "user_vhost"
 ip = "172.17.0.1"
 port = 61006
 database = "db"
-username = "executor"
-password = "executor"
+local_username = "executor"
+local_password = "executor"
+public_username = "guest"
+public_password = "guest"
 
 [smpc]
 enabled = true

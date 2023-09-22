@@ -63,6 +63,7 @@ class AlgorithmName(str, Enum):
     NAIVE_BAYES_GAUSSIAN_CV = "naive_bayes_gaussian_cv"
     PCA = "pca"
     PEARSON_CORRELATION = "pearson_correlation"
+    SVM_SCIKIT = "svm_scikit"
     TTEST_INDEPENDENT = "ttest_independent"
     TTEST_ONESAMPLE = "ttest_onesample"
     TTEST_PAIRED = "ttest_paired"

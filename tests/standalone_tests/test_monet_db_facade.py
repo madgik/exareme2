@@ -9,8 +9,10 @@ from exareme2 import AttrDict
 from exareme2.node.monetdb_interface.monet_db_facade import _DBExecutionDTO
 from exareme2.node.monetdb_interface.monet_db_facade import _execute_and_fetchall
 from exareme2.node.monetdb_interface.monet_db_facade import (
-    _validate_exception_is_recoverable,
+    _validate_exception_could_be_recovered,
 )
+from exareme2.node.monetdb_interface.monet_db_facade import db_execute_and_fetchall
+from exareme2.node.monetdb_interface.monet_db_facade import db_execute_query
 from exareme2.node.node_logger import init_logger
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_NAME
@@ -52,11 +54,13 @@ def patch_node_config():
                     "ip": COMMON_IP,
                     "port": MONETDB_LOCALNODETMP_PORT,
                     "database": "db",
-                    "username": "executor",
-                    "password": "executor",
+                    "local_username": "executor",
+                    "local_password": "executor",
+                    "public_username": "guest",
+                    "public_password": "guest",
                 },
                 "celery": {
-                    "tasks_timeout": 60,
+                    "tasks_timeout": 5,
                     "run_udf_task_timeout": 120,
                     "worker_concurrency": 1,
                 },
@@ -146,6 +150,13 @@ def get_exception_cases():
             False,
             id="generic ProgrammingError",
         ),
+        pytest.param(
+            OperationalError(
+                "42000!CREATE TABLE: insufficient privileges for user 'executor' in schema 'guest'"
+            ),
+            False,
+            id="Insufficient privileges Error",
+        ),
     ]
 
 
@@ -154,4 +165,19 @@ def get_exception_cases():
     get_exception_cases(),
 )
 def test_validate_exception_is_recoverable(exception: Exception, expected):
-    assert _validate_exception_is_recoverable(exception) == expected
+    assert _validate_exception_could_be_recovered(exception) == expected
+
+
+@pytest.mark.slow
+@pytest.mark.very_slow
+def test_db_execute_use_public_user_parameter(
+    monetdb_localnodetmp,
+):
+    table_name = "local_user_table"
+
+    db_execute_query(query=f"create table {table_name} (col1 int);")
+
+    with pytest.raises(OperationalError, match=r"no such table"):
+        db_execute_and_fetchall(
+            query=f"select * from {table_name};", use_public_user=True
+        )

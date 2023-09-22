@@ -78,12 +78,12 @@ class LongitudinalTransformerRunner:
         return TransformerSpecification(
             name=cls.get_transformer_name(),
             desc="longitudinal_transform",
-            label="longitudinal_transform",
+            label="Longitudinal Transformer",
             enabled=True,
             parameters={
                 "visit1": ParameterSpecification(
-                    label="visit1",
-                    desc="visit1",
+                    label="1st Visit",
+                    desc="The data of a certain subject's measurements during a specific visit on a specific date.",
                     types=[ParameterType.TEXT],
                     notblank=True,
                     multiple=False,
@@ -92,8 +92,8 @@ class LongitudinalTransformerRunner:
                     ),
                 ),
                 "visit2": ParameterSpecification(
-                    label="visit2",
-                    desc="visit2",
+                    label="2nd Visit",
+                    desc="The data of the same subject's measurements during a specific visit on a specific but different, later date.",
                     types=[ParameterType.TEXT],
                     notblank=True,
                     multiple=False,
@@ -102,8 +102,8 @@ class LongitudinalTransformerRunner:
                     ),
                 ),
                 "strategies": ParameterSpecification(
-                    label="strategies",
-                    desc="strategies",
+                    label="Strategies",
+                    desc="Select a strategy for each variable.",
                     types=[ParameterType.DICT],
                     notblank=True,
                     multiple=False,

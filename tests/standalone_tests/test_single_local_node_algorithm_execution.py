@@ -1,7 +1,6 @@
 from os import path
 
 import pytest
-from pydantic import BaseModel
 
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes

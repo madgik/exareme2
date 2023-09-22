@@ -48,12 +48,14 @@ def create_remote_table(
         The monetdb_socket_address of the monetdb that we want to create the remote table from.
     """
     schema = TableSchema.parse_raw(table_schema_json)
-    username = node_config.monetdb.username
-    password = node_config.monetdb.password
+    local_username = node_config.monetdb.local_username
+    public_username = node_config.monetdb.public_username
+    public_password = node_config.monetdb.public_password
     remote_tables.create_remote_table(
-        name=table_name,
+        table_name=table_name,
         schema=schema,
         monetdb_socket_address=monetdb_socket_address,
-        username=username,
-        password=password,
+        table_creator_username=local_username,
+        public_username=public_username,
+        public_password=public_password,
     )
