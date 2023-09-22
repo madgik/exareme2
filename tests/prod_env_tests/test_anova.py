@@ -7,7 +7,7 @@ from tests.algorithm_validation_tests.helpers import get_test_params
 from tests.algorithm_validation_tests.helpers import parse_response
 from tests.algorithm_validation_tests.test_anova import validate_results
 
-expected_file = Path(__file__).parent / "expected" / "anova_twoway_prod.json"
+expected_file = Path(__file__).parent / "expected" / "anova_twoway_prod_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))

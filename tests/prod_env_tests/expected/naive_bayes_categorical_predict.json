@@ -1,0 +1,1820 @@
+{
+    "test_cases": [
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "edsdcategory"
+                    ],
+                    "x": [
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd6",
+                        "edsd5",
+                        "desd-synthdata8",
+                        "edsd2",
+                        "ppmi6",
+                        "edsd7",
+                        "desd-synthdata5",
+                        "desd-synthdata4",
+                        "ppmi3",
+                        "ppmi5",
+                        "desd-synthdata6",
+                        "edsd9",
+                        "edsd8",
+                        "desd-synthdata0",
+                        "desd-synthdata2",
+                        "edsd0",
+                        "ppmi9",
+                        "edsd4",
+                        "ppmi4",
+                        "edsd3",
+                        "ppmi1",
+                        "ppmi2",
+                        "ppmi0",
+                        "desd-synthdata7",
+                        "desd-synthdata9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 0
+            },
+            "output": {
+                "predictions": {
+                    "AD": 912
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "edsd9",
+                        "ppmi3",
+                        "ppmi5",
+                        "desd-synthdata0",
+                        "ppmi7",
+                        "desd-synthdata7",
+                        "edsd4",
+                        "desd-synthdata1",
+                        "edsd5",
+                        "edsd1",
+                        "edsd0",
+                        "edsd8",
+                        "edsd3",
+                        "desd-synthdata8",
+                        "desd-synthdata9",
+                        "ppmi9",
+                        "desd-synthdata3",
+                        "ppmi6",
+                        "desd-synthdata5",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 1
+            },
+            "output": {
+                "predictions": {
+                    "AD": 454,
+                    "CN": 269,
+                    "Other": 561
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "edsdcategory",
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata2",
+                        "ppmi1",
+                        "edsd9",
+                        "ppmi3",
+                        "ppmi9",
+                        "ppmi7",
+                        "desd-synthdata7",
+                        "desd-synthdata8",
+                        "ppmi5"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 2
+            },
+            "output": {
+                "predictions": {
+                    "AD": 89,
+                    "MCI": 41
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd5",
+                        "ppmi7",
+                        "desd-synthdata7",
+                        "desd-synthdata9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 3
+            },
+            "output": {
+                "predictions": {
+                    "Other": 91,
+                    "AD": 156
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "neurodegenerativescategories",
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd4",
+                        "desd-synthdata9",
+                        "desd-synthdata2",
+                        "edsd8",
+                        "edsd0",
+                        "desd-synthdata8",
+                        "edsd1",
+                        "ppmi6",
+                        "ppmi3",
+                        "desd-synthdata7",
+                        "ppmi4",
+                        "ppmi8",
+                        "desd-synthdata5",
+                        "edsd9",
+                        "desd-synthdata3",
+                        "desd-synthdata1",
+                        "edsd3",
+                        "ppmi5",
+                        "edsd2",
+                        "edsd7",
+                        "ppmi7",
+                        "desd-synthdata4",
+                        "ppmi0",
+                        "edsd5",
+                        "ppmi9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 4
+            },
+            "output": {
+                "predictions": {
+                    "70-79y": 596,
+                    "60-69y": 352
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata0",
+                        "ppmi5",
+                        "desd-synthdata1",
+                        "desd-synthdata5",
+                        "edsd9",
+                        "desd-synthdata9",
+                        "edsd5",
+                        "ppmi2",
+                        "ppmi7",
+                        "ppmi1",
+                        "edsd1",
+                        "desd-synthdata4",
+                        "edsd6",
+                        "desd-synthdata7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 5
+            },
+            "output": {
+                "predictions": {
+                    "PD": 157
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "dataset",
+                        "gender",
+                        "ppmicategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata6",
+                        "edsd0",
+                        "ppmi0",
+                        "edsd5",
+                        "ppmi9",
+                        "edsd7",
+                        "edsd8",
+                        "ppmi3",
+                        "edsd1",
+                        "ppmi4",
+                        "desd-synthdata2",
+                        "ppmi5",
+                        "edsd2",
+                        "ppmi1",
+                        "desd-synthdata8",
+                        "desd-synthdata5",
+                        "ppmi6"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 6
+            },
+            "output": {
+                "predictions": {
+                    "60-69y": 377,
+                    "-50y": 19,
+                    "50-59y": 78
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd7",
+                        "desd-synthdata2",
+                        "edsd5",
+                        "ppmi9",
+                        "ppmi1",
+                        "edsd4",
+                        "edsd1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 7
+            },
+            "output": {
+                "predictions": {
+                    "70-79y": 126
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory",
+                        "alzheimerbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata1",
+                        "desd-synthdata2",
+                        "edsd8",
+                        "edsd4",
+                        "desd-synthdata4",
+                        "desd-synthdata8",
+                        "edsd6",
+                        "ppmi5",
+                        "edsd7",
+                        "ppmi6",
+                        "ppmi3",
+                        "edsd0",
+                        "desd-synthdata0",
+                        "edsd3",
+                        "edsd9",
+                        "ppmi7",
+                        "desd-synthdata6",
+                        "ppmi8",
+                        "ppmi4",
+                        "desd-synthdata9",
+                        "ppmi9",
+                        "edsd1",
+                        "edsd2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 8
+            },
+            "output": {
+                "predictions": {
+                    "PD": 306,
+                    "HC": 132,
+                    "GENPD": 116
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi2",
+                        "edsd0",
+                        "desd-synthdata5",
+                        "ppmi7",
+                        "edsd8",
+                        "edsd9",
+                        "edsd1",
+                        "desd-synthdata9",
+                        "ppmi4",
+                        "desd-synthdata4",
+                        "desd-synthdata6",
+                        "ppmi9",
+                        "desd-synthdata8",
+                        "desd-synthdata7",
+                        "edsd2",
+                        "desd-synthdata2",
+                        "edsd5"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 9
+            },
+            "output": {
+                "predictions": {
+                    "PD": 160
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi3",
+                        "desd-synthdata8"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 10
+            },
+            "output": {
+                "predictions": {
+                    "PD": 52,
+                    "AD": 43
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd2",
+                        "desd-synthdata9",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 11
+            },
+            "output": {
+                "predictions": {
+                    "HC": 24,
+                    "PRODROMA": 10
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "agegroup"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata8",
+                        "edsd7",
+                        "edsd6",
+                        "edsd9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 12
+            },
+            "output": {
+                "predictions": {
+                    "AD": 94,
+                    "MCI": 1
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [
+                        "edsdcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata2",
+                        "edsd5",
+                        "edsd0",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 13
+            },
+            "output": {
+                "predictions": {
+                    "M": 67,
+                    "F": 36
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "edsdcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi5",
+                        "ppmi1",
+                        "ppmi6",
+                        "edsd5",
+                        "edsd8",
+                        "ppmi2",
+                        "edsd1",
+                        "ppmi0",
+                        "desd-synthdata9",
+                        "ppmi3",
+                        "desd-synthdata4",
+                        "desd-synthdata2",
+                        "edsd2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 14
+            },
+            "output": {
+                "predictions": {
+                    "CN": 160,
+                    "Other": 77,
+                    "AD": 155
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "gender",
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata9",
+                        "desd-synthdata6"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 15
+            },
+            "output": {
+                "predictions": {
+                    "70-79y": 103
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "dataset",
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata3",
+                        "desd-synthdata2",
+                        "ppmi0"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 16
+            },
+            "output": {
+                "predictions": {
+                    "PD": 46
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "ppmicategory",
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "edsd3",
+                        "edsd9",
+                        "edsd0",
+                        "desd-synthdata0",
+                        "ppmi1",
+                        "ppmi5",
+                        "edsd5",
+                        "desd-synthdata4"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 17
+            },
+            "output": {
+                "predictions": {
+                    "Other": 194
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "ppmicategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "edsd7",
+                        "desd-synthdata8",
+                        "desd-synthdata1",
+                        "desd-synthdata2",
+                        "desd-synthdata0",
+                        "desd-synthdata4",
+                        "ppmi7",
+                        "ppmi3",
+                        "ppmi6",
+                        "edsd0",
+                        "edsd3",
+                        "edsd9",
+                        "desd-synthdata9",
+                        "edsd5",
+                        "ppmi8",
+                        "ppmi9",
+                        "ppmi5",
+                        "ppmi4",
+                        "desd-synthdata6",
+                        "edsd6",
+                        "edsd2",
+                        "desd-synthdata3",
+                        "desd-synthdata7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 18
+            },
+            "output": {
+                "predictions": {
+                    "Other": 554
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "edsdcategory"
+                    ],
+                    "x": [
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi4",
+                        "ppmi9",
+                        "ppmi3",
+                        "ppmi1",
+                        "desd-synthdata0",
+                        "desd-synthdata2",
+                        "desd-synthdata4",
+                        "edsd5",
+                        "ppmi0",
+                        "edsd0",
+                        "desd-synthdata1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 19
+            },
+            "output": {
+                "predictions": {
+                    "CN": 158,
+                    "AD": 177
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "dataset"
+                    ],
+                    "x": [
+                        "ppmicategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "ppmi5",
+                        "ppmi7",
+                        "ppmi2",
+                        "desd-synthdata7",
+                        "desd-synthdata4",
+                        "edsd6",
+                        "ppmi1",
+                        "edsd4",
+                        "desd-synthdata2",
+                        "desd-synthdata1",
+                        "desd-synthdata5",
+                        "ppmi0",
+                        "edsd5",
+                        "edsd3",
+                        "edsd0",
+                        "ppmi4",
+                        "desd-synthdata6",
+                        "desd-synthdata8"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 20
+            },
+            "output": {
+                "predictions": {
+                    "ppmi4": 259,
+                    "ppmi2": 120,
+                    "ppmi1": 11,
+                    "ppmi7": 10
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "agegroup"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi7",
+                        "ppmi3",
+                        "ppmi1",
+                        "desd-synthdata0",
+                        "desd-synthdata3",
+                        "edsd2",
+                        "ppmi5",
+                        "edsd0",
+                        "desd-synthdata2",
+                        "edsd1",
+                        "desd-synthdata5"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 21
+            },
+            "output": {
+                "predictions": {
+                    "HC": 6,
+                    "PD": 268
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [
+                        "agegroup"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi2",
+                        "desd-synthdata8",
+                        "desd-synthdata4",
+                        "edsd4",
+                        "edsd9",
+                        "desd-synthdata9",
+                        "ppmi3",
+                        "ppmi4",
+                        "desd-synthdata3"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 22
+            },
+            "output": {
+                "predictions": {
+                    "M": 688,
+                    "F": 55
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "ppmi5",
+                        "desd-synthdata9",
+                        "edsd3",
+                        "desd-synthdata8",
+                        "ppmi1",
+                        "ppmi0",
+                        "desd-synthdata6",
+                        "ppmi9",
+                        "ppmi6",
+                        "desd-synthdata3",
+                        "edsd7",
+                        "ppmi4",
+                        "desd-synthdata2",
+                        "ppmi7",
+                        "desd-synthdata4",
+                        "ppmi2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 23
+            },
+            "output": {
+                "predictions": {
+                    "CN": 207,
+                    "AD": 361,
+                    "Other": 634
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "dataset"
+                    ],
+                    "x": [
+                        "agegroup"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi1",
+                        "desd-synthdata3",
+                        "edsd3",
+                        "desd-synthdata4",
+                        "desd-synthdata5",
+                        "desd-synthdata6",
+                        "desd-synthdata0",
+                        "ppmi2",
+                        "ppmi4",
+                        "edsd8",
+                        "desd-synthdata9",
+                        "ppmi5",
+                        "ppmi6",
+                        "ppmi7",
+                        "edsd1",
+                        "edsd4",
+                        "desd-synthdata8",
+                        "desd-synthdata1",
+                        "ppmi8",
+                        "edsd9",
+                        "edsd7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 24
+            },
+            "output": {
+                "predictions": {
+                    "desd-synthdata1": 1424,
+                    "ppmi2": 190
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [
+                        "edsdcategory",
+                        "alzheimerbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi3",
+                        "edsd5"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 25
+            },
+            "output": {
+                "predictions": {
+                    "M": 11
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi5",
+                        "desd-synthdata1",
+                        "edsd0",
+                        "ppmi2",
+                        "ppmi1",
+                        "desd-synthdata7",
+                        "ppmi7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 26
+            },
+            "output": {
+                "predictions": {
+                    "60-69y": 274
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi6",
+                        "edsd7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 27
+            },
+            "output": {
+                "predictions": {
+                    "AD": 30,
+                    "PD": 53
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "ppmi9",
+                        "desd-synthdata4",
+                        "edsd9",
+                        "desd-synthdata2",
+                        "edsd7",
+                        "edsd5",
+                        "ppmi6",
+                        "edsd4",
+                        "desd-synthdata7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 28
+            },
+            "output": {
+                "predictions": {
+                    "AD": 130,
+                    "Other": 170
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [
+                        "alzheimerbroadcategory",
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd8",
+                        "ppmi4",
+                        "ppmi5",
+                        "edsd7",
+                        "desd-synthdata6",
+                        "ppmi7",
+                        "edsd5",
+                        "desd-synthdata5",
+                        "desd-synthdata3",
+                        "edsd6",
+                        "desd-synthdata2",
+                        "ppmi8",
+                        "edsd0"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 29
+            },
+            "output": {
+                "predictions": {
+                    "M": 320
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd1",
+                        "edsd5",
+                        "desd-synthdata8",
+                        "desd-synthdata1",
+                        "ppmi7",
+                        "desd-synthdata2",
+                        "ppmi5",
+                        "desd-synthdata3",
+                        "ppmi2",
+                        "edsd8",
+                        "desd-synthdata0",
+                        "ppmi8",
+                        "ppmi4",
+                        "edsd4",
+                        "desd-synthdata4",
+                        "desd-synthdata5",
+                        "edsd7",
+                        "edsd3"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 30
+            },
+            "output": {
+                "predictions": {
+                    "CN": 326,
+                    "Other": 453,
+                    "AD": 410
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi6",
+                        "edsd8",
+                        "desd-synthdata9",
+                        "edsd9",
+                        "edsd0",
+                        "ppmi0",
+                        "ppmi2",
+                        "ppmi3",
+                        "ppmi8"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 31
+            },
+            "output": {
+                "predictions": {
+                    "AD": 85,
+                    "Other": 261
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "gender"
+                    ],
+                    "x": [
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi4",
+                        "edsd1",
+                        "desd-synthdata9",
+                        "desd-synthdata6",
+                        "edsd0",
+                        "edsd5",
+                        "ppmi6",
+                        "desd-synthdata3",
+                        "edsd8",
+                        "edsd2",
+                        "desd-synthdata8",
+                        "ppmi1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 32
+            },
+            "output": {
+                "predictions": {
+                    "F": 210,
+                    "M": 201
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd6",
+                        "desd-synthdata0",
+                        "edsd0",
+                        "ppmi2",
+                        "ppmi3",
+                        "desd-synthdata9",
+                        "edsd4"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 33
+            },
+            "output": {
+                "predictions": {
+                    "PD": 160
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory",
+                        "agegroup"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata7",
+                        "ppmi0",
+                        "ppmi2",
+                        "edsd0",
+                        "edsd2",
+                        "ppmi4",
+                        "ppmi9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 34
+            },
+            "output": {
+                "predictions": {
+                    "PD": 155
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory",
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi5",
+                        "ppmi0",
+                        "edsd7",
+                        "desd-synthdata0",
+                        "edsd1",
+                        "desd-synthdata4",
+                        "ppmi4",
+                        "ppmi6",
+                        "ppmi7",
+                        "desd-synthdata2",
+                        "ppmi1",
+                        "ppmi8",
+                        "desd-synthdata3",
+                        "desd-synthdata8",
+                        "edsd0",
+                        "edsd2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 35
+            },
+            "output": {
+                "predictions": {
+                    "Other": 300
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "gender",
+                        "alzheimerbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata5",
+                        "edsd5",
+                        "desd-synthdata0",
+                        "ppmi9",
+                        "ppmi8",
+                        "desd-synthdata9",
+                        "ppmi7",
+                        "edsd1",
+                        "ppmi5",
+                        "ppmi2",
+                        "ppmi3",
+                        "ppmi6",
+                        "edsd4",
+                        "desd-synthdata4"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 36
+            },
+            "output": {
+                "predictions": {
+                    "70-79y": 276,
+                    "60-69y": 647
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "alzheimerbroadcategory",
+                        "gender"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd2",
+                        "ppmi7",
+                        "desd-synthdata2",
+                        "edsd1",
+                        "edsd5",
+                        "desd-synthdata6",
+                        "edsd7",
+                        "ppmi6",
+                        "ppmi1",
+                        "desd-synthdata7",
+                        "ppmi0",
+                        "edsd3",
+                        "desd-synthdata8",
+                        "desd-synthdata1",
+                        "desd-synthdata4",
+                        "ppmi8",
+                        "ppmi5",
+                        "ppmi3",
+                        "edsd6",
+                        "ppmi9",
+                        "ppmi2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 37
+            },
+            "output": {
+                "predictions": {
+                    "PD": 634
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd9",
+                        "edsd0",
+                        "edsd1",
+                        "edsd5",
+                        "edsd3",
+                        "desd-synthdata6",
+                        "ppmi6",
+                        "desd-synthdata4",
+                        "desd-synthdata8",
+                        "edsd8",
+                        "edsd7",
+                        "ppmi5",
+                        "desd-synthdata2"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 38
+            },
+            "output": {
+                "predictions": {
+                    "AD": 291,
+                    "MCI": 25,
+                    "PD": 106
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata7",
+                        "edsd6",
+                        "desd-synthdata2",
+                        "edsd9",
+                        "ppmi7"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 39
+            },
+            "output": {
+                "predictions": {
+                    "AD": 108,
+                    "PD": 51
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata1",
+                        "edsd2",
+                        "ppmi6",
+                        "edsd5",
+                        "desd-synthdata4",
+                        "ppmi0",
+                        "edsd4",
+                        "ppmi1",
+                        "edsd0",
+                        "ppmi5",
+                        "desd-synthdata3",
+                        "edsd9",
+                        "edsd8",
+                        "ppmi4",
+                        "edsd3"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 40
+            },
+            "output": {
+                "predictions": {
+                    "PD": 208,
+                    "HC": 102,
+                    "PRODROMA": 10
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "agegroup"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi8",
+                        "desd-synthdata4",
+                        "desd-synthdata6",
+                        "edsd7",
+                        "ppmi1",
+                        "desd-synthdata3",
+                        "edsd0",
+                        "edsd2",
+                        "ppmi5",
+                        "ppmi9",
+                        "ppmi2",
+                        "desd-synthdata0",
+                        "ppmi0",
+                        "edsd3",
+                        "desd-synthdata9",
+                        "edsd4",
+                        "edsd5",
+                        "desd-synthdata1",
+                        "ppmi4",
+                        "desd-synthdata2",
+                        "desd-synthdata7",
+                        "ppmi6",
+                        "edsd8",
+                        "desd-synthdata5",
+                        "ppmi7",
+                        "edsd9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 41
+            },
+            "output": {
+                "predictions": {
+                    "PD": 482,
+                    "AD": 489
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "edsd9",
+                        "ppmi3",
+                        "ppmi6",
+                        "desd-synthdata7",
+                        "desd-synthdata5",
+                        "ppmi9",
+                        "desd-synthdata8",
+                        "ppmi1",
+                        "ppmi5",
+                        "ppmi8",
+                        "edsd6",
+                        "edsd8",
+                        "edsd5",
+                        "desd-synthdata0",
+                        "ppmi4",
+                        "desd-synthdata3",
+                        "ppmi7",
+                        "ppmi2",
+                        "desd-synthdata6",
+                        "desd-synthdata9"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 42
+            },
+            "output": {
+                "predictions": {
+                    "CN": 34,
+                    "PD": 560,
+                    "Other": 74
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "dataset"
+                    ],
+                    "x": [
+                        "alzheimerbroadcategory",
+                        "ppmicategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata5",
+                        "desd-synthdata7",
+                        "ppmi3",
+                        "ppmi8",
+                        "desd-synthdata2",
+                        "ppmi1",
+                        "edsd9",
+                        "ppmi5",
+                        "edsd2",
+                        "ppmi0",
+                        "desd-synthdata0",
+                        "edsd5",
+                        "edsd6",
+                        "ppmi7",
+                        "ppmi2",
+                        "desd-synthdata3",
+                        "edsd7",
+                        "edsd4",
+                        "edsd3",
+                        "desd-synthdata1"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 43
+            },
+            "output": {
+                "predictions": {
+                    "ppmi2": 296,
+                    "ppmi3": 132,
+                    "ppmi1": 11,
+                    "ppmi8": 41
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "x": [
+                        "edsdcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata8",
+                        "ppmi9",
+                        "ppmi4",
+                        "ppmi0",
+                        "desd-synthdata9",
+                        "ppmi8",
+                        "desd-synthdata5",
+                        "edsd5",
+                        "edsd6",
+                        "desd-synthdata4",
+                        "ppmi1",
+                        "desd-synthdata1",
+                        "edsd3",
+                        "desd-synthdata3",
+                        "desd-synthdata7",
+                        "ppmi5"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 44
+            },
+            "output": {
+                "predictions": {
+                    "AD": 283,
+                    "CN": 278,
+                    "Other": 137
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "dataset"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata4",
+                        "ppmi4",
+                        "ppmi9",
+                        "edsd8"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 45
+            },
+            "output": {
+                "predictions": {
+                    "70-79y": 153,
+                    "60-69y": 154
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "neurodegenerativescategories"
+                    ],
+                    "x": [
+                        "dataset",
+                        "edsdcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata3",
+                        "ppmi5",
+                        "desd-synthdata4"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 46
+            },
+            "output": {
+                "predictions": {
+                    "MCI": 28,
+                    "AD": 70
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "ppmicategory"
+                    ],
+                    "x": [
+                        "alzheimerbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata6",
+                        "desd-synthdata4",
+                        "ppmi8",
+                        "desd-synthdata2",
+                        "desd-synthdata0",
+                        "edsd6",
+                        "ppmi9",
+                        "desd-synthdata9",
+                        "edsd9",
+                        "ppmi0",
+                        "desd-synthdata8",
+                        "ppmi7",
+                        "edsd1",
+                        "edsd0",
+                        "ppmi5"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 47
+            },
+            "output": {
+                "predictions": {
+                    "PD": 360
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "agegroup"
+                    ],
+                    "x": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "desd-synthdata1",
+                        "edsd9",
+                        "edsd4",
+                        "edsd1",
+                        "ppmi3",
+                        "ppmi5",
+                        "edsd3",
+                        "edsd5",
+                        "ppmi2",
+                        "edsd6",
+                        "desd-synthdata5",
+                        "desd-synthdata0"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 48
+            },
+            "output": {
+                "predictions": {
+                    "60-69y": 158,
+                    "50-59y": 82
+                }
+            }
+        },
+        {
+            "input": {
+                "inputdata": {
+                    "y": [
+                        "parkinsonbroadcategory"
+                    ],
+                    "x": [
+                        "neurodegenerativescategories"
+                    ],
+                    "data_model": "dementia:0.1",
+                    "datasets": [
+                        "ppmi2",
+                        "ppmi0"
+                    ],
+                    "filters": null
+                },
+                "parameters": {},
+                "test_case_num": 49
+            },
+            "output": {
+                "predictions": {
+                    "PD": 99
+                }
+            }
+        }
+    ]
+}
