@@ -8,7 +8,9 @@ from tests.algorithm_validation_tests.test_naive_bayes_gaussian import get_test_
 
 fit_exp = Path(__file__).parent / "expected" / "naive_bayes_categorical_fit.json"
 pred_exp = Path(__file__).parent / "expected" / "naive_bayes_categorical_predict.json"
-cv_inputs = Path(__file__).parent / "expected" / "naive_bayes_categorical_cv.json"
+cv_inputs = (
+    Path(__file__).parent / "expected" / "naive_bayes_categorical_cv_expected.json"
+)
 
 
 class TestCategoricalNB:

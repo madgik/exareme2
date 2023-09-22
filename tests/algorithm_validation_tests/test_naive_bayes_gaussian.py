@@ -10,7 +10,7 @@ from tests.algorithm_validation_tests.helpers import get_test_params
 assert_allclose = partial(np.testing.assert_allclose, rtol=1e-2, atol=1e-2)
 fit_exp = Path(__file__).parent / "expected" / "naive_bayes_gauss_fit.json"
 pred_exp = Path(__file__).parent / "expected" / "naive_bayes_gauss_predict.json"
-cv_inputs = Path(__file__).parent / "expected" / "naive_bayes_gauss_cv.json"
+cv_inputs = Path(__file__).parent / "expected" / "naive_bayes_gauss_cv_expected.json"
 
 
 def get_test_inputs(file):
