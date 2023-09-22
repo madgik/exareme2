@@ -156,15 +156,26 @@ def create_configs(c):
         node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
         if node_config["smpc"]["enabled"]:
             node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
-            if node["role"] == "GLOBALNODE":
-                node_config["smpc"][
-                    "coordinator_address"
-                ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+            if coordinator_ip := deployment_config["smpc"].get("coordinator_ip"):
+                if node["role"] == "GLOBALNODE":
+                    node_config["smpc"][
+                        "coordinator_address"
+                    ] = f"http://{coordinator_ip}:{SMPC_COORDINATOR_PORT}"
+                else:
+                    node_config["smpc"]["client_id"] = node["smpc_client_id"]
+                    node_config["smpc"][
+                        "client_address"
+                    ] = f"http://{coordinator_ip}:{node['smpc_client_port']}"
             else:
-                node_config["smpc"]["client_id"] = node["id"]
-                node_config["smpc"][
-                    "client_address"
-                ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
+                if node["role"] == "GLOBALNODE":
+                    node_config["smpc"][
+                        "coordinator_address"
+                    ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+                else:
+                    node_config["smpc"]["client_id"] = node["id"]
+                    node_config["smpc"][
+                        "client_address"
+                    ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
 
         node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
         with open(node_config_file, "w+") as fp:
@@ -208,15 +219,26 @@ def create_configs(c):
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
     if controller_config["smpc"]["enabled"]:
         controller_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
-        controller_config["smpc"][
-            "coordinator_address"
-        ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
+        if coordinator_ip := deployment_config["smpc"].get("coordinator_ip"):
+            controller_config["smpc"][
+                "coordinator_address"
+            ] = f"http://{coordinator_ip}:{SMPC_COORDINATOR_PORT}"
+        else:
+            controller_config["smpc"][
+                "coordinator_address"
+            ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
 
         controller_config["smpc"]["get_result_interval"] = deployment_config["smpc"][
             "get_result_interval"
         ]
         controller_config["smpc"]["get_result_max_retries"] = deployment_config["smpc"][
             "get_result_max_retries"
+        ]
+
+        controller_config["dp"]["enabled"] = deployment_config["dp"]["enabled"]
+        controller_config["dp"]["sensitivity"] = deployment_config["dp"]["sensitivity"]
+        controller_config["dp"]["privacy_budget"] = deployment_config["dp"][
+            "privacy_budget"
         ]
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
@@ -757,7 +779,7 @@ def deploy(
     if start_controller_ or start_all:
         start_controller(c, detached=True, algorithm_folders=algorithm_folders)
 
-    if smpc:
+    if smpc and not get_deployment_config("smpc", subconfig="coordinator_ip"):
         deploy_smpc(c)
 
 
