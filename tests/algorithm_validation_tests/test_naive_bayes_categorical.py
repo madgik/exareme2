@@ -6,8 +6,12 @@ import pytest
 from tests.algorithm_validation_tests.helpers import get_test_params
 from tests.algorithm_validation_tests.test_naive_bayes_gaussian import get_test_inputs
 
-fit_exp = Path(__file__).parent / "expected" / "naive_bayes_categorical_fit.json"
-pred_exp = Path(__file__).parent / "expected" / "naive_bayes_categorical_predict.json"
+fit_exp = (
+    Path(__file__).parent / "expected" / "naive_bayes_categorical_fit_expected.json"
+)
+pred_exp = (
+    Path(__file__).parent / "expected" / "naive_bayes_categorical_predict_expected.json"
+)
 cv_inputs = (
     Path(__file__).parent / "expected" / "naive_bayes_categorical_cv_expected.json"
 )
