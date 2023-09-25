@@ -294,6 +294,8 @@ def _validate_parameters(
     If the algorithm has parameters,
     it validates that they follow the algorithm specs.
     """
+    _validate_parameters_are_in_the_specs(parameters, parameters_specs)
+
     if parameters_specs is None:
         return
 
@@ -312,6 +314,18 @@ def _validate_parameters(
                 inputdata=inputdata,
                 data_model_cdes=data_model_cdes,
             )
+
+
+def _validate_parameters_are_in_the_specs(
+    parameters: Optional[Dict[str, Any]],
+    parameters_specs: Optional[Dict[str, ParameterSpecification]],
+):
+    if parameters:
+        for param_name in parameters.keys():
+            if not parameters_specs or param_name not in parameters_specs.keys():
+                raise BadUserInput(
+                    f"Parameter {param_name} does not exist in the algorithm specification."
+                )
 
 
 def _validate_parameter_values(
