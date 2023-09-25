@@ -31,3 +31,8 @@ optional = false
 coordinator_address = "http://172.17.0.1:12314"
 get_result_interval = 2
 get_result_max_retries = 100
+
+[dp]
+enabled = false
+sensitivity="N/A"
+privacy_budget="N/A
