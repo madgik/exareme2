@@ -29,7 +29,7 @@ optional=false
 [dp]
 enabled = false
 sensitivity="N/A"
-privacy_budget="N/A
+privacy_budget="N/A"
 
 [[nodes]]
 id = "localnode1"
