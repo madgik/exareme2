@@ -76,8 +76,6 @@
    
    [dp]
    enabled = false
-   sensitivity = N/A
-   privacy_budget = N/A
 
    [[nodes]]
    id = "globalnode"
