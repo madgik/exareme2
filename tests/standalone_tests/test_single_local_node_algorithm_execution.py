@@ -27,6 +27,7 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
@@ -388,6 +389,7 @@ def controller(controller_config, node_landscape_aggregator):
         smpc_optional=False,
         celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        dp_params=None,
     )
     controller = Controller(
         initialization_params=controller_init_params,

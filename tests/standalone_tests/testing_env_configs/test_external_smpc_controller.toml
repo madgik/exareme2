@@ -34,5 +34,3 @@ get_result_max_retries = 100
 
 [dp]
 enabled = false
-sensitivity="N/A"
-privacy_budget="N/A"

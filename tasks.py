@@ -245,10 +245,13 @@ def create_configs(c):
         ]
 
         controller_config["dp"]["enabled"] = deployment_config["dp"]["enabled"]
-        controller_config["dp"]["sensitivity"] = deployment_config["dp"]["sensitivity"]
-        controller_config["dp"]["privacy_budget"] = deployment_config["dp"][
-            "privacy_budget"
-        ]
+        if controller_config["dp"]["enabled"]:
+            controller_config["dp"]["sensitivity"] = deployment_config["dp"][
+                "sensitivity"
+            ]
+            controller_config["dp"]["privacy_budget"] = deployment_config["dp"][
+                "privacy_budget"
+            ]
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"

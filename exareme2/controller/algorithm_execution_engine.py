@@ -93,9 +93,9 @@ class InconsistentShareTablesValueException(Exception):
 class InitializationParams:
     smpc_enabled: bool
     smpc_optional: bool
-    dp_params: DifferentialPrivacyParams
     request_id: str
     algo_flags: Optional[Dict[str, Any]] = None
+    dp_params: Optional[DifferentialPrivacyParams] = None
 
 
 class AlgorithmExecutionEngine:
