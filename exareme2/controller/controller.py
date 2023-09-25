@@ -69,10 +69,11 @@ class NodesTasksHandlers:
 class InitializationParams:
     smpc_enabled: bool
     smpc_optional: bool
-    dp_params: DifferentialPrivacyParams
 
     celery_tasks_timeout: int
     celery_run_udf_task_timeout: int
+
+    dp_params: Optional[DifferentialPrivacyParams] = None
 
 
 class NodeUnresponsiveException(Exception):
