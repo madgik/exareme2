@@ -8,7 +8,7 @@ from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
 
-expected_file = Path(__file__).parent / "expected" / "kmeans_expected_new.json"
+expected_file = Path(__file__).parent / "expected" / "kmeans_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))

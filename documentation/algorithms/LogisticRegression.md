@@ -28,8 +28,10 @@ the dependent variable *y* has to be binary.
 
 ![pseudo](images/logistic_regression_pseudocode.png)
 
+
 <b><h4>Algorithm Implementation</b></h4>
 
 [Logistic Regression](../../exareme2/algorithms/logistic_regression.py)
 
 [Logistic Regression with Cross - Validation](../../exareme2/algorithms/logistic_regression_cv.py)
+
