@@ -18,6 +18,7 @@ from exareme2.algorithms.specifications import ParameterType
 from exareme2.algorithms.specifications import TransformerSpecification
 from exareme2.controller import algorithms_specifications
 from exareme2.controller import transformers_specifications
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -76,6 +77,7 @@ class AlgorithmSpecificationDTO(ImmutableBaseModel):
     inputdata: InputDataSpecificationsDTO
     parameters: Optional[Dict[str, ParameterSpecificationDTO]]
     preprocessing: Optional[List[TransformerSpecificationDTO]]
+    flags: Optional[List[str]]
 
 
 class AlgorithmSpecificationsDTO(ImmutableBaseModel):
@@ -100,7 +102,7 @@ def _convert_inputdata_specification_to_dto(self: InputDataSpecification):
     )
 
 
-def _get_data_model_input_data_specification_DTO():
+def _get_data_model_input_data_specification_dto():
     return InputDataSpecificationDTO(
         label="Data model of the data.",
         desc="The data model that the algorithm will run on.",
@@ -112,7 +114,7 @@ def _get_data_model_input_data_specification_DTO():
     )
 
 
-def _get_datasets_input_data_specification_DTO():
+def _get_datasets_input_data_specification_dto():
     return InputDataSpecificationDTO(
         label="Set of data to use.",
         desc="The set of data to run the algorithm on.",
@@ -124,7 +126,7 @@ def _get_datasets_input_data_specification_DTO():
     )
 
 
-def _get_filters_input_data_specification_DTO():
+def _get_filters_input_data_specification_dto():
     return InputDataSpecificationDTO(
         label="filter on the data.",
         desc="Features used in my algorithm.",
@@ -144,9 +146,9 @@ def _convert_inputdata_specifications_to_dto(spec: InputDataSpecifications):
     return InputDataSpecificationsDTO(
         y=y,
         x=x,
-        data_model=_get_data_model_input_data_specification_DTO(),
-        datasets=_get_datasets_input_data_specification_DTO(),
-        filter=_get_filters_input_data_specification_DTO(),
+        data_model=_get_data_model_input_data_specification_dto(),
+        datasets=_get_datasets_input_data_specification_dto(),
+        filter=_get_filters_input_data_specification_dto(),
     )
 
 
@@ -218,8 +220,9 @@ def _convert_algorithm_specification_to_dto(
     spec: AlgorithmSpecification, transformers: List[TransformerSpecification]
 ):
     """
-    Converting to a DTO does not include the flags.
-    The preprocessing specifications is added from the transformers that are compatible with the specific algorithm.
+    Converting to a DTO has the following additions:
+    1) The preprocessing specifications are added from the transformers that are compatible with the specific algorithm.
+    2) The system specific flags are added.
     """
     return AlgorithmSpecificationDTO(
         name=spec.name,
@@ -238,6 +241,7 @@ def _convert_algorithm_specification_to_dto(
             _convert_transformer_specification_to_dto(spec)
             for spec in _get_algorithm_compatible_transformers(spec.name, transformers)
         ],
+        flags=[AlgorithmRequestSystemFlags.SMPC],
     )
 
 

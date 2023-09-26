@@ -23,7 +23,7 @@ from exareme2.controller.algorithm_flow_data_objects import (
 from exareme2.controller.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
-from exareme2.controller.api.algorithm_request_dto import USE_SMPC_FLAG
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
 from exareme2.controller.nodes import GlobalNode
 from exareme2.controller.nodes import LocalNode
 from exareme2.controller.smpc_helper import get_smpc_results
@@ -278,8 +278,12 @@ class AlgorithmExecutionEngine:
         flags = self._algorithm_execution_flags
 
         use_smpc = self._smpc_enabled
-        if self._smpc_optional and flags and USE_SMPC_FLAG in flags.keys():
-            use_smpc = flags[USE_SMPC_FLAG]
+        if (
+            self._smpc_optional
+            and flags
+            and AlgorithmRequestSystemFlags.SMPC in flags.keys()
+        ):
+            use_smpc = flags[AlgorithmRequestSystemFlags.SMPC]
 
         return use_smpc
 
