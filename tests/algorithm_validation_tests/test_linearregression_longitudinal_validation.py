@@ -1,7 +1,7 @@
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import parse_response
 
-algorithm_name = "linear_regression_longitudinal"
+algorithm_name = "linear_regression"
 
 
 def make_test_input(visit1: str, visit2: str) -> dict:
@@ -17,14 +17,16 @@ def make_test_input(visit1: str, visit2: str) -> dict:
             ],
             "filters": None,
         },
-        "parameters": {
-            "visit1": visit1,
-            "visit2": visit2,
-            "strategies": {
-                "lefthippocampus": "diff",
-                "righthippocampus": "diff",
-                "agegroup": "second",
-                "gender": "first",
+        "preprocessing": {
+            "longitudinal_transformer": {
+                "visit1": visit1,
+                "visit2": visit2,
+                "strategies": {
+                    "lefthippocampus": "diff",
+                    "righthippocampus": "diff",
+                    "agegroup": "second",
+                    "gender": "first",
+                },
             },
         },
     }
