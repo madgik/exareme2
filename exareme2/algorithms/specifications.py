@@ -236,7 +236,6 @@ class AlgorithmSpecification(WorkflowStepSpecification):
     enabled: bool
     inputdata: InputDataSpecifications
     parameters: Optional[Dict[str, ParameterSpecification]]
-    flags: Optional[Dict[str, bool]]
 
 
 class TransformerSpecification(WorkflowStepSpecification):

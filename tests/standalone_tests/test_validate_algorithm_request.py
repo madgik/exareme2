@@ -1206,6 +1206,38 @@ def get_parametrization_list_exception_cases():
             ),
             id="non existing parameter provided",
         ),
+        pytest.param(
+            "algorithm_with_y_int",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["int_cde"],
+                ),
+                flags={"non_existing_flag": True},
+            ),
+            (
+                BadUserInput,
+                "Flag .* does not exist in the specifications.",
+            ),
+            id="non existing flag provided",
+        ),
+        pytest.param(
+            "algorithm_with_y_int",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["int_cde"],
+                ),
+                flags={"smpc": 2},
+            ),
+            (
+                BadUserInput,
+                "Flag .* should have a boolean value.",
+            ),
+            id="flag does not have boolean value",
+        ),
     ]
     return parametrization_list
 
