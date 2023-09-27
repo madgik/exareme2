@@ -89,7 +89,7 @@ def node_landscape_aggregator(
     node_landscape_aggregator = NodeLandscapeAggregator(
         node_landscape_aggregator_init_params
     )
-    node_landscape_aggregator._update()
+    node_landscape_aggregator.update()
     node_landscape_aggregator.start()
     return node_landscape_aggregator
 

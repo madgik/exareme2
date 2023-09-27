@@ -118,7 +118,7 @@ def test_update_loop_data_properly_added(
     load_data_localnode1,
     node_landscape_aggregator,
 ):
-    node_landscape_aggregator._update()
+    node_landscape_aggregator.update()
 
     assert (
         node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
@@ -134,7 +134,7 @@ def test_update_loop_get_node_info_fail(
     patch_nodes_addresses, globalnode_node_service, node_landscape_aggregator
 ):
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_global_and_tmp
-    node_landscape_aggregator._update()
+    node_landscape_aggregator.update()
     assert node_landscape_aggregator.get_nodes()
     assert any(
         [
@@ -163,7 +163,7 @@ def test_update_loop_nodes_properly_added(
 ):
     localnode1_node_id = get_localnode1_node_id()
     localnode2_node_id = get_localnode2_node_id()
-    node_landscape_aggregator._update()
+    node_landscape_aggregator.update()
     assert any(
         [
             node.id == localnode1_node_id
@@ -179,7 +179,7 @@ def test_update_loop_nodes_properly_added(
     )
 
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_1_2
-    node_landscape_aggregator._update()
+    node_landscape_aggregator.update()
 
     assert any(
         [

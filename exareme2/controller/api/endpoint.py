@@ -82,6 +82,12 @@ async def post_algorithm(algorithm_name: str) -> str:
     return algorithm_result
 
 
+@algorithms.route("/nla", methods=["POST"])
+async def update_nla() -> str:
+    node_landscape_aggregator.update()
+    return ""
+
+
 def configure_loggers():
     """
     The loggers should be initialized at app startup, otherwise the configs are overwritten.
