@@ -48,7 +48,7 @@ USE_EXTERNAL_SMPC_CLUSTER = True
 COMMON_IP = "172.17.0.1"
 COMMON_MONETDB_NAME = "db"
 COMMON_MONETDB_USERNAME = "admin"
-COMMON_MONETDB_PASSWORD = "admin"
+COMMON_MONETDB_PASSWORD = "executor"
 
 ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
 SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
@@ -522,7 +522,7 @@ def _create_db_cursor(db_port, db_username="executor", db_password="executor"):
 
 @pytest.fixture(scope="session")
 def globalnode_db_cursor_with_user_admin():
-    return _create_db_cursor(MONETDB_GLOBALNODE_PORT, "admin", "admin")
+    return _create_db_cursor(MONETDB_GLOBALNODE_PORT, "admin", "executor")
 
 
 @pytest.fixture(scope="session")

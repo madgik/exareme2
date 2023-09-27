@@ -7,7 +7,7 @@ import click
 import pymonetdb
 
 DB_USERNAME = "admin"
-DB_PASSWORD = "admin"
+DB_PASSWORD = "executor"
 DB_FARM = "db"
 DB_METADATA_SCHEMA = "mipdb_metadata"
 ACTIONS_TABLE = "actions"

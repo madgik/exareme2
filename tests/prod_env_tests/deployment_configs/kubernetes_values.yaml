@@ -10,6 +10,7 @@ framework_log_level: INFO
 max_concurrent_experiments: 32
 
 db:
+  credentials_location: /opt/exareme2/credentials
   storage_location: /opt/exareme2/db
   csvs_location: /opt/exareme2/csvs
   max_memory: 1024    # k8s memory limit in megabytes

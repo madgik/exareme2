@@ -18,6 +18,11 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1 \
+    MONETDB_ADMIN_USERNAME="admin" \
+    MONETDB_LOCAL_USERNAME="executor" \
+    MONETDB_LOCAL_PASSWORD="executor" \
+    MONETDB_PUBLIC_USERNAME="guest" \
+    MONETDB_PUBLIC_PASSWORD="guest" \
     CODE_PATH="/opt/code"
 ENV PATH="$POETRY_HOME/bin:$CODE_PATH:$PATH"
 WORKDIR $CODE_PATH
@@ -36,4 +41,17 @@ COPY exareme2/ ./exareme2/
 RUN rm -rf exareme2/controller
 
 
-CMD ["celery", "-A", "exareme2.node.node", "worker", "-l", "INFO", "--pool", "eventlet"]
+#######################################################
+# Setup bootstrap files
+#######################################################
+COPY exareme2/node/bootstrap.sh /home/bootstrap.sh
+RUN chmod 775 /home/bootstrap.sh
+
+#######################################################
+# Setup MonetDB credentials Volume
+#######################################################
+ENV CREDENTIALS_CONFIG_FOLDER=/opt/credentials
+RUN mkdir $CREDENTIALS_CONFIG_FOLDER
+VOLUME $CREDENTIALS_CONFIG_FOLDER
+
+CMD ["sh", "-c", "/home/bootstrap.sh"]

@@ -35,6 +35,9 @@ spec:
       - name: csv-data
         hostPath:
           path: {{ .Values.db.csvs_location }}
+      - name: credentials
+        hostPath:
+          path: {{ .Values.db.credentials_location }}
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
@@ -60,6 +63,8 @@ spec:
           name: db-data
         - mountPath: /opt/data
           name: csv-data
+        - mountPath: /opt/credentials
+          name: credentials
         livenessProbe:
           exec:
             command:
@@ -82,6 +87,8 @@ spec:
         volumeMounts:
         - mountPath: /opt/data
           name: csv-data
+        - mountPath: /opt/credentials
+          name: credentials
 
       - name: rabbitmq
         image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
@@ -108,6 +115,9 @@ spec:
 
       - name: node
         image: {{ .Values.exareme2_images.repository }}/exareme2_node:{{ .Values.exareme2_images.version }}
+        volumeMounts:
+        - mountPath: /opt/credentials
+          name: credentials
         env:
         - name: NODE_IDENTIFIER
           valueFrom:

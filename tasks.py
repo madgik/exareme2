@@ -465,7 +465,7 @@ def get_monetdb_configs_in_mipdb_format(port):
         f"--ip 127.0.0.1 "
         f"--port {port} "
         f"--username admin "
-        f"--password admin "
+        f"--password executor "
         f"--db_name db"
     )
 
