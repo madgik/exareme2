@@ -17,8 +17,6 @@ ENV PYTHONUNBUFFERED=1 \
     DATA_PATH="/opt/data" \
     DB_IP="172.17.0.1" \
     DB_PORT=50000 \
-    DB_USERNAME="admin" \
-    DB_PASSWORD="admin" \
     DB_NAME="db"
 
 #######################################################
@@ -31,7 +29,7 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==2.1.0 # Must be updated together with pyproject.toml
+RUN pip install mipdb==2.4.2 # Must be updated together with pyproject.toml
 RUN pip install click==8.1.2
 RUN pip install pymonetdb==1.6.3 # Must be updated together with pyproject.toml
 
@@ -41,6 +39,25 @@ RUN pip install pymonetdb==1.6.3 # Must be updated together with pyproject.toml
 COPY federation_info.py /home/federation_info.py
 
 #######################################################
-# Keep the container running
+# Initializing the default users passwords
 #######################################################
-CMD tail -f /dev/null
+ENV MONETDB_ADMIN_USERNAME="admin"
+ENV MONETDB_LOCAL_USERNAME="executor"
+ENV MONETDB_LOCAL_PASSWORD="executor"
+ENV MONETDB_PUBLIC_USERNAME="guest"
+ENV MONETDB_PUBLIC_PASSWORD="guest"
+
+#######################################################
+# Setup MonetDB credentials Volume
+#######################################################
+ENV CREDENTIALS_CONFIG_FOLDER=/opt/credentials
+RUN mkdir $CREDENTIALS_CONFIG_FOLDER
+VOLUME $CREDENTIALS_CONFIG_FOLDER
+
+#######################################################
+# Setup bootstrap files
+#######################################################
+COPY mipdb/bootstrap.sh /home/bootstrap.sh
+RUN chmod 775 /home/bootstrap.sh
+
+CMD ["sh", "-c", "/home/bootstrap.sh"]

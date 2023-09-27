@@ -69,9 +69,11 @@ ENV LOG_LEVEL "INFO"
 #######################################################
 # Initializing the default users passwords, that will be configured with configure_users.sh
 #######################################################
-ENV ADMIN_PASSWORD='admin'
-ENV EXECUTOR_PASSWORD='executor'
-ENV GUEST_PASSWORD='guest'
+ENV MONETDB_ADMIN_USERNAME="admin"
+ENV MONETDB_LOCAL_USERNAME="executor"
+ENV MONETDB_LOCAL_PASSWORD="executor"
+ENV MONETDB_PUBLIC_USERNAME="guest"
+ENV MONETDB_PUBLIC_PASSWORD="guest"
 
 #######################################################
 # Setup MONETDB Volume
@@ -85,6 +87,13 @@ VOLUME $MONETDB_STORAGE
 #######################################################
 ENV MONIT_CONFIG_FOLDER=/home/monit
 RUN mkdir $MONIT_CONFIG_FOLDER
+
+#######################################################
+# Setup credentials Volume
+#######################################################
+ENV CREDENTIALS_CONFIG_FOLDER=/opt/credentials
+RUN mkdir $CREDENTIALS_CONFIG_FOLDER
+VOLUME $CREDENTIALS_CONFIG_FOLDER
 
 # MAX monetdb memory in bytes
 ENV MAX_MEMORY=2147483648

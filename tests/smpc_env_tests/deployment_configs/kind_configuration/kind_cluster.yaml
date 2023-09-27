@@ -8,14 +8,14 @@ nodes:
   - containerPort: 31000	# Used for debugging smpc cluster
     hostPort: 12314		# Used for debugging smpc cluster
   extraMounts:
-  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_master
+  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/master/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/data
 
 - role: worker
   extraMounts:
-  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker1
+  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/worker1/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/csvs
@@ -25,7 +25,7 @@ nodes:
 
 - role: worker
   extraMounts:
-  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/hostname_worker2
+  - hostPath: ./tests/smpc_env_tests/deployment_configs/kind_configuration/worker2/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/csvs

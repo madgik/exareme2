@@ -6,28 +6,34 @@ nodes:
   - containerPort: 30000
     hostPort: 5000
   extraMounts:
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_master
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/master/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/data
 
 - role: worker
   extraMounts:
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_worker1
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker1/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/csvs
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker1/monetdb_password.sh
+    containerPath: /opt/exareme2/credentials/monetdb_password.sh
 
 - role: worker
   extraMounts:
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_worker2
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker2/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/csvs
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker2/monetdb_password.sh
+    containerPath: /opt/exareme2/credentials/monetdb_password.sh
 
 - role: worker
   extraMounts:
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/hostname_worker3
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker3/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/csvs
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker3/monetdb_password.sh
+    containerPath: /opt/exareme2/credentials/monetdb_password.sh
