@@ -60,6 +60,7 @@ from pathlib import Path
 from textwrap import indent
 from time import sleep
 
+import requests
 import toml
 from invoke import UnexpectedExit
 from invoke import task
@@ -362,6 +363,15 @@ def init_monetdb(c, port):
         )
         cmd = f"""poetry run mipdb init --ip 127.0.0.1 {get_monetdb_configs_in_mipdb_format(port)}"""
         run(c, cmd)
+
+
+@task
+def update_nla(c):
+    url = "http://localhost:5000/nla"
+    response = requests.post(url)
+    if response.status_code != 200:
+        raise Exception("Failed to update the NLA")
+    print("Successfully updated NLA.")
 
 
 @task(iterable=["port"])
