@@ -5,8 +5,17 @@
    - The `exareme2_images -> version` should be the exareme2 services version in dockerhub.
    - The `localnodes` is a counter for the localnodes. Should be equal to the number of local nodes that exist in the cluster.
 
+1. (Optional) Configure each localnode with a custom db password, for increased inter-node security:
+   - In each localnode go to the folder specified at `db -> credentials_location` in the helm chart values.
+   - Create a file named: `monetdb_password.sh`
+   - Append the following lines in that file after changing the password:
+      ```
+      #!/bin/bash
+      export MONETDB_LOCAL_PASSWORD="worker1"
+      ```
+   - Make the file executable.
+   
 1. From the `Exareme2` folder, deploy the services:
-
 ```
 helm install exareme2 kubernetes
 ```

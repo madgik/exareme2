@@ -285,6 +285,13 @@ def algorithms_specs():
                     notblank=True,
                     multiple=False,
                 ),
+                "optional_param": ParameterSpecification(
+                    label="optional_param",
+                    desc="optional_param",
+                    types=[ParameterType.REAL],
+                    notblank=False,
+                    multiple=False,
+                ),
             },
         ),
         "algorithm_with_many_params": AlgorithmSpecification(
@@ -459,11 +466,18 @@ def transformers_specs():
             label="transformer_with_real_param",
             enabled=True,
             parameters={
-                "real_param": ParameterSpecification(
-                    label="real_param",
-                    desc="real_param",
+                "required_real_param": ParameterSpecification(
+                    label="required_real_param",
+                    desc="required_real_param",
                     types=[ParameterType.REAL],
                     notblank=True,
+                    multiple=False,
+                ),
+                "optional_real_param": ParameterSpecification(
+                    label="optional_real_param",
+                    desc="optional_real_param",
+                    types=[ParameterType.REAL],
+                    notblank=False,
                     multiple=False,
                 ),
             },
@@ -682,7 +696,9 @@ def get_parametrization_list_success_cases():
                     datasets=["sample_dataset1"],
                     y=["real_cde"],
                 ),
-                preprocessing={"transformer_with_real_param": {"real_param": 10.4}},
+                preprocessing={
+                    "transformer_with_real_param": {"required_real_param": 10.4}
+                },
             ),
             id="Algorithm with transformer.",
         ),
@@ -881,7 +897,7 @@ def get_parametrization_list_exception_cases():
                     datasets=["sample_dataset1"],
                     y=["int_cde"],
                 ),
-                parameters={"wrong_parameter": ""},
+                parameters={"optional_param": 1},
             ),
             (BadUserInput, "Parameter .* should not be blank."),
             id="Required parameter not provided.",
@@ -1139,7 +1155,9 @@ def get_parametrization_list_exception_cases():
                     datasets=["sample_dataset1"],
                     y=["real_cde"],
                 ),
-                preprocessing={"transformer_with_real_param": {"wrong_param": 10.1}},
+                preprocessing={
+                    "transformer_with_real_param": {"optional_real_param": 1}
+                },
             ),
             (BadUserInput, "Parameter .* should not be blank."),
             id="Bad parameter input in transformer.",
@@ -1168,6 +1186,57 @@ def get_parametrization_list_exception_cases():
             ),
             (BadUserInput, "Transformer .* does not exist."),
             id="Disabled Transformer.",
+        ),
+        pytest.param(
+            "algorithm_with_required_param",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["int_cde"],
+                ),
+                parameters={
+                    "required_param": 1,
+                    "non_existing_param": 1,
+                },
+            ),
+            (
+                BadUserInput,
+                "Parameter .* does not exist in the algorithm specification.",
+            ),
+            id="non existing parameter provided",
+        ),
+        pytest.param(
+            "algorithm_with_y_int",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["int_cde"],
+                ),
+                flags={"non_existing_flag": True},
+            ),
+            (
+                BadUserInput,
+                "Flag .* does not exist in the specifications.",
+            ),
+            id="non existing flag provided",
+        ),
+        pytest.param(
+            "algorithm_with_y_int",
+            AlgorithmRequestDTO(
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    y=["int_cde"],
+                ),
+                flags={"smpc": 2},
+            ),
+            (
+                BadUserInput,
+                "Flag .* should have a boolean value.",
+            ),
+            id="flag does not have boolean value",
         ),
     ]
     return parametrization_list

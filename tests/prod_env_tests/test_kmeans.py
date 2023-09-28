@@ -1,21 +1,23 @@
+import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from tests.algorithm_validation_tests.helpers import algorithm_request
 from tests.algorithm_validation_tests.helpers import assert_allclose
 from tests.algorithm_validation_tests.helpers import get_test_params
-from tests.algorithm_validation_tests.helpers import parse_response
 
-algorithm_name = "linear_regression"
-
-expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
+expected_file = Path(__file__).parent / "expected" / "kmeans_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
-def test_linearregression_algorithm(test_input, expected):
-    response = algorithm_request(algorithm_name, test_input)
-    result = parse_response(response)
+def test_kmeans(test_input, expected):
+    response = algorithm_request("kmeans", test_input)
+    try:
+        result = json.loads(response.text)
+    except json.decoder.JSONDecodeError:
+        raise ValueError(f"The result is not valid json:\n{response.text}") from None
 
     # this test only ensures that the algorithm runs smoothly without errors
     assert result

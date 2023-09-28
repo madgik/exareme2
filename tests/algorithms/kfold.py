@@ -10,6 +10,8 @@ from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
 from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import ParameterType
 
 ALGNAME = "test_kfold"
 
@@ -54,6 +56,18 @@ class KFoldTestAlgorithm(Algorithm, algname=ALGNAME):
                     multiple=False,
                 ),
             ),
+            parameters={
+                "n_splits": ParameterSpecification(
+                    label="Number of splits",
+                    desc="Number of splits for cross-validation.",
+                    types=[ParameterType.INT],
+                    notblank=True,
+                    multiple=False,
+                    default=5,
+                    min=2,
+                    max=20,
+                ),
+            },
         )
 
     def run(self, data, metadata):

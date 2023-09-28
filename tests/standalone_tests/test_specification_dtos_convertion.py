@@ -120,6 +120,7 @@ def test_convert_algorithm_specification_to_dto():
             )
         },
         preprocessing=[],
+        flags=["smpc"],
     )
 
     dto = _convert_algorithm_specification_to_dto(

@@ -1,4 +1,6 @@
 from abc import ABC
+from enum import Enum
+from enum import unique
 from typing import Any
 from typing import Dict
 from typing import List
@@ -6,7 +8,10 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-USE_SMPC_FLAG = "smpc"
+
+@unique
+class AlgorithmRequestSystemFlags(str, Enum):
+    SMPC = "smpc"
 
 
 class ImmutableBaseModel(BaseModel, ABC):

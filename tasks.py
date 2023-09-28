@@ -60,6 +60,7 @@ from pathlib import Path
 from textwrap import indent
 from time import sleep
 
+import requests
 import toml
 from invoke import UnexpectedExit
 from invoke import task
@@ -385,6 +386,15 @@ def init_monetdb(c, port):
         run(c, cmd)
 
 
+@task
+def update_nla(c):
+    url = "http://localhost:5000/nla"
+    response = requests.post(url)
+    if response.status_code != 200:
+        raise Exception("Failed to update the NLA")
+    print("Successfully updated NLA.")
+
+
 @task(iterable=["port"])
 def load_data(c, use_sockets=False, port=None):
     """
@@ -486,7 +496,7 @@ def get_monetdb_configs_in_mipdb_format(port):
         f"--ip 127.0.0.1 "
         f"--port {port} "
         f"--username admin "
-        f"--password admin "
+        f"--password executor "
         f"--db_name db"
     )
 

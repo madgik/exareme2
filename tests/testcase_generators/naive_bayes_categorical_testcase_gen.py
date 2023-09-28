@@ -65,13 +65,11 @@ if __name__ == "__main__":
     specs = json.loads(specs.json(exclude_none=True))
 
     gen = CategoricalNBFitTestCaseGenerator(specs)
-    fname = "tests/algorithm_validation_tests/expected/naive_bayes_categorical_fit.json"
+    fname = "tests/algorithm_validation_tests/expected/naive_bayes_categorical_fit_expected.json"
     with open(fname, "w") as output_file:
         gen.write_test_cases(output_file, num_test_cases=50)
 
     gen = CategoricalNBPredictTestCaseGenerator(specs)
-    fname = (
-        "tests/algorithm_validation_tests/expected/naive_bayes_categorical_predict.json"
-    )
+    fname = "tests/algorithm_validation_tests/expected/naive_bayes_categorical_predict_expected.json"
     with open(fname, "w") as output_file:
         gen.write_test_cases(output_file, num_test_cases=50)

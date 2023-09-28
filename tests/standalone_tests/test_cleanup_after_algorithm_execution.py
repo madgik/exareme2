@@ -214,7 +214,7 @@ def node_landscape_aggregator(
     node_landscape_aggregator = NodeLandscapeAggregator(
         node_landscape_aggregator_init_params
     )
-    node_landscape_aggregator._update()
+    node_landscape_aggregator.update()
     node_landscape_aggregator.start()
 
     # TODO https://team-1617704806227.atlassian.net/jira/software/projects/MIP/issues/MIP-771

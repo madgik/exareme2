@@ -296,7 +296,7 @@ class NodeLandscapeAggregator:
         self._keep_updating = True
         self._update_loop_thread = None
 
-    def _update(self):
+    def update(self):
         """
         Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
         to keep up-to-date and in sync the Node Registry and the Data Model Registry.
@@ -330,7 +330,7 @@ class NodeLandscapeAggregator:
     def _update_loop(self):
         while self._keep_updating:
             try:
-                self._update()
+                self.update()
             except Exception as exc:
                 self._logger.warning(
                     f"NodeLandscapeAggregator caught an exception but will continue to "

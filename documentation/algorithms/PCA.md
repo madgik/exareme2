@@ -29,6 +29,7 @@ requirements. Additionally, as a first step, data is centered and standardized.
 
 ![pseudo](images/pca_pseudocode.png)
 
+
 <b><h4>Algorithm Implementation</b></h4>
 
 [PCA](../../exareme2/algorithms/pca.py)

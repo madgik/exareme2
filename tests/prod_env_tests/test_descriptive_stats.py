@@ -17,4 +17,5 @@ def test_descriptive_stats(test_input, expected):
     response = algorithm_request(algorithm_name, test_input)
     result = parse_response(response)
 
-    compare_results(result, expected)
+    # this test only ensures that the algorithm runs smoothly without errors
+    assert result

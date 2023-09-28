@@ -12,9 +12,9 @@ from exareme2.algorithms.specifications import InputDataType
 from exareme2.algorithms.specifications import ParameterEnumSpecification
 from exareme2.algorithms.specifications import ParameterSpecification
 from exareme2.algorithms.specifications import TransformerSpecification
-from exareme2.controller.api.algorithm_request_dto import USE_SMPC_FLAG
 from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
+from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
 from exareme2.controller.api.specifications_dtos import ParameterEnumType
 from exareme2.controller.api.specifications_dtos import ParameterType
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
@@ -294,6 +294,8 @@ def _validate_parameters(
     If the algorithm has parameters,
     it validates that they follow the algorithm specs.
     """
+    _validate_parameters_are_in_the_specs(parameters, parameters_specs)
+
     if parameters_specs is None:
         return
 
@@ -312,6 +314,18 @@ def _validate_parameters(
                 inputdata=inputdata,
                 data_model_cdes=data_model_cdes,
             )
+
+
+def _validate_parameters_are_in_the_specs(
+    parameters: Optional[Dict[str, Any]],
+    parameters_specs: Optional[Dict[str, ParameterSpecification]],
+):
+    if parameters:
+        for param_name in parameters.keys():
+            if not parameters_specs or param_name not in parameters_specs.keys():
+                raise BadUserInput(
+                    f"Parameter {param_name} does not exist in the algorithm specification."
+                )
 
 
 def _validate_parameter_values(
@@ -530,8 +544,19 @@ def _validate_flags(flags: Dict[str, Any], smpc_enabled: bool, smpc_optional: bo
     if not flags:
         return
 
-    if USE_SMPC_FLAG in flags.keys():
-        validate_smpc_usage(flags[USE_SMPC_FLAG], smpc_enabled, smpc_optional)
+    for flag, value in flags.items():
+        if not isinstance(value, bool):
+            raise BadUserInput(f"Flag '{flag}' should have a boolean value.")
+
+    available_flags = [f.value for f in AlgorithmRequestSystemFlags]
+    for flag in flags:
+        if flag not in available_flags:
+            raise BadUserInput(f"Flag '{flag}' does not exist in the specifications.")
+
+    if AlgorithmRequestSystemFlags.SMPC in flags.keys():
+        validate_smpc_usage(
+            flags[AlgorithmRequestSystemFlags.SMPC], smpc_enabled, smpc_optional
+        )
 
 
 def _validate_algorithm_preprocessing(
