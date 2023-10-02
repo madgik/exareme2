@@ -69,20 +69,22 @@ def _trigger_smpc_operation(
     smpc_op_clients: List[str],
     dp_params: DifferentialPrivacyParams = None,
 ) -> bool:
-    trigger_smpc(
-        logger=logger,
-        coordinator_address=ctrl_config.smpc.coordinator_address,
-        jobid=get_smpc_job_id(
-            context_id=context_id,
-            command_id=command_id,
-            operation=op_type,
-        ),
-        payload=create_payload(
-            computation_type=op_type, clients=smpc_op_clients, dp_params=dp_params
-        ),
-    ) if smpc_op_clients else None
-
-    return True if smpc_op_clients else False
+    if smpc_op_clients:
+        trigger_smpc(
+            logger=logger,
+            coordinator_address=ctrl_config.smpc.coordinator_address,
+            jobid=get_smpc_job_id(
+                context_id=context_id,
+                command_id=command_id,
+                operation=op_type,
+            ),
+            payload=create_payload(
+                computation_type=op_type, clients=smpc_op_clients, dp_params=dp_params
+            ),
+        )
+        return True
+    else:
+        return False
 
 
 def trigger_smpc_operations(

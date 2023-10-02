@@ -22,9 +22,21 @@ from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 
+node_landscape_aggregator = None
+cleaner = None
+controller = None
+
 
 @algorithms.before_app_serving
 async def startup():
+    global node_landscape_aggregator, cleaner, controller
+    node_landscape_aggregator = create_node_landscape_aggregator()
+    cleaner = create_cleaner()
+    controller = create_controller(
+        cleaner=cleaner,
+        node_landscape_aggregator=node_landscape_aggregator,
+    )
+
     configure_loggers()
     controller.start_node_landscape_aggregator()
     controller.start_cleanup_loop()
@@ -139,11 +151,3 @@ def create_controller(
         cleaner=cleaner,
         node_landscape_aggregator=node_landscape_aggregator,
     )
-
-
-node_landscape_aggregator = create_node_landscape_aggregator()
-cleaner = create_cleaner()
-controller = create_controller(
-    cleaner=cleaner,
-    node_landscape_aggregator=node_landscape_aggregator,
-)
