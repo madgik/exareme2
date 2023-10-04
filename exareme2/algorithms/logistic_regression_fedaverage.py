@@ -21,6 +21,7 @@ from exareme2.algorithms.metrics import roc_curve
 from exareme2.algorithms.preprocessing import DummyEncoder
 from exareme2.algorithms.preprocessing import LabelBinarizer
 from exareme2.algorithms.specifications import AlgorithmName
+from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.udfgen import relation
 from exareme2.udfgen import secure_transfer
 from exareme2.udfgen import udf
@@ -34,9 +35,19 @@ class LogRegCVFedAverageDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
 
 
 class LogRegCVFedAverageAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @staticmethod
-    def get_specification():
-        return LogisticRegressionCVAlgorithm.get_specification()
+    @classmethod
+    def get_specification(cls):
+        # Use the LR with CV specification but change the name
+        LR_with_cv_specification = LogisticRegressionCVAlgorithm.get_specification()
+        LR_with_cv_fedavg = AlgorithmSpecification(
+            name=ALGORITHM_NAME,
+            desc=LR_with_cv_specification.desc,
+            label=LR_with_cv_specification.label,
+            enabled=LR_with_cv_specification.enabled,
+            inputdata=LR_with_cv_specification.inputdata,
+            parameters=LR_with_cv_specification.parameters,
+        )
+        return LR_with_cv_fedavg
 
     def run(self, data, metadata):
         X, y = data

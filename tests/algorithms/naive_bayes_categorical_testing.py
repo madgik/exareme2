@@ -68,7 +68,7 @@ class CategoricalNBTesting_predict(Algorithm, algname=ALGNAME_PRED):
         # but remove the "n_splits" parameter since this is a CV specific parameter
         categoricalNB_with_cv_specification = CategoricalNBAlgorithm.get_specification()
         categoricalNB_predict_specification = AlgorithmSpecification(
-            name=ALGNAME_FIT,
+            name=ALGNAME_PRED,
             desc=categoricalNB_with_cv_specification.desc,
             label=categoricalNB_with_cv_specification.label,
             enabled=categoricalNB_with_cv_specification.enabled,
