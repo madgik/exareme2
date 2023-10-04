@@ -3,9 +3,12 @@ from enum import Enum
 from enum import unique
 from importlib.resources import open_text
 from typing import Dict
+from typing import List
+from typing import Type
 
 import envtoml
 
+from exareme2 import Algorithm
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
 from exareme2 import controller
@@ -29,16 +32,22 @@ else:
         config = AttrDict(envtoml.load(fp))
 
 
-def _get_algorithms_specifications() -> Dict[str, AlgorithmSpecification]:
-    specs = {
-        algo_name: algorithm.get_specification()
-        for algo_name, algorithm in algorithm_classes.items()
-        if algorithm.get_specification().enabled
-    }
+def _get_algorithms_specifications(
+    algorithms: List[Type[Algorithm]],
+) -> Dict[str, AlgorithmSpecification]:
+    specs = {}
+    for algorithm in algorithms:
+        if algorithm.get_specification().enabled:
+            algo_name = algorithm.get_specification().name
+            if algo_name in specs.keys():
+                raise ValueError(
+                    f"The algorithm name '{algo_name}' exists more than once in the algorithm specifications."
+                )
+            specs[algo_name] = algorithm.get_specification()
     return specs
 
 
-algorithms_specifications = _get_algorithms_specifications()
+algorithms_specifications = _get_algorithms_specifications(algorithm_classes.values())
 transformers_specifications = {
     LongitudinalTransformerRunner.get_transformer_name(): LongitudinalTransformerRunner.get_specification()
 }
