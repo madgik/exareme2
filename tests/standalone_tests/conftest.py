@@ -1071,7 +1071,7 @@ def controller_service_with_localnode1():
     kill_service(proc)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def smpc_controller_service():
     service_port = CONTROLLER_SMPC_PORT
     controller_config_filepath = path.join(
