@@ -1,34 +1,34 @@
 # Federated Algorithms User Guide
 
 - [Intro](#intro)
-  * [System Overview](#system-overview)
+  - [System Overview](#system-overview)
 - [Getting started](#getting-started)
-  * [Federated algorithms overview](#federated-algorithms-overview)
-  * [Writing a federated algorithm](#writing-a-federated-algorithm)
-      - [Local computations](#local-computations)
-      - [Global computations](#global-computations)
-      - [Algorithm flow](#algorithm-flow)
-  * [Porting to Exareme](#porting-to-exareme)
-    + [Local and global steps as database UDFs](#local-and-global-steps-as-database-udfs)
-    + [Algorithm flow in Exareme](#algorithm-flow-in-exareme)
-    + [Data Loader](#data-loader)
-    + [Algorithm Specifications](#algorithm-specifications)
-    + [Running the algorithm](#running-the-algorithm)
+  - [Federated algorithms overview](#federated-algorithms-overview)
+  - [Writing a federated algorithm](#writing-a-federated-algorithm)
+    - [Local computations](#local-computations)
+    - [Global computations](#global-computations)
+    - [Algorithm flow](#algorithm-flow)
+  - [Porting to Exareme](#porting-to-exareme)
+    - [Local and global steps as database UDFs](#local-and-global-steps-as-database-udfs)
+    - [Algorithm flow in Exareme](#algorithm-flow-in-exareme)
+    - [Data Loader](#data-loader)
+    - [Algorithm Specifications](#algorithm-specifications)
+    - [Running the algorithm](#running-the-algorithm)
 - [Advanced topics](#advanced-topics)
-  * [UDF generator](#udf-generator)
-    + [API](#api)
-    + [Multiple outputs](#multiple-outputs)
-  * [Secure multi-party computation](#secure-multi-party-computation)
+  - [UDF generator](#udf-generator)
+    - [API](#api)
+    - [Multiple outputs](#multiple-outputs)
+  - [Secure multi-party computation](#secure-multi-party-computation)
 - [Best practices](#best-practices)
-  * [Memory efficiency](#memory-efficiency)
-  * [Time efficiency](#time-efficiency)
-  * [Privacy](#privacy)
-      - [Privacy threshold](#privacy-threshold)
-      - [Share only aggregates](#share-only-aggregates)
+  - [Memory efficiency](#memory-efficiency)
+  - [Time efficiency](#time-efficiency)
+  - [Privacy](#privacy)
+    - [Privacy threshold](#privacy-threshold)
+    - [Share only aggregates](#share-only-aggregates)
 - [Examples](#examples)
-  * [Iterative algorithm](#iterative-algorithm)
-  * [Class based model](#class-based-model)
-  * [Complex data loader](#complex-data-loader)
+  - [Iterative algorithm](#iterative-algorithm)
+  - [Class based model](#class-based-model)
+  - [Complex data loader](#complex-data-loader)
 
 # Intro
 
@@ -53,7 +53,7 @@ In the highest level, a federated algorithm is composed of three ingredients.
 Local computations, global computations and the algorithm flow. A local
 computation takes places in each local node and usually produces some aggregate
 of the primary data found in the local node. A global computation takes place
-in a special node called the global node, and usually consilidates the local
+in a special node called the global node, and usually consolidates the local
 aggregates into a global aggregate. Finally, the algorithm flow is responsible
 for coordinating these computations and the data exchange between nodes.
 
@@ -65,7 +65,7 @@ computations and write an algorithm flow that ties the computations together.
 Let's break down the steps one by one. We'll begin by writing a simple
 algorithm for computing the mean of a single variable. This algorithm will be
 written as a simple python script, running on a single machine. The purpose of
-this exercise is to lustrate how an algorithm is decomposed into local and
+this exercise is to illustrate how an algorithm is decomposed into local and
 global steps, and how the flow coordinates these steps. Later, we'll add the
 necessary ingredients in order to be able to run the algorithm in an actual
 federated environment, using Exareme.
@@ -167,7 +167,7 @@ computations can have different fates. Some will be sent across the network to
 other nodes, while others will be stored in the same node for later processing.
 Having variables with dynamic types would make the communication with the
 database and the communication between nodes very difficult to implement
-efficiently. To overcome this difficulties, the `udfgen` module defines a
+efficiently. To overcome these difficulties, the `udfgen` module defines a
 number of *types* for the input and output variables of local and global
 computations.
 
@@ -192,7 +192,7 @@ def mean_local(local_data):
 The actual function is exactly the same as before, the difference lies in the
 `udf` decorator. `local_data` is declared to be of type `relation`. This means
 that the variable will be a relational table, implemented in python as a pandas
-dataframe. The output is of type `transfer`. This means that we intent to
+dataframe. The output is of type `transfer`. This means that we intend to
 transfer the output to another node. In our python implementation this is a
 plain dictionary but it will be converted to a JSON object in order to be
 transferred. This means that the contents of the dictionary should be JSON
@@ -377,7 +377,7 @@ algebra. `dtype` is the tensor's datatype, and can be of type `type` or
 dimensions. Another benefit of tensors is that their data are stored in a
 contiguous block of memory (unlike `relations` where individual columns are
 contiguous) which result in better efficiency when used within frameworks like
-`numpy`, which makes heavy use of vectorization capabilities of the CPU.
+`numpy`, which makes heavy use of the vectorization capabilities of the CPU.
 
 ##### `literal()`
 
@@ -448,7 +448,7 @@ aggregates. These are then fed to the SMPC cluster in an encrypted form. The
 SMPC cluster performs the global aggregation and sends the result back to
 Exareme, where it is passed as an input to the global UDF.
 
-To implement an SMPC computation we need to have a local UDF with a
+To implement a SMPC computation we need to have a local UDF with a
 `secure_transfer` output.
 
 ```python
@@ -603,7 +603,7 @@ hence the result size is $O(p^2)$ and doesn't depend on $N$.
 
 In the previous sections we presented a very simple algorithm for computing the
 mean of some variable. This algorithm requires a single local and a single
-global step. More complex workflows are possible, however, for example an
+global step. More complex workflows are possible, such as an
 iterative workflow. Below is an example of how to structure code to achieve
 this. For a real world example you should see the `fit` method in the [logistic regression
 algorithm](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/logistic_regression.py).
