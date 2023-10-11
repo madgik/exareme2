@@ -1,7 +1,12 @@
 import pytest
 
 from exareme2.smpc_cluster_comm_helpers import SMPCUsageError
+from exareme2.smpc_cluster_comm_helpers import create_payload
 from exareme2.smpc_cluster_comm_helpers import validate_smpc_usage
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_DTOs import DPRequestData
+from exareme2.smpc_DTOs import SMPCRequestData
+from exareme2.smpc_DTOs import SMPCRequestType
 
 
 def get_validate_smpc_usage_success_cases():
@@ -77,3 +82,39 @@ def test_validate_smpc_usage_fail_cases(node_config, use_smpc, exception):
         validate_smpc_usage(
             use_smpc, node_config["smpc"]["enabled"], node_config["smpc"]["optional"]
         )
+
+
+def test_create_payload():
+    computation_type = SMPCRequestType.INT_SUM
+    clients = ["client1", "client2", "client3"]
+    dp_sensitivity = 1
+    dp_privacy_budget = 1
+
+    # test without differential privacy parameters
+    expected_without_pd = SMPCRequestData(
+        computationType=computation_type,
+        clients=clients,
+    ).json()
+
+    assert expected_without_pd == create_payload(
+        computation_type=computation_type,
+        clients=clients,
+    )
+
+    # test with differential privacy parameters
+    expected_with_pd = SMPCRequestData(
+        computationType=computation_type,
+        clients=clients,
+        dp=DPRequestData(
+            c=dp_sensitivity,
+            e=dp_privacy_budget,
+        ),
+    ).json()
+
+    assert expected_with_pd == create_payload(
+        computation_type=computation_type,
+        clients=clients,
+        dp_params=DifferentialPrivacyParams(
+            sensitivity=dp_sensitivity, privacy_budget=dp_privacy_budget
+        ),
+    )

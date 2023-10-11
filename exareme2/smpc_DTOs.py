@@ -1,5 +1,6 @@
 import enum
 from typing import List
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -27,9 +28,20 @@ class SMPCResponseStatus(enum.Enum):
         return self.name
 
 
+class DPRequestData(BaseModel):
+    c: Optional[float]  # Differential Privacy - sensitivity
+    e: Optional[float]  # Differential Privacy - privacy budget
+
+
 class SMPCRequestData(BaseModel):
     computationType: SMPCRequestType
     clients: List[str]
+    dp: Optional[DPRequestData]
+
+
+class DifferentialPrivacyParams(BaseModel):
+    sensitivity: float
+    privacy_budget: float
 
 
 class SMPCResponse(BaseModel):

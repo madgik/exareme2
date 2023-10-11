@@ -126,6 +126,7 @@ if USE_EXTERNAL_SMPC_CLUSTER:
     LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
     LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
+    CONTROLLER_SMPC_DP_CONFIG_FILE = "test_external_smpc_dp_controller.toml"
     SMPC_COORDINATOR_ADDRESS = "http://167.71.139.232:12314"
 else:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
@@ -1070,7 +1071,7 @@ def controller_service_with_localnode1():
     kill_service(proc)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def smpc_controller_service():
     service_port = CONTROLLER_SMPC_PORT
     controller_config_filepath = path.join(
@@ -1086,8 +1087,26 @@ def smpc_controller_service():
         localnodes_config_filepath,
         SMPC_CONTROLLER_OUTPUT_FILE,
     )
-    yield
+    yield proc
     kill_service(proc)
+
+
+def smpc_controller_service_with_dp():
+    service_port = CONTROLLER_SMPC_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_DP_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        SMPC_CONTROLLER_OUTPUT_FILE,
+    )
+    return proc
 
 
 def _create_controller_service(

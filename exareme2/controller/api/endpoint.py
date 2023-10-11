@@ -5,6 +5,7 @@ from quart import Blueprint
 from quart import request
 
 from exareme2.controller import config as controller_config
+from exareme2.controller.algorithm_execution_engine import SMPCParams
 from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from exareme2.controller.api.loggers import loggers
 from exareme2.controller.api.specifications_dtos import algorithm_specifications_dtos
@@ -18,12 +19,25 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
+
+node_landscape_aggregator = None
+cleaner = None
+controller = None
 
 
 @algorithms.before_app_serving
 async def startup():
+    global node_landscape_aggregator, cleaner, controller
+    node_landscape_aggregator = create_node_landscape_aggregator()
+    cleaner = create_cleaner()
+    controller = create_controller(
+        cleaner=cleaner,
+        node_landscape_aggregator=node_landscape_aggregator,
+    )
+
     configure_loggers()
     controller.start_node_landscape_aggregator()
     controller.start_cleanup_loop()
@@ -122,8 +136,16 @@ def create_controller(
     node_landscape_aggregator: NodeLandscapeAggregator, cleaner: Cleaner
 ):
     controller_init_params = ControllerInitParams(
-        smpc_enabled=controller_config.smpc.enabled or False,
-        smpc_optional=controller_config.smpc.optional or False,
+        smpc_params=SMPCParams(
+            smpc_enabled=controller_config.smpc.enabled or False,
+            smpc_optional=controller_config.smpc.optional or False,
+            dp_params=DifferentialPrivacyParams(
+                sensitivity=controller_config.smpc.dp.sensitivity,
+                privacy_budget=controller_config.smpc.dp.privacy_budget,
+            )
+            if controller_config.smpc.dp.enabled
+            else None,
+        ),
         celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
     )
@@ -132,11 +154,3 @@ def create_controller(
         cleaner=cleaner,
         node_landscape_aggregator=node_landscape_aggregator,
     )
-
-
-node_landscape_aggregator = create_node_landscape_aggregator()
-cleaner = create_cleaner()
-controller = create_controller(
-    cleaner=cleaner,
-    node_landscape_aggregator=node_landscape_aggregator,
-)

@@ -4,6 +4,8 @@ from typing import List
 
 import requests
 
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_DTOs import DPRequestData
 from exareme2.smpc_DTOs import SMPCRequestData
 from exareme2.smpc_DTOs import SMPCRequestType
 
@@ -53,24 +55,40 @@ def trigger_smpc(
     logger: Logger,
     coordinator_address: str,
     jobid: str,
-    computation_type: SMPCRequestType,
-    clients: List[str],
+    payload: SMPCRequestData,
 ):
     request_url = coordinator_address + TRIGGER_COMPUTATION_ENDPOINT + jobid
     request_headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    data = SMPCRequestData(computationType=computation_type, clients=clients).json()
     logger.info(f"Starting SMPC with {jobid=}...")
     logger.debug(f"{request_url=}")
-    logger.debug(f"{data=}")
+    logger.debug(f"{payload=}")
     response = requests.post(
         url=request_url,
-        data=data,
+        data=payload,
         headers=request_headers,
     )
     if response.status_code != 200:
         raise SMPCCommunicationError(
             f"Response status code: {response.status_code} \n Body:{response.text}"
         )
+
+
+def create_payload(
+    computation_type: SMPCRequestType,
+    clients: List[str],
+    dp_params: DifferentialPrivacyParams = None,
+) -> SMPCRequestData:
+    if dp_params:
+        return SMPCRequestData(
+            computationType=computation_type,
+            clients=clients,
+            dp=DPRequestData(
+                c=dp_params.sensitivity,
+                e=dp_params.privacy_budget,
+            ),
+        ).json()
+    else:
+        return SMPCRequestData(computationType=computation_type, clients=clients).json()
 
 
 def validate_smpc_usage(use_smpc: bool, smpc_enabled: bool, smpc_optional: bool):

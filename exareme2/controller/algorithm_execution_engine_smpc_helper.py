@@ -11,7 +11,9 @@ from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
 from exareme2.controller.nodes import GlobalNode
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.smpc_cluster_comm_helpers import SMPCComputationError
+from exareme2.smpc_cluster_comm_helpers import create_payload
 from exareme2.smpc_cluster_comm_helpers import trigger_smpc
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from exareme2.smpc_DTOs import SMPCRequestType
 from exareme2.smpc_DTOs import SMPCResponse
 from exareme2.smpc_DTOs import SMPCResponseStatus
@@ -59,26 +61,30 @@ def load_data_to_smpc_clients(
     )
 
 
-def trigger_smpc_operation(
+def _trigger_smpc_operation(
     logger: Logger,
     context_id: str,
     command_id: int,
     op_type: SMPCRequestType,
     smpc_op_clients: List[str],
+    dp_params: DifferentialPrivacyParams = None,
 ) -> bool:
-    trigger_smpc(
-        logger=logger,
-        coordinator_address=ctrl_config.smpc.coordinator_address,
-        jobid=get_smpc_job_id(
-            context_id=context_id,
-            command_id=command_id,
-            operation=op_type,
-        ),
-        computation_type=op_type,
-        clients=smpc_op_clients,
-    ) if smpc_op_clients else None
-
-    return True if smpc_op_clients else False
+    if smpc_op_clients:
+        trigger_smpc(
+            logger=logger,
+            coordinator_address=ctrl_config.smpc.coordinator_address,
+            jobid=get_smpc_job_id(
+                context_id=context_id,
+                command_id=command_id,
+                operation=op_type,
+            ),
+            payload=create_payload(
+                computation_type=op_type, clients=smpc_op_clients, dp_params=dp_params
+            ),
+        )
+        return True
+    else:
+        return False
 
 
 def trigger_smpc_operations(
@@ -86,20 +92,36 @@ def trigger_smpc_operations(
     context_id: str,
     command_id: int,
     smpc_clients_per_op: Tuple[List[str], List[str], List[str]],
+    dp_params: DifferentialPrivacyParams = None,
 ) -> Tuple[bool, bool, bool]:
     (
         sum_op_smpc_clients,
         min_op_smpc_clients,
         max_op_smpc_clients,
     ) = smpc_clients_per_op
-    sum_op = trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.SUM, sum_op_smpc_clients
+    sum_op = _trigger_smpc_operation(
+        logger,
+        context_id,
+        command_id,
+        SMPCRequestType.SUM,
+        sum_op_smpc_clients,
+        dp_params,
     )
-    min_op = trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.MIN, min_op_smpc_clients
+    min_op = _trigger_smpc_operation(
+        logger,
+        context_id,
+        command_id,
+        SMPCRequestType.MIN,
+        min_op_smpc_clients,
+        dp_params,
     )
-    max_op = trigger_smpc_operation(
-        logger, context_id, command_id, SMPCRequestType.MAX, max_op_smpc_clients
+    max_op = _trigger_smpc_operation(
+        logger,
+        context_id,
+        command_id,
+        SMPCRequestType.MAX,
+        max_op_smpc_clients,
+        dp_params,
     )
     return sum_op, min_op, max_op
 

@@ -11,6 +11,7 @@ from exareme2.controller import controller_logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine import (
     InitializationParams as EngineInitParams,
 )
+from exareme2.controller.algorithm_execution_engine import SMPCParams
 from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from exareme2.controller.controller import CommandIdGenerator
@@ -27,6 +28,7 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
@@ -67,7 +69,7 @@ def controller_config():
             "celery_tasks_interval_max": 0.5,
             "celery_cleanup_task_timeout": 2,
         },
-        "smpc": {"enabled": False, "optional": False},
+        "smpc": {"enabled": False, "optional": False, "dp": {"enabled": False}},
     }
     return controller_config
 
@@ -384,8 +386,7 @@ def controller(controller_config, node_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
     controller_init_params = ControllerInitParams(
-        smpc_enabled=False,
-        smpc_optional=False,
+        smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
         celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
     )
@@ -473,8 +474,7 @@ def engine_case_1(
     algorithm_request_dto = algorithm_request_case_1[1]
 
     engine_init_params = EngineInitParams(
-        smpc_enabled=False,
-        smpc_optional=False,
+        smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
         request_id=algorithm_request_dto.request_id,
         algo_flags=algorithm_request_dto.flags,
     )
@@ -495,8 +495,7 @@ def engine_case_2(
     algorithm_request_dto = algorithm_request_case_2[1]
 
     engine_init_params = EngineInitParams(
-        smpc_enabled=False,
-        smpc_optional=False,
+        smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
         request_id=algorithm_request_dto.request_id,
         algo_flags=algorithm_request_dto.flags,
     )

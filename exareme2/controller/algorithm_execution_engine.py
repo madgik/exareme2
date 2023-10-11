@@ -10,6 +10,16 @@ from typing import Union
 
 from exareme2 import DType
 from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller.algorithm_execution_engine_smpc_helper import get_smpc_results
+from exareme2.controller.algorithm_execution_engine_smpc_helper import (
+    load_data_to_smpc_clients,
+)
+from exareme2.controller.algorithm_execution_engine_smpc_helper import (
+    trigger_smpc_operations,
+)
+from exareme2.controller.algorithm_execution_engine_smpc_helper import (
+    wait_for_smpc_results_to_be_ready,
+)
 from exareme2.controller.algorithm_flow_data_objects import AlgoFlowData
 from exareme2.controller.algorithm_flow_data_objects import GlobalNodeData
 from exareme2.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
@@ -26,10 +36,6 @@ from exareme2.controller.algorithm_flow_data_objects import (
 from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
 from exareme2.controller.nodes import GlobalNode
 from exareme2.controller.nodes import LocalNode
-from exareme2.controller.smpc_helper import get_smpc_results
-from exareme2.controller.smpc_helper import load_data_to_smpc_clients
-from exareme2.controller.smpc_helper import trigger_smpc_operations
-from exareme2.controller.smpc_helper import wait_for_smpc_results_to_be_ready
 from exareme2.node_tasks_DTOs import NodeSMPCDTO
 from exareme2.node_tasks_DTOs import NodeTableDTO
 from exareme2.node_tasks_DTOs import NodeUDFDTO
@@ -37,7 +43,22 @@ from exareme2.node_tasks_DTOs import SMPCTablesInfo
 from exareme2.node_tasks_DTOs import TableData
 from exareme2.node_tasks_DTOs import TableInfo
 from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from exareme2.udfgen import make_unique_func_name
+
+
+@dataclass(frozen=True)
+class SMPCParams:
+    smpc_enabled: bool
+    smpc_optional: bool
+    dp_params: Optional[DifferentialPrivacyParams] = None
+
+    def __post_init__(self):
+        if self.dp_params and not self.smpc_enabled:
+            raise ValueError(
+                f"{self.dp_params=} but {self.smpc_enabled=}. Differential "
+                "privacy mechanism needs the SMPC mechanism being enabled"
+            )
 
 
 @dataclass
@@ -84,8 +105,8 @@ class InconsistentShareTablesValueException(Exception):
 
 @dataclass(frozen=True)
 class InitializationParams:
-    smpc_enabled: bool
-    smpc_optional: bool
+    smpc_params: SMPCParams
+
     request_id: str
     algo_flags: Optional[Dict[str, Any]] = None
 
@@ -107,8 +128,7 @@ class AlgorithmExecutionEngine:
             request_id=initialization_params.request_id
         )
         self._algorithm_execution_flags = initialization_params.algo_flags
-        self._smpc_enabled = initialization_params.smpc_enabled
-        self._smpc_optional = initialization_params.smpc_optional
+        self._smpc_params = initialization_params.smpc_params
 
         self._command_id_generator = command_id_generator
         self._nodes = nodes
@@ -277,9 +297,9 @@ class AlgorithmExecutionEngine:
         """
         flags = self._algorithm_execution_flags
 
-        use_smpc = self._smpc_enabled
+        use_smpc = self._smpc_params.smpc_enabled
         if (
-            self._smpc_optional
+            self._smpc_params.smpc_optional
             and flags
             and AlgorithmRequestSystemFlags.SMPC in flags.keys()
         ):
@@ -408,6 +428,7 @@ class AlgorithmExecutionEngine:
             context_id=self._nodes.global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
+            dp_params=self._smpc_params.dp_params,
         )
 
         wait_for_smpc_results_to_be_ready(

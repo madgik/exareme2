@@ -35,6 +35,7 @@ from exareme2.controller.algorithm_execution_engine import (
     InitializationParams as EngineInitParams,
 )
 from exareme2.controller.algorithm_execution_engine import Nodes
+from exareme2.controller.algorithm_execution_engine import SMPCParams
 from exareme2.controller.algorithm_execution_engine_tasks_handler import (
     INodeAlgorithmTasksHandler,
 )
@@ -66,8 +67,8 @@ class NodesTasksHandlers:
 
 @dataclass(frozen=True)
 class InitializationParams:
-    smpc_enabled: bool
-    smpc_optional: bool
+    smpc_params: SMPCParams
+
     celery_tasks_timeout: int
     celery_run_udf_task_timeout: int
 
@@ -735,8 +736,8 @@ class Controller:
     ):
         self._controller_logger = ctrl_logger.get_background_service_logger()
 
-        self._smpc_enabled = initialization_params.smpc_enabled
-        self._smpc_optional = initialization_params.smpc_optional
+        self._smpc_params = initialization_params.smpc_params
+
         self._celery_tasks_timeout = initialization_params.celery_tasks_timeout
         self._celery_run_udf_task_timeout = (
             initialization_params.celery_run_udf_task_timeout
@@ -809,8 +810,7 @@ class Controller:
         # "Algorithm" implementation and serves as an API for the "Algorithm" code to
         # execute tasks on nodes
         engine_init_params = EngineInitParams(
-            smpc_enabled=self._smpc_enabled,
-            smpc_optional=self._smpc_optional,
+            smpc_params=self._smpc_params,
             request_id=algorithm_request_dto.request_id,
             algo_flags=algorithm_request_dto.flags,
         )
@@ -890,8 +890,8 @@ class Controller:
             algorithms_specs=algorithms_specifications,
             transformers_specs=transformers_specifications,
             node_landscape_aggregator=self._node_landscape_aggregator,
-            smpc_enabled=self._smpc_enabled,
-            smpc_optional=self._smpc_optional,
+            smpc_enabled=self._smpc_params.smpc_enabled,
+            smpc_optional=self._smpc_params.smpc_optional,
         )
 
     def get_datasets_locations(self) -> DatasetsLocations:
