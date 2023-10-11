@@ -25,8 +25,7 @@ contextid_release_timelimit=3600 #an hour
 [smpc]
 enabled=false
 optional=false
-
-[dp]
+[smpc.dp]
 enabled = false
 
 [[nodes]]

@@ -33,8 +33,7 @@ optional = "$SMPC_OPTIONAL"
 coordinator_address = "$SMPC_COORDINATOR_ADDRESS"
 get_result_interval = "$SMPC_GET_RESULT_INTERVAL"
 get_result_max_retries = "$SMPC_GET_RESULT_MAX_RETRIES"
-
-[dp]
+[smpc.dp]
 enabled = "$DP_ENABLED"
 sensitivity = "$DP_SENSITIVITY"
 privacy_budget = "$DP_PRIVACY_BUDGET"

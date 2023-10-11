@@ -18,7 +18,8 @@ def controller_config_1():
         }
     )
     controller_config.smpc = AttrDict({"enabled": False, "optional": False})
-    controller_config.dp = AttrDict(
+    b
+    controller_config.smpc.dp = AttrDict(
         {"enabled": True, "sensitivity": 1, "privacy_budget": 1}
     )
     return controller_config
@@ -40,8 +41,8 @@ def test_create_controller():
                 "celery_run_udf_task_timeout": 10,
             }
         )
-        mock_controller_config.smpc = AttrDict({"enabled": False, "optional": False})
-        mock_controller_config.dp = AttrDict(
+        mock_controller_config.smpc = AttrDict({"enabled": True, "optional": False})
+        mock_controller_config.smpc.dp = AttrDict(
             {"enabled": True, "sensitivity": 1, "privacy_budget": 1}
         )
 
@@ -59,9 +60,14 @@ def test_create_controller():
             controller._celery_run_udf_task_timeout
             == mock_controller_config.rabbitmq.celery_run_udf_task_timeout
         )
-        assert controller._smpc_enabled == mock_controller_config.smpc.enabled
-        assert controller._smpc_optional == mock_controller_config.smpc.optional
-        assert controller._dp_params == DifferentialPrivacyParams(
+        assert (
+            controller._smpc_params.smpc_enabled == mock_controller_config.smpc.enabled
+        )
+        assert (
+            controller._smpc_params.smpc_optional
+            == mock_controller_config.smpc.optional
+        )
+        assert controller._smpc_params.dp_params == DifferentialPrivacyParams(
             sensitivity=mock_controller_config.dp.sensitivity,
             privacy_budget=mock_controller_config.dp.privacy_budget,
         )
@@ -77,7 +83,7 @@ def test_create_controller():
             }
         )
         mock_controller_config.smpc = AttrDict({"enabled": True, "optional": True})
-        mock_controller_config.dp = AttrDict({"enabled": False})
+        mock_controller_config.smpc.dp = AttrDict({"enabled": False})
 
         controller = create_controller(
             node_landscape_aggregator=mock_node_landscape_aggregator,
@@ -91,6 +97,11 @@ def test_create_controller():
             controller._celery_run_udf_task_timeout
             == mock_controller_config.rabbitmq.celery_run_udf_task_timeout
         )
-        assert controller._smpc_enabled == mock_controller_config.smpc.enabled
-        assert controller._smpc_optional == mock_controller_config.smpc.optional
-        assert controller._dp_params == None
+        assert (
+            controller._smpc_params.smpc_enabled == mock_controller_config.smpc.enabled
+        )
+        assert (
+            controller._smpc_params.smpc_optional
+            == mock_controller_config.smpc.optional
+        )
+        assert controller._smpc_params.dp_params == None

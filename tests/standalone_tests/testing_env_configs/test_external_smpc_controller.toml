@@ -31,6 +31,5 @@ optional = false
 coordinator_address = "http://167.71.139.232:12314"
 get_result_interval = 5
 get_result_max_retries = 100
-
-[dp]
+[smpc.dp]
 enabled = false

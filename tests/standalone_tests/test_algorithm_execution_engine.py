@@ -8,6 +8,7 @@ import pytest
 from exareme2.controller import controller_logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from exareme2.controller.algorithm_execution_engine import InitializationParams
+from exareme2.controller.algorithm_execution_engine import SMPCParams
 from exareme2.controller.nodes import _INode
 from exareme2.node_tasks_DTOs import ColumnInfo
 from exareme2.node_tasks_DTOs import DType
@@ -21,11 +22,13 @@ class TestAlgorithmExecutionEngine:
     @pytest.fixture
     def algorithm_execution_engine_init_params(self):
         return InitializationParams(
-            smpc_enabled=False,
-            smpc_optional=False,
+            smpc_params=SMPCParams(
+                smpc_enabled=True,
+                smpc_optional=False,
+                dp_params=DifferentialPrivacyParams(sensitivity=1, privacy_budget=1),
+            ),
             request_id="dummyrequestid",
             algo_flags="dumyalgoflags",
-            dp_params=DifferentialPrivacyParams(sensitivity=1, privacy_budget=1),
         )
 
     @pytest.fixture
@@ -54,16 +57,8 @@ class TestAlgorithmExecutionEngine:
             == algorithm_execution_engine_init_params.algo_flags
         )
         assert (
-            algorithm_execution_engine._smpc_enabled
-            == algorithm_execution_engine_init_params.smpc_enabled
-        )
-        assert (
-            algorithm_execution_engine._smpc_optional
-            == algorithm_execution_engine_init_params.smpc_optional
-        )
-        assert (
-            algorithm_execution_engine._dp_params
-            == algorithm_execution_engine_init_params.dp_params
+            algorithm_execution_engine._smpc_params
+            == algorithm_execution_engine_init_params.smpc_params
         )
         assert (
             algorithm_execution_engine._command_id_generator
@@ -136,5 +131,5 @@ class TestAlgorithmExecutionEngine:
                 context_id=algorithm_execution_engine._nodes.global_node.context_id,
                 command_id=command_id,
                 smpc_clients_per_op=mock_load_data_to_smpc_clients_return_value,
-                dp_params=algorithm_execution_engine._dp_params,
+                dp_params=algorithm_execution_engine._smpc_params.dp_params,
             )

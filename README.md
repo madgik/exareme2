@@ -73,9 +73,10 @@
    smpc_image="gpikra/coordinator:v7.0.7.4"
    db_image="mongo:5.0.8"
    queue_image="redis:alpine3.15"
-   
-   [dp]
+   [smpc.dp]
    enabled = false
+   # sensitivity = 1
+   # privacy_budget = 0.1
 
    [[nodes]]
    id = "globalnode"

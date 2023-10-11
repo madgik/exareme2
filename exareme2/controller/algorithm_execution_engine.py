@@ -47,6 +47,20 @@ from exareme2.smpc_DTOs import DifferentialPrivacyParams
 from exareme2.udfgen import make_unique_func_name
 
 
+@dataclass(frozen=True)
+class SMPCParams:
+    smpc_enabled: bool
+    smpc_optional: bool
+    dp_params: Optional[DifferentialPrivacyParams] = None
+
+    def __post_init__(self):
+        if self.dp_params and not self.smpc_enabled:
+            raise ValueError(
+                f"{self.dp_params=} but {self.smpc_enabled=}. Differential "
+                "privacy mechanism needs the SMPC mechanism being enabled"
+            )
+
+
 @dataclass
 class Nodes:
     local_nodes: List[LocalNode]
@@ -91,11 +105,10 @@ class InconsistentShareTablesValueException(Exception):
 
 @dataclass(frozen=True)
 class InitializationParams:
-    smpc_enabled: bool
-    smpc_optional: bool
+    smpc_params: SMPCParams
+
     request_id: str
     algo_flags: Optional[Dict[str, Any]] = None
-    dp_params: Optional[DifferentialPrivacyParams] = None
 
 
 class AlgorithmExecutionEngine:
@@ -115,9 +128,7 @@ class AlgorithmExecutionEngine:
             request_id=initialization_params.request_id
         )
         self._algorithm_execution_flags = initialization_params.algo_flags
-        self._smpc_enabled = initialization_params.smpc_enabled
-        self._smpc_optional = initialization_params.smpc_optional
-        self._dp_params = initialization_params.dp_params
+        self._smpc_params = initialization_params.smpc_params
 
         self._command_id_generator = command_id_generator
         self._nodes = nodes
@@ -286,9 +297,9 @@ class AlgorithmExecutionEngine:
         """
         flags = self._algorithm_execution_flags
 
-        use_smpc = self._smpc_enabled
+        use_smpc = self._smpc_params.smpc_enabled
         if (
-            self._smpc_optional
+            self._smpc_params.smpc_optional
             and flags
             and AlgorithmRequestSystemFlags.SMPC in flags.keys()
         ):
@@ -417,7 +428,7 @@ class AlgorithmExecutionEngine:
             context_id=self._nodes.global_node.context_id,
             command_id=command_id,
             smpc_clients_per_op=smpc_clients_per_op,
-            dp_params=self._dp_params,
+            dp_params=self._smpc_params.dp_params,
         )
 
         wait_for_smpc_results_to_be_ready(

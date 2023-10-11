@@ -245,14 +245,16 @@ def create_configs(c):
             "get_result_max_retries"
         ]
 
-        controller_config["dp"]["enabled"] = deployment_config["dp"]["enabled"]
-        if controller_config["dp"]["enabled"]:
-            controller_config["dp"]["sensitivity"] = deployment_config["dp"][
-                "sensitivity"
-            ]
-            controller_config["dp"]["privacy_budget"] = deployment_config["dp"][
-                "privacy_budget"
-            ]
+        controller_config["smpc"]["dp"]["enabled"] = deployment_config["smpc"]["dp"][
+            "enabled"
+        ]
+        if controller_config["smpc"]["dp"]["enabled"]:
+            controller_config["smpc"]["dp"]["sensitivity"] = deployment_config["smpc"][
+                "dp"
+            ]["sensitivity"]
+            controller_config["smpc"]["dp"]["privacy_budget"] = deployment_config[
+                "smpc"
+            ]["dp"]["privacy_budget"]
 
     CONTROLLER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
