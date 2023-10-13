@@ -7,9 +7,9 @@ from typing import Optional
 import requests
 from pydantic import BaseModel
 
-ADD_DATASET_ENDPOINT = "/api/update-dataset/"
-TRIGGER_COMPUTATION_ENDPOINT = "/api/secure-aggregation/job-id/"
-GET_RESULT_ENDPOINT = "/api/get-result/job-id/"
+ADD_DATASET_ENDPOINT = "/quart/update-dataset/"
+TRIGGER_COMPUTATION_ENDPOINT = "/quart/secure-aggregation/job-id/"
+GET_RESULT_ENDPOINT = "/quart/get-result/job-id/"
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ DTOs ~~~~~~~~~~~~~~~~~~~~~~~~~~ #

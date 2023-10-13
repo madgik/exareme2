@@ -42,7 +42,7 @@ request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
 command_id = "command123"
 smpc_job_id = "testKey123"
-SMPC_GET_DATASET_ENDPOINT = "/api/update-dataset/"
+SMPC_GET_DATASET_ENDPOINT = "/quart/update-dataset/"
 
 
 def create_table_with_one_column_and_ten_rows(db_cursor) -> Tuple[TableInfo, int]:
@@ -710,7 +710,7 @@ def test_orchestrate_SMPC_between_two_localnodes_and_the_globalnode(
 
     # --------- Trigger SMPC in the coordinator -----------------
     trigger_smpc_computation_url = (
-        SMPC_COORDINATOR_ADDRESS + "/api/secure-aggregation/job-id/" + smpc_job_id
+        SMPC_COORDINATOR_ADDRESS + "/quart/secure-aggregation/job-id/" + smpc_job_id
     )
     trigger_smpc_request_data = SMPCRequestData(
         computationType=SMPCRequestType.SUM.value,

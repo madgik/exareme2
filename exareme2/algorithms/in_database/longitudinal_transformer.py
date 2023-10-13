@@ -19,7 +19,7 @@ from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenTableResult
 from exareme2.node_communication import BadUserInput
 
 if TYPE_CHECKING:
-    from exareme2.controller.algorithm_execution_engine import AlgorithmExecutionEngine
+    from exareme2.controller.services.in_database import AlgorithmExecutionEngine
 
 TRANSFORMER_NAME = TransformerName.LONGITUDINAL_TRANSFORMER
 

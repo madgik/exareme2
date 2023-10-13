@@ -6,10 +6,10 @@ from celery import Celery
 from celery.result import AsyncResult
 
 from exareme2.algorithms.in_database.udfgen import make_unique_func_name
-from exareme2.controller.celery_app import CeleryAppFactory
-from exareme2.controller.celery_app import CeleryConnectionError
-from exareme2.controller.celery_app import CeleryTaskTimeoutException
-from exareme2.controller.celery_app import CeleryWrapper
+from exareme2.controller.celery.app import CeleryAppFactory
+from exareme2.controller.celery.app import CeleryConnectionError
+from exareme2.controller.celery.app import CeleryTaskTimeoutException
+from exareme2.controller.celery.app import CeleryWrapper
 from exareme2.node_communication import NodeInfo
 from exareme2.node_communication import NodeTableDTO
 from exareme2.node_communication import NodeUDFKeyArguments

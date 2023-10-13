@@ -27,36 +27,35 @@ from exareme2.algorithms.in_database.longitudinal_transformer import (
     LongitudinalTransformerRunner,
 )
 from exareme2.algorithms.in_database.specifications import TransformerName
-from exareme2.controller import algorithms_specifications
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller import transformers_specifications
-from exareme2.controller.algorithm_execution_engine import AlgorithmExecutionEngine
-from exareme2.controller.algorithm_execution_engine import (
+from exareme2.controller.celery.app import CeleryConnectionError
+from exareme2.controller.celery.app import CeleryTaskTimeoutException
+from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
+from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
+from exareme2.controller.federation_info_logs import log_experiment_execution
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesTable,
+)
+from exareme2.controller.services.in_database.cleaner import Cleaner
+from exareme2.controller.services.in_database.execution_engine import (
+    AlgorithmExecutionEngine,
+)
+from exareme2.controller.services.in_database.execution_engine import (
     AlgorithmExecutionEngineSingleLocalNode,
 )
-from exareme2.controller.algorithm_execution_engine import CommandIdGenerator
-from exareme2.controller.algorithm_execution_engine import (
+from exareme2.controller.services.in_database.execution_engine import CommandIdGenerator
+from exareme2.controller.services.in_database.execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.algorithm_execution_engine import Nodes
-from exareme2.controller.algorithm_execution_engine import SMPCParams
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    INodeAlgorithmTasksHandler,
+from exareme2.controller.services.in_database.execution_engine import Nodes
+from exareme2.controller.services.in_database.execution_engine import SMPCParams
+from exareme2.controller.services.in_database.nodes import GlobalNode
+from exareme2.controller.services.in_database.nodes import LocalNode
+from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
 )
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    NodeAlgorithmTasksHandler,
-)
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from exareme2.controller.api.validator import validate_algorithm_request
-from exareme2.controller.celery_app import CeleryConnectionError
-from exareme2.controller.celery_app import CeleryTaskTimeoutException
-from exareme2.controller.cleaner import Cleaner
-from exareme2.controller.federation_info_logs import log_experiment_execution
-from exareme2.controller.node_landscape_aggregator import DatasetsLocations
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from exareme2.controller.nodes import GlobalNode
-from exareme2.controller.nodes import LocalNode
 from exareme2.controller.uid_generator import UIDGenerator
 from exareme2.node_communication import InsufficientDataError
 from exareme2.node_communication import NodeInfo
@@ -67,14 +66,6 @@ from exareme2.node_communication import TableInfo
 class NodesTasksHandlers:
     global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
     local_nodes_tasks_handlers: List[INodeAlgorithmTasksHandler]
-
-
-@dataclass(frozen=True)
-class InitializationParams:
-    smpc_params: SMPCParams
-
-    celery_tasks_timeout: int
-    celery_run_udf_task_timeout: int
 
 
 class NodeUnresponsiveException(Exception):
@@ -90,7 +81,7 @@ class NodeUnresponsiveException(Exception):
 class NodeTaskTimeoutException(Exception):
     def __init__(self):
         message = (
-            f"One of the celery_tasks in the algorithm execution took longer to finish than "
+            f"One of the celery in the algorithm execution took longer to finish than "
             f"the timeout.This could be caused by a high load or by an experiment with "
             f"too much data. Please try again or increase the timeout."
         )
@@ -271,7 +262,7 @@ class NodesFederation:
     DataModelViews object.
 
     When the system is up and running there is a number of local nodes (and one global
-    node) waiting to execute celery_tasks and return results as building blocks of executing,
+    node) waiting to execute celery and return results as building blocks of executing,
     what is called in the system, an "Algorithm". The request for executing an
     "Algorithm", appart from defining which "Algorithm" to execute, contains parameters
     constraining the data on which the "Algorithm" will be executed on, like
@@ -315,7 +306,7 @@ class NodesFederation:
             The NodeLandscapeAggregator object that keeps track of the nodes currently
             connected to the system
         celery_tasks_timeout: int
-            The timeout, in seconds, for the celery_tasks to be processed by the nodes in the system
+            The timeout, in seconds, for the celery to be processed by the nodes in the system
         celery_run_udf_task_timeout: int
             The timeout, in seconds, for the task executing a udf by the nodes in the system
         command_id_generator: CommandIdGenerator
@@ -734,21 +725,20 @@ class AlgorithmExecutor:
 class Controller:
     def __init__(
         self,
-        initialization_params: InitializationParams,
-        cleaner: Cleaner,
         node_landscape_aggregator: NodeLandscapeAggregator,
+        cleaner: Cleaner,
+        logger: Logger,
+        tasks_timeout: int,
+        run_udf_task_timeout: int,
+        smpc_params: SMPCParams,
     ):
-        self._controller_logger = ctrl_logger.get_background_service_logger()
-
-        self._smpc_params = initialization_params.smpc_params
-
-        self._celery_tasks_timeout = initialization_params.celery_tasks_timeout
-        self._celery_run_udf_task_timeout = (
-            initialization_params.celery_run_udf_task_timeout
-        )
-
-        self._cleaner = cleaner
+        self._controller_logger = logger
         self._node_landscape_aggregator = node_landscape_aggregator
+        self._cleaner = cleaner
+
+        self._celery_tasks_timeout = tasks_timeout
+        self._celery_run_udf_task_timeout = run_udf_task_timeout
+        self._smpc_params = smpc_params
 
     def start_cleanup_loop(self):
         self._controller_logger.info("(Controller) Cleaner starting ...")
@@ -757,16 +747,6 @@ class Controller:
 
     def stop_cleanup_loop(self):
         self._cleaner.stop()
-
-    def start_node_landscape_aggregator(self):
-        self._controller_logger.info(
-            "(Controller) NodeLandscapeAggregator starting ..."
-        )
-        self._node_landscape_aggregator.start()
-        self._controller_logger.info("(Controller) NodeLandscapeAggregator started.")
-
-    def stop_node_landscape_aggregator(self):
-        self._node_landscape_aggregator.stop()
 
     async def exec_algorithm(
         self,
@@ -812,7 +792,7 @@ class Controller:
 
         # instantiate an algorithm execution engine, the engine is passed to the
         # "Algorithm" implementation and serves as an API for the "Algorithm" code to
-        # execute celery_tasks on nodes
+        # execute celery on nodes
         engine_init_params = EngineInitParams(
             smpc_params=self._smpc_params,
             request_id=algorithm_request_dto.request_id,
@@ -884,19 +864,6 @@ class Controller:
             for node in nodes
         }
         return datasets_per_local_node
-
-    def validate_algorithm_execution_request(
-        self, algorithm_name: str, algorithm_request_dto: AlgorithmRequestDTO
-    ):
-        validate_algorithm_request(
-            algorithm_name=algorithm_name,
-            algorithm_request_dto=algorithm_request_dto,
-            algorithms_specs=algorithms_specifications,
-            transformers_specs=transformers_specifications,
-            node_landscape_aggregator=self._node_landscape_aggregator,
-            smpc_enabled=self._smpc_params.smpc_enabled,
-            smpc_optional=self._smpc_params.smpc_optional,
-        )
 
     def get_datasets_locations(self) -> DatasetsLocations:
         return self._node_landscape_aggregator.get_datasets_locations()

@@ -1,11 +1,13 @@
 import unittest.mock
 from logging import Logger
 
-from exareme2.controller.algorithm_execution_engine_smpc_helper import (
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
     _trigger_smpc_operation,
 )
-from exareme2.controller.algorithm_execution_engine_smpc_helper import get_smpc_job_id
-from exareme2.controller.algorithm_execution_engine_smpc_helper import (
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+    get_smpc_job_id,
+)
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
     trigger_smpc_operations,
 )
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams

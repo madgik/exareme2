@@ -7,9 +7,11 @@ import pytest
 from exareme2 import AttrDict
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.logger import init_logger
-from exareme2.controller.node_landscape_aggregator import _log_data_model_changes
-from exareme2.controller.node_landscape_aggregator import _log_dataset_changes
-from exareme2.controller.node_landscape_aggregator import _log_node_changes
+from exareme2.controller.services.node_landscape_aggregator import (
+    _log_data_model_changes,
+)
+from exareme2.controller.services.node_landscape_aggregator import _log_dataset_changes
+from exareme2.controller.services.node_landscape_aggregator import _log_node_changes
 from exareme2.node_communication import NodeInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
 from tests.standalone_tests.conftest import MonetDBConfigurations

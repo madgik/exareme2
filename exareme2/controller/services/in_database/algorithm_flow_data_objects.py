@@ -9,8 +9,8 @@ from typing import Union
 import pandas as pd
 
 from exareme2 import DATA_TABLE_PRIMARY_KEY
-from exareme2.controller.nodes import GlobalNode
-from exareme2.controller.nodes import LocalNode
+from exareme2.controller.services.in_database.nodes import GlobalNode
+from exareme2.controller.services.in_database.nodes import LocalNode
 from exareme2.node_communication import NodeLiteralDTO
 from exareme2.node_communication import NodeSMPCDTO
 from exareme2.node_communication import NodeTableDTO
@@ -81,8 +81,8 @@ class GlobalNodeData(AlgoFlowData, ABC):
 class LocalNodesTable(LocalNodesData):
     """
     A LocalNodesTable is a representation of a table across multiple nodes. To this end,
-    it holds refferences to the actual nodes and tables through a dictionary with its keys
-    being nodes and values being a table on that node
+    it holds references to the actual nodes and tables through a dictionary with its keys
+    being nodes and values being a table on that node.
 
     example:
       When AlgorithmExecutionEngine::run_udf_on_local_nodes(..) is called, depending on

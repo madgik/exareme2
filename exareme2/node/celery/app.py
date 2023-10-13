@@ -14,17 +14,17 @@ vhost = node_config.rabbitmq.vhost
 node_logger = init_logger("NODE INITIALIZATION")
 
 node_logger.info("Creating the celery app...")
-celery = Celery(
-    "exareme2.node",
+app = Celery(
+    "exareme2.node.celery",
     broker=f"pyamqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
     backend="rpc://",
     include=[
-        "exareme2.node.celery_tasks.node_info",
-        "exareme2.node.celery_tasks.views",
-        "exareme2.node.celery_tasks.tables",
-        "exareme2.node.celery_tasks.udfs",
-        "exareme2.node.celery_tasks.smpc",
-        "exareme2.node.celery_tasks.cleanup",
+        "exareme2.node.celery.node_info",
+        "exareme2.node.celery.views",
+        "exareme2.node.celery.tables",
+        "exareme2.node.celery.udfs",
+        "exareme2.node.celery.smpc",
+        "exareme2.node.celery.cleanup",
     ],
 )
 node_logger.info("Celery app created.")
@@ -45,16 +45,12 @@ def setup_celery_logging(*args, **kwargs):
     logger.setLevel(node_config.framework_log_level)
 
 
-celery.conf.worker_concurrency = node_config.celery.worker_concurrency
+app.conf.worker_concurrency = node_config.celery.worker_concurrency
 
-configure_celery_app_to_use_priority_queue(celery)
-
-# TODO https://team-1617704806227.atlassian.net/browse/MIP-473
-# celery.conf.task_soft_time_limit = node_config.celery.task_soft_time_limit
-# celery.conf.task_time_limit = node_config.celery.task_time_limit
+configure_celery_app_to_use_priority_queue(app)
 
 """
-After the celery.py is imported the celery process is launched
+After the app.py is imported the celery process is launched
 and the connection with the broker (rabbitmq) is established.
 If the connection cannot be established, no message is shown,
 so we need to know it failed at this point.

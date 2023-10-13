@@ -12,12 +12,18 @@ from exareme2.algorithms.in_database.specifications import InputDataType
 from exareme2.algorithms.in_database.specifications import ParameterEnumSpecification
 from exareme2.algorithms.in_database.specifications import ParameterSpecification
 from exareme2.algorithms.in_database.specifications import TransformerSpecification
-from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
-from exareme2.controller.api.specifications_dtos import ParameterEnumType
-from exareme2.controller.api.specifications_dtos import ParameterType
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
+from exareme2.controller.services.api.algorithm_request_dtos import (
+    AlgorithmInputDataDTO,
+)
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.api.algorithm_request_dtos import (
+    AlgorithmRequestSystemFlags,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import ParameterEnumType
+from exareme2.controller.services.api.algorithm_spec_dtos import ParameterType
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
+)
 from exareme2.data_filters import validate_filter
 from exareme2.node_communication import BadUserInput
 from exareme2.node_communication import CommonDataElement

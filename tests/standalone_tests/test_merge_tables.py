@@ -214,7 +214,7 @@ def test_create_merge_table_on_top_of_remote_tables(
 ):
     """
     The following method tests that the monetdb concept of remote tables combined by a merge table works properly.
-    We are using the create_remote_table and create_merge_table celery_tasks in the NODE to create the flow.
+    We are using the create_remote_table and create_merge_table celery in the NODE to create the flow.
     The initial tables are created through a db cursor.
     """
     table_schema = TableSchema(

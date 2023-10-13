@@ -1,7 +1,7 @@
 from quart import Quart
 
-from exareme2.controller.api.endpoint import algorithms
-from exareme2.controller.api.error_handlers import error_handlers
+from exareme2.controller.quart.endpoints import algorithms
+from exareme2.controller.quart.error_handlers import error_handlers
 
 app = Quart(__name__)
 app.register_blueprint(algorithms)

@@ -11,32 +11,50 @@ from typing import Union
 from exareme2 import DType
 from exareme2.algorithms.in_database.udfgen import make_unique_func_name
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.algorithm_execution_engine_smpc_helper import get_smpc_results
-from exareme2.controller.algorithm_execution_engine_smpc_helper import (
-    load_data_to_smpc_clients,
+from exareme2.controller.services.api.algorithm_request_dtos import (
+    AlgorithmRequestSystemFlags,
 )
-from exareme2.controller.algorithm_execution_engine_smpc_helper import (
-    trigger_smpc_operations,
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    AlgoFlowData,
 )
-from exareme2.controller.algorithm_execution_engine_smpc_helper import (
-    wait_for_smpc_results_to_be_ready,
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    GlobalNodeData,
 )
-from exareme2.controller.algorithm_flow_data_objects import AlgoFlowData
-from exareme2.controller.algorithm_flow_data_objects import GlobalNodeData
-from exareme2.controller.algorithm_flow_data_objects import GlobalNodeSMPCTables
-from exareme2.controller.algorithm_flow_data_objects import GlobalNodeTable
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesData
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
-from exareme2.controller.algorithm_flow_data_objects import (
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    GlobalNodeSMPCTables,
+)
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    GlobalNodeTable,
+)
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesData,
+)
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesSMPCTables,
+)
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesTable,
+)
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
     algoexec_udf_kwargs_to_node_udf_kwargs,
 )
-from exareme2.controller.algorithm_flow_data_objects import (
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
     algoexec_udf_posargs_to_node_udf_posargs,
 )
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
-from exareme2.controller.nodes import GlobalNode
-from exareme2.controller.nodes import LocalNode
+from exareme2.controller.services.in_database.nodes import GlobalNode
+from exareme2.controller.services.in_database.nodes import LocalNode
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+    get_smpc_results,
+)
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+    load_data_to_smpc_clients,
+)
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+    trigger_smpc_operations,
+)
+from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+    wait_for_smpc_results_to_be_ready,
+)
 from exareme2.node_communication import NodeSMPCDTO
 from exareme2.node_communication import NodeTableDTO
 from exareme2.node_communication import NodeUDFDTO
@@ -153,7 +171,7 @@ class AlgorithmExecutionEngine:
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
-        # 3. waits for all nodes to complete the celery_tasks execution
+        # 3. waits for all nodes to complete the celery execution
         # 4. one(or multiple) new table(s) per local node was generated
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables

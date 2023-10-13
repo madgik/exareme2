@@ -18,7 +18,9 @@ from exareme2.algorithms.in_database.specifications import ParameterType
 from exareme2.algorithms.in_database.specifications import TransformerSpecification
 from exareme2.controller import algorithms_specifications
 from exareme2.controller import transformers_specifications
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
+from exareme2.controller.services.api.algorithm_request_dtos import (
+    AlgorithmRequestSystemFlags,
+)
 
 
 class ImmutableBaseModel(BaseModel, ABC):

@@ -8,19 +8,31 @@ from exareme2.algorithms.in_database.specifications import ParameterEnumType
 from exareme2.algorithms.in_database.specifications import ParameterSpecification
 from exareme2.algorithms.in_database.specifications import ParameterType
 from exareme2.algorithms.in_database.specifications import TransformerSpecification
-from exareme2.controller.api.specifications_dtos import AlgorithmSpecificationDTO
-from exareme2.controller.api.specifications_dtos import InputDataSpecificationDTO
-from exareme2.controller.api.specifications_dtos import InputDataSpecificationsDTO
-from exareme2.controller.api.specifications_dtos import ParameterEnumSpecificationDTO
-from exareme2.controller.api.specifications_dtos import ParameterSpecificationDTO
-from exareme2.controller.api.specifications_dtos import TransformerSpecificationDTO
-from exareme2.controller.api.specifications_dtos import (
+from exareme2.controller.services.api.algorithm_spec_dtos import (
+    AlgorithmSpecificationDTO,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import (
+    InputDataSpecificationDTO,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import (
+    InputDataSpecificationsDTO,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import (
+    ParameterEnumSpecificationDTO,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import (
+    ParameterSpecificationDTO,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import (
+    TransformerSpecificationDTO,
+)
+from exareme2.controller.services.api.algorithm_spec_dtos import (
     _convert_algorithm_specification_to_dto,
 )
-from exareme2.controller.api.specifications_dtos import (
+from exareme2.controller.services.api.algorithm_spec_dtos import (
     _convert_transformer_specification_to_dto,
 )
-from exareme2.controller.api.specifications_dtos import (
+from exareme2.controller.services.api.algorithm_spec_dtos import (
     _get_algorithm_specifications_dtos,
 )
 

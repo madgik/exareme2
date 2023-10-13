@@ -19,10 +19,8 @@ import toml
 
 from exareme2 import AttrDict
 from exareme2.algorithms.in_database.udfgen import udfio
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    NodeAlgorithmTasksHandler,
-)
-from exareme2.controller.celery_app import CeleryAppFactory
+from exareme2.controller.celery.app import CeleryAppFactory
+from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
 from exareme2.controller.logger import init_logger
 from exareme2.node_communication import TableSchema
 
