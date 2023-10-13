@@ -6,27 +6,26 @@ from typing import Tuple
 
 import pytest
 import requests
-from celery import Celery
 
 from exareme2 import DType
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import NodeSMPCDTO
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.node_tasks_DTOs import NodeUDFResults
-from exareme2.node_tasks_DTOs import SMPCTablesInfo
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
-from exareme2.smpc_cluster_comm_helpers import ADD_DATASET_ENDPOINT
-from exareme2.smpc_cluster_comm_helpers import TRIGGER_COMPUTATION_ENDPOINT
-from exareme2.smpc_cluster_comm_helpers import get_smpc_result
-from exareme2.smpc_DTOs import SMPCRequestData
-from exareme2.smpc_DTOs import SMPCRequestType
-from exareme2.smpc_DTOs import SMPCResponse
-from exareme2.smpc_DTOs import SMPCResponseStatus
-from exareme2.udfgen import make_unique_func_name
+from exareme2.algorithms.in_database.udfgen import make_unique_func_name
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import NodeSMPCDTO
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.node_communication import NodeUDFResults
+from exareme2.node_communication import SMPCTablesInfo
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
+from exareme2.smpc_cluster_communication import ADD_DATASET_ENDPOINT
+from exareme2.smpc_cluster_communication import TRIGGER_COMPUTATION_ENDPOINT
+from exareme2.smpc_cluster_communication import SMPCRequestData
+from exareme2.smpc_cluster_communication import SMPCRequestType
+from exareme2.smpc_cluster_communication import SMPCResponse
+from exareme2.smpc_cluster_communication import SMPCResponseStatus
+from exareme2.smpc_cluster_communication import get_smpc_result
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import LOCALNODE1_SMPC_CONFIG_FILE

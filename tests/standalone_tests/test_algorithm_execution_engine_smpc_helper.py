@@ -1,10 +1,6 @@
-import random
 import unittest.mock
 from logging import Logger
 
-import pytest
-
-from exareme2.attrdict import AttrDict
 from exareme2.controller.algorithm_execution_engine_smpc_helper import (
     _trigger_smpc_operation,
 )
@@ -12,9 +8,10 @@ from exareme2.controller.algorithm_execution_engine_smpc_helper import get_smpc_
 from exareme2.controller.algorithm_execution_engine_smpc_helper import (
     trigger_smpc_operations,
 )
-from exareme2.smpc_cluster_comm_helpers import create_payload
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
-from exareme2.smpc_DTOs import SMPCRequestType
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import SMPCRequestType
+from exareme2.smpc_cluster_communication import create_payload
+from exareme2.utils import AttrDict
 
 
 def test_trigger_smpc_operation():

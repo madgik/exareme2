@@ -3,11 +3,13 @@ from collections import Counter
 
 from pydantic import BaseModel
 
-from exareme2.algorithms.algorithm import Algorithm
-from exareme2.algorithms.algorithm import AlgorithmDataLoader
-from exareme2.algorithms.naive_bayes_categorical_cv import CategoricalNB
-from exareme2.algorithms.naive_bayes_categorical_cv import CategoricalNBAlgorithm
-from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.in_database.naive_bayes_categorical_cv import CategoricalNB
+from exareme2.algorithms.in_database.naive_bayes_categorical_cv import (
+    CategoricalNBAlgorithm,
+)
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
 
 ALGNAME_FIT = "test_nb_categorical_fit"
 

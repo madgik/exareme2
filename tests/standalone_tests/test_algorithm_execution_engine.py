@@ -1,21 +1,12 @@
-from typing import Dict
-from typing import List
-from unittest.mock import Mock
 from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from exareme2.controller.algorithm_execution_engine import InitializationParams
 from exareme2.controller.algorithm_execution_engine import SMPCParams
-from exareme2.controller.nodes import _INode
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import DType
-from exareme2.node_tasks_DTOs import TableData
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 class TestAlgorithmExecutionEngine:

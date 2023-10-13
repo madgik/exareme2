@@ -9,9 +9,11 @@ from freezegun import freeze_time
 
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
-from exareme2.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from exareme2.algorithms.algorithm import Variables
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.algorithms.in_database.algorithm import (
+    InitializationParams as AlgorithmInitParams,
+)
+from exareme2.algorithms.in_database.algorithm import Variables
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine import (
     InitializationParams as EngineInitParams,
 )
@@ -350,7 +352,7 @@ def test_synchronous_cleanup(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery_tasks fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -408,7 +410,7 @@ def test_asynchronous_cleanup(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery_tasks fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -471,7 +473,7 @@ def test_cleanup_triggered_by_release_timelimit(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery_tasks fail if this is not reset
     db_cursors,
     controller_config,
 ):
@@ -537,7 +539,7 @@ def test_cleanup_after_rabbitmq_restart(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery_tasks fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -621,7 +623,7 @@ def test_cleanup_after_node_service_restart(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery_tasks fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator

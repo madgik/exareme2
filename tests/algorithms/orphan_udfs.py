@@ -2,11 +2,11 @@ from typing import TypeVar
 
 from pandas import DataFrame
 
-from exareme2.udfgen import relation
-from exareme2.udfgen import secure_transfer
-from exareme2.udfgen import state
-from exareme2.udfgen import transfer
-from exareme2.udfgen import udf
+from exareme2.algorithms.in_database.udfgen import relation
+from exareme2.algorithms.in_database.udfgen import secure_transfer
+from exareme2.algorithms.in_database.udfgen import state
+from exareme2.algorithms.in_database.udfgen import transfer
+from exareme2.algorithms.in_database.udfgen import udf
 
 S = TypeVar("S")
 

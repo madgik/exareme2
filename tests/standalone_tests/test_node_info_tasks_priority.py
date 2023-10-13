@@ -1,14 +1,14 @@
 import pytest
 
+from exareme2.algorithms.in_database.udfgen import make_unique_func_name
 from exareme2.controller.celery_app import CeleryAppFactory
 from exareme2.controller.celery_app import CeleryTaskTimeoutException
 from exareme2.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from exareme2.node import config as node_config
-from exareme2.node_info_DTOs import NodeInfo
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.udfgen import make_unique_func_name
+from exareme2.node_communication import NodeInfo
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
 from tests.algorithms.orphan_udfs import one_second_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
@@ -68,7 +68,7 @@ def test_node_info_tasks_have_higher_priority_over_other_tasks(
     ]
 
     # The node info task should wait for one udf to complete (~1-2sec), in order to start being executed,
-    # but shouldn't wait for more than one, since it has priority of the other tasks.
+    # but shouldn't wait for more than one, since it has priority of the other celery_tasks.
     # The timeout should be the time taken for one udf to complete, plus some additional time for
     # the actual get_node_info task to complete.
     node_info_task_timeout = 3

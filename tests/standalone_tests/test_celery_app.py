@@ -5,15 +5,15 @@ import pytest
 from celery import Celery
 from celery.result import AsyncResult
 
+from exareme2.algorithms.in_database.udfgen import make_unique_func_name
 from exareme2.controller.celery_app import CeleryAppFactory
 from exareme2.controller.celery_app import CeleryConnectionError
 from exareme2.controller.celery_app import CeleryTaskTimeoutException
 from exareme2.controller.celery_app import CeleryWrapper
-from exareme2.node_info_DTOs import NodeInfo
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.udfgen import make_unique_func_name
+from exareme2.node_communication import NodeInfo
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
 from tests.algorithms.orphan_udfs import five_seconds_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
@@ -142,7 +142,7 @@ def test_celery_app_is_the_same_after_get_task_result_with_exception(
         task_signature=get_celery_task_signature("get_node_info"),
         logger=get_controller_testing_logger,
     )
-    with pytest.raises(IndexError):
+    with pytest.raises(TypeError):
         cel_app_wrapper.get_result(
             async_result=async_res,
             timeout=10,  # A result with an error requires a bit more timeout, otherwise a TaskTimeout is thrown.

@@ -5,9 +5,11 @@ import pytest
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
 from exareme2 import algorithm_data_loaders
-from exareme2.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from exareme2.algorithms.algorithm import Variables
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.algorithms.in_database.algorithm import (
+    InitializationParams as AlgorithmInitParams,
+)
+from exareme2.algorithms.in_database.algorithm import Variables
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine import (
     InitializationParams as EngineInitParams,
 )
@@ -28,7 +30,7 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
@@ -529,7 +531,7 @@ async def test_single_local_node_algorithm_execution(
     metadata,
     controller,
     request,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery_tasks fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
     data_model_views = request.getfixturevalue(data_model_views_and_nodes)

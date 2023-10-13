@@ -16,9 +16,9 @@ from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregato
 from exareme2.controller.node_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
-from exareme2.node_tasks_DTOs import CommonDataElement
-from exareme2.node_tasks_DTOs import CommonDataElements
-from exareme2.node_tasks_DTOs import DataModelAttributes
+from exareme2.node_communication import CommonDataElement
+from exareme2.node_communication import CommonDataElements
+from exareme2.node_communication import DataModelAttributes
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
 
 

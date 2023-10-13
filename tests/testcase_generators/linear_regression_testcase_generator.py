@@ -3,7 +3,7 @@ import re
 import pandas as pd
 import statsmodels.formula.api as smf
 
-from exareme2.algorithms.linear_regression import LinearRegressionResult
+from exareme2.algorithms.in_database.linear_regression import LinearRegressionResult
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 

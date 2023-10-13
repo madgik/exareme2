@@ -1,11 +1,11 @@
 import pytest
 
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import ParameterEnumSpecification
-from exareme2.algorithms.specifications import ParameterSpecification
-from exareme2.algorithms.specifications import TransformerSpecification
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecifications
+from exareme2.algorithms.in_database.specifications import ParameterEnumSpecification
+from exareme2.algorithms.in_database.specifications import ParameterSpecification
+from exareme2.algorithms.in_database.specifications import TransformerSpecification
 from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
 from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
 from exareme2.controller.api.specifications_dtos import InputDataStatType
@@ -22,9 +22,9 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.node_landscape_aggregator import _NLARegistries
-from exareme2.exceptions import BadUserInput
-from exareme2.node_tasks_DTOs import CommonDataElement
-from exareme2.node_tasks_DTOs import CommonDataElements
+from exareme2.node_communication import BadUserInput
+from exareme2.node_communication import CommonDataElement
+from exareme2.node_communication import CommonDataElements
 
 
 @pytest.fixture

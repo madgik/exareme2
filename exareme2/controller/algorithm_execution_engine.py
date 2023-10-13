@@ -9,7 +9,8 @@ from typing import Tuple
 from typing import Union
 
 from exareme2 import DType
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.algorithms.in_database.udfgen import make_unique_func_name
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine_smpc_helper import get_smpc_results
 from exareme2.controller.algorithm_execution_engine_smpc_helper import (
     load_data_to_smpc_clients,
@@ -36,15 +37,14 @@ from exareme2.controller.algorithm_flow_data_objects import (
 from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestSystemFlags
 from exareme2.controller.nodes import GlobalNode
 from exareme2.controller.nodes import LocalNode
-from exareme2.node_tasks_DTOs import NodeSMPCDTO
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFDTO
-from exareme2.node_tasks_DTOs import SMPCTablesInfo
-from exareme2.node_tasks_DTOs import TableData
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
-from exareme2.udfgen import make_unique_func_name
+from exareme2.node_communication import NodeSMPCDTO
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFDTO
+from exareme2.node_communication import SMPCTablesInfo
+from exareme2.node_communication import TableData
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 @dataclass(frozen=True)
@@ -153,7 +153,7 @@ class AlgorithmExecutionEngine:
     ) -> Union[AlgoFlowData, List[AlgoFlowData]]:
         # 1. check positional_args and keyword_args tables do not contain _GlobalNodeTable(s)
         # 2. queues run_udf task on all local nodes
-        # 3. waits for all nodes to complete the tasks execution
+        # 3. waits for all nodes to complete the celery_tasks execution
         # 4. one(or multiple) new table(s) per local node was generated
         # 5. create remote tables on global for each of the generated tables
         # 6. create merge table on global node to merge the remote tables

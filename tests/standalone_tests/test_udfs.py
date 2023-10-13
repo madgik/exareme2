@@ -4,30 +4,26 @@ import uuid
 from typing import Tuple
 
 import pytest
-from billiard.exceptions import TimeLimitExceeded
 
 from exareme2 import DType
-from exareme2.node.monetdb_interface.common_actions import create_table_name
-from exareme2.node.tasks.udfs import _convert_output_schema
-from exareme2.node.tasks.udfs import _convert_result
-from exareme2.node.tasks.udfs import _get_udf_table_sharing_queries
-from exareme2.node.tasks.udfs import _make_output_table_names
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.node_tasks_DTOs import NodeUDFResults
-from exareme2.node_tasks_DTOs import TableData
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
-from exareme2.udfgen import make_unique_func_name
-from exareme2.udfgen.udfgen_DTOs import UDFGenSMPCResult
-from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
-from tests.algorithms.orphan_udfs import get_column_rows
+from exareme2.algorithms.in_database.udfgen import make_unique_func_name
+from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenTableResult
+from exareme2.node.monetdb.tables import create_table_name
+from exareme2.node.services.in_database.udfs import _convert_output_schema
+from exareme2.node.services.in_database.udfs import _convert_result
+from exareme2.node.services.in_database.udfs import _get_udf_table_sharing_queries
+from exareme2.node.services.in_database.udfs import _make_output_table_names
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.node_communication import NodeUDFResults
+from exareme2.node_communication import TableData
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
 from tests.algorithms.orphan_udfs import local_step
-from tests.algorithms.orphan_udfs import one_hundred_seconds_udf
-from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature

@@ -1,8 +1,8 @@
 from exareme2 import DType
-from exareme2.algorithm_result_DTOs import TabularDataResult
-from exareme2.table_data_DTOs import ColumnDataFloat
-from exareme2.table_data_DTOs import ColumnDataInt
-from exareme2.table_data_DTOs import ColumnDataStr
+from exareme2.node_communication import ColumnDataFloat
+from exareme2.node_communication import ColumnDataInt
+from exareme2.node_communication import ColumnDataStr
+from exareme2.node_communication import TabularDataResult
 
 
 def test_tabular_data_result():

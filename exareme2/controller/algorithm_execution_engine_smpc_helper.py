@@ -4,19 +4,19 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from exareme2 import smpc_cluster_comm_helpers as smpc_cluster
+from exareme2 import smpc_cluster_communication as smpc_cluster
 from exareme2.controller import config as ctrl_config
 from exareme2.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
 from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
 from exareme2.controller.nodes import GlobalNode
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.smpc_cluster_comm_helpers import SMPCComputationError
-from exareme2.smpc_cluster_comm_helpers import create_payload
-from exareme2.smpc_cluster_comm_helpers import trigger_smpc
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
-from exareme2.smpc_DTOs import SMPCRequestType
-from exareme2.smpc_DTOs import SMPCResponse
-from exareme2.smpc_DTOs import SMPCResponseStatus
+from exareme2.node_communication import TableInfo
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import SMPCComputationError
+from exareme2.smpc_cluster_communication import SMPCRequestType
+from exareme2.smpc_cluster_communication import SMPCResponse
+from exareme2.smpc_cluster_communication import SMPCResponseStatus
+from exareme2.smpc_cluster_communication import create_payload
+from exareme2.smpc_cluster_communication import trigger_smpc
 
 
 def get_smpc_job_id(

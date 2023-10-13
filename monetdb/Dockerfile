@@ -62,7 +62,7 @@ RUN pip3 install statsmodels==0.13.2 # Must be updated together with pyproject.t
 # Add /home/udflib to python path and copy
 # necessary tools
 #######################################################
-COPY exareme2/udfgen/udfio.py /home/udflib/
+COPY exareme2/algorithms/in_database/udfgen/udfio.py /home/udflib/
 ENV PYTHONPATH "/home/udflib/"
 ENV LOG_LEVEL "INFO"
 

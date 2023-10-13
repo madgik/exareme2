@@ -16,15 +16,15 @@ from exareme2.controller.controller import DataModelViews
 from exareme2.controller.controller import DataModelViewsCreator
 from exareme2.controller.controller import NodesFederation
 from exareme2.controller.nodes import LocalNode
-from exareme2.exceptions import InsufficientDataError
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import NodeUDFDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.node_tasks_DTOs import TableData
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import InsufficientDataError
+from exareme2.node_communication import NodeUDFDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.node_communication import TableData
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
 
 
 def create_dummy_node(node_id: str, context_id: str, request_id: str):

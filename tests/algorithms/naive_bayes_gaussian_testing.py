@@ -1,14 +1,13 @@
-import copy
 import typing as t
 from collections import Counter
 
 from pydantic import BaseModel
 
-from exareme2.algorithms.algorithm import Algorithm
-from exareme2.algorithms.algorithm import AlgorithmDataLoader
-from exareme2.algorithms.naive_bayes_gaussian_cv import GaussianNB
-from exareme2.algorithms.naive_bayes_gaussian_cv import GaussianNBAlgorithm
-from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.in_database.naive_bayes_gaussian_cv import GaussianNB
+from exareme2.algorithms.in_database.naive_bayes_gaussian_cv import GaussianNBAlgorithm
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
 
 ALGNAME_FIT = "test_nb_gaussian_fit"
 

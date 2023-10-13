@@ -1,11 +1,11 @@
 import pytest
 
 from exareme2 import Algorithm
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import InputDataStatType
-from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecifications
+from exareme2.algorithms.in_database.specifications import InputDataStatType
+from exareme2.algorithms.in_database.specifications import InputDataType
 from exareme2.controller import _get_algorithms_specifications
 
 

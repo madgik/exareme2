@@ -1,7 +1,7 @@
 import pytest
 
-from exareme2.node.monetdb_interface.monet_db_facade import convert_to_idempotent
-from exareme2.node.monetdb_interface.monet_db_facade import (
+from exareme2.node.monetdb.monetdb_facade import convert_to_idempotent
+from exareme2.node.monetdb.monetdb_facade import (
     convert_udf_execution_query_to_idempotent,
 )
 

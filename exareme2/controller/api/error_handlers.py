@@ -6,13 +6,13 @@ from quart import Blueprint
 from exareme2.controller.api.validator import BadRequest
 from exareme2.controller.controller import NodeTaskTimeoutException
 from exareme2.controller.controller import NodeUnresponsiveException
-from exareme2.controller.controller_logger import get_background_service_logger
-from exareme2.exceptions import BadUserInput
-from exareme2.exceptions import DataModelUnavailable
-from exareme2.exceptions import DatasetUnavailable
-from exareme2.exceptions import InsufficientDataError
-from exareme2.filters import FilterError
-from exareme2.smpc_cluster_comm_helpers import SMPCUsageError
+from exareme2.controller.logger import get_background_service_logger
+from exareme2.data_filters import FilterError
+from exareme2.node_communication import BadUserInput
+from exareme2.node_communication import DataModelUnavailable
+from exareme2.node_communication import DatasetUnavailable
+from exareme2.node_communication import InsufficientDataError
+from exareme2.smpc_cluster_communication import SMPCUsageError
 
 error_handlers = Blueprint("error_handlers", __name__)
 

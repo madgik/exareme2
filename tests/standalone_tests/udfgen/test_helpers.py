@@ -1,10 +1,10 @@
 # type: ignore
 import pytest
 
-from exareme2.udfgen.helpers import mapping_inverse
-from exareme2.udfgen.helpers import mappings_coincide
-from exareme2.udfgen.helpers import merge_mappings_consistently
-from exareme2.udfgen.helpers import recursive_repr
+from exareme2.algorithms.in_database.udfgen.helpers import mapping_inverse
+from exareme2.algorithms.in_database.udfgen.helpers import mappings_coincide
+from exareme2.algorithms.in_database.udfgen.helpers import merge_mappings_consistently
+from exareme2.algorithms.in_database.udfgen.helpers import recursive_repr
 
 
 class TestMergeMappings:

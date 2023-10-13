@@ -22,7 +22,6 @@ The Student’s Independent samples t-test (sometimes called a two-samples t-tes
 
 ![pseudo](images/independent_ttest_pseudocode.png)
 
-
 <b><h4>Algorithm Implementation</b></h4>
 
-[Independent T-test](../../exareme2/algorithms/ttest_independent.py)
+[Independent T-test](../../exareme2/algorithms/in_database/ttest_independent.py)

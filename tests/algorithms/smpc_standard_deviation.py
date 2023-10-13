@@ -1,22 +1,22 @@
 import json
 from typing import TypeVar
 
-from exareme2.algorithm_result_DTOs import TabularDataResult
-from exareme2.algorithms.algorithm import Algorithm
-from exareme2.algorithms.algorithm import AlgorithmDataLoader
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import InputDataStatType
-from exareme2.algorithms.specifications import InputDataType
-from exareme2.table_data_DTOs import ColumnDataFloat
-from exareme2.table_data_DTOs import ColumnDataStr
-from exareme2.udfgen import relation
-from exareme2.udfgen import secure_transfer
-from exareme2.udfgen import state
-from exareme2.udfgen import tensor
-from exareme2.udfgen import transfer
-from exareme2.udfgen import udf
+from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecifications
+from exareme2.algorithms.in_database.specifications import InputDataStatType
+from exareme2.algorithms.in_database.specifications import InputDataType
+from exareme2.algorithms.in_database.udfgen import relation
+from exareme2.algorithms.in_database.udfgen import secure_transfer
+from exareme2.algorithms.in_database.udfgen import state
+from exareme2.algorithms.in_database.udfgen import tensor
+from exareme2.algorithms.in_database.udfgen import transfer
+from exareme2.algorithms.in_database.udfgen import udf
+from exareme2.node_communication import ColumnDataFloat
+from exareme2.node_communication import ColumnDataStr
+from exareme2.node_communication import TabularDataResult
 
 ALGORITHM_NAME = "smpc_standard_deviation"
 

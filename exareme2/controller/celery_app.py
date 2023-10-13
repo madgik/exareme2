@@ -10,8 +10,8 @@ from kombu import exceptions as kombu_exceptions
 
 from exareme2.celery_app_conf import configure_celery_app_to_use_priority_queue
 from exareme2.controller import config as controller_config
-from exareme2.exceptions import InsufficientDataError
-from exareme2.singleton import Singleton
+from exareme2.node_communication import InsufficientDataError
+from exareme2.utils import Singleton
 
 
 class CeleryConnectionError(Exception):

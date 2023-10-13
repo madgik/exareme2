@@ -4,8 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from exareme2 import AttrDict
-from exareme2.node import node_logger
-from exareme2.node.node_logger import initialise_logger
+from exareme2.node import logger as node_logger
 
 task_loggers = {}
 
@@ -21,7 +20,7 @@ def mock_node_config():
     )
 
     with patch(
-        "exareme2.node.node_logger.node_config",
+        "exareme2.node.logger.node_config",
         node_config,
     ):
         yield
@@ -34,7 +33,7 @@ def mock_current_task():
     current_task = AttrDict({"request": {"id": "1234"}})
 
     with patch(
-        "exareme2.node.node_logger.current_task",
+        "exareme2.node.logger.current_task",
         current_task,
     ):
         yield
@@ -42,7 +41,7 @@ def mock_current_task():
     return current_task
 
 
-@initialise_logger
+@node_logger.initialise_logger
 def pass_rqst_id(request_id):
     logger = node_logger.get_logger()
     logger.info("Yolo!")
@@ -63,7 +62,7 @@ def test_get_ctx_id_from_args(capsys):
     assert test_ctx_id.level == 20
 
 
-@initialise_logger
+@node_logger.initialise_logger
 def initialize_and_return_logger(request_id):
     logger = node_logger.get_logger()
     return logger
