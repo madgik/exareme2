@@ -6,10 +6,10 @@ from os.path import isfile
 from types import ModuleType
 from typing import Dict
 
-from exareme2.algorithms.algorithm import Algorithm
-from exareme2.algorithms.algorithm import AlgorithmDataLoader
-from exareme2.attrdict import AttrDict
+from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
 from exareme2.datatypes import DType
+from exareme2.utils import AttrDict
 
 __all__ = [
     "DType",
@@ -23,7 +23,9 @@ __all__ = [
 DATA_TABLE_PRIMARY_KEY = "row_id"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
-ALGORITHM_FOLDERS = "./exareme2/algorithms"
+ALGORITHM_FOLDERS = (
+    "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python"
+)
 if algorithm_folders := os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE):
     ALGORITHM_FOLDERS = algorithm_folders
 

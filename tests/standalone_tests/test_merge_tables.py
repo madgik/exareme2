@@ -3,12 +3,12 @@ import uuid
 import pytest
 
 from exareme2.datatypes import DType
-from exareme2.exceptions import IncompatibleSchemasMergeException
-from exareme2.exceptions import TablesNotFound
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import IncompatibleSchemasMergeException
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TablesNotFound
+from exareme2.node_communication import TableType
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import MONETDB_LOCALNODE2_PORT
@@ -214,7 +214,7 @@ def test_create_merge_table_on_top_of_remote_tables(
 ):
     """
     The following method tests that the monetdb concept of remote tables combined by a merge table works properly.
-    We are using the create_remote_table and create_merge_table tasks in the NODE to create the flow.
+    We are using the create_remote_table and create_merge_table celery_tasks in the NODE to create the flow.
     The initial tables are created through a db cursor.
     """
     table_schema = TableSchema(

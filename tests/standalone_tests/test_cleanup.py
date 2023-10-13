@@ -3,11 +3,11 @@ import uuid as uuid
 import pytest
 
 from exareme2.datatypes import DType
-from exareme2.node.monetdb_interface.common_actions import _get_drop_tables_query
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
+from exareme2.node.monetdb.cleanup import _get_drop_tables_query
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger

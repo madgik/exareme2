@@ -8,8 +8,8 @@ from exareme2 import AttrDict
 from exareme2 import DType
 from exareme2.controller.celery_app import CeleryConnectionError
 from exareme2.controller.celery_app import CeleryWrapper
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
 from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
@@ -47,7 +47,7 @@ def patch_celery_app(controller_config_dict_mock):
 @pytest.fixture(scope="session")
 def task_signatures():
     return {
-        "create_table": "exareme2.node.tasks.tables.create_table",
+        "create_table": "exareme2.node.celery_tasks.tables.create_table",
     }
 
 

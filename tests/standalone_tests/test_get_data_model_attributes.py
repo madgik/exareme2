@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from exareme2.node_tasks_DTOs import DataModelAttributes
+from exareme2.node_communication import DataModelAttributes
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger

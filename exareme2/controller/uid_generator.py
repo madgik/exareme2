@@ -1,7 +1,7 @@
 from random import randint
 from threading import Lock
 
-from exareme2.singleton import Singleton
+from exareme2.utils import Singleton
 
 
 class UIDGenerator(metaclass=Singleton):

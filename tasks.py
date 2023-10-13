@@ -2,7 +2,7 @@
 Deployment script used for the development of the Exareme2.
 
 In order to understand this script a basic knowledge of the system is required, this script
-does not contain the documentation of the engine. The documentation of the tasks,
+does not contain the documentation of the engine. The documentation of the celery_tasks,
 in this script, is targeted to the specifics of the development deployment process.
 
 This script deploys all the containers and services natively on your machine.
@@ -13,7 +13,7 @@ or in the location of the env variable 'EXAREME2_NODE_CONFIG_FILE', if the env v
 This deployment script used for development, uses the env variable logic, therefore before deploying each
 node service the env variable is changed to the location of the node services' config file.
 
-In order for this script's tasks to work the './configs/nodes' folder should contain all the node's config files
+In order for this script's celery_tasks to work the './configs/nodes' folder should contain all the node's config files
 following the './exareme2/node/config.toml' as template.
 You can either create the files manually or using a '.deployment.toml' file with the following template
 ```
@@ -41,7 +41,7 @@ rabbitmq_port=5672
 and by running the command 'inv create-configs'.
 
 The node services are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
-the node service will be called 'localnode1' and should be referenced using that in the following tasks.
+the node service will be called 'localnode1' and should be referenced using that in the following celery_tasks.
 
 Paths are subject to change so in the following documentation the global variables will be used.
 
@@ -66,7 +66,7 @@ from invoke import UnexpectedExit
 from invoke import task
 from termcolor import colored
 
-from exareme2.udfgen import udfio
+from exareme2.algorithms.in_database.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -104,7 +104,7 @@ SMPC_PLAYER_BASE_NAME = "smpc_player"
 SMPC_CLIENT_BASE_NAME = "smpc_client"
 
 
-# TODO Add pre-tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
+# TODO Add pre-celery_tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
 
 
@@ -652,14 +652,14 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A exareme2.node.node worker -l {framework_log_level} > {outpath} "
+                        f"-A exareme2.node.celery worker -l {framework_log_level} > {outpath} "
                         f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"exareme2.node.node worker -l {framework_log_level} --pool=eventlet --purge"
+                        f"exareme2.node.celery worker -l {framework_log_level} --pool=eventlet --purge"
                     )
                     run(c, cmd, attach_=True)
 

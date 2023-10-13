@@ -19,7 +19,7 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
 

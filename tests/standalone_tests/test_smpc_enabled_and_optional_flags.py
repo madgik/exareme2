@@ -1,12 +1,12 @@
 import pytest
 
-from exareme2.smpc_cluster_comm_helpers import SMPCUsageError
-from exareme2.smpc_cluster_comm_helpers import create_payload
-from exareme2.smpc_cluster_comm_helpers import validate_smpc_usage
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
-from exareme2.smpc_DTOs import DPRequestData
-from exareme2.smpc_DTOs import SMPCRequestData
-from exareme2.smpc_DTOs import SMPCRequestType
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import DPRequestData
+from exareme2.smpc_cluster_communication import SMPCRequestData
+from exareme2.smpc_cluster_communication import SMPCRequestType
+from exareme2.smpc_cluster_communication import SMPCUsageError
+from exareme2.smpc_cluster_communication import create_payload
+from exareme2.smpc_cluster_communication import validate_smpc_usage
 
 
 def get_validate_smpc_usage_success_cases():
@@ -94,7 +94,7 @@ def test_create_payload():
     expected_without_pd = SMPCRequestData(
         computationType=computation_type,
         clients=clients,
-    ).json()
+    )
 
     assert expected_without_pd == create_payload(
         computation_type=computation_type,
@@ -109,7 +109,7 @@ def test_create_payload():
             c=dp_sensitivity,
             e=dp_privacy_budget,
         ),
-    ).json()
+    )
 
     assert expected_with_pd == create_payload(
         computation_type=computation_type,

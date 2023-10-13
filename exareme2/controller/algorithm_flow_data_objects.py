@@ -11,15 +11,15 @@ import pandas as pd
 from exareme2 import DATA_TABLE_PRIMARY_KEY
 from exareme2.controller.nodes import GlobalNode
 from exareme2.controller.nodes import LocalNode
-from exareme2.node_tasks_DTOs import NodeLiteralDTO
-from exareme2.node_tasks_DTOs import NodeSMPCDTO
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.node_tasks_DTOs import SMPCTablesInfo
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_communication import NodeLiteralDTO
+from exareme2.node_communication import NodeSMPCDTO
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.node_communication import SMPCTablesInfo
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
 
 
 class AlgoFlowData(ABC):

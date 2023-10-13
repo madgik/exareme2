@@ -12,19 +12,23 @@ from typing import Optional
 
 from exareme2 import algorithm_classes
 from exareme2 import algorithm_data_loaders
-from exareme2.algorithms.algorithm import AlgorithmDataLoader
-from exareme2.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from exareme2.algorithms.algorithm import Variables
-from exareme2.algorithms.longitudinal_transformer import (
+from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.in_database.algorithm import (
+    InitializationParams as AlgorithmInitParams,
+)
+from exareme2.algorithms.in_database.algorithm import Variables
+from exareme2.algorithms.in_database.longitudinal_transformer import (
     DataLoader as LongitudinalTransformerRunnerDataLoader,
 )
-from exareme2.algorithms.longitudinal_transformer import (
+from exareme2.algorithms.in_database.longitudinal_transformer import (
     InitializationParams as LongitudinalTransformerRunnerInitParams,
 )
-from exareme2.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
-from exareme2.algorithms.specifications import TransformerName
+from exareme2.algorithms.in_database.longitudinal_transformer import (
+    LongitudinalTransformerRunner,
+)
+from exareme2.algorithms.in_database.specifications import TransformerName
 from exareme2.controller import algorithms_specifications
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller import transformers_specifications
 from exareme2.controller.algorithm_execution_engine import AlgorithmExecutionEngine
 from exareme2.controller.algorithm_execution_engine import (
@@ -54,9 +58,9 @@ from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregato
 from exareme2.controller.nodes import GlobalNode
 from exareme2.controller.nodes import LocalNode
 from exareme2.controller.uid_generator import UIDGenerator
-from exareme2.exceptions import InsufficientDataError
-from exareme2.node_info_DTOs import NodeInfo
-from exareme2.node_tasks_DTOs import TableInfo
+from exareme2.node_communication import InsufficientDataError
+from exareme2.node_communication import NodeInfo
+from exareme2.node_communication import TableInfo
 
 
 @dataclass(frozen=True)
@@ -86,7 +90,7 @@ class NodeUnresponsiveException(Exception):
 class NodeTaskTimeoutException(Exception):
     def __init__(self):
         message = (
-            f"One of the tasks in the algorithm execution took longer to finish than "
+            f"One of the celery_tasks in the algorithm execution took longer to finish than "
             f"the timeout.This could be caused by a high load or by an experiment with "
             f"too much data. Please try again or increase the timeout."
         )
@@ -267,7 +271,7 @@ class NodesFederation:
     DataModelViews object.
 
     When the system is up and running there is a number of local nodes (and one global
-    node) waiting to execute tasks and return results as building blocks of executing,
+    node) waiting to execute celery_tasks and return results as building blocks of executing,
     what is called in the system, an "Algorithm". The request for executing an
     "Algorithm", appart from defining which "Algorithm" to execute, contains parameters
     constraining the data on which the "Algorithm" will be executed on, like
@@ -311,7 +315,7 @@ class NodesFederation:
             The NodeLandscapeAggregator object that keeps track of the nodes currently
             connected to the system
         celery_tasks_timeout: int
-            The timeout, in seconds, for the tasks to be processed by the nodes in the system
+            The timeout, in seconds, for the celery_tasks to be processed by the nodes in the system
         celery_run_udf_task_timeout: int
             The timeout, in seconds, for the task executing a udf by the nodes in the system
         command_id_generator: CommandIdGenerator
@@ -808,7 +812,7 @@ class Controller:
 
         # instantiate an algorithm execution engine, the engine is passed to the
         # "Algorithm" implementation and serves as an API for the "Algorithm" code to
-        # execute tasks on nodes
+        # execute celery_tasks on nodes
         engine_init_params = EngineInitParams(
             smpc_params=self._smpc_params,
             request_id=algorithm_request_dto.request_id,

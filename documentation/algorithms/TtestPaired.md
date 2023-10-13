@@ -22,7 +22,6 @@ The Student’s paired samples t-test (sometimes called a dependent-samples t-te
 
 ![pseudo](images/paired_ttest_pseudocode.png)
 
-
 <b><h4>Algorithm Implementation</b></h4>
 
-[Paired T-test](../../exareme2/algorithms/ttest_paired.py)
+[Paired T-test](../../exareme2/algorithms/in_database/ttest_paired.py)

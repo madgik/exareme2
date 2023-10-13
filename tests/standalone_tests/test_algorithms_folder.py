@@ -14,7 +14,10 @@ def set_default_algorithms_folder():
 
 
 def test_default_algorithms_folder(set_default_algorithms_folder):
-    assert exareme2.ALGORITHM_FOLDERS == "./exareme2/algorithms"
+    assert (
+        exareme2.ALGORITHM_FOLDERS
+        == "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python"
+    )
 
 
 @pytest.fixture

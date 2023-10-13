@@ -12,8 +12,10 @@ from exareme2 import Algorithm
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
 from exareme2 import controller
-from exareme2.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
-from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.longitudinal_transformer import (
+    LongitudinalTransformerRunner,
+)
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
 
 BACKGROUND_LOGGER_NAME = "controller_background_service"
 

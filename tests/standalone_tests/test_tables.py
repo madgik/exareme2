@@ -4,9 +4,9 @@ import pytest
 from pymonetdb import OperationalError
 
 from exareme2.datatypes import DType
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import create_table_in_db
 from tests.standalone_tests.conftest import get_table_data_from_db

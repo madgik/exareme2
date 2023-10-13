@@ -11,7 +11,7 @@ from typing import List
 import toml
 from pydantic import BaseModel
 
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.algorithm_execution_engine_tasks_handler import (
     NodeAlgorithmTasksHandler,
 )
@@ -65,8 +65,8 @@ class Cleaner:
     'released' flag, of the respective cleanup entry, to 'true'. When the Cleaner object is
     started (method start()), it constantly loops through all the entries, finds the ones that
     either have their 'released' flag set to 'true' or their 'timestamp' has expired
-    (check _is_timestamp_expired function) and processes them by calling the cleanup tasks
-    on the respective nodes for the respective context_id. When the cleanup tasks on all
+    (check _is_timestamp_expired function) and processes them by calling the cleanup celery_tasks
+    on the respective nodes for the respective context_id. When the cleanup celery_tasks on all
     the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
     list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
     in the next iteration of the loop.

@@ -3,24 +3,24 @@ from typing import List
 import pytest
 from pydantic import ValidationError
 
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import DType
-from exareme2.node_tasks_DTOs import NodeLiteralDTO
-from exareme2.node_tasks_DTOs import NodeSMPCDTO
-from exareme2.node_tasks_DTOs import NodeTableDTO
-from exareme2.node_tasks_DTOs import NodeUDFDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.node_tasks_DTOs import NodeUDFResults
-from exareme2.node_tasks_DTOs import SMPCTablesInfo
-from exareme2.node_tasks_DTOs import TableData
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
-from exareme2.node_tasks_DTOs import _NodeUDFDTOType
-from exareme2.table_data_DTOs import ColumnDataFloat
-from exareme2.table_data_DTOs import ColumnDataInt
-from exareme2.table_data_DTOs import ColumnDataStr
+from exareme2.node_communication import ColumnDataFloat
+from exareme2.node_communication import ColumnDataInt
+from exareme2.node_communication import ColumnDataStr
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import DType
+from exareme2.node_communication import NodeLiteralDTO
+from exareme2.node_communication import NodeSMPCDTO
+from exareme2.node_communication import NodeTableDTO
+from exareme2.node_communication import NodeUDFDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.node_communication import NodeUDFResults
+from exareme2.node_communication import SMPCTablesInfo
+from exareme2.node_communication import TableData
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
+from exareme2.node_communication import _NodeUDFDTOType
 
 
 @pytest.fixture

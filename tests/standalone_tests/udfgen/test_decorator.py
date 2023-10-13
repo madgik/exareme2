@@ -1,16 +1,16 @@
 # type: ignore
 import pytest
 
+from exareme2.algorithms.in_database.udfgen import merge_transfer
+from exareme2.algorithms.in_database.udfgen import relation
+from exareme2.algorithms.in_database.udfgen import secure_transfer
+from exareme2.algorithms.in_database.udfgen import state
+from exareme2.algorithms.in_database.udfgen import tensor
+from exareme2.algorithms.in_database.udfgen import transfer
+from exareme2.algorithms.in_database.udfgen import udf
+from exareme2.algorithms.in_database.udfgen import udf_logger
+from exareme2.algorithms.in_database.udfgen.decorator import UDFBadDefinition
 from exareme2.datatypes import DType
-from exareme2.udfgen.decorator import UDFBadDefinition
-from exareme2.udfgen.decorator import udf
-from exareme2.udfgen.iotypes import merge_transfer
-from exareme2.udfgen.iotypes import relation
-from exareme2.udfgen.iotypes import state
-from exareme2.udfgen.iotypes import tensor
-from exareme2.udfgen.iotypes import transfer
-from exareme2.udfgen.iotypes import udf_logger
-from exareme2.udfgen.smpc import secure_transfer
 
 
 class TestUDFValidation:

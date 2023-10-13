@@ -7,8 +7,8 @@ from exareme2.controller.node_landscape_aggregator import (
 )
 from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.node_landscape_aggregator import NodeRegistry
-from exareme2.node_info_DTOs import NodeInfo
-from exareme2.node_info_DTOs import NodeRole
+from exareme2.node_communication import NodeInfo
+from exareme2.node_communication import NodeRole
 
 mocked_node_addresses = [
     "127.0.0.1:5672",

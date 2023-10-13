@@ -5,7 +5,7 @@ import pytest
 import toml
 
 from exareme2 import AttrDict
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.node_landscape_aggregator import (
     InitializationParams as NodeLandscapeAggregatorInitParams,
 )

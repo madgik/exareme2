@@ -1,9 +1,6 @@
 from types import SimpleNamespace
 
-import pytest
-
-from exareme2.algorithms.preprocessing import DummyEncoderUdf
-from exareme2.udfgen.decorator import UDFBadCall
+from exareme2.algorithms.in_database.preprocessing import DummyEncoderUdf
 
 
 def test_dummy_encoder__only_numerical_vars():

@@ -10,8 +10,7 @@ from typing import Tuple
 
 from pydantic import BaseModel
 
-from exareme2.attrdict import AttrDict
-from exareme2.controller import controller_logger as ctrl_logger
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery_app import CeleryConnectionError
 from exareme2.controller.celery_app import CeleryTaskTimeoutException
 from exareme2.controller.federation_info_logs import log_datamodel_added
@@ -22,11 +21,12 @@ from exareme2.controller.federation_info_logs import log_node_joined_federation
 from exareme2.controller.federation_info_logs import log_node_left_federation
 from exareme2.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from exareme2.controller.nodes_addresses import NodesAddressesFactory
-from exareme2.node_info_DTOs import NodeInfo
-from exareme2.node_info_DTOs import NodeRole
-from exareme2.node_tasks_DTOs import CommonDataElement
-from exareme2.node_tasks_DTOs import CommonDataElements
-from exareme2.node_tasks_DTOs import DataModelAttributes
+from exareme2.node_communication import CommonDataElement
+from exareme2.node_communication import CommonDataElements
+from exareme2.node_communication import DataModelAttributes
+from exareme2.node_communication import NodeInfo
+from exareme2.node_communication import NodeRole
+from exareme2.utils import AttrDict
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 LONGITUDINAL = "longitudinal"

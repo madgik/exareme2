@@ -5,7 +5,7 @@ import pytest
 
 from exareme2 import AttrDict
 from exareme2.controller.api.endpoint import create_controller
-from exareme2.smpc_DTOs import DifferentialPrivacyParams
+from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 @pytest.fixture
