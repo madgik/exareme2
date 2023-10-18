@@ -12,8 +12,8 @@ from pydantic import BaseModel
 from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
 
 if TYPE_CHECKING:
-    from exareme2.controller.algorithm_execution_engine import AlgorithmExecutionEngine
-    from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
+    from exareme2.controller.services.in_database import AlgorithmExecutionEngine
+    from exareme2.controller.services.in_database import LocalNodesTable
 
 
 class Variables(BaseModel):

@@ -2,18 +2,18 @@
 Deployment script used for the development of the Exareme2.
 
 In order to understand this script a basic knowledge of the system is required, this script
-does not contain the documentation of the engine. The documentation of the celery_tasks,
+does not contain the documentation of the engine. The documentation of the celery,
 in this script, is targeted to the specifics of the development deployment process.
 
-This script deploys all the containers and services natively on your machine.
-It deploys the containers on different ports and then configures the services to use the appropriate ports.
+This script deploys all the containers and api natively on your machine.
+It deploys the containers on different ports and then configures the api to use the appropriate ports.
 
 A node service uses a configuration file either on the default location './exareme2/node/config.toml'
 or in the location of the env variable 'EXAREME2_NODE_CONFIG_FILE', if the env variable is set.
 This deployment script used for development, uses the env variable logic, therefore before deploying each
-node service the env variable is changed to the location of the node services' config file.
+node service the env variable is changed to the location of the node api' config file.
 
-In order for this script's celery_tasks to work the './configs/nodes' folder should contain all the node's config files
+In order for this script's celery to work the './configs/nodes' folder should contain all the node's config files
 following the './exareme2/node/config.toml' as template.
 You can either create the files manually or using a '.deployment.toml' file with the following template
 ```
@@ -40,8 +40,8 @@ rabbitmq_port=5672
 
 and by running the command 'inv create-configs'.
 
-The node services are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
-the node service will be called 'localnode1' and should be referenced using that in the following celery_tasks.
+The node api are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
+the node service will be called 'localnode1' and should be referenced using that in the following celery.
 
 Paths are subject to change so in the following documentation the global variables will be used.
 
@@ -104,14 +104,14 @@ SMPC_PLAYER_BASE_NAME = "smpc_player"
 SMPC_CLIENT_BASE_NAME = "smpc_client"
 
 
-# TODO Add pre-celery_tasks when this is implemented https://github.com/pyinvoke/invoke/issues/170
+# TODO Add pre-celery when this is implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
 
 
 @task
 def create_configs(c):
     """
-    Create the node and controller services config files, using 'DEPLOYMENT_CONFIG_FILE'.
+    Create the node and controller api config files, using 'DEPLOYMENT_CONFIG_FILE'.
     """
     if path.exists(NODES_CONFIG_DIR) and path.isdir(NODES_CONFIG_DIR):
         shutil.rmtree(NODES_CONFIG_DIR)
@@ -566,7 +566,7 @@ def kill_node(c, node=None, all_=False):
     Kill the node(s) service(s).
 
     :param node: The node service to kill.
-    :param all_: If set, all node services will be killed.
+    :param all_: If set, all node api will be killed.
     """
 
     if all_:
@@ -623,9 +623,9 @@ def start_node(
     :param all_: If set, the nodes of which the configuration file exists, will be started.
     :param framework_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
-    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
 
-    The containers related to the services remain unchanged.
+    The containers related to the api remain unchanged.
     """
 
     if not framework_log_level:
@@ -652,14 +652,14 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A exareme2.node.celery worker -l {framework_log_level} > {outpath} "
+                        f"-A exareme2.node.celery.app worker -l {framework_log_level} > {outpath} "
                         f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"exareme2.node.celery worker -l {framework_log_level} --pool=eventlet --purge"
+                        f"exareme2.node.celery.app worker -l {framework_log_level} --pool=eventlet --purge"
                     )
                     run(c, cmd, attach_=True)
 
@@ -683,7 +683,7 @@ def start_controller(c, detached=False, algorithm_folders=None):
     (Re)Start the controller service. If the service is already running, stop and start it again.
 
     :param detached: If set to True, it will start the service in the background.
-    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
     if not algorithm_folders:
@@ -703,10 +703,10 @@ def start_controller(c, detached=False, algorithm_folders=None):
         ):
             outpath = OUTDIR / "controller.out"
             if detached:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/api/app:app>> {outpath} 2>&1"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app>> {outpath} 2>&1"
                 run(c, cmd, wait=False)
             else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/api/app:app"
+                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app"
                 run(c, cmd, attach_=True)
 
 
@@ -725,17 +725,17 @@ def deploy(
     smpc=None,
 ):
     """
-    Install dependencies, (re)create all the containers and (re)start all the services.
+    Install dependencies, (re)create all the containers and (re)start all the api.
 
     :param install_dep: Install dependencies or not.
-    :param start_all: Start all node/controller services flag.
-    :param start_controller_: Start controller services flag.
+    :param start_all: Start all node/controller api flag.
+    :param start_controller_: Start controller api flag.
     :param start_nodes: Start all nodes flag.
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param framework_log_level: Used for the engine services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param framework_log_level: Used for the engine api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_nclients: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param algorithm_folders: Used from the services. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
@@ -760,7 +760,7 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    # Start NODE services
+    # Start NODE api
     config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
     if not config_files:
         message(
@@ -830,7 +830,7 @@ def attach(c, node=None, controller=False, db=None):
 
 @task
 def cleanup(c):
-    """Kill all node/controller services and remove all monetdb/rabbitmq containers."""
+    """Kill all node/controller api and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
     kill_node(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
@@ -854,7 +854,7 @@ def start_flower(c, node=None, all_=False):
     (Re)Start flower monitoring tool. If flower is already running, stop ir and start it again.
 
     :param node: The node service, for which to create the flower monitoring.
-    :param all_: If set, it will create monitoring for all node services in the `NODES_CONFIG_DIR`.
+    :param all_: If set, it will create monitoring for all node api in the `NODES_CONFIG_DIR`.
     """
 
     kill_all_flowers(c)

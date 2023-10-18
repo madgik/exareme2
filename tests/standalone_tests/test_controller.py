@@ -7,16 +7,15 @@ from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller.algorithm_execution_engine import Nodes
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    INodeAlgorithmTasksHandler,
+from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesTable,
 )
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
-from exareme2.controller.controller import DataModelViews
-from exareme2.controller.controller import DataModelViewsCreator
-from exareme2.controller.controller import NodesFederation
-from exareme2.controller.nodes import LocalNode
-from exareme2.node_communication import ColumnInfo
+from exareme2.controller.services.in_database.controller import DataModelViews
+from exareme2.controller.services.in_database.controller import DataModelViewsCreator
+from exareme2.controller.services.in_database.controller import NodesFederation
+from exareme2.controller.services.in_database.execution_engine import Nodes
+from exareme2.controller.services.in_database.nodes import LocalNode
 from exareme2.node_communication import InsufficientDataError
 from exareme2.node_communication import NodeUDFDTO
 from exareme2.node_communication import NodeUDFKeyArguments

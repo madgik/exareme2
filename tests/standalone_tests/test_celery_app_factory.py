@@ -6,8 +6,8 @@ import pytest
 
 from exareme2 import AttrDict
 from exareme2 import DType
-from exareme2.controller.celery_app import CeleryConnectionError
-from exareme2.controller.celery_app import CeleryWrapper
+from exareme2.controller.celery.app import CeleryConnectionError
+from exareme2.controller.celery.app import CeleryWrapper
 from exareme2.node_communication import ColumnInfo
 from exareme2.node_communication import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
@@ -38,7 +38,7 @@ def controller_config_dict_mock():
 @pytest.fixture(autouse=True, scope="session")
 def patch_celery_app(controller_config_dict_mock):
     with patch(
-        "exareme2.controller.celery_app.controller_config",
+        "exareme2.controller.celery.app.controller_config",
         AttrDict(controller_config_dict_mock),
     ):
         yield
@@ -47,7 +47,7 @@ def patch_celery_app(controller_config_dict_mock):
 @pytest.fixture(scope="session")
 def task_signatures():
     return {
-        "create_table": "exareme2.node.celery_tasks.tables.create_table",
+        "create_table": "exareme2.node.celery.tables.create_table",
     }
 
 

@@ -1,19 +1,21 @@
 import pytest
 
 from exareme2 import AttrDict
-from exareme2.controller.node_landscape_aggregator import DataModelMetadata
-from exareme2.controller.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.node_landscape_aggregator import DataModelsAttributes
-from exareme2.controller.node_landscape_aggregator import DataModelsCDES
-from exareme2.controller.node_landscape_aggregator import DataModelsMetadata
-from exareme2.controller.node_landscape_aggregator import DataModelsMetadataPerNode
-from exareme2.controller.node_landscape_aggregator import DatasetsLabels
-from exareme2.controller.node_landscape_aggregator import DatasetsLocations
-from exareme2.controller.node_landscape_aggregator import (
-    InitializationParams as NodeLandscapeAggregatorInitParams,
+from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services.node_landscape_aggregator import DataModelMetadata
+from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.node_landscape_aggregator import DataModelsAttributes
+from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.services.node_landscape_aggregator import DataModelsMetadata
+from exareme2.controller.services.node_landscape_aggregator import (
+    DataModelsMetadataPerNode,
 )
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from exareme2.controller.node_landscape_aggregator import (
+from exareme2.controller.services.node_landscape_aggregator import DatasetsLabels
+from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
+)
+from exareme2.controller.services.node_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
 from exareme2.node_communication import CommonDataElement
@@ -43,17 +45,14 @@ def node_landscape_aggregator(
     controller_config,
 ):
     controller_config = AttrDict(controller_config)
-    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
-        node_landscape_aggregator_update_interval=controller_config.node_landscape_aggregator_update_interval,
-        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+
+    node_landscape_aggregator = NodeLandscapeAggregator(
+        logger=ctrl_logger.get_background_service_logger(),
+        update_interval=controller_config.node_landscape_aggregator_update_interval,
+        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=controller_config.deployment_type,
         localnodes=controller_config.localnodes,
-    )
-
-    NodeLandscapeAggregator._delete_instance()
-    node_landscape_aggregator = NodeLandscapeAggregator(
-        node_landscape_aggregator_init_params
     )
     return node_landscape_aggregator
 

@@ -5,33 +5,20 @@ import time
 import traceback
 from datetime import datetime
 from datetime import timezone
+from logging import Logger
 from pathlib import Path
 from typing import List
 
 import toml
 from pydantic import BaseModel
 
-from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    NodeAlgorithmTasksHandler,
+from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
 )
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 
 CLEANER_REQUEST_ID = "CLEANER"
 CLEANUP_FILE_TEMPLATE = string.Template("cleanup_${context_id}.toml")
-
-
-class InitializationParams(BaseModel):
-    cleanup_interval: int
-    contextid_release_timelimit: int
-    celery_cleanup_task_timeout: int
-    celery_run_udf_task_timeout: int
-    contextids_cleanup_folder: str
-    node_landscape_aggregator: NodeLandscapeAggregator
-
-    class Config:
-        allow_mutation = False
-        arbitrary_types_allowed = True
 
 
 class _NodeInfoDTO(BaseModel):
@@ -65,8 +52,8 @@ class Cleaner:
     'released' flag, of the respective cleanup entry, to 'true'. When the Cleaner object is
     started (method start()), it constantly loops through all the entries, finds the ones that
     either have their 'released' flag set to 'true' or their 'timestamp' has expired
-    (check _is_timestamp_expired function) and processes them by calling the cleanup celery_tasks
-    on the respective nodes for the respective context_id. When the cleanup celery_tasks on all
+    (check _is_timestamp_expired function) and processes them by calling the cleanup celery
+    on the respective nodes for the respective context_id. When the cleanup celery on all
     the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
     list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
     in the next iteration of the loop.
@@ -76,12 +63,6 @@ class Cleaner:
     node_ids = [ "testglobalnode", "testlocalnode1", "testlocalnode2",]
     timestamp = "2022-05-23T14:40:34.203085+00:00"
     released = false
-
-    Parameters
-    ----------
-    init_params : InitializationParams
-        A pydantic BaseModel that holds the initialization parameters
-        of the Cleaner instance.
 
     Methods
     -------
@@ -102,36 +83,23 @@ class Cleaner:
         Set the "released" flag of the cleanup entry to true.
     """
 
-    def __new__(cls, *args):
-        if not hasattr(cls, "instance"):
-            cls.instance = super(Cleaner, cls).__new__(cls)
-            return cls.instance
-        else:
-            raise ValueError("Cleaner instance already exists.")
-
-    @classmethod
-    def _delete_instance(cls):
-        if hasattr(cls, "instance"):
-            del cls.instance
-
-    def __init__(self, init_params: InitializationParams):
-        """
-        Initialize the Cleaner instance.
-
-        Parameters
-        ----------
-        init_params : InitializationParams
-            A pydantic BaseModel that holds the initialization parameters
-            of the Cleaner instance.
-        """
-        self._logger = ctrl_logger.get_background_service_logger()
-
-        self._cleanup_interval = init_params.cleanup_interval
-        self._contextid_release_timelimit = init_params.contextid_release_timelimit
-        self._celery_cleanup_task_timeout = init_params.celery_cleanup_task_timeout
-        self._celery_run_udf_task_timeout = init_params.celery_run_udf_task_timeout
-        self._contextids_cleanup_folder = init_params.contextids_cleanup_folder
-        self._node_landscape_aggregator = init_params.node_landscape_aggregator
+    def __init__(
+        self,
+        logger: Logger,
+        cleanup_interval: int,
+        contextid_release_timelimit: int,
+        cleanup_task_timeout: int,
+        run_udf_task_timeout: int,
+        contextids_cleanup_folder: str,
+        node_landscape_aggregator: NodeLandscapeAggregator,
+    ):
+        self._logger = logger
+        self._cleanup_interval = cleanup_interval
+        self._contextid_release_timelimit = contextid_release_timelimit
+        self._celery_cleanup_task_timeout = cleanup_task_timeout
+        self._celery_run_udf_task_timeout = run_udf_task_timeout
+        self._contextids_cleanup_folder = contextids_cleanup_folder
+        self._node_landscape_aggregator = node_landscape_aggregator
         self._cleanup_files_processor = CleanupFilesProcessor(
             self._logger, self._contextids_cleanup_folder
         )

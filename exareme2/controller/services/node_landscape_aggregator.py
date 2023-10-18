@@ -2,6 +2,7 @@ import threading
 import time
 import traceback
 from abc import ABC
+from logging import Logger
 from typing import Any
 from typing import Dict
 from typing import List
@@ -10,16 +11,16 @@ from typing import Tuple
 
 from pydantic import BaseModel
 
-from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.celery_app import CeleryConnectionError
-from exareme2.controller.celery_app import CeleryTaskTimeoutException
+from exareme2.controller import DeploymentType
+from exareme2.controller.celery.app import CeleryConnectionError
+from exareme2.controller.celery.app import CeleryTaskTimeoutException
+from exareme2.controller.celery.node_info_tasks_handler import NodeInfoTasksHandler
 from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added
 from exareme2.controller.federation_info_logs import log_dataset_removed
 from exareme2.controller.federation_info_logs import log_node_joined_federation
 from exareme2.controller.federation_info_logs import log_node_left_federation
-from exareme2.controller.node_info_tasks_handler import NodeInfoTasksHandler
 from exareme2.controller.nodes_addresses import NodesAddressesFactory
 from exareme2.node_communication import CommonDataElement
 from exareme2.node_communication import CommonDataElements
@@ -146,7 +147,7 @@ class DataModelRegistry(ImmutableBaseModel):
 
         Returns
         -------
-        some, all or none of bthe wanted_datasets that are located in the node
+        some, all or none of the wanted_datasets that are located in the node
         """
         if not self.data_model_exists(data_model):
             raise ValueError(
@@ -226,7 +227,7 @@ class DatasetsLabelsPerDataModel(ImmutableBaseModel):
 
 class DataModelMetadata(ImmutableBaseModel):
     """
-    A representation of a data models's Metadata datasets info, cdes and attributes for a specific data model
+    A representation of a data model's Metadata datasets info, cdes and attributes for a specific data model
     """
 
     datasets_labels: DatasetsLabels
@@ -236,7 +237,7 @@ class DataModelMetadata(ImmutableBaseModel):
 
 class DataModelsMetadata(ImmutableBaseModel):
     """
-    A dictionary representation of a data models's Metadata.
+    A dictionary representation of a data model's Metadata.
     Key values are data models.
     Values are DataModelMetadata.
     """
@@ -246,52 +247,29 @@ class DataModelsMetadata(ImmutableBaseModel):
 
 class DataModelsMetadataPerNode(ImmutableBaseModel):
     """
-    A dictionary representation of all information for the data models's Metadata per node.
+    A dictionary representation of all information for the data model's Metadata per node.
     Key values are nodes.
-    Values are data models's Metadata.
+    Values are data model's Metadata.
     """
 
     data_models_metadata_per_node: Dict[str, DataModelsMetadata]
 
 
-class InitializationParams(BaseModel):
-    node_landscape_aggregator_update_interval: int
-    celery_tasks_timeout: int
-    celery_run_udf_task_timeout: int
-    deployment_type: str
-    localnodes: AttrDict
-
-    class Config:
-        allow_mutation = False
-
-
 class NodeLandscapeAggregator:
-    def __new__(cls, *args):
-        if not hasattr(cls, "instance"):
-            cls.instance = super(NodeLandscapeAggregator, cls).__new__(cls)
-            return cls.instance
-        else:
-            raise ValueError("NodeLandscapeAggregator instance already exists.")
-
-    @classmethod
-    def _delete_instance(cls):
-        if hasattr(cls, "instance"):
-            del cls.instance
-
-    def __init__(self, initialization_params: InitializationParams):
-        self._logger = ctrl_logger.get_background_service_logger()
-
-        self._node_landscape_aggregator_update_interval = (
-            initialization_params.node_landscape_aggregator_update_interval
-        )
-        celery_tasks_timeout = initialization_params.celery_tasks_timeout
-        celery_run_udf_task_timeout = initialization_params.celery_run_udf_task_timeout
-        self._node_info_tasks_timeout = (
-            celery_run_udf_task_timeout + celery_tasks_timeout
-        )
-        self._deployment_type = initialization_params.deployment_type
-        self._localnodes = initialization_params.localnodes
-
+    def __init__(
+        self,
+        logger: Logger,
+        update_interval: int,
+        tasks_timeout: int,
+        run_udf_task_timeout: int,
+        deployment_type: DeploymentType,
+        localnodes: AttrDict,
+    ):
+        self._logger = logger
+        self._update_interval = update_interval
+        self._node_info_tasks_timeout = run_udf_task_timeout + tasks_timeout
+        self._deployment_type = deployment_type
+        self._localnodes = localnodes
         self._registries = _NLARegistries()
         self._keep_updating = True
         self._update_loop_thread = None
@@ -339,15 +317,19 @@ class NodeLandscapeAggregator:
                 tr = traceback.format_exc()
                 self._logger.error(tr)
             finally:
-                time.sleep(self._node_landscape_aggregator_update_interval)
+                time.sleep(self._update_interval)
 
     def start(self):
+        self._logger.info("NodeLandscapeAggregator starting ...")
+
         self.stop()
         self._keep_updating = True
         self._update_loop_thread = threading.Thread(
             target=self._update_loop, daemon=True
         )
         self._update_loop_thread.start()
+
+        self._logger.info("NodeLandscapeAggregator started.")
 
     def stop(self):
         if self._update_loop_thread and self._update_loop_thread.is_alive():

@@ -1,4 +1,4 @@
-from exareme2.controller.api.loggers import loggers
+from exareme2.controller.quart.loggers import loggers
 
 workers = 1
 accesslog = "-"

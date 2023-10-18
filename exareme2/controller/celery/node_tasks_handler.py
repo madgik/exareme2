@@ -7,7 +7,7 @@ from typing import Optional
 from celery.result import AsyncResult
 
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.celery_app import CeleryAppFactory
+from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.node_communication import NodeUDFDTO
 from exareme2.node_communication import NodeUDFKeyArguments
 from exareme2.node_communication import NodeUDFPosArguments
@@ -18,24 +18,27 @@ from exareme2.node_communication import TableSchema
 from exareme2.node_communication import TableType
 
 TASK_SIGNATURES: Final = {
-    "get_tables": "exareme2.node.celery_tasks.tables.get_tables",
-    "get_remote_tables": "exareme2.node.celery_tasks.tables.get_remote_tables",
-    "get_merge_tables": "exareme2.node.celery_tasks.tables.get_merge_tables",
-    "get_table_schema": "exareme2.node.celery_tasks.tables.get_table_schema",
-    "get_table_data": "exareme2.node.celery_tasks.tables.get_table_data",
-    "create_table": "exareme2.node.celery_tasks.tables.create_table",
-    "create_remote_table": "exareme2.node.celery_tasks.tables.create_remote_table",
-    "create_merge_table": "exareme2.node.celery_tasks.tables.create_merge_table",
-    "get_views": "exareme2.node.celery_tasks.views.get_views",
-    "create_data_model_views": "exareme2.node.celery_tasks.views.create_data_model_views",
-    "run_udf": "exareme2.node.celery_tasks.udfs.run_udf",
-    "cleanup": "exareme2.node.celery_tasks.cleanup.cleanup",
-    "validate_smpc_templates_match": "exareme2.node.celery_tasks.smpc.validate_smpc_templates_match",
-    "load_data_to_smpc_client": "exareme2.node.celery_tasks.smpc.load_data_to_smpc_client",
-    "get_smpc_result": "exareme2.node.celery_tasks.smpc.get_smpc_result",
+    "get_tables": "exareme2.node.celery.tables.get_tables",
+    "get_remote_tables": "exareme2.node.celery.tables.get_remote_tables",
+    "get_merge_tables": "exareme2.node.celery.tables.get_merge_tables",
+    "get_table_schema": "exareme2.node.celery.tables.get_table_schema",
+    "get_table_data": "exareme2.node.celery.tables.get_table_data",
+    "create_table": "exareme2.node.celery.tables.create_table",
+    "create_remote_table": "exareme2.node.celery.tables.create_remote_table",
+    "create_merge_table": "exareme2.node.celery.tables.create_merge_table",
+    "get_views": "exareme2.node.celery.views.get_views",
+    "create_data_model_views": "exareme2.node.celery.views.create_data_model_views",
+    "run_udf": "exareme2.node.celery.udfs.run_udf",
+    "cleanup": "exareme2.node.celery.cleanup.cleanup",
+    "validate_smpc_templates_match": "exareme2.node.celery.smpc.validate_smpc_templates_match",
+    "load_data_to_smpc_client": "exareme2.node.celery.smpc.load_data_to_smpc_client",
+    "get_smpc_result": "exareme2.node.celery.smpc.get_smpc_result",
 }
 
 
+# TODO (Refactor) Split the task handlers from the celery logic
+# The interface should be used in the engines and celery/grpc should implement them.
+# The interface task handler should be in the services package.
 class INodeAlgorithmTasksHandler(ABC):
     @property
     @abstractmethod

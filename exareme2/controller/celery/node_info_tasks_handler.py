@@ -5,20 +5,23 @@ from celery.result import AsyncResult
 
 from exareme2.celery_app_conf import CELERY_APP_QUEUE_MAX_PRIORITY
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.celery_app import CeleryAppFactory
-from exareme2.controller.celery_app import CeleryWrapper
+from exareme2.controller.celery.app import CeleryAppFactory
+from exareme2.controller.celery.app import CeleryWrapper
 from exareme2.node_communication import CommonDataElements
 from exareme2.node_communication import DataModelAttributes
 from exareme2.node_communication import NodeInfo
 
 TASK_SIGNATURES: Final = {
-    "get_node_info": "exareme2.node.celery_tasks.node_info.get_node_info",
-    "get_node_datasets_per_data_model": "exareme2.node.celery_tasks.node_info.get_node_datasets_per_data_model",
-    "get_data_model_cdes": "exareme2.node.celery_tasks.node_info.get_data_model_cdes",
-    "get_data_model_attributes": "exareme2.node.celery_tasks.node_info.get_data_model_attributes",
+    "get_node_info": "exareme2.node.celery.node_info.get_node_info",
+    "get_node_datasets_per_data_model": "exareme2.node.celery.node_info.get_node_datasets_per_data_model",
+    "get_data_model_cdes": "exareme2.node.celery.node_info.get_data_model_cdes",
+    "get_data_model_attributes": "exareme2.node.celery.node_info.get_data_model_attributes",
 }
 
 
+# TODO (Refactor) Split the task handlers from the celery logic
+# The interface should be used in the engines and celery/grpc should implement them.
+# The interface task handler should be in the services package.
 class NodeInfoTasksHandler:
     def __init__(self, node_queue_addr: str, tasks_timeout: int):
         self._node_queue_addr = node_queue_addr
