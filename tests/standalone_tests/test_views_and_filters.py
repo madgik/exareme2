@@ -558,7 +558,7 @@ def test_multiple_data_model_views(
 # 1. this test (as well as other tests in the module) does not need the celery layer.
 # Calling the task functions through queuing the task adds a lot of complexity that is
 # unnecessary. The task functions should be tested by calling them as normal function
-# from the relevant modules ex. celery_tasks/views.py module and
+# from the relevant modules ex. celery/views.py module and
 # 2.instead of searching in the primary data tables for data that would fit the test,
 # there should be a mechanism to add specifically crafted data for each test case in the
 # db of the node

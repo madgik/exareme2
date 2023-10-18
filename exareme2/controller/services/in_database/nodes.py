@@ -4,9 +4,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    INodeAlgorithmTasksHandler,
-)
+from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
 from exareme2.node_communication import NodeSMPCDTO
 from exareme2.node_communication import NodeTableDTO
 from exareme2.node_communication import NodeUDFDTO

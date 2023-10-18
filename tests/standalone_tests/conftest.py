@@ -19,10 +19,8 @@ import toml
 
 from exareme2 import AttrDict
 from exareme2.algorithms.in_database.udfgen import udfio
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    NodeAlgorithmTasksHandler,
-)
-from exareme2.controller.celery_app import CeleryAppFactory
+from exareme2.controller.celery.app import CeleryAppFactory
+from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
 from exareme2.controller.logger import init_logger
 from exareme2.node_communication import TableSchema
 
@@ -831,7 +829,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
     env["EXAREME2_NODE_CONFIG_FILE"] = node_config_filepath
 
-    cmd = f"poetry run celery -A exareme2.node.celery worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
+    cmd = f"poetry run celery -A exareme2.node.celery.app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -1127,7 +1125,7 @@ def _create_controller_service(
     env["EXAREME2_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = f"poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:{service_port} exareme2/controller/api/app:app >> {logpath} 2>&1 "
+    cmd = f"poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:{service_port} exareme2/controller/quart/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true

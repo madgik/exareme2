@@ -3,10 +3,12 @@ import traceback
 
 from quart import Blueprint
 
-from exareme2.controller.api.validator import BadRequest
-from exareme2.controller.controller import NodeTaskTimeoutException
-from exareme2.controller.controller import NodeUnresponsiveException
 from exareme2.controller.logger import get_background_service_logger
+from exareme2.controller.services.api.algorithm_request_validator import BadRequest
+from exareme2.controller.services.in_database.controller import NodeTaskTimeoutException
+from exareme2.controller.services.in_database.controller import (
+    NodeUnresponsiveException,
+)
 from exareme2.data_filters import FilterError
 from exareme2.node_communication import BadUserInput
 from exareme2.node_communication import DataModelUnavailable
@@ -115,10 +117,11 @@ def handle_node_task_timeout_algorithm_execution_exception(
     )
 
 
-@error_handlers.app_errorhandler(Exception)
-def handle_unexpected_exception(error: Exception):
-    get_background_service_logger().error(
-        f"Internal Server Error. Type: '{type(error).__name__}' Message: '{error}'"
-    )
-    traceback.print_tb(error.__traceback__)
-    return "", HTTPStatusCode.UNEXPECTED_ERROR
+#
+# @error_handlers.app_errorhandler(Exception)
+# def handle_unexpected_exception(error: Exception):
+#     get_background_service_logger().error(
+#         f"Internal Server Error. Type: '{type(error).__name__}' Message: '{error}'"
+#     )
+#     traceback.print_tb(error.__traceback__)
+#     return "", HTTPStatusCode.UNEXPECTED_ERROR

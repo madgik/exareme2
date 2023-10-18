@@ -4,6 +4,7 @@ from enum import unique
 from importlib.resources import open_text
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Type
 
 import envtoml
@@ -26,6 +27,8 @@ class DeploymentType(str, Enum):
     KUBERNETES = "KUBERNETES"
 
 
+# Initializing the configurations from the config file
+config = None
 if config_file := os.getenv("EXAREME2_CONTROLLER_CONFIG_FILE"):
     with open(config_file) as fp:
         config = AttrDict(envtoml.load(fp))
@@ -53,3 +56,5 @@ algorithms_specifications = _get_algorithms_specifications(algorithm_classes.val
 transformers_specifications = {
     LongitudinalTransformerRunner.get_transformer_name(): LongitudinalTransformerRunner.get_specification()
 }
+
+node_landscape_aggregator = None

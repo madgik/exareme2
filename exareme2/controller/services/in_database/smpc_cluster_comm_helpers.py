@@ -6,9 +6,13 @@ from typing import Tuple
 
 from exareme2 import smpc_cluster_communication as smpc_cluster
 from exareme2.controller import config as ctrl_config
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesSMPCTables
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
-from exareme2.controller.nodes import GlobalNode
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesSMPCTables,
+)
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesTable,
+)
+from exareme2.controller.services.in_database.nodes import GlobalNode
 from exareme2.node_communication import TableInfo
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 from exareme2.smpc_cluster_communication import SMPCComputationError

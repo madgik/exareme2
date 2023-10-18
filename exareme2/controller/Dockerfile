@@ -47,4 +47,4 @@ RUN rm -rf exareme2/node
 # Define Hypercorn needed env variables and start hypercorn
 #######################################################
 ENV PYTHONPATH=$CODE_PATH
-CMD ["sh", "-c", "hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/api/app:app"]
+CMD ["sh", "-c", "hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app"]
