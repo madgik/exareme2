@@ -64,7 +64,8 @@
             "code": "subjectcode",
             "sql_type": "text",
             "description": "",
-            "methodology": ""
+            "methodology": "",
+            "type": "nominal"
         },
         {
           "isCategorical": false,

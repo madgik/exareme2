@@ -50,7 +50,7 @@ pytest-subtests = "~0.11"
 freezegun = "~1.2"
 hypothesis = "~6.81"
 pytest-rerunfailures = "~12.0"
-mipdb = "2.4.2"  # Must be updated together with mipdb Dockerfile
+mipdb = "2.4.6"  # Must be updated together with mipdb Dockerfile
 
 [tool.pytest.ini_options]
 markers = [
