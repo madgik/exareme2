@@ -6,7 +6,7 @@
     "inputdata": {
         "y": {
             "label": "Variables",
-            "desc": "Nuerical variables on x axis of correlation matrix.",
+            "desc": "Numerical variables on x axis of correlation matrix.",
             "types": [
                 "real",
                 "int"
@@ -19,7 +19,7 @@
         },
         "x": {
             "label": "Covariates (optional)",
-            "desc": "Nuerical variables on y axis of correlation matrix.",
+            "desc": "Numerical variables on y axis of correlation matrix.",
             "types": [
                 "real",
                 "int"
