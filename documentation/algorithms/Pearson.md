@@ -26,7 +26,6 @@ This algorithm computes the Pearson correlation coefficient between two vectors 
 
 ![pseudo](images/pearson_pseudocode.png)
 
-
 <b><h4>Algorithm Implementation</b></h4>
 
-[Pearson](../../exareme2/algorithms/pearson_correlation.py)
+[Pearson](../../exareme2/algorithms/in_database/pearson_correlation.py)

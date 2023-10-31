@@ -1,6 +1,6 @@
 import pytest
 
-from exareme2.algorithms.fedaverage import fed_average
+from exareme2.algorithms.in_database.fedaverage import fed_average
 
 
 def test_fed_average__scalar():

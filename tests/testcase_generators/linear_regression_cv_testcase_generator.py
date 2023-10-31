@@ -7,7 +7,9 @@ from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
 from sklearn.model_selection import cross_val_score
 
-from exareme2.algorithms.linear_regression_cv import CVLinearRegressionResult
+from exareme2.algorithms.in_database.linear_regression_cv import (
+    CVLinearRegressionResult,
+)
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 

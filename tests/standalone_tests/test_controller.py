@@ -7,24 +7,23 @@ from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller.algorithm_execution_engine import Nodes
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    INodeAlgorithmTasksHandler,
+from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
+from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+    LocalNodesTable,
 )
-from exareme2.controller.algorithm_flow_data_objects import LocalNodesTable
-from exareme2.controller.controller import DataModelViews
-from exareme2.controller.controller import DataModelViewsCreator
-from exareme2.controller.controller import NodesFederation
-from exareme2.controller.nodes import LocalNode
-from exareme2.exceptions import InsufficientDataError
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import NodeUDFDTO
-from exareme2.node_tasks_DTOs import NodeUDFKeyArguments
-from exareme2.node_tasks_DTOs import NodeUDFPosArguments
-from exareme2.node_tasks_DTOs import TableData
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
+from exareme2.controller.services.in_database.controller import DataModelViews
+from exareme2.controller.services.in_database.controller import DataModelViewsCreator
+from exareme2.controller.services.in_database.controller import NodesFederation
+from exareme2.controller.services.in_database.execution_engine import Nodes
+from exareme2.controller.services.in_database.nodes import LocalNode
+from exareme2.node_communication import InsufficientDataError
+from exareme2.node_communication import NodeUDFDTO
+from exareme2.node_communication import NodeUDFKeyArguments
+from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.node_communication import TableData
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
 
 
 def create_dummy_node(node_id: str, context_id: str, request_id: str):

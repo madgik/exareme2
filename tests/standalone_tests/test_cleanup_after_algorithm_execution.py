@@ -9,27 +9,33 @@ from freezegun import freeze_time
 
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
-from exareme2.algorithms.algorithm import InitializationParams as AlgorithmInitParams
-from exareme2.algorithms.algorithm import Variables
-from exareme2.controller import controller_logger as ctrl_logger
-from exareme2.controller.algorithm_execution_engine import (
+from exareme2.algorithms.in_database.algorithm import (
+    InitializationParams as AlgorithmInitParams,
+)
+from exareme2.algorithms.in_database.algorithm import Variables
+from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services.api.algorithm_request_dtos import (
+    AlgorithmInputDataDTO,
+)
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.in_database.cleaner import Cleaner
+from exareme2.controller.services.in_database.controller import Controller
+from exareme2.controller.services.in_database.controller import DataModelViewsCreator
+from exareme2.controller.services.in_database.controller import (
+    _create_algorithm_execution_engine,
+)
+from exareme2.controller.services.in_database.controller import (
+    sanitize_request_variable,
+)
+from exareme2.controller.services.in_database.execution_engine import CommandIdGenerator
+from exareme2.controller.services.in_database.execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from exareme2.controller.cleaner import Cleaner
-from exareme2.controller.cleaner import InitializationParams as CleanerInitParams
-from exareme2.controller.controller import CommandIdGenerator
-from exareme2.controller.controller import Controller
-from exareme2.controller.controller import DataModelViewsCreator
-from exareme2.controller.controller import InitializationParams as ControllerInitParams
-from exareme2.controller.controller import Nodes
-from exareme2.controller.controller import _create_algorithm_execution_engine
-from exareme2.controller.controller import sanitize_request_variable
-from exareme2.controller.node_landscape_aggregator import (
-    InitializationParams as NodeLandscapeAggregatorInitParams,
+from exareme2.controller.services.in_database.execution_engine import Nodes
+from exareme2.controller.services.in_database.execution_engine import SMPCParams
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
 )
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
 from exareme2.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import (
@@ -94,16 +100,16 @@ def init_background_controller_logger():
 def controller(controller_config, cleaner, node_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
-    controller_init_params = ControllerInitParams(
-        smpc_enabled=False,
-        smpc_optional=False,
-        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-    )
     controller = Controller(
-        initialization_params=controller_init_params,
-        cleaner=cleaner,
         node_landscape_aggregator=node_landscape_aggregator,
+        cleaner=cleaner,
+        logger=ctrl_logger.get_background_service_logger(),
+        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        smpc_params=SMPCParams(
+            smpc_enabled=False,
+            smpc_optional=False,
+        ),
     )
     return controller
 
@@ -111,7 +117,7 @@ def controller(controller_config, cleaner, node_landscape_aggregator):
 @pytest.fixture(autouse=True)
 def patch_celery_app(controller_config):
     with patch(
-        "exareme2.controller.celery_app.controller_config",
+        "exareme2.controller.celery.app.controller_config",
         AttrDict(controller_config),
     ):
         yield
@@ -203,23 +209,19 @@ def node_landscape_aggregator(
     localnodetmp_node_service,
 ):
     controller_config = AttrDict(controller_config)
-    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
-        node_landscape_aggregator_update_interval=controller_config.node_landscape_aggregator_update_interval,
-        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+
+    node_landscape_aggregator = NodeLandscapeAggregator(
+        logger=ctrl_logger.get_background_service_logger(),
+        update_interval=controller_config.node_landscape_aggregator_update_interval,
+        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=controller_config.deployment_type,
         localnodes=controller_config.localnodes,
-    )
-    NodeLandscapeAggregator._delete_instance()
-    node_landscape_aggregator = NodeLandscapeAggregator(
-        node_landscape_aggregator_init_params
     )
     node_landscape_aggregator.update()
     node_landscape_aggregator.start()
 
-    # TODO https://team-1617704806227.atlassian.net/jira/software/projects/MIP/issues/MIP-771
-    yield node_landscape_aggregator
-    del node_landscape_aggregator
+    return node_landscape_aggregator
 
 
 @pytest.fixture(scope="function")
@@ -310,18 +312,18 @@ def engine(
 @pytest.fixture(scope="function")
 def cleaner(controller_config, node_landscape_aggregator):
     controller_config = AttrDict(controller_config)
-    cleaner_init_params = CleanerInitParams(
+
+    cleaner = Cleaner(
+        logger=ctrl_logger.get_background_service_logger(),
         cleanup_interval=controller_config.cleanup.nodes_cleanup_interval,
         contextid_release_timelimit=controller_config.cleanup.contextid_release_timelimit,
-        celery_cleanup_task_timeout=controller_config.rabbitmq.celery_cleanup_task_timeout,
-        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        cleanup_task_timeout=controller_config.rabbitmq.celery_cleanup_task_timeout,
+        run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         contextids_cleanup_folder=controller_config.cleanup.contextids_cleanup_folder,
         node_landscape_aggregator=node_landscape_aggregator,
     )
-    Cleaner._delete_instance()
-    cleaner = Cleaner(cleaner_init_params)
-    yield cleaner
-    del cleaner
+
+    return cleaner
 
 
 @pytest.fixture
@@ -350,7 +352,7 @@ def test_synchronous_cleanup(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -408,7 +410,7 @@ def test_asynchronous_cleanup(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -471,7 +473,7 @@ def test_cleanup_triggered_by_release_timelimit(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
     controller_config,
 ):
@@ -537,7 +539,7 @@ def test_cleanup_after_rabbitmq_restart(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator
@@ -621,7 +623,7 @@ def test_cleanup_after_node_service_restart(
     context_id,
     cleaner,
     node_landscape_aggregator,
-    reset_celery_app_factory,  # celery tasks fail if this is not reset
+    reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
 ):
     # Cleaner gets info about the nodes via the NodeLandscapeAggregator

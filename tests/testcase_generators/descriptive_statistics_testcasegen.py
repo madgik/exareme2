@@ -1,8 +1,8 @@
 import pandas as pd
 
-from exareme2.algorithms.descriptive_stats import Result
-from exareme2.algorithms.descriptive_stats import Variable
-from exareme2.algorithms.descriptive_stats import reduce_recs_for_var
+from exareme2.algorithms.in_database.descriptive_stats import Result
+from exareme2.algorithms.in_database.descriptive_stats import Variable
+from exareme2.algorithms.in_database.descriptive_stats import reduce_recs_for_var
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 # TODO privacy threshold is hardcoded. Find beter solution.

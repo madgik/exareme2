@@ -1,9 +1,9 @@
 import pytest
 
-from exareme2.filters import FilterError
-from exareme2.filters import build_filter_clause
-from exareme2.filters import validate_filter
-from exareme2.node_tasks_DTOs import CommonDataElement
+from exareme2.data_filters import FilterError
+from exareme2.data_filters import build_filter_clause
+from exareme2.data_filters import validate_filter
+from exareme2.node_communication import CommonDataElement
 
 DATA_MODEL = "test_data_model1:0.1"
 

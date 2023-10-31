@@ -1,14 +1,14 @@
 import pytest
 
 from exareme2 import AttrDict
-from exareme2.controller.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.node_landscape_aggregator import (
-    InitializationParams as NodeLandscapeAggregatorInitParams,
+from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
 )
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from exareme2.controller.node_landscape_aggregator import NodeRegistry
-from exareme2.node_info_DTOs import NodeInfo
-from exareme2.node_info_DTOs import NodeRole
+from exareme2.controller.services.node_landscape_aggregator import NodeRegistry
+from exareme2.node_communication import NodeInfo
+from exareme2.node_communication import NodeRole
 
 mocked_node_addresses = [
     "127.0.0.1:5672",
@@ -20,17 +20,16 @@ mocked_node_addresses = [
 
 @pytest.fixture(scope="function")
 def mocked_nla():
-    dummy_init_params = NodeLandscapeAggregatorInitParams(
-        node_landscape_aggregator_update_interval=0,
-        celery_tasks_timeout=0,
-        celery_run_udf_task_timeout=0,
+    node_landscape_aggregator = NodeLandscapeAggregator(
+        logger=ctrl_logger.get_background_service_logger(),
+        update_interval=0,
+        tasks_timeout=0,
+        run_udf_task_timeout=0,
         deployment_type="",
         localnodes=AttrDict({}),
     )
-    NodeLandscapeAggregator._delete_instance()
-    nla = NodeLandscapeAggregator(dummy_init_params)
-    nla.stop()
-    nla.keep_updating = False
+    node_landscape_aggregator.stop()
+    node_landscape_aggregator.keep_updating = False
 
     node_registry = NodeRegistry(
         nodes_info=[
@@ -68,10 +67,10 @@ def mocked_nla():
             ),
         ]
     )
-    nla._set_new_registries(
+    node_landscape_aggregator._set_new_registries(
         node_registry=node_registry, data_model_registry=DataModelRegistry()
     )
-    return nla
+    return node_landscape_aggregator
 
 
 def test_get_nodes(mocked_nla):

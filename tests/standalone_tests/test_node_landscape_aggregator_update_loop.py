@@ -5,14 +5,13 @@ import pytest
 import toml
 
 from exareme2 import AttrDict
-from exareme2.controller import controller_logger as ctrl_logger
-from exareme2.controller.node_landscape_aggregator import (
-    InitializationParams as NodeLandscapeAggregatorInitParams,
-)
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from exareme2.controller.node_landscape_aggregator import _NLARegistries
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.nodes_addresses import NodesAddresses
 from exareme2.controller.nodes_addresses import NodesAddressesFactory
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
+)
+from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
 from tests.standalone_tests.conftest import GLOBALNODE_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALNODE2_CONFIG_FILE
@@ -52,7 +51,7 @@ def init_background_controller_logger():
 @pytest.fixture(autouse=True, scope="session")
 def patch_celery_app(controller_config):
     with patch(
-        "exareme2.controller.celery_app.controller_config", AttrDict(controller_config)
+        "exareme2.controller.celery.app.controller_config", AttrDict(controller_config)
     ):
         yield
 
@@ -93,20 +92,19 @@ def patch_nodes_addresses():
 @pytest.fixture(scope="function")
 def node_landscape_aggregator(controller_config):
     controller_config = AttrDict(controller_config)
-    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
-        node_landscape_aggregator_update_interval=controller_config.node_landscape_aggregator_update_interval,
-        celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
-        celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
-        deployment_type="",
-        localnodes=controller_config.localnodes,
-    )
-    NodeLandscapeAggregator._delete_instance()
+
     node_landscape_aggregator = NodeLandscapeAggregator(
-        node_landscape_aggregator_init_params
+        logger=ctrl_logger.get_background_service_logger(),
+        update_interval=controller_config.node_landscape_aggregator_update_interval,
+        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
+        deployment_type=controller_config.deployment_type,
+        localnodes=controller_config.localnodes,
     )
     node_landscape_aggregator.stop()
     node_landscape_aggregator.keep_updating = False
     node_landscape_aggregator._nla_registries = _NLARegistries()
+
     return node_landscape_aggregator
 
 

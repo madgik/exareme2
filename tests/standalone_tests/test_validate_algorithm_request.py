@@ -1,43 +1,46 @@
 import pytest
 
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import ParameterEnumSpecification
-from exareme2.algorithms.specifications import ParameterSpecification
-from exareme2.algorithms.specifications import TransformerSpecification
-from exareme2.controller.api.algorithm_request_dto import AlgorithmInputDataDTO
-from exareme2.controller.api.algorithm_request_dto import AlgorithmRequestDTO
-from exareme2.controller.api.specifications_dtos import InputDataStatType
-from exareme2.controller.api.specifications_dtos import InputDataType
-from exareme2.controller.api.specifications_dtos import ParameterEnumType
-from exareme2.controller.api.specifications_dtos import ParameterType
-from exareme2.controller.api.validator import BadRequest
-from exareme2.controller.api.validator import validate_algorithm_request
-from exareme2.controller.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.node_landscape_aggregator import DataModelsCDES
-from exareme2.controller.node_landscape_aggregator import DatasetsLocations
-from exareme2.controller.node_landscape_aggregator import (
-    InitializationParams as NodeLandscapeAggregatorInitParams,
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecifications
+from exareme2.algorithms.in_database.specifications import InputDataStatType
+from exareme2.algorithms.in_database.specifications import InputDataType
+from exareme2.algorithms.in_database.specifications import ParameterEnumSpecification
+from exareme2.algorithms.in_database.specifications import ParameterEnumType
+from exareme2.algorithms.in_database.specifications import ParameterSpecification
+from exareme2.algorithms.in_database.specifications import ParameterType
+from exareme2.algorithms.in_database.specifications import TransformerSpecification
+from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services.api.algorithm_request_dtos import (
+    AlgorithmInputDataDTO,
 )
-from exareme2.controller.node_landscape_aggregator import NodeLandscapeAggregator
-from exareme2.controller.node_landscape_aggregator import _NLARegistries
-from exareme2.exceptions import BadUserInput
-from exareme2.node_tasks_DTOs import CommonDataElement
-from exareme2.node_tasks_DTOs import CommonDataElements
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.api.algorithm_request_validator import BadRequest
+from exareme2.controller.services.api.algorithm_request_validator import (
+    validate_algorithm_request,
+)
+from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
+from exareme2.controller.services.node_landscape_aggregator import (
+    NodeLandscapeAggregator,
+)
+from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
+from exareme2.node_communication import BadUserInput
+from exareme2.node_communication import CommonDataElement
+from exareme2.node_communication import CommonDataElements
 
 
 @pytest.fixture
 def node_landscape_aggregator():
-    node_landscape_aggregator_init_params = NodeLandscapeAggregatorInitParams(
-        node_landscape_aggregator_update_interval=0,
-        celery_tasks_timeout=0,
-        celery_run_udf_task_timeout=0,
+    node_landscape_aggregator = NodeLandscapeAggregator(
+        logger=ctrl_logger.get_background_service_logger(),
+        update_interval=0,
+        tasks_timeout=0,
+        run_udf_task_timeout=0,
         deployment_type="",
-        localnodes=[],
+        localnodes={},
     )
-    NodeLandscapeAggregator._delete_instance()
-    nla = NodeLandscapeAggregator(node_landscape_aggregator_init_params)
 
     data_models = {
         "data_model_with_all_cde_types:0.1": CommonDataElements(
@@ -109,9 +112,11 @@ def node_landscape_aggregator():
             }
         ),
     )
-    nla._registries = _NLARegistries(data_model_registry=_data_model_registry)
+    node_landscape_aggregator._registries = _NLARegistries(
+        data_model_registry=_data_model_registry
+    )
 
-    return nla
+    return node_landscape_aggregator
 
 
 @pytest.fixture(scope="module")

@@ -1,13 +1,13 @@
 import pytest
 
 # TODO the testing should be better once the datasets are properly distributed and the are no duplicates.
-from exareme2.controller.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.node_landscape_aggregator import DataModelsAttributes
-from exareme2.controller.node_landscape_aggregator import DataModelsCDES
-from exareme2.controller.node_landscape_aggregator import DatasetsLocations
-from exareme2.node_tasks_DTOs import CommonDataElement
-from exareme2.node_tasks_DTOs import CommonDataElements
-from exareme2.node_tasks_DTOs import DataModelAttributes
+from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.node_landscape_aggregator import DataModelsAttributes
+from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
+from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
+from exareme2.node_communication import CommonDataElement
+from exareme2.node_communication import CommonDataElements
+from exareme2.node_communication import DataModelAttributes
 
 
 @pytest.fixture

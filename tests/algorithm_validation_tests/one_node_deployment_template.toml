@@ -7,7 +7,7 @@ rabbitmq_image = "madgik/exareme2_rabbitmq:testing"
 monetdb_nclients = 64
 monetdb_memory_limit = 4096 # MB
 
-algorithm_folders = "./exareme2/algorithms,./tests/algorithms"
+algorithm_folders = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
 
 node_landscape_aggregator_update_interval = 30
 celery_tasks_timeout = 60
@@ -25,6 +25,8 @@ contextid_release_timelimit=3600 #an hour
 [smpc]
 enabled=false
 optional=false
+[smpc.dp]
+enabled = false
 
 [[nodes]]
 id = "localnode1"

@@ -4,6 +4,7 @@ from enum import unique
 from importlib.resources import open_text
 from typing import Dict
 from typing import List
+from typing import Optional
 from typing import Type
 
 import envtoml
@@ -12,8 +13,10 @@ from exareme2 import Algorithm
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
 from exareme2 import controller
-from exareme2.algorithms.longitudinal_transformer import LongitudinalTransformerRunner
-from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.longitudinal_transformer import (
+    LongitudinalTransformerRunner,
+)
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
 
 BACKGROUND_LOGGER_NAME = "controller_background_service"
 
@@ -24,6 +27,8 @@ class DeploymentType(str, Enum):
     KUBERNETES = "KUBERNETES"
 
 
+# Initializing the configurations from the config file
+config = None
 if config_file := os.getenv("EXAREME2_CONTROLLER_CONFIG_FILE"):
     with open(config_file) as fp:
         config = AttrDict(envtoml.load(fp))
@@ -51,3 +56,5 @@ algorithms_specifications = _get_algorithms_specifications(algorithm_classes.val
 transformers_specifications = {
     LongitudinalTransformerRunner.get_transformer_name(): LongitudinalTransformerRunner.get_specification()
 }
+
+node_landscape_aggregator = None

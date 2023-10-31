@@ -18,15 +18,13 @@ import sqlalchemy as sql
 import toml
 
 from exareme2 import AttrDict
-from exareme2.controller.algorithm_execution_engine_tasks_handler import (
-    NodeAlgorithmTasksHandler,
-)
-from exareme2.controller.celery_app import CeleryAppFactory
-from exareme2.controller.controller_logger import init_logger
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.udfgen import udfio
+from exareme2.algorithms.in_database.udfgen import udfio
+from exareme2.controller.celery.app import CeleryAppFactory
+from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
+from exareme2.controller.logger import init_logger
+from exareme2.node_communication import TableSchema
 
-ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms,./tests/algorithms"
+ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
 TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"
 
@@ -126,6 +124,7 @@ if USE_EXTERNAL_SMPC_CLUSTER:
     LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
     LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
+    CONTROLLER_SMPC_DP_CONFIG_FILE = "test_external_smpc_dp_controller.toml"
     SMPC_COORDINATOR_ADDRESS = "http://167.71.139.232:12314"
 else:
     GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
@@ -830,7 +829,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
     env["EXAREME2_NODE_CONFIG_FILE"] = node_config_filepath
 
-    cmd = f"poetry run celery -A exareme2.node.node worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
+    cmd = f"poetry run celery -A exareme2.node.celery.app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -1070,7 +1069,7 @@ def controller_service_with_localnode1():
     kill_service(proc)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def smpc_controller_service():
     service_port = CONTROLLER_SMPC_PORT
     controller_config_filepath = path.join(
@@ -1086,8 +1085,26 @@ def smpc_controller_service():
         localnodes_config_filepath,
         SMPC_CONTROLLER_OUTPUT_FILE,
     )
-    yield
+    yield proc
     kill_service(proc)
+
+
+def smpc_controller_service_with_dp():
+    service_port = CONTROLLER_SMPC_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_DP_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        SMPC_CONTROLLER_OUTPUT_FILE,
+    )
+    return proc
 
 
 def _create_controller_service(
@@ -1108,7 +1125,7 @@ def _create_controller_service(
     env["EXAREME2_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
-    cmd = f"poetry run hypercorn --config python:exareme2.controller.api.hypercorn_config -b 0.0.0.0:{service_port} exareme2/controller/api/app:app >> {logpath} 2>&1 "
+    cmd = f"poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:{service_port} exareme2/controller/quart/app:app >> {logpath} 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true

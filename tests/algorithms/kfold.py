@@ -2,16 +2,16 @@ import typing as t
 
 from pydantic import BaseModel
 
-from exareme2.algorithms.algorithm import Algorithm
-from exareme2.algorithms.algorithm import AlgorithmDataLoader
-from exareme2.algorithms.crossvalidation import KFold
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import InputDataStatType
-from exareme2.algorithms.specifications import InputDataType
-from exareme2.algorithms.specifications import ParameterSpecification
-from exareme2.algorithms.specifications import ParameterType
+from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.in_database.crossvalidation import KFold
+from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecification
+from exareme2.algorithms.in_database.specifications import InputDataSpecifications
+from exareme2.algorithms.in_database.specifications import InputDataStatType
+from exareme2.algorithms.in_database.specifications import InputDataType
+from exareme2.algorithms.in_database.specifications import ParameterSpecification
+from exareme2.algorithms.in_database.specifications import ParameterType
 
 ALGNAME = "test_kfold"
 

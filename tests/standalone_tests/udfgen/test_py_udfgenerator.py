@@ -5,37 +5,41 @@ from typing import TypeVar
 
 import pytest
 
+from exareme2.algorithms.in_database.udfgen import DEFERRED
+from exareme2.algorithms.in_database.udfgen import MIN_ROW_COUNT
+from exareme2.algorithms.in_database.udfgen import literal
+from exareme2.algorithms.in_database.udfgen import merge_transfer
+from exareme2.algorithms.in_database.udfgen import relation
+from exareme2.algorithms.in_database.udfgen import secure_transfer
+from exareme2.algorithms.in_database.udfgen import state
+from exareme2.algorithms.in_database.udfgen import tensor
+from exareme2.algorithms.in_database.udfgen import transfer
+from exareme2.algorithms.in_database.udfgen import udf_logger
+from exareme2.algorithms.in_database.udfgen.decorator import UdfRegistry
+from exareme2.algorithms.in_database.udfgen.decorator import udf
+from exareme2.algorithms.in_database.udfgen.iotypes import LiteralArg
+from exareme2.algorithms.in_database.udfgen.iotypes import MergeTensorType
+from exareme2.algorithms.in_database.udfgen.iotypes import RelationArg
+from exareme2.algorithms.in_database.udfgen.iotypes import StateArg
+from exareme2.algorithms.in_database.udfgen.iotypes import TensorArg
+from exareme2.algorithms.in_database.udfgen.iotypes import TransferArg
+from exareme2.algorithms.in_database.udfgen.py_udfgenerator import (
+    FlowArgsToUdfArgsConverter,
+)
+from exareme2.algorithms.in_database.udfgen.py_udfgenerator import PyUdfGenerator
+from exareme2.algorithms.in_database.udfgen.py_udfgenerator import UDFBadCall
+from exareme2.algorithms.in_database.udfgen.py_udfgenerator import (
+    copy_types_from_udfargs,
+)
+from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenTableResult
 from exareme2.datatypes import DType
-from exareme2.node.tasks.udfs import _get_udf_table_creation_queries
-from exareme2.node_tasks_DTOs import ColumnInfo
-from exareme2.node_tasks_DTOs import SMPCTablesInfo
-from exareme2.node_tasks_DTOs import TableInfo
-from exareme2.node_tasks_DTOs import TableSchema
-from exareme2.node_tasks_DTOs import TableType
-from exareme2.udfgen import secure_transfer
-from exareme2.udfgen.decorator import UdfRegistry
-from exareme2.udfgen.decorator import udf
-from exareme2.udfgen.iotypes import DEFERRED
-from exareme2.udfgen.iotypes import MIN_ROW_COUNT
-from exareme2.udfgen.iotypes import LiteralArg
-from exareme2.udfgen.iotypes import MergeTensorType
-from exareme2.udfgen.iotypes import RelationArg
-from exareme2.udfgen.iotypes import StateArg
-from exareme2.udfgen.iotypes import TensorArg
-from exareme2.udfgen.iotypes import TransferArg
-from exareme2.udfgen.iotypes import literal
-from exareme2.udfgen.iotypes import merge_transfer
-from exareme2.udfgen.iotypes import relation
-from exareme2.udfgen.iotypes import state
-from exareme2.udfgen.iotypes import tensor
-from exareme2.udfgen.iotypes import transfer
-from exareme2.udfgen.iotypes import udf_logger
-from exareme2.udfgen.py_udfgenerator import FlowArgsToUdfArgsConverter
-from exareme2.udfgen.py_udfgenerator import PyUdfGenerator
-from exareme2.udfgen.py_udfgenerator import UDFBadCall
-from exareme2.udfgen.py_udfgenerator import copy_types_from_udfargs
-from exareme2.udfgen.udfgen_DTOs import UDFGenSMPCResult
-from exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
+from exareme2.node.services.in_database.udfs import _get_udf_table_creation_queries
+from exareme2.node_communication import ColumnInfo
+from exareme2.node_communication import SMPCTablesInfo
+from exareme2.node_communication import TableInfo
+from exareme2.node_communication import TableSchema
+from exareme2.node_communication import TableType
 
 
 def test_copy_types_from_udfargs():

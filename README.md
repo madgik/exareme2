@@ -50,7 +50,7 @@
    monetdb_nclients = 128
    monetdb_memory_limit = 2048 # MB
 
-   algorithm_folders = "./exareme2/algorithms,./tests/algorithms"
+   algorithm_folders = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
 
    node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 20
@@ -73,6 +73,10 @@
    smpc_image="gpikra/coordinator:v7.0.7.4"
    db_image="mongo:5.0.8"
    queue_image="redis:alpine3.15"
+   [smpc.dp]
+   enabled = false
+   # sensitivity = 1
+   # privacy_budget = 0.1
 
    [[nodes]]
    id = "globalnode"
