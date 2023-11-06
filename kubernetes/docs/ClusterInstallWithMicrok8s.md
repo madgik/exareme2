@@ -49,36 +49,35 @@ microk8s kubectl label node <worker-node-name> worker=true
 ```
 microk8s kubectl uncordon <node-name>
 ```
-### Kubernetes Controller/Worker Cluster Internal IP Configuration Issue
-In certain scenarios when creating a cluster on the master of a federation, you may encounter the following problem:
-The cluster is configured with the external IP of the virtual machine (VM) rather than the VPN IP provided (typically in the format 10.86.x.10).
+### Configuration for deployment with multiple network interfaces
+In certain scenarios, when setting up a cluster on the master node of a federation, you might encounter the issue of the cluster being configured with an interface different from what you desire. To resolve this, follow the steps below:
+ 
+We will entertain the case that we want cluster uses a VPN as an example.
+The controller of the federation should have its own VPN IP.
 
-Solution Steps:
-If any of the worker nodes exhibit this issue by using their external IP instead of the VPN IP, you can resolve it by following these steps:
+Perform the following steps on the controller:
+```
+microk8s disable ingress
+```
+Append the following lines to the kubelet configuration files:
+```
+sudo echo --node-ip=<VPN_IP> >> /var/snap/microk8s/current/args/kubelet
+sudo echo --advertise-address=<VPN_IP> >> /var/snap/microk8s/current/args/kube-apiserver
+```
 
-For the Worker VM:
+Restart MicroK8s with:
+```
+sudo snap restart microk8s
+```
 
-    Execute the following commands:
-        microk8s leave (Wait until it completes!)
-        sudo snap remove --purge microk8s
-        sudo snap install microk8s --classic
-
-For the Controller VM:
-
-    The controller of the federation should have its own VPN IP, usually in the format 10.86.X.10, where X varies for each federation.
-
-    Once the worker's MicroK8s configuration is updated, perform the following steps on the controller:
-        microk8s remove-node <worker-node> (Ensure MicroK8s on the worker node has completed the removal.)
-        microk8s disable ingress
-        Append the following lines to the kubelet configuration file:
-            sudo echo --node-ip=10.86.X.10 >> /var/snap/microk8s/current/args/kubelet
-            sudo echo --advertise-address=10.86.X.10 >> /var/snap/microk8s/current/args/kube-apiserver
-        Restart MicroK8s with:
-            sudo snap restart microk8s
-        Add the worker node back to the cluster, making sure to select the option that uses the VPN IP (10.86.X.10) and not the external VM IP:
-            microk8s add-node (You will receive some options like microk8s join '10.86.X.10:25000/something/something --worker;' choose the one with the VPN IP).
-        Finally, re-enable ingress with:
-            microk8s enable ingress
+Add the worker node back to the cluster, making sure to select the option that uses the VPN IP of the Worker:
+```
+microk8s add-node
+```
+Finally, re-enable ingress with:
+```
+microk8s enable ingress
+```
 
 Following these steps, your Kubernetes cluster should be properly configured.
 
