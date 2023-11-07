@@ -18,24 +18,20 @@ microk8s enable dns ingress helm3
 microk8s enable dashboard
 ```
 
-## Cluster Management
-### (Optional) Configuration for Deployment with Multiple Network Interfaces
-In certain situations, during the setup of a cluster on the master node of a federation, you might encounter an issue where the cluster is configured with an unintended network interface.
-This can result in a situation where the cluster nodes fail to join the cluster correctly, leading to nodes appearing as "Not Ready."
+### (Optional) Cluster Configuration with Multiple Network Interfaces (e.g. VPN)
+If the cluster is going to be configured on top of a **VPN**, or the k8s **master** node has more than one network interface, we need to select the proper network interface on top of which the cluster will communicate.
 
-To address this issue, follow these steps:
-Let's consider configuring the cluster to utilize a VPN interface as an example.
+If this is not done properly, **it could result on worker node failing to join the cluster correctly**, leading to nodes appearing as `Not Ready`.
 
-Perform the following steps on the controller node:
-
+In order to configure microk8s on the **master** node to use the proper network interface, followe these steps:
 1. Disable ingress with the command:
 ```
 microk8s disable ingress
 ```
 2. Append the following lines to the kubelet configuration files:
 ```
-sudo echo --node-ip=<VPN_IP> >> /var/snap/microk8s/current/args/kubelet
-sudo echo --advertise-address=<VPN_IP> >> /var/snap/microk8s/current/args/kube-apiserver
+sudo echo --node-ip=<MASTER_NODE_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kubelet
+sudo echo --advertise-address=<MASTER_NODE_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kube-apiserver
 ```
 3. Restart MicroK8s with:
 ```
@@ -47,11 +43,12 @@ sudo snap restart microk8s
 microk8s enable ingress
 ```
 
-Following these steps, your Kubernetes cluster should be properly configured.
+Following these steps, your Kubernetes **master** node should be properly configured.
 
-For more details and reference, you can visit the source where this fix was discovered: [Kubernetes Bug Fix on GitHub](https://github.com/canonical/microk8s/issues/2402#issuecomment-1460214658)
+For more details and reference, you can visit: [Kubernetes Bug Fix on GitHub](https://github.com/canonical/microk8s/issues/2402#issuecomment-1460214658)
 
 
+## Cluster Management
 ### Configure the master node to run pods
 
 Allow master-specific pods to run on the **master** node with:
