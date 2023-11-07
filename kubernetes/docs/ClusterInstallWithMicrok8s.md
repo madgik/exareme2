@@ -19,6 +19,39 @@ microk8s enable dashboard
 ```
 
 ## Cluster Management
+### (Optional) Configuration for Deployment with Multiple Network Interfaces
+In certain situations, during the setup of a cluster on the master node of a federation, you might encounter an issue where the cluster is configured with an unintended network interface.
+This can result in a situation where the cluster nodes fail to join the cluster correctly, leading to nodes appearing as "Not Ready."
+
+To address this issue, follow these steps:
+Let's consider configuring the cluster to utilize a VPN interface as an example.
+
+Perform the following steps on the controller node:
+
+1. Disable ingress with the command:
+```
+microk8s disable ingress
+```
+2. Append the following lines to the kubelet configuration files:
+```
+sudo echo --node-ip=<VPN_IP> >> /var/snap/microk8s/current/args/kubelet
+sudo echo --advertise-address=<VPN_IP> >> /var/snap/microk8s/current/args/kube-apiserver
+```
+3. Restart MicroK8s with:
+```
+sudo snap restart microk8s
+```
+
+4. Finally, re-enable ingress with:
+```
+microk8s enable ingress
+```
+
+Following these steps, your Kubernetes cluster should be properly configured.
+
+For more details and reference, you can visit the source where this fix was discovered: [Kubernetes Bug Fix on GitHub](https://github.com/canonical/microk8s/issues/2402#issuecomment-1460214658)
+
+
 ### Configure the master node to run pods
 
 Allow master-specific pods to run on the **master** node with:
@@ -49,39 +82,6 @@ microk8s kubectl label node <worker-node-name> worker=true
 ```
 microk8s kubectl uncordon <node-name>
 ```
-### Configuration for deployment with multiple network interfaces
-In certain scenarios, when setting up a cluster on the master node of a federation, you might encounter the issue of the cluster being configured with an interface different from what you desire. To resolve this, follow the steps below:
- 
-We will entertain the case that we want cluster uses a VPN as an example.
-The controller of the federation should have its own VPN IP.
-
-Perform the following steps on the controller:
-```
-microk8s disable ingress
-```
-Append the following lines to the kubelet configuration files:
-```
-sudo echo --node-ip=<VPN_IP> >> /var/snap/microk8s/current/args/kubelet
-sudo echo --advertise-address=<VPN_IP> >> /var/snap/microk8s/current/args/kube-apiserver
-```
-
-Restart MicroK8s with:
-```
-sudo snap restart microk8s
-```
-
-Add the worker node back to the cluster, making sure to select the option that uses the VPN IP of the Worker:
-```
-microk8s add-node
-```
-Finally, re-enable ingress with:
-```
-microk8s enable ingress
-```
-
-Following these steps, your Kubernetes cluster should be properly configured.
-
-For more details and reference, you can visit the source where this fix was discovered: [Kubernetes Bug Fix on GitHub](https://github.com/canonical/microk8s/issues/2402#issuecomment-1460214658)
 
 ### Remove a worker node from the cluster
 
