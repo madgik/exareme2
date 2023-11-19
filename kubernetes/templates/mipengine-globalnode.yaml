@@ -80,20 +80,20 @@ spec:
         startupProbe:
           exec:
             command:
-            - mclient
-            - db
-            - -s
-            - "select 1;"
-          initialDelaySeconds: 10
+              - rabbitmq-diagnostics
+              - -q
+              - check_port_connectivity
+          initialDelaySeconds: 30
           periodSeconds: 30
+          timeoutSeconds: 10
         livenessProbe:
           exec:
             command:
-            - mclient
-            - db
-            - -s
-            - "select 1;"
+              - rabbitmq-diagnostics
+              - -q
+              - check_port_connectivity
           periodSeconds: 30
+          timeoutSeconds: 10
 
       - name: node
         image: {{ .Values.exareme2_images.repository }}/exareme2_node:{{ .Values.exareme2_images.version }}
