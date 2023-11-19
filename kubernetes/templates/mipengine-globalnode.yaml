@@ -46,6 +46,15 @@ spec:
         volumeMounts:
         - mountPath: /home/monetdb
           name: db-data
+        startupProbe:
+          exec:
+            command:
+            - mclient
+            - db
+            - -s
+            - "select 1;"
+          initialDelaySeconds: 10
+          periodSeconds: 30
         livenessProbe:
           exec:
             command:
@@ -53,7 +62,6 @@ spec:
             - db
             - -s
             - "select 1;"
-          initialDelaySeconds: 30
           periodSeconds: 30
 
       - name: rabbitmq
@@ -69,15 +77,23 @@ spec:
           value: "30"
         ports:
           - containerPort: 5672
+        startupProbe:
+          exec:
+            command:
+            - mclient
+            - db
+            - -s
+            - "select 1;"
+          initialDelaySeconds: 10
+          periodSeconds: 30
         livenessProbe:
           exec:
             command:
-              - rabbitmq-diagnostics
-              - -q
-              - check_port_connectivity
-          initialDelaySeconds: 30
+            - mclient
+            - db
+            - -s
+            - "select 1;"
           periodSeconds: 30
-          timeoutSeconds: 10
 
       - name: node
         image: {{ .Values.exareme2_images.repository }}/exareme2_node:{{ .Values.exareme2_images.version }}
