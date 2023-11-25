@@ -8,7 +8,7 @@ from celery import exceptions as celery_exceptions
 from celery.result import AsyncResult
 from kombu import exceptions as kombu_exceptions
 
-from exareme2.celery_app_conf import configure_celery_app_to_use_priority_queue
+from exareme2.celery_app_conf import get_celery_app
 from exareme2.controller import config as controller_config
 from exareme2.node_communication import InsufficientDataError
 from exareme2.utils import Singleton
@@ -150,16 +150,7 @@ class CeleryWrapper:
         user = controller_config.rabbitmq.user
         password = controller_config.rabbitmq.password
         vhost = controller_config.rabbitmq.vhost
-        broker = f"pyamqp://{user}:{password}@{self._socket_addr}/{vhost}"
-        celery_app = Celery(broker=broker, backend="rpc://")
-
-        # connection pool disabled
-        # connections are established and closed for every use
-        celery_app.conf.broker_pool_limit = None
-
-        configure_celery_app_to_use_priority_queue(celery_app)
-
-        return celery_app
+        return get_celery_app(user, password, self._socket_addr, vhost)
 
 
 class CeleryAppFactory(metaclass=Singleton):

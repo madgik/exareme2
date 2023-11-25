@@ -652,14 +652,14 @@ def start_node(
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A exareme2.node.celery.app worker -l {framework_log_level} > {outpath} "
+                        f"-A exareme2.node.celery_tasks.app worker -l {framework_log_level} > {outpath} "
                         f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"exareme2.node.celery.app worker -l {framework_log_level} --pool=eventlet --purge"
+                        f"exareme2.node.celery_tasks.app worker -l {framework_log_level} --pool=eventlet --purge"
                     )
                     run(c, cmd, attach_=True)
 

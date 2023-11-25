@@ -47,7 +47,7 @@ def patch_celery_app(controller_config_dict_mock):
 @pytest.fixture(scope="session")
 def task_signatures():
     return {
-        "create_table": "exareme2.node.celery.tables.create_table",
+        "create_table": "exareme2.node.celery_tasks.tables.create_table",
     }
 
 
