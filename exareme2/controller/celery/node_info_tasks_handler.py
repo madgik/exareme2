@@ -12,10 +12,10 @@ from exareme2.node_communication import DataModelAttributes
 from exareme2.node_communication import NodeInfo
 
 TASK_SIGNATURES: Final = {
-    "get_node_info": "exareme2.node.celery.node_info.get_node_info",
-    "get_node_datasets_per_data_model": "exareme2.node.celery.node_info.get_node_datasets_per_data_model",
-    "get_data_model_cdes": "exareme2.node.celery.node_info.get_data_model_cdes",
-    "get_data_model_attributes": "exareme2.node.celery.node_info.get_data_model_attributes",
+    "get_node_info": "exareme2.node.celery_tasks.node_info.get_node_info",
+    "get_node_datasets_per_data_model": "exareme2.node.celery_tasks.node_info.get_node_datasets_per_data_model",
+    "get_data_model_cdes": "exareme2.node.celery_tasks.node_info.get_data_model_cdes",
+    "get_data_model_attributes": "exareme2.node.celery_tasks.node_info.get_data_model_attributes",
 }
 
 

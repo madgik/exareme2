@@ -1,3 +1,4 @@
+from celery import Celery
 from kombu import Exchange
 from kombu import Queue
 
@@ -23,3 +24,16 @@ def configure_celery_app_to_use_priority_queue(app):
             queue_arguments={"x-max-priority": CELERY_APP_QUEUE_MAX_PRIORITY},
         ),
     ]
+
+
+def get_celery_app(user: str, password: str, socket_addr: str, vhost: str) -> Celery:
+    broker = f"pyamqp://{user}:{password}@{socket_addr}/{vhost}"
+    celery_app = Celery(broker=broker, backend="rpc://")
+
+    # connection pool disabled
+    # connections are established and closed for every use
+    celery_app.conf.broker_pool_limit = None
+
+    configure_celery_app_to_use_priority_queue(celery_app)
+
+    return celery_app

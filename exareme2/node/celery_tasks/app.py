@@ -19,12 +19,12 @@ app = Celery(
     broker=f"pyamqp://{rabbitmq_credentials}@{rabbitmq_socket_addr}/{vhost}",
     backend="rpc://",
     include=[
-        "exareme2.node.celery.node_info",
-        "exareme2.node.celery.views",
-        "exareme2.node.celery.tables",
-        "exareme2.node.celery.udfs",
-        "exareme2.node.celery.smpc",
-        "exareme2.node.celery.cleanup",
+        "exareme2.node.celery_tasks.node_info",
+        "exareme2.node.celery_tasks.views",
+        "exareme2.node.celery_tasks.tables",
+        "exareme2.node.celery_tasks.udfs",
+        "exareme2.node.celery_tasks.smpc",
+        "exareme2.node.celery_tasks.cleanup",
     ],
 )
 node_logger.info("Celery app created.")
