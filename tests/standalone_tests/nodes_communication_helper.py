@@ -3,6 +3,7 @@ signature_mapping = {
     "get_data_model_cdes": "exareme2.node.celery.node_info.get_data_model_cdes",
     "get_node_datasets_per_data_model": "exareme2.node.celery.node_info.get_node_datasets_per_data_model",
     "get_data_model_attributes": "exareme2.node.celery.node_info.get_data_model_attributes",
+    "healthcheck": "exareme2.node.celery.node_info.healthcheck",
     "get_views": "exareme2.node.celery.views.get_views",
     "create_view": "exareme2.node.celery.views.create_view",
     "create_data_model_views": "exareme2.node.celery.views.create_data_model_views",

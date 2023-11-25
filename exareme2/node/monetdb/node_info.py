@@ -9,6 +9,8 @@ from exareme2.node_communication import CommonDataElement
 from exareme2.node_communication import CommonDataElements
 from exareme2.node_communication import DataModelAttributes
 
+HEALTHCHECK_VALIDATION_STRING = "HEALTHCHECK"
+
 
 def get_data_models() -> List[str]:
     """
@@ -113,3 +115,11 @@ def get_data_model_attributes(data_model: str) -> DataModelAttributes:
     return DataModelAttributes(
         tags=attributes["tags"], properties=attributes["properties"]
     )
+
+
+def check_database_connection():
+    """
+    Check that the connection with the database is working.
+    """
+    result = db_execute_and_fetchall(f"SELECT '{HEALTHCHECK_VALIDATION_STRING}'")
+    assert result[0][0] == HEALTHCHECK_VALIDATION_STRING
