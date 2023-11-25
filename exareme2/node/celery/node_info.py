@@ -23,3 +23,8 @@ def get_data_model_attributes(request_id: str, data_model: str) -> str:
 @shared_task
 def get_data_model_cdes(request_id: str, data_model: str) -> str:
     return node_info_service.get_data_model_cdes(request_id, data_model).json()
+
+
+@shared_task
+def healthcheck(request_id: str):
+    return node_info_service.healthcheck(request_id)

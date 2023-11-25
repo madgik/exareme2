@@ -3,6 +3,7 @@ from typing import Dict
 from exareme2.node import config as node_config
 from exareme2.node.logger import initialise_logger
 from exareme2.node.monetdb import node_info
+from exareme2.node.monetdb.node_info import check_database_connection
 from exareme2.node.monetdb.node_info import get_data_models
 from exareme2.node.monetdb.node_info import get_dataset_code_per_dataset_label
 from exareme2.node_communication import CommonDataElements
@@ -71,3 +72,14 @@ def get_data_model_cdes(request_id: str, data_model: str) -> CommonDataElements:
         The data model to retrieve it's cdes.
     """
     return node_info.get_data_model_cdes(data_model)
+
+
+@initialise_logger
+def healthcheck(request_id: str):
+    """
+    Parameters
+    ----------
+    request_id : str
+        The identifier for the logging
+    """
+    check_database_connection()
