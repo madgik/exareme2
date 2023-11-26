@@ -40,9 +40,8 @@ RUN poetry install --no-dev
 COPY exareme2/ ./exareme2/
 RUN rm -rf exareme2/controller
 
-
 #######################################################
-# Setup bootstrap files
+# Setup bootstrap file
 #######################################################
 COPY exareme2/node/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh

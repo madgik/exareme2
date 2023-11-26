@@ -144,4 +144,21 @@ spec:
         - name: SMPC_COORDINATOR_ADDRESS
           value: "http://$(SMPC_COORDINATOR_IP):12314"
         {{ end }}
+        startupProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exareme2.node.healthcheck
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exareme2.node.healthcheck
+          periodSeconds: 30
+          timeoutSeconds: 10
 {{end}}
