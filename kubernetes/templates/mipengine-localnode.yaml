@@ -185,6 +185,23 @@ spec:
         - name: SMPC_CLIENT_ADDRESS
           value: "http://$(SMPC_CLIENT_IP):9000"
         {{ end }}
+        startupProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exareme2.node.healthcheck
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exareme2.node.healthcheck
+          periodSeconds: 30
+          timeoutSeconds: 10
 
       {{ if .Values.smpc.enabled }}
       - name: smpc-client
