@@ -51,6 +51,8 @@ COMMON_MONETDB_PASSWORD = "executor"
 ALGORITHMS_URL = f"http://{COMMON_IP}:4500/algorithms"
 SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
 
+HEALTHCHECK_URL = f"http://{COMMON_IP}:4500/healthcheck"
+
 
 RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
 RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
@@ -112,6 +114,7 @@ CONTROLLER_GLOBALNODE_LOCALNODE1_ADDRESSES_FILE = (
     "test_localnode1_globalnode_addresses.json"
 )
 CONTROLLER_LOCALNODE1_ADDRESSES_FILE = "test_localnode1_addresses.json"
+CONTROLLER_LOCALNODETMP_ADDRESSES_FILE = "test_localnodetmp_addresses.json"
 CONTROLLER_GLOBALNODE_LOCALNODE1_LOCALNODE2_ADDRESSES_FILE = (
     "test_globalnode_localnode1_localnode2_addresses.json"
 )
@@ -1047,6 +1050,26 @@ def smpc_localnode2_celery_app(smpc_localnode2_node_service):
 @pytest.fixture(scope="function")
 def reset_celery_app_factory():
     CeleryAppFactory()._celery_apps = {}
+
+
+@pytest.fixture(scope="function")
+def controller_service_with_localnodetmp():
+    service_port = CONTROLLER_PORT
+    controller_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
+    )
+    localnodes_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODETMP_ADDRESSES_FILE
+    )
+
+    proc = _create_controller_service(
+        service_port,
+        controller_config_filepath,
+        localnodes_config_filepath,
+        CONTROLLER_OUTPUT_FILE,
+    )
+    yield
+    kill_service(proc)
 
 
 @pytest.fixture(scope="function")

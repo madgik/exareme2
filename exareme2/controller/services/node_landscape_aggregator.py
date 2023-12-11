@@ -336,6 +336,26 @@ class NodeLandscapeAggregator:
             self._keep_updating = False
             self._update_loop_thread.join()
 
+    def healthcheck(self):
+        node_info_tasks_handlers = [
+            NodeInfoTasksHandler(
+                node_queue_addr=node_socket_addr,
+                tasks_timeout=self._node_info_tasks_timeout,
+            )
+            for node_socket_addr in NodesAddressesFactory(
+                self._deployment_type, self._localnodes
+            )
+            .get_nodes_addresses()
+            .socket_addresses
+        ]
+        for task_handler in node_info_tasks_handlers:
+            async_result = task_handler.queue_healthcheck_task(
+                NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, False
+            )
+            task_handler.result_healthcheck(
+                async_result, NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+            )
+
     def _get_nodes_info(self, nodes_socket_addr: List[str]) -> List[NodeInfo]:
         node_info_tasks_handlers = [
             NodeInfoTasksHandler(
