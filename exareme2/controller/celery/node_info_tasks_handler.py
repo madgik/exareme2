@@ -16,6 +16,7 @@ TASK_SIGNATURES: Final = {
     "get_node_datasets_per_data_model": "exareme2.node.celery_tasks.node_info.get_node_datasets_per_data_model",
     "get_data_model_cdes": "exareme2.node.celery_tasks.node_info.get_data_model_cdes",
     "get_data_model_attributes": "exareme2.node.celery_tasks.node_info.get_data_model_attributes",
+    "healthcheck": "exareme2.node.celery_tasks.node_info.healthcheck",
 }
 
 
@@ -147,3 +148,28 @@ class NodeInfoTasksHandler:
             logger=logger,
         )
         return DataModelAttributes.parse_raw(result)
+
+    # --------------- healthcheck task ---------------
+    # NON-BLOCKING
+    def queue_healthcheck_task(self, request_id: str, check_db: bool) -> AsyncResult:
+        celery_app = self._get_node_celery_app()
+        task_signature = TASK_SIGNATURES["healthcheck"]
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        async_result = celery_app.queue_task(
+            task_signature=task_signature,
+            logger=logger,
+            request_id=request_id,
+            check_db=check_db,
+            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
+        )
+        return async_result
+
+    # BLOCKING
+    def result_healthcheck(self, async_result: AsyncResult, request_id: str):
+        celery_app = self._get_node_celery_app()
+        logger = ctrl_logger.get_request_logger(request_id=request_id)
+        return celery_app.get_result(
+            async_result=async_result,
+            timeout=self._tasks_timeout,
+            logger=logger,
+        )

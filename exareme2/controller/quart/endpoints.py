@@ -59,6 +59,18 @@ async def get_algorithms() -> str:
     return algorithm_specifications_dtos.json()
 
 
+@algorithms.route("/nla", methods=["POST"])
+async def update_nla() -> str:
+    get_node_landscape_aggregator().update()
+    return ""
+
+
+@algorithms.route("/healthcheck", methods=["GET"])
+async def healthcheck() -> str:
+    get_node_landscape_aggregator().healthcheck()
+    return ""
+
+
 @algorithms.route("/algorithms/<algorithm_name>", methods=["POST"])
 async def run_algorithm(algorithm_name: str) -> str:
     request_body = await request.json
@@ -75,12 +87,6 @@ async def run_algorithm(algorithm_name: str) -> str:
     result = await execute_algorithm(algorithm_name, algorithm_request_dto)
 
     return result
-
-
-@algorithms.route("/nla", methods=["POST"])
-async def update_nla() -> str:
-    get_node_landscape_aggregator().update()
-    return ""
 
 
 def configure_loggers():
