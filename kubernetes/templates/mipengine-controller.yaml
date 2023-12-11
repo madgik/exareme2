@@ -63,6 +63,20 @@ spec:
         - name: SMPC_GET_RESULT_MAX_RETRIES
           value: {{ quote .Values.smpc.get_result_max_retries }}
         {{ end }}
+        startupProbe:
+          httpGet:
+            path: /healthcheck
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: {{ .Values.controller.celery_tasks_timeout }}
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 5000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: {{ .Values.controller.celery_tasks_timeout }}
 
       ### --- SMPC components ---
       {{ if .Values.smpc.enabled }}
