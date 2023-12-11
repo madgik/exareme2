@@ -75,11 +75,17 @@ def get_data_model_cdes(request_id: str, data_model: str) -> CommonDataElements:
 
 
 @initialise_logger
-def healthcheck(request_id: str):
+def healthcheck(request_id: str, check_db):
     """
+    If the check_db flag is false then the only purpose of the healthcheck method is to ensure that the NODE service
+    properly receives a task and responds.
+
     Parameters
     ----------
     request_id : str
         The identifier for the logging
+    check_db : str
+        Should also check the database health?
     """
-    check_database_connection()
+    if check_db:
+        check_database_connection()

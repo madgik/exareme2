@@ -12,7 +12,8 @@ celery_app = get_celery_app(user, password, socket_addr, vhost)
 
 healthcheck_signature = celery_app.signature(HEALTHCHECK_TASK_SIGNATURE)
 healthcheck_signature.apply_async(
-    kwargs={"request_id": "HEALTHCHECK"}, priority=CELERY_APP_QUEUE_MAX_PRIORITY
+    kwargs={"request_id": "HEALTHCHECK", "check_db": True},
+    priority=CELERY_APP_QUEUE_MAX_PRIORITY,
 ).get(node_config.celery.tasks_timeout)
 
 print("Healthcheck successful!")
