@@ -26,5 +26,5 @@ def get_data_model_cdes(request_id: str, data_model: str) -> str:
 
 
 @shared_task
-def healthcheck(request_id: str):
-    return node_info_service.healthcheck(request_id)
+def healthcheck(request_id: str, check_db):
+    return node_info_service.healthcheck(request_id, check_db)

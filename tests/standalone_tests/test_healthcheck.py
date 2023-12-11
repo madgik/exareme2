@@ -25,6 +25,7 @@ def test_healthcheck_task(
         task_signature=healthcheck_task_signature,
         logger=logger,
         request_id=request_id,
+        check_db=True,
     )
     try:
         localnode1_celery_app.get_result(
