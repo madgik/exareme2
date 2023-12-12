@@ -64,9 +64,11 @@ def execute_task_and_assert_connection_error_raised(
         )
 
 
-def queue_slow_udf(cel_app, logger):
+def queue_slow_udf(cel_app, db_cursor, logger):
     run_udf_task = get_celery_task_signature("run_udf")
-    input_table_name, _ = create_table_with_one_column_and_ten_rows(cel_app, request_id)
+    input_table_name, _ = create_table_with_one_column_and_ten_rows(
+        cel_app, db_cursor, request_id
+    )
     kw_args_str = NodeUDFKeyArguments(
         args={"table": NodeTableDTO(value=input_table_name)}
     ).json()
@@ -103,18 +105,20 @@ def test_celery_app_is_the_same_after_executing_task(
     ), "Celery app is different after a queue/get of a task, even though the node never went down."
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
     globalnode_node_service,
+    globalnode_db_cursor,
     reset_celery_app_factory,
     get_controller_testing_logger,
 ):
     cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALNODE_ADDR)
     initial_cel_app = cel_app_wrapper._celery_app
 
-    async_res = queue_slow_udf(cel_app_wrapper, get_controller_testing_logger)
+    async_res = queue_slow_udf(
+        cel_app_wrapper, globalnode_db_cursor, get_controller_testing_logger
+    )
 
     with pytest.raises(CeleryTaskTimeoutException):
         cel_app_wrapper.get_result(
@@ -209,11 +213,11 @@ def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
     ), "The new celery app is not an instance of Celery. Something unexpected occurred during the reset."
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_res_with_node_down(
     localnodetmp_node_service,
+    localnodetmp_db_cursor,
     reset_celery_app_factory,
     get_controller_testing_logger,
 ):
@@ -221,7 +225,9 @@ def test_celery_app_is_the_same_after_get_task_res_with_node_down(
     initial_cel_app = cel_app_wrapper._celery_app
 
     # We are queuing a slow udf here so that it doesn't quickly complete before we kill the service.
-    async_res = queue_slow_udf(cel_app_wrapper, get_controller_testing_logger)
+    async_res = queue_slow_udf(
+        cel_app_wrapper, localnodetmp_db_cursor, get_controller_testing_logger
+    )
 
     kill_service(localnodetmp_node_service)
 
@@ -312,7 +318,6 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
     kill_service(localnodetmp_node_service)
 
 
-@pytest.mark.skip(reason="https://team-1617704806227.atlassian.net/browse/MIP-804")
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_when_rabbitmq_restarted(
