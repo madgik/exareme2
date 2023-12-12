@@ -129,10 +129,6 @@ class CeleryWrapper:
                 error_details=f"While getting {async_result.id=}.",
             )
         except celery_exceptions.TimeoutError as timeout_error:
-            # The celery app needs to be recreated every time we get a TimeoutError due to a bug found in production:
-            # https://team-1617704806227.atlassian.net/browse/MIP-804
-            self._reset_celery_app()
-
             raise CeleryTaskTimeoutException(
                 timeout_type=str(type(timeout_error)),
                 connection_address=self._socket_addr,
