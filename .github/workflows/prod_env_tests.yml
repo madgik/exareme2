@@ -318,9 +318,13 @@ jobs:
         with:
           run: kubectl logs -l nodeType=localnode -c node --tail -1
 
+      - name: Wait for CONTROLLER container to become ready
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '60s'
+
       - name: Run Healthcheck
         run: curl "http://172.17.0.1:5000/healthcheck"
-        continue-on-error: true     # The first healthcheck could fail due to timeouts involved. When it times out, successful or not, everything should be running.
 
       - name: Update NodeLandscapeAggregator
         run: curl -X POST "http://172.17.0.1:5000/nla"
