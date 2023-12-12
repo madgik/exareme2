@@ -294,10 +294,6 @@ jobs:
           kubectl exec $(kubectl get pods -l=nodeType=localnode -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia1.csv -d longitudinal_dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
           kubectl exec $(kubectl get pods -l=nodeType=localnode -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia2.csv -d longitudinal_dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
 
-      - name: Update NodeLandscapeAggregator
-        run: |
-          curl -X POST "http://172.17.0.1:5000/nla"
-
       - name: Controller logs
         run: kubectl logs -l app=exareme2-controller --tail -1
 
@@ -321,6 +317,13 @@ jobs:
         uses: webiny/action-post-run@3.0.0
         with:
           run: kubectl logs -l nodeType=localnode -c node --tail -1
+
+      - name: Run Healthcheck
+        run: curl "http://172.17.0.1:5000/healthcheck"
+        continue-on-error: true     # The first healthcheck could fail due to timeouts involved. When it times out, successful or not, everything should be running.
+
+      - name: Update NodeLandscapeAggregator
+        run: curl -X POST "http://172.17.0.1:5000/nla"
 
       - name: Run production env tests
         run: poetry run pytest tests/prod_env_tests --verbosity=4
