@@ -50,7 +50,7 @@
    monetdb_nclients = 128
    monetdb_memory_limit = 2048 # MB
 
-   algorithm_folders = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
+   algorithm_folders = "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
 
    node_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 20
@@ -62,7 +62,7 @@
    protect_local_data = false
 
    [cleanup]
-   nodes_cleanup_interval=10
+   workers_cleanup_interval=10
    contextid_release_timelimit=3600 #an hour
 
    [smpc]
@@ -80,7 +80,7 @@
 
    [[nodes]]
    id = "globalnode"
-   role = "GLOBALNODE"
+   role = "GLOBALWORKER"
    rabbitmq_port=5670
    monetdb_port=50000
    monetdb_password="executor"
@@ -91,7 +91,7 @@
 
    [[nodes]]
    id = "localnode1"
-   role = "LOCALNODE"
+   role = "LOCALWORKER"
    rabbitmq_port=5671
    monetdb_port=50001
    local_monetdb_username="executor"
@@ -102,7 +102,7 @@
 
    [[nodes]]
    id = "localnode2"
-   role = "LOCALNODE"
+   role = "LOCALWORKER"
    rabbitmq_port=5672
    monetdb_port=50002
    local_monetdb_username="executor"

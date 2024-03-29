@@ -75,24 +75,24 @@ test_cases_get_node_info_datasets = [
 )
 def test_get_node_datasets_per_data_model(
     expected_datasets_per_data_model,
-    globalnode_node_service,
-    globalnode_celery_app,
-    use_globalnode_database,
-    globalnode_db_cursor_with_user_admin,
-    init_data_globalnode,
+    globalworker_worker_service,
+    globalworker_celery_app,
+    use_globalworker_database,
+    globalworker_db_cursor_with_user_admin,
+    init_data_globalworker,
 ):
     request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
     setup_data_table_in_db(
-        expected_datasets_per_data_model, globalnode_db_cursor_with_user_admin
+        expected_datasets_per_data_model, globalworker_db_cursor_with_user_admin
     )
     task_signature = get_celery_task_signature("get_node_datasets_per_data_model")
-    async_result = globalnode_celery_app.queue_task(
+    async_result = globalworker_celery_app.queue_task(
         task_signature=task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
     )
 
-    datasets_per_data_model = globalnode_celery_app.get_result(
+    datasets_per_data_model = globalworker_celery_app.get_result(
         async_result=async_result,
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
@@ -106,4 +106,4 @@ def test_get_node_datasets_per_data_model(
             expected_datasets_per_data_model[data_model]
         )
 
-    teardown_data_tables_in_db(globalnode_db_cursor_with_user_admin)
+    teardown_data_tables_in_db(globalworker_db_cursor_with_user_admin)

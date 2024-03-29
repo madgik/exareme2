@@ -10,8 +10,8 @@ from kombu import exceptions as kombu_exceptions
 
 from exareme2.celery_app_conf import get_celery_app
 from exareme2.controller import config as controller_config
-from exareme2.node_communication import InsufficientDataError
 from exareme2.utils import Singleton
+from exareme2.worker_communication import InsufficientDataError
 
 
 class CeleryConnectionError(Exception):

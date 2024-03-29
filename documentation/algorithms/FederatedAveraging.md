@@ -10,7 +10,7 @@ sees aggregate data, derived from the full data and sent to him by the Workers.
 Our naming convention is that procedures run on Workers are given the adjective _local_
 whereas those running on Master are called _global_.
 
-In this premise, we implement federated averaging by building the models locally, using 
+In this premise, we implement federated averaging by building the models locally, using
 state-of-the-art Python libraries, such as scikit learn and then averaging the parameters
 on the global node.
 
@@ -20,4 +20,4 @@ This algorithm aggregates the parameters of the local models and returns their a
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[FedAvg](../../exareme2/algorithms/in_database/fedaverage.py)
+[FedAvg](../../exareme2/algorithms/exareme2/fedaverage.py)

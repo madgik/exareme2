@@ -1,6 +1,6 @@
 import numpy as np
 
-from exareme2.algorithms.in_database.anova_oneway import get_min_max_ci_info
+from exareme2.algorithms.exareme2.anova_oneway import get_min_max_ci_info
 
 
 def test_min_max_ci():

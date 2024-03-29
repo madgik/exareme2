@@ -8,22 +8,22 @@ from unittest.mock import patch
 import pytest
 
 from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
-from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
+from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
     LocalNodesTable,
 )
-from exareme2.controller.services.in_database.controller import DataModelViews
-from exareme2.controller.services.in_database.controller import DataModelViewsCreator
-from exareme2.controller.services.in_database.controller import NodesFederation
-from exareme2.controller.services.in_database.execution_engine import Nodes
-from exareme2.controller.services.in_database.nodes import LocalNode
-from exareme2.node_communication import InsufficientDataError
-from exareme2.node_communication import NodeUDFDTO
-from exareme2.node_communication import NodeUDFKeyArguments
-from exareme2.node_communication import NodeUDFPosArguments
-from exareme2.node_communication import TableData
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.controller.services.exareme2.controller import DataModelViews
+from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
+from exareme2.controller.services.exareme2.controller import NodesFederation
+from exareme2.controller.services.exareme2.execution_engine import Nodes
+from exareme2.controller.services.exareme2.nodes import LocalNode
+from exareme2.worker_communication import InsufficientDataError
+from exareme2.worker_communication import NodeUDFDTO
+from exareme2.worker_communication import NodeUDFKeyArguments
+from exareme2.worker_communication import NodeUDFPosArguments
+from exareme2.worker_communication import TableData
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
 
 
 def create_dummy_node(node_id: str, context_id: str, request_id: str):
@@ -153,22 +153,6 @@ class TestNodesFederation:
 
 
 class TestDataModelViews:
-    @pytest.fixture
-    def views_mocks(self, node_mocks):
-        # table naming convention <table_type>_<node_id>_<context_id>_<command_id>_<result_id>
-        table_info = TableInfo(
-            name=str(TableType.NORMAL).lower()
-            + "_"
-            + local_node.node_id
-            + "_0_"
-            + context_id
-            + "_0",
-            schema_=schema,
-            type_=TableType.NORMAL,
-        )
-        views = [LocalNodesTable(nodes_tables_info={node_mocks[0], table_info})]
-        return views
-
     def test_get_nodes(self):
         class LocalNodesTable:
             def __init__(self, node_ids: List[str]):

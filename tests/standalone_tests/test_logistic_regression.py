@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from sklearn.linear_model import LogisticRegression as LogisticRegressionSKL
 
-from exareme2.algorithms.in_database.logistic_regression import LogisticRegression
+from exareme2.algorithms.exareme2.logistic_regression import LogisticRegression
 from tests.standalone_tests.test_linear_regression import InMemoryExecutionEngine
 
 np.random.seed(1)

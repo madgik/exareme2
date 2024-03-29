@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from exareme2.algorithms.in_database.preprocessing import LabelBinarizer
+from exareme2.algorithms.exareme2.preprocessing import LabelBinarizer
 
 
 @pytest.fixture

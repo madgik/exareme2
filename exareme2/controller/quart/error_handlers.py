@@ -5,16 +5,14 @@ from quart import Blueprint
 
 from exareme2.controller.logger import get_background_service_logger
 from exareme2.controller.services.api.algorithm_request_validator import BadRequest
-from exareme2.controller.services.in_database.controller import NodeTaskTimeoutException
-from exareme2.controller.services.in_database.controller import (
-    NodeUnresponsiveException,
-)
+from exareme2.controller.services.exareme2.controller import NodeTaskTimeoutException
+from exareme2.controller.services.exareme2.controller import NodeUnresponsiveException
 from exareme2.data_filters import FilterError
-from exareme2.node_communication import BadUserInput
-from exareme2.node_communication import DataModelUnavailable
-from exareme2.node_communication import DatasetUnavailable
-from exareme2.node_communication import InsufficientDataError
 from exareme2.smpc_cluster_communication import SMPCUsageError
+from exareme2.worker_communication import BadUserInput
+from exareme2.worker_communication import DataModelUnavailable
+from exareme2.worker_communication import DatasetUnavailable
+from exareme2.worker_communication import InsufficientDataError
 
 error_handlers = Blueprint("error_handlers", __name__)
 

@@ -38,7 +38,7 @@ def cli():
     """
     This is a log aggregation script.
     It can be used either in a local hospital node to show database actions or in the federation master node
-    to show information for all the federation nodes.
+    to show information for all the federation workers.
     """
     pass
 
@@ -46,7 +46,7 @@ def cli():
 @cli.command()
 @click.option("--ip", default="127.0.0.1", help="The ip of the database.")
 @click.option("--port", default=50000, type=int, help="The port of the database.")
-def show_node_db_actions(ip, port):
+def show_worker_db_actions(ip, port):
     with db_cursor(ip, port) as cur:
         cur.execute(f"select * from {DB_METADATA_SCHEMA}.{ACTIONS_TABLE};")
         results = cur.fetchall()
@@ -72,35 +72,37 @@ LOG_FILE_CHUNK_SIZE = 1024  # Will read the logfile in chunks
 TIMESTAMP_REGEX = (
     r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}"  # 2022-04-13 18:25:22,875
 )
-NODE_JOINED_PATTERN = (
-    rf"({TIMESTAMP_REGEX}) .* Node with id '(.*)' joined the federation.$"
+WORKER_JOINED_PATTERN = (
+    rf"({TIMESTAMP_REGEX}) .* Worker with id '(.*)' joined the federation.$"
 )
-NODE_LEFT_PATTERN = rf"({TIMESTAMP_REGEX}) .* Node with id '(.*)' left the federation.$"
+WORKER_LEFT_PATTERN = (
+    rf"({TIMESTAMP_REGEX}) .* Worker with id '(.*)' left the federation.$"
+)
 DATA_MODEL_ADDED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Datamodel '(.*)' was added.$"
 DATA_MODEL_REMOVED_PATTERN = rf"({TIMESTAMP_REGEX}) .* Datamodel '(.*)' was removed.$"
 
 DATASET_ADDED_PATTERN = (
     rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' was "
-    r"added in node '(.*)'.$"
+    r"added in worker '(.*)'.$"
 )
 
 DATASET_REMOVED_PATTERN = (
     rf"({TIMESTAMP_REGEX}) .* Dataset '(.*)' of datamodel '(.*)' "
-    r"was removed from node '(.*)'.$"
+    r"was removed from worker '(.*)'.$"
 )
 
 EXPERIMENT_EXECUTION_PATTERN = (
     rf"({TIMESTAMP_REGEX}) .* Experiment with request id '(.*)' "
     r"and context id '(.*)' is starting algorithm '(.*)', touching datasets '(.*)' on local "
-    r"nodes '(.*)' with parameters '(.*)'.$"
+    r"workers '(.*)' with parameters '(.*)'.$"
 )
 
 
 def print_audit_entry(log_line):
-    if pattern_groups := re.search(NODE_JOINED_PATTERN, log_line):
-        print(f"{pattern_groups.group(1)} - NODE_JOINED - {pattern_groups.group(2)}")
-    elif pattern_groups := re.search(NODE_LEFT_PATTERN, log_line):
-        print(f"{pattern_groups.group(1)} - NODE_LEFT - {pattern_groups.group(2)}")
+    if pattern_groups := re.search(WORKER_JOINED_PATTERN, log_line):
+        print(f"{pattern_groups.group(1)} - WORKER_JOINED - {pattern_groups.group(2)}")
+    elif pattern_groups := re.search(WORKER_LEFT_PATTERN, log_line):
+        print(f"{pattern_groups.group(1)} - WORKER_LEFT - {pattern_groups.group(2)}")
     elif pattern_groups := re.search(DATA_MODEL_ADDED_PATTERN, log_line):
         print(
             f"{pattern_groups.group(1)} - DATAMODEL_ADDED - {pattern_groups.group(2)}"

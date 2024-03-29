@@ -5,18 +5,18 @@ import pytest
 
 pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
 
-from exareme2.algorithms.in_database.udfgen import LiteralArg
-from exareme2.algorithms.in_database.udfgen import TensorArg
-from exareme2.algorithms.in_database.udfgen import TensorBinaryOp
-from exareme2.algorithms.in_database.udfgen import UDFGenTableResult
-from exareme2.algorithms.in_database.udfgen import generate_udf_queries
-from exareme2.algorithms.in_database.udfgen import get_matrix_transpose_template
-from exareme2.algorithms.in_database.udfgen import get_tensor_binary_op_template
+from exareme2.algorithms.exareme2.udfgen import LiteralArg
+from exareme2.algorithms.exareme2.udfgen import TensorArg
+from exareme2.algorithms.exareme2.udfgen import TensorBinaryOp
+from exareme2.algorithms.exareme2.udfgen import UDFGenTableResult
+from exareme2.algorithms.exareme2.udfgen import generate_udf_queries
+from exareme2.algorithms.exareme2.udfgen import get_matrix_transpose_template
+from exareme2.algorithms.exareme2.udfgen import get_tensor_binary_op_template
 from exareme2.datatypes import DType
-from exareme2.node_communication import ColumnInfo
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.worker_communication import ColumnInfo
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
 from tests.standalone_tests.udfgen.test_udfgenerator import TestUDFGenBase
 
 

@@ -4,14 +4,14 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
-from exareme2.algorithms.in_database.specifications import InputDataSpecification
-from exareme2.algorithms.in_database.specifications import InputDataSpecifications
-from exareme2.algorithms.in_database.specifications import InputDataStatType
-from exareme2.algorithms.in_database.specifications import InputDataType
-from exareme2.algorithms.in_database.specifications import ParameterEnumSpecification
-from exareme2.algorithms.in_database.specifications import ParameterSpecification
-from exareme2.algorithms.in_database.specifications import TransformerSpecification
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.specifications import ParameterEnumSpecification
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import TransformerSpecification
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
@@ -25,9 +25,9 @@ from exareme2.controller.services.node_landscape_aggregator import (
     NodeLandscapeAggregator,
 )
 from exareme2.data_filters import validate_filter
-from exareme2.node_communication import BadUserInput
-from exareme2.node_communication import CommonDataElement
 from exareme2.smpc_cluster_communication import validate_smpc_usage
+from exareme2.worker_communication import BadUserInput
+from exareme2.worker_communication import CommonDataElement
 
 
 class BadRequest(Exception):

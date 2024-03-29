@@ -40,10 +40,10 @@ def get_parametrization_list_success_cases():
 def test_local_global_step_algorithms(
     algorithm_name,
     request_dict,
-    localnode1_node_service,
-    load_data_localnode1,
-    globalnode_node_service,
-    controller_service_with_localnode1,
+    localworker1_worker_service,
+    load_data_localworker1,
+    globalworker_worker_service,
+    controller_service_with_localworker1,
 ):
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
 

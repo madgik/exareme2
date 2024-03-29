@@ -1,15 +1,15 @@
 import pytest
 
-from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
-from exareme2.algorithms.in_database.specifications import InputDataSpecification
-from exareme2.algorithms.in_database.specifications import InputDataSpecifications
-from exareme2.algorithms.in_database.specifications import InputDataStatType
-from exareme2.algorithms.in_database.specifications import InputDataType
-from exareme2.algorithms.in_database.specifications import ParameterEnumSpecification
-from exareme2.algorithms.in_database.specifications import ParameterEnumType
-from exareme2.algorithms.in_database.specifications import ParameterSpecification
-from exareme2.algorithms.in_database.specifications import ParameterType
-from exareme2.algorithms.in_database.specifications import TransformerSpecification
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.specifications import ParameterEnumSpecification
+from exareme2.algorithms.specifications import ParameterEnumType
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import ParameterType
+from exareme2.algorithms.specifications import TransformerSpecification
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
@@ -26,9 +26,9 @@ from exareme2.controller.services.node_landscape_aggregator import (
     NodeLandscapeAggregator,
 )
 from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
-from exareme2.node_communication import BadUserInput
-from exareme2.node_communication import CommonDataElement
-from exareme2.node_communication import CommonDataElements
+from exareme2.worker_communication import BadUserInput
+from exareme2.worker_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElements
 
 
 @pytest.fixture

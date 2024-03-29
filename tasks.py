@@ -8,13 +8,13 @@ in this script, is targeted to the specifics of the development deployment proce
 This script deploys all the containers and api natively on your machine.
 It deploys the containers on different ports and then configures the api to use the appropriate ports.
 
-A node service uses a configuration file either on the default location './exareme2/node/config.toml'
-or in the location of the env variable 'EXAREME2_NODE_CONFIG_FILE', if the env variable is set.
+A worker service uses a configuration file either on the default location './exareme2/worker/config.toml'
+or in the location of the env variable 'EXAREME2_WORKER_CONFIG_FILE', if the env variable is set.
 This deployment script used for development, uses the env variable logic, therefore before deploying each
-node service the env variable is changed to the location of the node api' config file.
+worker service the env variable is changed to the location of the worker api' config file.
 
-In order for this script's celery to work the './configs/nodes' folder should contain all the node's config files
-following the './exareme2/node/config.toml' as template.
+In order for this script's celery to work the './configs/workers' folder should contain all the worker's config files
+following the './exareme2/worker/config.toml' as template.
 You can either create the files manually or using a '.deployment.toml' file with the following template
 ```
 ip = "172.17.0.1"
@@ -22,26 +22,26 @@ log_level = "INFO"
 framework_log_level ="INFO"
 monetdb_image = "madgik/exareme2_db:dev1.3"
 
-[[nodes]]
-id = "globalnode"
+[[workers]]
+id = "globalworker"
 monetdb_port=50000
 rabbitmq_port=5670
 
-[[nodes]]
-id = "localnode1"
+[[workers]]
+id = "localworker1"
 monetdb_port=50001
 rabbitmq_port=5671
 
-[[nodes]]
-id = "localnode2"
+[[workers]]
+id = "localworker2"
 monetdb_port=50002
 rabbitmq_port=5672
 ```
 
 and by running the command 'inv create-configs'.
 
-The node api are named after their config file. If a config file is named './configs/nodes/localnode1.toml'
-the node service will be called 'localnode1' and should be referenced using that in the following celery.
+The worker api are named after their config file. If a config file is named './configs/workers/localworker1.toml'
+the worker service will be called 'localworker1' and should be referenced using that in the following celery.
 
 Paths are subject to change so in the following documentation the global variables will be used.
 
@@ -66,15 +66,15 @@ from invoke import UnexpectedExit
 from invoke import task
 from termcolor import colored
 
-from exareme2.algorithms.in_database.udfgen import udfio
+from exareme2.algorithms.exareme2.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
-NODES_CONFIG_DIR = PROJECT_ROOT / "configs" / "nodes"
-NODE_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "node" / "config.toml"
+WORKERS_CONFIG_DIR = PROJECT_ROOT / "configs" / "workers"
+WORKER_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "worker" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
-CONTROLLER_LOCALNODES_CONFIG_FILE = (
-    PROJECT_ROOT / "configs" / "controller" / "localnodes_config.json"
+CONTROLLER_LOCALWORKERS_CONFIG_FILE = (
+    PROJECT_ROOT / "configs" / "controller" / "localworkers_config.json"
 )
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "exareme2" / "controller" / "config.toml"
@@ -90,7 +90,7 @@ if not CLEANUP_DIR.exists():
 TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
 ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
-EXAREME2_NODE_CONFIG_FILE = "EXAREME2_NODE_CONFIG_FILE"
+EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
 
 SMPC_COORDINATOR_PORT = 12314
 SMPC_COORDINATOR_DB_PORT = 27017
@@ -111,11 +111,11 @@ SMPC_CLIENT_BASE_NAME = "smpc_client"
 @task
 def create_configs(c):
     """
-    Create the node and controller api config files, using 'DEPLOYMENT_CONFIG_FILE'.
+    Create the worker and controller api config files, using 'DEPLOYMENT_CONFIG_FILE'.
     """
-    if path.exists(NODES_CONFIG_DIR) and path.isdir(NODES_CONFIG_DIR):
-        shutil.rmtree(NODES_CONFIG_DIR)
-    NODES_CONFIG_DIR.mkdir(parents=True)
+    if path.exists(WORKERS_CONFIG_DIR) and path.isdir(WORKERS_CONFIG_DIR):
+        shutil.rmtree(WORKERS_CONFIG_DIR)
+    WORKERS_CONFIG_DIR.mkdir(parents=True)
 
     if not Path(DEPLOYMENT_CONFIG_FILE).is_file():
         raise FileNotFoundError(
@@ -125,71 +125,71 @@ def create_configs(c):
     with open(DEPLOYMENT_CONFIG_FILE) as fp:
         deployment_config = toml.load(fp)
 
-    with open(NODE_CONFIG_TEMPLATE_FILE) as fp:
-        template_node_config = toml.load(fp)
+    with open(WORKER_CONFIG_TEMPLATE_FILE) as fp:
+        template_worker_config = toml.load(fp)
 
-    for node in deployment_config["nodes"]:
-        node_config = copy.deepcopy(template_node_config)
+    for worker in deployment_config["workers"]:
+        worker_config = copy.deepcopy(template_worker_config)
 
-        node_config["identifier"] = node["id"]
-        node_config["role"] = node["role"]
-        node_config["log_level"] = deployment_config["log_level"]
-        node_config["framework_log_level"] = deployment_config["framework_log_level"]
+        worker_config["identifier"] = worker["id"]
+        worker_config["role"] = worker["role"]
+        worker_config["log_level"] = deployment_config["log_level"]
+        worker_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-        node_config["monetdb"]["ip"] = deployment_config["ip"]
-        node_config["monetdb"]["port"] = node["monetdb_port"]
-        node_config["monetdb"]["local_username"] = node["local_monetdb_username"]
-        node_config["monetdb"]["local_password"] = node["local_monetdb_password"]
-        node_config["monetdb"]["public_username"] = node["public_monetdb_username"]
-        node_config["monetdb"]["public_password"] = node["public_monetdb_password"]
+        worker_config["monetdb"]["ip"] = deployment_config["ip"]
+        worker_config["monetdb"]["port"] = worker["monetdb_port"]
+        worker_config["monetdb"]["local_username"] = worker["local_monetdb_username"]
+        worker_config["monetdb"]["local_password"] = worker["local_monetdb_password"]
+        worker_config["monetdb"]["public_username"] = worker["public_monetdb_username"]
+        worker_config["monetdb"]["public_password"] = worker["public_monetdb_password"]
 
-        node_config["rabbitmq"]["ip"] = deployment_config["ip"]
-        node_config["rabbitmq"]["port"] = node["rabbitmq_port"]
+        worker_config["rabbitmq"]["ip"] = deployment_config["ip"]
+        worker_config["rabbitmq"]["port"] = worker["rabbitmq_port"]
 
-        node_config["celery"]["tasks_timeout"] = deployment_config[
+        worker_config["celery"]["tasks_timeout"] = deployment_config[
             "celery_tasks_timeout"
         ]
-        node_config["celery"]["run_udf_task_timeout"] = deployment_config[
+        worker_config["celery"]["run_udf_task_timeout"] = deployment_config[
             "celery_run_udf_task_timeout"
         ]
 
-        node_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
+        worker_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
             "minimum_row_count"
         ]
-        if node["role"] == "GLOBALNODE":
-            node_config["privacy"]["protect_local_data"] = False
+        if worker["role"] == "GLOBALWORKER":
+            worker_config["privacy"]["protect_local_data"] = False
         else:
-            node_config["privacy"]["protect_local_data"] = deployment_config["privacy"][
-                "protect_local_data"
-            ]
+            worker_config["privacy"]["protect_local_data"] = deployment_config[
+                "privacy"
+            ]["protect_local_data"]
 
-        node_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
-        if node_config["smpc"]["enabled"]:
-            node_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
+        worker_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
+        if worker_config["smpc"]["enabled"]:
+            worker_config["smpc"]["optional"] = deployment_config["smpc"]["optional"]
             if coordinator_ip := deployment_config["smpc"].get("coordinator_ip"):
-                if node["role"] == "GLOBALNODE":
-                    node_config["smpc"][
+                if worker["role"] == "GLOBALWORKER":
+                    worker_config["smpc"][
                         "coordinator_address"
                     ] = f"http://{coordinator_ip}:{SMPC_COORDINATOR_PORT}"
                 else:
-                    node_config["smpc"]["client_id"] = node["smpc_client_id"]
-                    node_config["smpc"][
+                    worker_config["smpc"]["client_id"] = worker["smpc_client_id"]
+                    worker_config["smpc"][
                         "client_address"
-                    ] = f"http://{coordinator_ip}:{node['smpc_client_port']}"
+                    ] = f"http://{coordinator_ip}:{worker['smpc_client_port']}"
             else:
-                if node["role"] == "GLOBALNODE":
-                    node_config["smpc"][
+                if worker["role"] == "GLOBALWORKER":
+                    worker_config["smpc"][
                         "coordinator_address"
                     ] = f"http://{deployment_config['ip']}:{SMPC_COORDINATOR_PORT}"
                 else:
-                    node_config["smpc"]["client_id"] = node["id"]
-                    node_config["smpc"][
+                    worker_config["smpc"]["client_id"] = worker["id"]
+                    worker_config["smpc"][
                         "client_address"
-                    ] = f"http://{deployment_config['ip']}:{node['smpc_client_port']}"
+                    ] = f"http://{deployment_config['ip']}:{worker['smpc_client_port']}"
 
-        node_config_file = NODES_CONFIG_DIR / f"{node['id']}.toml"
-        with open(node_config_file, "w+") as fp:
-            toml.dump(node_config, fp)
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker['id']}.toml"
+        with open(worker_config_file, "w+") as fp:
+            toml.dump(worker_config, fp)
 
     # Create the controller config file
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
@@ -212,16 +212,16 @@ def create_configs(c):
     ]
     controller_config["deployment_type"] = "LOCAL"
 
-    controller_config["localnodes"]["config_file"] = str(
-        CONTROLLER_LOCALNODES_CONFIG_FILE
+    controller_config["localworkers"]["config_file"] = str(
+        CONTROLLER_LOCALWORKERS_CONFIG_FILE
     )
-    controller_config["localnodes"]["dns"] = ""
-    controller_config["localnodes"]["port"] = ""
+    controller_config["localworkers"]["dns"] = ""
+    controller_config["localworkers"]["port"] = ""
 
     controller_config["cleanup"]["contextids_cleanup_folder"] = str(CLEANUP_DIR)
-    controller_config["cleanup"]["nodes_cleanup_interval"] = deployment_config[
+    controller_config["cleanup"]["workers_cleanup_interval"] = deployment_config[
         "cleanup"
-    ]["nodes_cleanup_interval"]
+    ]["workers_cleanup_interval"]
     controller_config["cleanup"]["contextid_release_timelimit"] = deployment_config[
         "cleanup"
     ]["contextid_release_timelimit"]
@@ -261,13 +261,13 @@ def create_configs(c):
     with open(controller_config_file, "w+") as fp:
         toml.dump(controller_config, fp)
 
-    # Create the controller localnodes config file
-    localnodes_addresses = [
-        f"{deployment_config['ip']}:{node['rabbitmq_port']}"
-        for node in deployment_config["nodes"]
+    # Create the controller localworkers config file
+    localworkers_addresses = [
+        f"{deployment_config['ip']}:{worker['rabbitmq_port']}"
+        for worker in deployment_config["workers"]
     ]
-    with open(CONTROLLER_LOCALNODES_CONFIG_FILE, "w+") as fp:
-        json.dump(localnodes_addresses, fp)
+    with open(CONTROLLER_LOCALWORKERS_CONFIG_FILE, "w+") as fp:
+        json.dump(localworkers_addresses, fp)
 
 
 @task
@@ -314,14 +314,14 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=Fa
             message(f"No {name} container to remove.", level=Level.HEADER)
 
 
-@task(iterable=["node"])
+@task(iterable=["worker"])
 def create_monetdb(
-    c, node, image=None, log_level=None, nclients=None, monetdb_memory_limit=None
+    c, worker, image=None, log_level=None, nclients=None, monetdb_memory_limit=None
 ):
     """
-    (Re)Create MonetDB container(s) for given node(s). If the container exists, it will remove it and create it again.
+    (Re)Create MonetDB container(s) for given worker(s). If the container exists, it will remove it and create it again.
 
-    :param node: A list of nodes for which it will create the monetdb containers.
+    :param worker: A list of workers for which it will create the monetdb containers.
     :param image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
     :param log_level: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
     :param nclients: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
@@ -331,8 +331,8 @@ def create_monetdb(
 
     The data of the monetdb container are not persisted. If the container is recreated, all data will be lost.
     """
-    if not node:
-        message("Please specify a node using --node <node>", Level.WARNING)
+    if not worker:
+        message("Please specify a worker using --worker <worker>", Level.WARNING)
         sys.exit(1)
 
     if not image:
@@ -351,18 +351,18 @@ def create_monetdb(
 
     udfio_full_path = path.abspath(udfio.__file__)
 
-    node_ids = node
-    for node_id in node_ids:
-        container_name = f"monetdb-{node_id}"
+    worker_ids = worker
+    for worker_id in worker_ids:
+        container_name = f"monetdb-{worker_id}"
         rm_containers(c, container_name=container_name)
 
-        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with open(node_config_file) as fp:
-            node_config = toml.load(fp)
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+        with open(worker_config_file) as fp:
+            worker_config = toml.load(fp)
         monetdb_nclient_env_var = ""
-        if node_config["role"] == "GLOBALNODE":
+        if worker_config["role"] == "GLOBALWORKER":
             monetdb_nclient_env_var = f"-e MONETDB_NCLIENTS={nclients}"
-        container_ports = f"{node_config['monetdb']['port']}:50000"
+        container_ports = f"{worker_config['monetdb']['port']}:50000"
         message(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
@@ -402,34 +402,36 @@ def load_data(c, use_sockets=False, port=None):
     """
     Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
-    :param port: A list of ports, in which it will load the data. If not set, it will use the `NODES_CONFIG_DIR` files.
+    :param port: A list of ports, in which it will load the data. If not set, it will use the `WORKERS_CONFIG_DIR` files.
     :param use_sockets: Flag that determine if the data will be loaded via sockets or not.
     """
 
-    local_node_ports = port
-    if not local_node_ports:
-        config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
+    local_worker_ports = port
+    if not local_worker_ports:
+        config_files = [
+            WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)
+        ]
         if not config_files:
             message(
-                f"There are no node config files to be used for data import. Folder: {NODES_CONFIG_DIR}",
+                f"There are no worker config files to be used for data import. Folder: {WORKERS_CONFIG_DIR}",
                 Level.WARNING,
             )
             sys.exit(1)
 
-        local_node_ports = []
-        for node_config_file in config_files:
-            with open(node_config_file) as fp:
-                node_config = toml.load(fp)
-            if node_config["role"] == "LOCALNODE":
-                local_node_ports.append(node_config["monetdb"]["port"])
+        local_worker_ports = []
+        for worker_config_file in config_files:
+            with open(worker_config_file) as fp:
+                worker_config = toml.load(fp)
+            if worker_config["role"] == "LOCALWORKER":
+                local_worker_ports.append(worker_config["monetdb"]["port"])
 
-    local_node_ports = sorted(local_node_ports)
+    local_worker_ports = sorted(local_worker_ports)
 
-    if len(local_node_ports) == 1:
-        port = local_node_ports[0]
+    if len(local_worker_ports) == 1:
+        port = local_worker_ports[0]
         cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
         message(
-            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_node_ports[0]}...",
+            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_worker_ports[0]}...",
             Level.HEADER,
         )
         run(c, cmd)
@@ -446,7 +448,7 @@ def load_data(c, use_sockets=False, port=None):
             data_model_code = data_model_metadata["code"]
             data_model_version = data_model_metadata["version"]
         cdes_file = data_model_folder / "CDEsMetadata.json"
-        for port in local_node_ports:
+        for port in local_worker_ports:
             message(
                 f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
                 Level.HEADER,
@@ -454,16 +456,16 @@ def load_data(c, use_sockets=False, port=None):
             cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)}"
             run(c, cmd)
 
-        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st node
-        first_node_csvs = sorted(
+        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st worker
+        first_worker_csvs = sorted(
             [
                 data_model_folder / file
                 for file in listdir(data_model_folder)
                 if file.endswith("0.csv") and not file.endswith("10.csv")
             ]
         )
-        for csv in first_node_csvs:
-            port = local_node_ports[0]
+        for csv in first_worker_csvs:
+            port = local_worker_ports[0]
             message(
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
@@ -471,7 +473,7 @@ def load_data(c, use_sockets=False, port=None):
             cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
             run(c, cmd)
 
-        # Load the data model's remaining csvs in the rest of the nodes with round-robin fashion
+        # Load the data model's remaining csvs in the rest of the workers with round-robin fashion
         remaining_csvs = sorted(
             [
                 data_model_folder / file
@@ -479,12 +481,12 @@ def load_data(c, use_sockets=False, port=None):
                 if file.endswith(".csv") and not file.endswith("0.csv")
             ]
         )
-        if len(local_node_ports) > 1:
-            local_node_ports_cycle = itertools.cycle(local_node_ports[1:])
+        if len(local_worker_ports) > 1:
+            local_worker_ports_cycle = itertools.cycle(local_worker_ports[1:])
         else:
-            local_node_ports_cycle = itertools.cycle(local_node_ports)
+            local_worker_ports_cycle = itertools.cycle(local_worker_ports)
         for csv in remaining_csvs:
-            port = next(local_node_ports_cycle)
+            port = next(local_worker_ports_cycle)
             message(
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
@@ -503,17 +505,17 @@ def get_monetdb_configs_in_mipdb_format(port):
     )
 
 
-@task(iterable=["node"])
-def create_rabbitmq(c, node, rabbitmq_image=None):
+@task(iterable=["worker"])
+def create_rabbitmq(c, worker, rabbitmq_image=None):
     """
-    (Re)Create RabbitMQ container(s) of given node(s). If the container exists, remove it and create it again.
+    (Re)Create RabbitMQ container(s) of given worker(s). If the container exists, remove it and create it again.
 
-    :param node: A list of nodes for which to (re)create the rabbitmq containers.
+    :param worker: A list of workers for which to (re)create the rabbitmq containers.
     :param rabbitmq_image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
 
     """
-    if not node:
-        message("Please specify a node using --node <node>", Level.WARNING)
+    if not worker:
+        message("Please specify a worker using --worker <worker>", Level.WARNING)
         sys.exit(1)
 
     if not rabbitmq_image:
@@ -521,16 +523,16 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
 
     get_docker_image(c, rabbitmq_image)
 
-    node_ids = node
-    for node_id in node_ids:
-        container_name = f"rabbitmq-{node_id}"
+    worker_ids = worker
+    for worker_id in worker_ids:
+        container_name = f"rabbitmq-{worker_id}"
         rm_containers(c, container_name=container_name)
 
-        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with open(node_config_file) as fp:
-            node_config = toml.load(fp)
-        queue_port = f"{node_config['rabbitmq']['port']}:5672"
-        api_port = f"{node_config['rabbitmq']['port']+10000}:15672"
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+        with open(worker_config_file) as fp:
+            worker_config = toml.load(fp)
+        queue_port = f"{worker_config['rabbitmq']['port']}:5672"
+        api_port = f"{worker_config['rabbitmq']['port']+10000}:15672"
         message(
             f"Starting container {container_name} on ports {queue_port}...",
             Level.HEADER,
@@ -538,8 +540,8 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
         cmd = f"docker run -d -p {queue_port} -p {api_port} --name {container_name} {rabbitmq_image}"
         run(c, cmd)
 
-    for node_id in node_ids:
-        container_name = f"rabbitmq-{node_id}"
+    for worker_id in worker_ids:
+        container_name = f"rabbitmq-{worker_id}"
 
         cmd = f"docker inspect --format='{{{{json .State.Health}}}}' {container_name}"
         # Wait until rabbitmq is healthy
@@ -561,45 +563,48 @@ def create_rabbitmq(c, node, rabbitmq_image=None):
 
 
 @task
-def kill_node(c, node=None, all_=False):
+def kill_worker(c, worker=None, all_=False):
     """
-    Kill the node(s) service(s).
+    Kill the worker(s) service(s).
 
-    :param node: The node service to kill.
-    :param all_: If set, all node api will be killed.
+    :param worker: The worker service to kill.
+    :param all_: If set, all worker api will be killed.
     """
 
     if all_:
-        node_pattern = ""
-    elif node:
-        node_pattern = node
+        worker_pattern = ""
+    elif worker:
+        worker_pattern = worker
     else:
-        message("Please specify a node using --node <node> or use --all", Level.WARNING)
+        message(
+            "Please specify a worker using --worker <worker> or use --all",
+            Level.WARNING,
+        )
         sys.exit(1)
 
     res_bin = run(
         c,
-        f"ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' ",
+        f"ps aux | grep '[c]elery' | grep 'worker' | grep '{worker_pattern}' ",
         warn=True,
         show_ok=False,
     )
 
     if res_bin.ok:
         message(
-            f"Killing previous celery instance(s) with pattern '{node_pattern}' ...",
+            f"Killing previous celery instance(s) with pattern '{worker_pattern}' ...",
             Level.HEADER,
         )
 
-        # We need to kill the celery worker processes with the "node_pattern", if provided.
-        # First we kill the parent process (celery workers' parent) if there is one, when "node_pattern is provided,
+        # We need to kill the celery worker processes with the "worker_pattern", if provided.
+        # First we kill the parent process (celery workers' parent) if there is one, when "worker_pattern is provided,
         # and then we kill all the celery worker processes with/without a pattern.
         cmd = (
-            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
+            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{worker_pattern}' | awk '{{print $2}}') "
             f"&& pgrep -P $pid | xargs kill -9 "
         )
         run(c, cmd, warn=True, show_ok=False)
         cmd = (
-            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{node_pattern}' | awk '{{print $2}}') "
+            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{worker_pattern}' | awk '{{print $2}}') "
             f"&& kill -9 $pid "
         )
         run(c, cmd, warn=True)
@@ -608,19 +613,19 @@ def kill_node(c, node=None, all_=False):
 
 
 @task
-def start_node(
+def start_worker(
     c,
-    node=None,
+    worker=None,
     all_=False,
     framework_log_level=None,
     detached=False,
     algorithm_folders=None,
 ):
     """
-    (Re)Start the node(s) service(s). If a node service is running, stop and start it again.
+    (Re)Start the worker(s) service(s). If a worker service is running, stop and start it again.
 
-    :param node: The node to start, using the proper file in the `NODES_CONFIG_DIR`.
-    :param all_: If set, the nodes of which the configuration file exists, will be started.
+    :param worker: The worker to start, using the proper file in the `WORKERS_CONFIG_DIR`.
+    :param all_: If set, the workers of which the configuration file exists, will be started.
     :param framework_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
     :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
@@ -638,28 +643,28 @@ def start_node(
             "The algorithm_folders configuration must be a comma separated string."
         )
 
-    node_ids = get_node_ids(all_, node)
-    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
+    worker_ids = get_worker_ids(all_, worker)
+    worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
 
-    for node_id in node_ids:
-        kill_node(c, node_id)
+    for worker_id in worker_ids:
+        kill_worker(c, worker_id)
 
-        message(f"Starting Node {node_id}...", Level.HEADER)
-        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
+        message(f"Starting Worker {worker_id}...", Level.HEADER)
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
         with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
-            with c.prefix(f"export {EXAREME2_NODE_CONFIG_FILE}={node_config_file}"):
-                outpath = OUTDIR / (node_id + ".out")
+            with c.prefix(f"export {EXAREME2_WORKER_CONFIG_FILE}={worker_config_file}"):
+                outpath = OUTDIR / (worker_id + ".out")
                 if detached or all_:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A exareme2.node.celery_tasks.app worker -l {framework_log_level} > {outpath} "
+                        f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
                         f"--pool=eventlet --purge 2>&1"
                     )
                     run(c, cmd, wait=False)
                 else:
                     cmd = (
                         f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"exareme2.node.celery_tasks.app worker -l {framework_log_level} --pool=eventlet --purge"
+                        f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
                     )
                     run(c, cmd, attach_=True)
 
@@ -716,7 +721,7 @@ def deploy(
     install_dep=True,
     start_all=True,
     start_controller_=False,
-    start_nodes=False,
+    start_workers=False,
     log_level=None,
     framework_log_level=None,
     monetdb_image=None,
@@ -728,9 +733,9 @@ def deploy(
     Install dependencies, (re)create all the containers and (re)start all the api.
 
     :param install_dep: Install dependencies or not.
-    :param start_all: Start all node/controller api flag.
+    :param start_all: Start all worker/controller api flag.
     :param start_controller_: Start controller api flag.
-    :param start_nodes: Start all nodes flag.
+    :param start_workers: Start all workers flag.
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
@@ -760,38 +765,38 @@ def deploy(
     if install_dep:
         install_dependencies(c)
 
-    # Start NODE api
-    config_files = [NODES_CONFIG_DIR / file for file in listdir(NODES_CONFIG_DIR)]
+    # Start WORKER api
+    config_files = [WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)]
     if not config_files:
         message(
-            f"There are no node config files to be used for deployment. Folder: {NODES_CONFIG_DIR}",
+            f"There are no worker config files to be used for deployment. Folder: {WORKERS_CONFIG_DIR}",
             Level.WARNING,
         )
         sys.exit(1)
 
-    node_ids = []
-    local_nodes_monetdb_ports = []
-    for node_config_file in config_files:
-        with open(node_config_file) as fp:
-            node_config = toml.load(fp)
-        node_ids.append(node_config["identifier"])
-        if node_config["role"] == "LOCALNODE":
-            local_nodes_monetdb_ports.append(node_config["monetdb"]["port"])
+    worker_ids = []
+    local_workers_monetdb_ports = []
+    for worker_config_file in config_files:
+        with open(worker_config_file) as fp:
+            worker_config = toml.load(fp)
+        worker_ids.append(worker_config["identifier"])
+        if worker_config["role"] == "LOCALWORKER":
+            local_workers_monetdb_ports.append(worker_config["monetdb"]["port"])
 
-    node_ids.sort()  # Sorting the ids protects removing a similarly named id, localnode1 would remove localnode10.
+    worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
 
     create_monetdb(
         c,
-        node=node_ids,
+        worker=worker_ids,
         image=monetdb_image,
         log_level=log_level,
         nclients=monetdb_nclients,
     )
-    create_rabbitmq(c, node=node_ids)
-    init_monetdb(c, port=local_nodes_monetdb_ports)
+    create_rabbitmq(c, worker=worker_ids)
+    init_monetdb(c, port=local_workers_monetdb_ports)
 
-    if start_nodes or start_all:
-        start_node(
+    if start_workers or start_all:
+        start_worker(
             c,
             all_=True,
             framework_log_level=framework_log_level,
@@ -808,31 +813,31 @@ def deploy(
 
 
 @task
-def attach(c, node=None, controller=False, db=None):
+def attach(c, worker=None, controller=False, db=None):
     """
-    Attach to a node/controller service or a db container.
+    Attach to a worker/controller service or a db container.
 
-    :param node: The node service name to which to attach.
+    :param worker: The worker service name to which to attach.
     :param controller: Attach to controller flag.
     :param db: The db container name to which to attach.
     """
-    if (node or controller) and not (node and controller):
-        fname = node or "controller"
+    if (worker or controller) and not (worker and controller):
+        fname = worker or "controller"
         outpath = OUTDIR / (fname + ".out")
         cmd = f"tail -f {outpath}"
         run(c, cmd, attach_=True)
     elif db:
         run(c, f"docker exec -it {db} mclient db", attach_=True)
     else:
-        message("You must attach to Node, Controller or DB", Level.WARNING)
+        message("You must attach to Worker, Controller or DB", Level.WARNING)
         sys.exit(1)
 
 
 @task
 def cleanup(c):
-    """Kill all node/controller api and remove all monetdb/rabbitmq containers."""
+    """Kill all worker/controller api and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
-    kill_node(c, all_=True)
+    kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
@@ -849,42 +854,44 @@ def cleanup(c):
 
 
 @task
-def start_flower(c, node=None, all_=False):
+def start_flower(c, worker=None, all_=False):
     """
     (Re)Start flower monitoring tool. If flower is already running, stop ir and start it again.
 
-    :param node: The node service, for which to create the flower monitoring.
-    :param all_: If set, it will create monitoring for all node api in the `NODES_CONFIG_DIR`.
+    :param worker: The worker service, for which to create the flower monitoring.
+    :param all_: If set, it will create monitoring for all worker api in the `WORKERS_CONFIG_DIR`.
     """
 
     kill_all_flowers(c)
 
     FLOWER_PORT = 5550
 
-    node_ids = get_node_ids(all_, node)
-    node_ids.sort()
+    worker_ids = get_worker_ids(all_, worker)
+    worker_ids.sort()
 
-    for node_id in node_ids:
-        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with open(node_config_file) as fp:
-            node_config = toml.load(fp)
+    for worker_id in worker_ids:
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+        with open(worker_config_file) as fp:
+            worker_config = toml.load(fp)
 
-        ip = node_config["rabbitmq"]["ip"]
-        port = node_config["rabbitmq"]["port"]
+        ip = worker_config["rabbitmq"]["ip"]
+        port = worker_config["rabbitmq"]["port"]
         api_port = port + 10000
         user_and_password = (
-            node_config["rabbitmq"]["user"] + ":" + node_config["rabbitmq"]["password"]
+            worker_config["rabbitmq"]["user"]
+            + ":"
+            + worker_config["rabbitmq"]["password"]
         )
-        vhost = node_config["rabbitmq"]["vhost"]
+        vhost = worker_config["rabbitmq"]["vhost"]
         flower_url = ip + ":" + str(port)
         broker = f"amqp://{user_and_password}@{flower_url}/{vhost}"
         broker_api = f"http://{user_and_password}@{ip + ':' + str(api_port)}/api/"
 
-        flower_index = node_ids.index(node_id)
+        flower_index = worker_ids.index(worker_id)
         flower_port = FLOWER_PORT + flower_index
 
-        message(f"Starting flower container for node {node_id}...", Level.HEADER)
-        command = f"docker run --name flower-{node_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker} --broker-api={broker_api}"
+        message(f"Starting flower container for worker {worker_id}...", Level.HEADER)
+        command = f"docker run --name flower-{worker_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker} --broker-api={broker_api}"
         run(c, command)
         cmd = "docker ps | grep '[f]lower'"
         run(c, cmd, warn=True, show_ok=False)
@@ -1032,13 +1039,13 @@ def start_smpc_players(c, ip=None, image=None):
         start_smpc_player(c, ip, i, image)
 
 
-def start_smpc_client(c, node_id, ip, image):
-    node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-    with open(node_config_file) as fp:
-        node_config = toml.load(fp)
+def start_smpc_client(c, worker_id, ip, image):
+    worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+    with open(worker_config_file) as fp:
+        worker_config = toml.load(fp)
 
-    client_id = node_config["smpc"]["client_id"]
-    client_port = node_config["smpc"]["client_address"].split(":")[
+    client_id = worker_config["smpc"]["client_id"]
+    client_port = worker_config["smpc"]["client_address"].split(":")[
         2
     ]  # Get the port from the address e.g. 'http://172.17.0.1:9000'
 
@@ -1079,8 +1086,8 @@ def start_smpc_clients(c, ip=None, image=None):
 
     rm_containers(c, container_name="smpc_client")
 
-    for node_id in get_localnode_ids():
-        start_smpc_client(c, node_id, ip, image)
+    for worker_id in get_localworker_ids():
+        start_smpc_client(c, worker_id, ip, image)
 
 
 @task
@@ -1211,39 +1218,42 @@ def get_deployment_config(config, subconfig=None):
         return toml.load(fp)[config]
 
 
-def get_node_ids(all_=False, node=None):
-    node_ids = []
+def get_worker_ids(all_=False, worker=None):
+    worker_ids = []
     if all_:
-        for node_config_file in listdir(NODES_CONFIG_DIR):
-            filename = Path(node_config_file).stem
-            node_ids.append(filename)
-    elif node:
-        node_config_file = NODES_CONFIG_DIR / f"{node}.toml"
-        if not Path(node_config_file).is_file():
+        for worker_config_file in listdir(WORKERS_CONFIG_DIR):
+            filename = Path(worker_config_file).stem
+            worker_ids.append(filename)
+    elif worker:
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker}.toml"
+        if not Path(worker_config_file).is_file():
             message(
-                f"The configuration file for node '{node}', does not exist in directory '{NODES_CONFIG_DIR}'",
+                f"The configuration file for worker '{worker}', does not exist in directory '{WORKERS_CONFIG_DIR}'",
                 Level.ERROR,
             )
             sys.exit(1)
-        filename = Path(node_config_file).stem
-        node_ids.append(filename)
+        filename = Path(worker_config_file).stem
+        worker_ids.append(filename)
     else:
-        message("Please specify a node using --node <node> or use --all", Level.WARNING)
+        message(
+            "Please specify a worker using --worker <worker> or use --all",
+            Level.WARNING,
+        )
         sys.exit(1)
 
-    return node_ids
+    return worker_ids
 
 
-def get_localnode_ids():
-    all_node_ids = get_node_ids(all_=True)
-    local_node_ids = []
-    for node_id in all_node_ids:
-        node_config_file = NODES_CONFIG_DIR / f"{node_id}.toml"
-        with open(node_config_file) as fp:
-            node_config = toml.load(fp)
-        if node_config["role"] == "LOCALNODE":
-            local_node_ids.append(node_id)
-    return local_node_ids
+def get_localworker_ids():
+    all_worker_ids = get_worker_ids(all_=True)
+    local_worker_ids = []
+    for worker_id in all_worker_ids:
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+        with open(worker_config_file) as fp:
+            worker_config = toml.load(fp)
+        if worker_config["role"] == "LOCALWORKER":
+            local_worker_ids.append(worker_id)
+    return local_worker_ids
 
 
 def get_docker_image(c, image, always_pull=False):

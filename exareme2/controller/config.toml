@@ -7,13 +7,13 @@ node_landscape_aggregator_update_interval="$NODE_LANDSCAPE_AGGREGATOR_UPDATE_INT
 
 [cleanup]
 contextids_cleanup_folder="$CLEANUP_FOLDER"
-nodes_cleanup_interval="$NODES_CLEANUP_INTERVAL"
-contextid_release_timelimit="$NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT"
+workers_cleanup_interval="$WORKERS_CLEANUP_INTERVAL"
+contextid_release_timelimit="$WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT"
 
-[localnodes]
-config_file="$LOCALNODES_CONFIG_FILE"
-dns="$LOCALNODES_DNS"
-port="$LOCALNODES_PORT"
+[localworkers]
+config_file="$LOCALWORKERS_CONFIG_FILE"
+dns="$LOCALWORKERS_DNS"
+port="$LOCALWORKERS_PORT"
 
 [rabbitmq]
 user = "user"

@@ -1,12 +1,12 @@
 # type: ignore
 from inspect import cleandoc
 
-from exareme2.algorithms.in_database.udfgen.ast import Column
-from exareme2.algorithms.in_database.udfgen.ast import Join
-from exareme2.algorithms.in_database.udfgen.ast import ScalarFunction
-from exareme2.algorithms.in_database.udfgen.ast import Select
-from exareme2.algorithms.in_database.udfgen.ast import Table
-from exareme2.algorithms.in_database.udfgen.ast import TableFunction
+from exareme2.algorithms.exareme2.udfgen.ast import Column
+from exareme2.algorithms.exareme2.udfgen.ast import Join
+from exareme2.algorithms.exareme2.udfgen.ast import ScalarFunction
+from exareme2.algorithms.exareme2.udfgen.ast import Select
+from exareme2.algorithms.exareme2.udfgen.ast import Table
+from exareme2.algorithms.exareme2.udfgen.ast import TableFunction
 
 
 def test_column_alias():

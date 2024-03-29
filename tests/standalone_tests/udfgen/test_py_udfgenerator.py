@@ -5,41 +5,39 @@ from typing import TypeVar
 
 import pytest
 
-from exareme2.algorithms.in_database.udfgen import DEFERRED
-from exareme2.algorithms.in_database.udfgen import MIN_ROW_COUNT
-from exareme2.algorithms.in_database.udfgen import literal
-from exareme2.algorithms.in_database.udfgen import merge_transfer
-from exareme2.algorithms.in_database.udfgen import relation
-from exareme2.algorithms.in_database.udfgen import secure_transfer
-from exareme2.algorithms.in_database.udfgen import state
-from exareme2.algorithms.in_database.udfgen import tensor
-from exareme2.algorithms.in_database.udfgen import transfer
-from exareme2.algorithms.in_database.udfgen import udf_logger
-from exareme2.algorithms.in_database.udfgen.decorator import UdfRegistry
-from exareme2.algorithms.in_database.udfgen.decorator import udf
-from exareme2.algorithms.in_database.udfgen.iotypes import LiteralArg
-from exareme2.algorithms.in_database.udfgen.iotypes import MergeTensorType
-from exareme2.algorithms.in_database.udfgen.iotypes import RelationArg
-from exareme2.algorithms.in_database.udfgen.iotypes import StateArg
-from exareme2.algorithms.in_database.udfgen.iotypes import TensorArg
-from exareme2.algorithms.in_database.udfgen.iotypes import TransferArg
-from exareme2.algorithms.in_database.udfgen.py_udfgenerator import (
+from exareme2.algorithms.exareme2.udfgen import DEFERRED
+from exareme2.algorithms.exareme2.udfgen import MIN_ROW_COUNT
+from exareme2.algorithms.exareme2.udfgen import literal
+from exareme2.algorithms.exareme2.udfgen import merge_transfer
+from exareme2.algorithms.exareme2.udfgen import relation
+from exareme2.algorithms.exareme2.udfgen import secure_transfer
+from exareme2.algorithms.exareme2.udfgen import state
+from exareme2.algorithms.exareme2.udfgen import tensor
+from exareme2.algorithms.exareme2.udfgen import transfer
+from exareme2.algorithms.exareme2.udfgen import udf_logger
+from exareme2.algorithms.exareme2.udfgen.decorator import UdfRegistry
+from exareme2.algorithms.exareme2.udfgen.decorator import udf
+from exareme2.algorithms.exareme2.udfgen.iotypes import LiteralArg
+from exareme2.algorithms.exareme2.udfgen.iotypes import MergeTensorType
+from exareme2.algorithms.exareme2.udfgen.iotypes import RelationArg
+from exareme2.algorithms.exareme2.udfgen.iotypes import StateArg
+from exareme2.algorithms.exareme2.udfgen.iotypes import TensorArg
+from exareme2.algorithms.exareme2.udfgen.iotypes import TransferArg
+from exareme2.algorithms.exareme2.udfgen.py_udfgenerator import (
     FlowArgsToUdfArgsConverter,
 )
-from exareme2.algorithms.in_database.udfgen.py_udfgenerator import PyUdfGenerator
-from exareme2.algorithms.in_database.udfgen.py_udfgenerator import UDFBadCall
-from exareme2.algorithms.in_database.udfgen.py_udfgenerator import (
-    copy_types_from_udfargs,
-)
-from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenSMPCResult
-from exareme2.algorithms.in_database.udfgen.udfgen_DTOs import UDFGenTableResult
+from exareme2.algorithms.exareme2.udfgen.py_udfgenerator import PyUdfGenerator
+from exareme2.algorithms.exareme2.udfgen.py_udfgenerator import UDFBadCall
+from exareme2.algorithms.exareme2.udfgen.py_udfgenerator import copy_types_from_udfargs
+from exareme2.algorithms.exareme2.udfgen.udfgen_DTOs import UDFGenSMPCResult
+from exareme2.algorithms.exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from exareme2.datatypes import DType
-from exareme2.node.services.in_database.udfs import _get_udf_table_creation_queries
-from exareme2.node_communication import ColumnInfo
-from exareme2.node_communication import SMPCTablesInfo
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.worker.exareme2.udfs.udfs_service import _get_udf_table_creation_queries
+from exareme2.worker_communication import ColumnInfo
+from exareme2.worker_communication import SMPCTablesInfo
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
 
 
 def test_copy_types_from_udfargs():
@@ -207,25 +205,27 @@ class TestUDFGenBase:
         return udf.registry
 
     @pytest.fixture(scope="function")
-    def create_transfer_table(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute("CREATE TABLE test_transfer_table(transfer CLOB)")
-        globalnode_db_cursor.execute(
+    def create_transfer_table(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
+            "CREATE TABLE test_transfer_table(transfer CLOB)"
+        )
+        globalworker_db_cursor.execute(
             "INSERT INTO test_transfer_table(transfer) VALUES('{\"num\":5}')"
         )
 
     @pytest.fixture(scope="function")
-    def create_state_table(self, globalnode_db_cursor):
+    def create_state_table(self, globalworker_db_cursor):
         state = pickle.dumps({"num": 5}).hex()
-        globalnode_db_cursor.execute("CREATE TABLE test_state_table(state BLOB)")
+        globalworker_db_cursor.execute("CREATE TABLE test_state_table(state BLOB)")
         insert_state = f"INSERT INTO test_state_table(state) VALUES('{state}')"
-        globalnode_db_cursor.execute(insert_state)
+        globalworker_db_cursor.execute(insert_state)
 
     @pytest.fixture(scope="function")
-    def create_merge_transfer_table(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_merge_transfer_table(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_merge_transfer_table(transfer CLOB)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             """INSERT INTO test_merge_transfer_table
                  (transfer)
                VALUES
@@ -234,11 +234,11 @@ class TestUDFGenBase:
         )
 
     @pytest.fixture(scope="function")
-    def create_secure_transfer_table(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_secure_transfer_table(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_secure_transfer_table(secure_transfer CLOB)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             """INSERT INTO test_secure_transfer_table
                  (secure_transfer)
                VALUES
@@ -248,50 +248,50 @@ class TestUDFGenBase:
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_template_table_with_sum(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_smpc_template_table_with_sum(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_template_table(secure_transfer CLOB)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             'INSERT INTO test_smpc_template_table(secure_transfer) VALUES(\'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_sum_op_values_table(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_smpc_sum_op_values_table(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_sum_op_values_table(secure_transfer CLOB)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             "INSERT INTO test_smpc_sum_op_values_table(secure_transfer) VALUES('[100,200,300]')"
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_template_table_with_sum_and_max(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_smpc_template_table_with_sum_and_max(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_template_table(secure_transfer CLOB)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             'INSERT INTO test_smpc_template_table(secure_transfer) VALUES(\'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}, '
             '"max": {"data": 0, "operation": "max", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
-    def create_smpc_max_op_values_table(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_smpc_max_op_values_table(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_max_op_values_table(secure_transfer CLOB)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             "INSERT INTO test_smpc_max_op_values_table(secure_transfer) VALUES('[58]')"
         )
 
     # TODO Should become more dynamic in the future.
     # It should receive a TableInfo object as input and maybe data as well.
     @pytest.fixture(scope="function")
-    def create_tensor_table(self, globalnode_db_cursor):
-        globalnode_db_cursor.execute(
+    def create_tensor_table(self, globalworker_db_cursor):
+        globalworker_db_cursor.execute(
             "CREATE TABLE tensor_in_db(dim0 INT, dim1 INT, val INT)"
         )
-        globalnode_db_cursor.execute(
+        globalworker_db_cursor.execute(
             """INSERT INTO tensor_in_db
                  (dim0, dim1, val)
                VALUES
@@ -303,15 +303,15 @@ class TestUDFGenBase:
     @pytest.fixture(scope="function")
     def execute_udf_queries_in_db(
         self,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
         expected_udf_outputs,
         expected_udfdef,
         expected_udfexec,
     ):
         for query in _get_udf_table_creation_queries(expected_udf_outputs):
-            globalnode_db_cursor.execute(query)
-        globalnode_db_cursor.execute(expected_udfdef)
-        globalnode_db_cursor.execute(expected_udfexec)
+            globalworker_db_cursor.execute(query)
+        globalworker_db_cursor.execute(expected_udfdef)
+        globalworker_db_cursor.execute(expected_udfexec)
 
 
 class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
@@ -811,14 +811,14 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database", "create_tensor_table")
+    @pytest.mark.usefixtures("use_globalworker_database", "create_tensor_table")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
         create_tensor_table,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         output_table_values = db.execute("SELECT * FROM __main").fetchall()
 
@@ -2498,13 +2498,13 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database")
+    @pytest.mark.usefixtures("use_globalworker_database")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -2602,13 +2602,13 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database", "create_state_table")
+    @pytest.mark.usefixtures("use_globalworker_database", "create_state_table")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -2690,13 +2690,13 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database")
+    @pytest.mark.usefixtures("use_globalworker_database")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
@@ -2795,13 +2795,13 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
+    @pytest.mark.usefixtures("use_globalworker_database", "create_transfer_table")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
@@ -2900,13 +2900,13 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database", "create_transfer_table")
+    @pytest.mark.usefixtures("use_globalworker_database", "create_transfer_table")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -3020,16 +3020,16 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
@@ -3147,16 +3147,16 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_merge_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
@@ -3276,16 +3276,16 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [state] = db.execute("SELECT state FROM __main").fetchone()
         result1 = pickle.loads(state)
@@ -3415,7 +3415,7 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_transfer_table",
         "create_state_table",
     )
@@ -3424,9 +3424,9 @@ FROM
         expected_udf_outputs,
         expected_udfdef,
         expected_udfexec,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
         for output in expected_udf_outputs:
             db.execute(output.create_query)
         db.execute(expected_udfdef)
@@ -3566,16 +3566,16 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_merge_transfer_table",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [state_] = db.execute("SELECT state FROM __main").fetchone()
         result1 = pickle.loads(state_)
@@ -3689,15 +3689,15 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         secure_transfer_, *_ = db.execute(
             "SELECT secure_transfer FROM __main"
@@ -3825,15 +3825,15 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         template_str, *_ = db.execute("SELECT secure_transfer FROM __main").fetchone()
         template = json.loads(template_str)
@@ -3966,15 +3966,15 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         secure_transfer_, *_ = db.execute(
             "SELECT secure_transfer FROM __lt0"
@@ -4127,15 +4127,15 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_state_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         template_str, *_ = db.execute("SELECT secure_transfer FROM __lt0").fetchone()
         template = json.loads(template_str)
@@ -4258,15 +4258,15 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_secure_transfer_table",
     )
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         transfer, *_ = db.execute("SELECT transfer FROM __main").fetchone()
         result = json.loads(transfer)
@@ -4387,7 +4387,7 @@ FROM
     @pytest.mark.slow
     @pytest.mark.database
     @pytest.mark.usefixtures(
-        "use_globalnode_database",
+        "use_globalworker_database",
         "create_smpc_template_table_with_sum_and_max",
         "create_smpc_sum_op_values_table",
         "create_smpc_max_op_values_table",
@@ -4395,9 +4395,9 @@ FROM
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         transfer, *_ = db.execute("SELECT transfer FROM __main").fetchone()
         result = json.loads(transfer)
@@ -4487,13 +4487,13 @@ FROM
 
     @pytest.mark.slow
     @pytest.mark.database
-    @pytest.mark.usefixtures("use_globalnode_database")
+    @pytest.mark.usefixtures("use_globalworker_database")
     def test_udf_with_db(
         self,
         execute_udf_queries_in_db,
-        globalnode_db_cursor,
+        globalworker_db_cursor,
     ):
-        db = globalnode_db_cursor
+        db = globalworker_db_cursor
 
         [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)

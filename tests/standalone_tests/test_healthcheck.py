@@ -10,8 +10,8 @@ from exareme2.controller.nodes_addresses import NodesAddresses
 from exareme2.controller.nodes_addresses import NodesAddressesFactory
 from exareme2.controller.services import NodeLandscapeAggregator
 from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
-from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_ADDR
-from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKER1_ADDR
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_ADDR
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
@@ -30,18 +30,18 @@ def request_id():
 @pytest.mark.slow
 def test_healthcheck_task(
     request_id,
-    localnode1_node_service,
-    localnode1_celery_app,
+    localworker1_worker_service,
+    localworker1_celery_app,
 ):
     logger = StdOutputLogger()
-    async_result = localnode1_celery_app.queue_task(
+    async_result = localworker1_celery_app.queue_task(
         task_signature=healthcheck_task_signature,
         logger=logger,
         request_id=request_id,
         check_db=True,
     )
     try:
-        localnode1_celery_app.get_result(
+        localworker1_celery_app.get_result(
             async_result=async_result,
             timeout=TASKS_TIMEOUT,
             logger=logger,
@@ -69,11 +69,11 @@ def controller_config():
 
 
 def get_custom_nodes_addresses_localnode1() -> NodesAddresses:
-    return CustomNodeAddresses([RABBITMQ_LOCALNODE1_ADDR])
+    return CustomNodeAddresses([RABBITMQ_LOCALWORKER1_ADDR])
 
 
 def get_custom_nodes_addresses_localnodetmp() -> NodesAddresses:
-    return CustomNodeAddresses([RABBITMQ_LOCALNODETMP_ADDR])
+    return CustomNodeAddresses([RABBITMQ_LOCALWORKERTMP_ADDR])
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -107,7 +107,7 @@ def node_landscape_aggregator(controller_config):
 @pytest.mark.slow
 def test_healthcheck_success(
     patch_nodes_addresses,
-    localnode1_node_service,
+    localworker1_worker_service,
     node_landscape_aggregator,
 ):
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_localnode1

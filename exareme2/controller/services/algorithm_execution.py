@@ -6,7 +6,7 @@ from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmReq
 from exareme2.controller.services.api.algorithm_request_validator import (
     validate_algorithm_request,
 )
-from exareme2.controller.services.in_database import get_controller
+from exareme2.controller.services.exareme2 import get_controller
 from exareme2.controller.uid_generator import UIDGenerator
 
 

@@ -12,10 +12,10 @@ from exareme2.controller.services.node_landscape_aggregator import (
     NodeLandscapeAggregator,
 )
 from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
-from tests.standalone_tests.conftest import GLOBALNODE_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODE1_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODE2_CONFIG_FILE
-from tests.standalone_tests.conftest import LOCALNODETMP_CONFIG_FILE
+from tests.standalone_tests.conftest import GLOBALWORKER_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALWORKER1_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALWORKER2_CONFIG_FILE
+from tests.standalone_tests.conftest import LOCALWORKERTMP_CONFIG_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
 
@@ -111,9 +111,9 @@ def node_landscape_aggregator(controller_config):
 @pytest.mark.slow
 def test_update_loop_data_properly_added(
     patch_nodes_addresses,
-    globalnode_node_service,
-    localnode1_node_service,
-    load_data_localnode1,
+    globalworker_worker_service,
+    localworker1_worker_service,
+    load_data_localworker1,
     node_landscape_aggregator,
 ):
     node_landscape_aggregator.update()
@@ -129,7 +129,7 @@ def test_update_loop_data_properly_added(
 
 @pytest.mark.slow
 def test_update_loop_get_node_info_fail(
-    patch_nodes_addresses, globalnode_node_service, node_landscape_aggregator
+    patch_nodes_addresses, globalworker_worker_service, node_landscape_aggregator
 ):
     patch_nodes_addresses.side_effect = get_custom_nodes_addresses_global_and_tmp
     node_landscape_aggregator.update()
@@ -152,11 +152,11 @@ def test_update_loop_get_node_info_fail(
 @pytest.mark.slow
 def test_update_loop_nodes_properly_added(
     patch_nodes_addresses,
-    globalnode_node_service,
-    localnode1_node_service,
-    load_data_localnode1,
-    localnode2_node_service,
-    load_data_localnode2,
+    globalworker_worker_service,
+    localworker1_worker_service,
+    load_data_localworker1,
+    localworker2_worker_service,
+    load_data_localworker2,
     node_landscape_aggregator,
 ):
     localnode1_node_id = get_localnode1_node_id()
@@ -188,7 +188,7 @@ def test_update_loop_nodes_properly_added(
 
 
 def get_localnode2_node_id():
-    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
+    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER2_CONFIG_FILE)
     with open(local_node_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -196,7 +196,7 @@ def get_localnode2_node_id():
 
 
 def get_localnode1_node_id():
-    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
+    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER1_CONFIG_FILE)
     with open(local_node_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -204,7 +204,7 @@ def get_localnode1_node_id():
 
 
 def get_localnodetmp_node_id():
-    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
+    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKERTMP_CONFIG_FILE)
     with open(local_node_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]
@@ -212,7 +212,7 @@ def get_localnodetmp_node_id():
 
 
 def get_globalnode_node_id():
-    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
+    local_node_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALWORKER_CONFIG_FILE)
     with open(local_node_filepath) as fp:
         tmp = toml.load(fp)
         node_id = tmp["identifier"]

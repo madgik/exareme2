@@ -1,16 +1,16 @@
 import pytest
 
-from exareme2.algorithms.in_database.udfgen import make_unique_func_name
+from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
 from exareme2.controller.celery.node_info_tasks_handler import NodeInfoTasksHandler
-from exareme2.node import config as node_config
-from exareme2.node_communication import NodeInfo
-from exareme2.node_communication import NodeTableDTO
-from exareme2.node_communication import NodeUDFKeyArguments
-from exareme2.node_communication import NodeUDFPosArguments
+from exareme2.worker import config as node_config
+from exareme2.worker_communication import NodeTableDTO
+from exareme2.worker_communication import NodeUDFKeyArguments
+from exareme2.worker_communication import NodeUDFPosArguments
+from exareme2.worker_communication import WorkerInfo
 from tests.algorithms.orphan_udfs import one_second_udf
-from tests.standalone_tests.conftest import RABBITMQ_GLOBALNODE_ADDR
+from tests.standalone_tests.conftest import RABBITMQ_GLOBALWORKER_ADDR
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
 
@@ -46,15 +46,15 @@ def queue_one_second_udf(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_node_info_tasks_have_higher_priority_over_other_tasks(
-    globalnode_node_service,
-    globalnode_db_cursor,
+    globalworker_worker_service,
+    globalworker_db_cursor,
     reset_celery_app_factory,
     get_controller_testing_logger,
 ):
-    cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALNODE_ADDR)
+    cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALWORKER_ADDR)
 
     input_table_name, _ = create_table_with_one_column_and_ten_rows(
-        cel_app_wrapper, globalnode_db_cursor, request_id
+        cel_app_wrapper, globalworker_db_cursor, request_id
     )
 
     # Queue an X amount of udfs to fill the rabbitmq.
@@ -73,7 +73,7 @@ def test_node_info_tasks_have_higher_priority_over_other_tasks(
     # the actual get_node_info task to complete.
     node_info_task_timeout = 3
     node_info_task_handler = NodeInfoTasksHandler(
-        RABBITMQ_GLOBALNODE_ADDR, node_info_task_timeout
+        RABBITMQ_GLOBALWORKER_ADDR, node_info_task_timeout
     )
     node_info_ar = node_info_task_handler.queue_node_info_task(request_id)
     try:
@@ -83,7 +83,7 @@ def test_node_info_tasks_have_higher_priority_over_other_tasks(
             f"The node info task should not wait for the other tasks but a timeout occurred."
             f"Exception: {exc}"
         )
-    assert isinstance(result, NodeInfo)
+    assert isinstance(result, WorkerInfo)
 
     for async_res in udf_async_results:
         udf_tasks_timeout = number_of_udfs_to_schedule * 2

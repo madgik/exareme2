@@ -4,17 +4,17 @@ kind: Deployment
 metadata:
   name: exareme2-globalnode-deployment
   labels:
-    app: exareme2-node
+    app: exareme2-worker
     nodeType: globalnode
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: exareme2-node
+      app: exareme2-worker
   template:
     metadata:
       labels:
-        app: exareme2-node
+        app: exareme2-worker
         nodeType: globalnode
     spec:
       nodeSelector:
@@ -95,19 +95,19 @@ spec:
           periodSeconds: 30
           timeoutSeconds: 10
 
-      - name: node
-        image: {{ .Values.exareme2_images.repository }}/exareme2_node:{{ .Values.exareme2_images.version }}
+      - name: worker
+        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
         env:
-        - name: NODE_IDENTIFIER
-          value: "globalnode"
-        - name: NODE_ROLE
-          value: "GLOBALNODE"
+        - name: WORKER_IDENTIFIER
+          value: "globalworker"
+        - name: WORKER_ROLE
+          value: "GLOBALWORKER"
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
         - name: PROTECT_LOCAL_DATA
-          value: "false"      # The GLOBALNODE does not need to secure its data, since they are not private.
+          value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: RABBITMQ_IP
@@ -149,7 +149,7 @@ spec:
             command:
               - python
               - -m
-              - exareme2.node.healthcheck
+              - exareme2.worker.healthcheck
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
@@ -158,7 +158,7 @@ spec:
             command:
               - python
               - -m
-              - exareme2.node.healthcheck
+              - exareme2.worker.healthcheck
           periodSeconds: 30
           timeoutSeconds: 10
 {{end}}

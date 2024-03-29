@@ -2,8 +2,8 @@ import uuid
 
 import pytest
 
-from exareme2.node_communication import CommonDataElement
-from exareme2.node_communication import CommonDataElements
+from exareme2.worker_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElements
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
@@ -123,21 +123,21 @@ def get_test_cases_get_data_model_cdes():
 def test_get_data_model_cdes(
     data_model,
     expected_data_model_cdes,
-    load_data_localnode1,
-    localnode1_node_service,
-    localnode1_celery_app,
-    use_localnode1_database,
+    load_data_localworker1,
+    localworker1_worker_service,
+    localworker1_celery_app,
+    use_localworker1_database,
 ):
     request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
 
     task_signature = get_celery_task_signature("get_data_model_cdes")
-    async_result = localnode1_celery_app.queue_task(
+    async_result = localworker1_celery_app.queue_task(
         task_signature=task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         data_model=data_model,
     )
-    data_model_cdes_json = localnode1_celery_app.get_result(
+    data_model_cdes_json = localworker1_celery_app.get_result(
         async_result=async_result,
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,

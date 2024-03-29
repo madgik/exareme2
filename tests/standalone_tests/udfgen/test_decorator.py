@@ -1,15 +1,15 @@
 # type: ignore
 import pytest
 
-from exareme2.algorithms.in_database.udfgen import merge_transfer
-from exareme2.algorithms.in_database.udfgen import relation
-from exareme2.algorithms.in_database.udfgen import secure_transfer
-from exareme2.algorithms.in_database.udfgen import state
-from exareme2.algorithms.in_database.udfgen import tensor
-from exareme2.algorithms.in_database.udfgen import transfer
-from exareme2.algorithms.in_database.udfgen import udf
-from exareme2.algorithms.in_database.udfgen import udf_logger
-from exareme2.algorithms.in_database.udfgen.decorator import UDFBadDefinition
+from exareme2.algorithms.exareme2.udfgen import merge_transfer
+from exareme2.algorithms.exareme2.udfgen import relation
+from exareme2.algorithms.exareme2.udfgen import secure_transfer
+from exareme2.algorithms.exareme2.udfgen import state
+from exareme2.algorithms.exareme2.udfgen import tensor
+from exareme2.algorithms.exareme2.udfgen import transfer
+from exareme2.algorithms.exareme2.udfgen import udf
+from exareme2.algorithms.exareme2.udfgen import udf_logger
+from exareme2.algorithms.exareme2.udfgen.decorator import UDFBadDefinition
 from exareme2.datatypes import DType
 
 

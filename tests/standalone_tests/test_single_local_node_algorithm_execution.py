@@ -5,38 +5,36 @@ import pytest
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
 from exareme2 import algorithm_data_loaders
-from exareme2.algorithms.in_database.algorithm import (
+from exareme2.algorithms.exareme2.algorithm import (
     InitializationParams as AlgorithmInitParams,
 )
-from exareme2.algorithms.in_database.algorithm import Variables
+from exareme2.algorithms.exareme2.algorithm import Variables
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
-from exareme2.controller.services.in_database.controller import Controller
-from exareme2.controller.services.in_database.controller import DataModelViewsCreator
-from exareme2.controller.services.in_database.controller import NodesFederation
-from exareme2.controller.services.in_database.controller import (
+from exareme2.controller.services.exareme2.controller import Controller
+from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
+from exareme2.controller.services.exareme2.controller import NodesFederation
+from exareme2.controller.services.exareme2.controller import (
     _algorithm_run_in_event_loop,
 )
-from exareme2.controller.services.in_database.controller import (
+from exareme2.controller.services.exareme2.controller import (
     _create_algorithm_execution_engine,
 )
-from exareme2.controller.services.in_database.controller import (
-    sanitize_request_variable,
-)
-from exareme2.controller.services.in_database.execution_engine import CommandIdGenerator
-from exareme2.controller.services.in_database.execution_engine import (
+from exareme2.controller.services.exareme2.controller import sanitize_request_variable
+from exareme2.controller.services.exareme2.execution_engine import CommandIdGenerator
+from exareme2.controller.services.exareme2.execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.services.in_database.execution_engine import Nodes
-from exareme2.controller.services.in_database.execution_engine import SMPCParams
+from exareme2.controller.services.exareme2.execution_engine import Nodes
+from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.node_landscape_aggregator import (
     NodeLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
-from tests.standalone_tests.conftest import CONTROLLER_LOCALNODE1_ADDRESSES_FILE
+from tests.standalone_tests.conftest import CONTROLLER_LOCALWORKER1_ADDRESSES_FILE
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
 
@@ -59,7 +57,7 @@ def controller_config():
         "node_landscape_aggregator_update_interval": 30,
         "localnodes": {
             "config_file": path.join(
-                TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODE1_ADDRESSES_FILE
+                TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALWORKER1_ADDRESSES_FILE
             ),
             "dns": "",
             "port": "",
@@ -83,7 +81,7 @@ def controller_config():
 
 @pytest.fixture(scope="function")
 def node_landscape_aggregator(
-    controller_config, localnode1_node_service, load_data_localnode1
+    controller_config, localworker1_worker_service, load_data_localworker1
 ):
     controller_config = AttrDict(controller_config)
 

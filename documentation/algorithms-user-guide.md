@@ -175,19 +175,19 @@ Let's rewrite the local/global functions of the previous examples as Exareme
 UDFs. First the local UDF.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, relation, transfer
+from exareme2.algorithms.exareme2.udfgen import udf, relation, transfer
 
 
 @udf(local_data=relation(), return_type=transfer())
 def mean_local(local_data):
-  # Compute two aggregates, sx and n_obs
-  sx = local_data.sum()
-  n = len(local_data)
+    # Compute two aggregates, sx and n_obs
+    sx = local_data.sum()
+    n = len(local_data)
 
-  # Pack results into single dictionary which will
-  # be transferred to global node
-  results = {"sx": sx, "n": n}
-  return results
+    # Pack results into single dictionary which will
+    # be transferred to global node
+    results = {"sx": sx, "n": n}
+    return results
 ```
 
 The actual function is exactly the same as before, the difference lies in the
@@ -202,21 +202,21 @@ serializable.
 Now, let's write the global UDF.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, transfer, merge_transfer
+from exareme2.algorithms.exareme2.udfgen import udf, transfer, merge_transfer
 
 
 @udf(local_results=merge_transfer(), return_type=transfer())
 def mean_global(local_results):
-  # Sum aggregates from all nodes
-  sx = sum(res["sx"] for res in local_results)
-  n = sum(res["n"] for res in local_results)
+    # Sum aggregates from all nodes
+    sx = sum(res["sx"] for res in local_results)
+    n = sum(res["n"] for res in local_results)
 
-  # Compute global mean
-  mean = sx / n
+    # Compute global mean
+    mean = sx / n
 
-  # Pack result into dictionary
-  result = {"mean": mean}
-  return result
+    # Pack result into dictionary
+    result = {"mean": mean}
+    return result
 ```
 
 The type of `local_results` is `merge_transfer`. This means that the
@@ -238,7 +238,7 @@ the algorithm execution interface. To have access to this interface we have to
 inherit from the `Algorithm` base class.
 
 ```python
-from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.exareme2.algorithm import Algorithm
 
 
 class MyAlgorithm(Algorithm, algname="my_algorithm"):
@@ -287,7 +287,7 @@ In our case we need a very simple data loader for a single dataframe with a
 single column, as requested by the user (see Examples for more advanced uses).
 
 ```python
-from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 
 
 class MyDataLoader(AlgorithmDataLoader, algname="mean"):
@@ -418,17 +418,17 @@ is when we want to store part of the output locally for later use in the same
 node, and we want to transfer the other part of the output to another node.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, state, transfer
+from exareme2.algorithms.exareme2.udfgen import udf, state, transfer
 
 
 @udf(input=relation(), return_type=[state(), transfer()])
 def two_outputs(input):
-  ...  # compute stuff
-  output_state = {}  # output_state is a dict where we store variables for later use
-  ...  # add stuff to output_state
-  output_transfer = {}  # output_transfer is a dict with variables we want to transfer
-  ...  # add stuff to output_transfer
-  return output_state, output_transfer  # multiple return statement
+    ...  # compute stuff
+    output_state = {}  # output_state is a dict where we store variables for later use
+    ...  # add stuff to output_state
+    output_transfer = {}  # output_transfer is a dict with variables we want to transfer
+    ...  # add stuff to output_transfer
+    return output_state, output_transfer  # multiple return statement
 ```
 
 Note that this time we declared a list of outputs in the `udf` decorator. Then,
@@ -457,17 +457,17 @@ To implement a SMPC computation we need to have a local UDF with a
 `secure_transfer` output.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, relation, secure_transfer
+from exareme2.algorithms.exareme2.udfgen import udf, relation, secure_transfer
 
 
 @udf(local_data=relation(), return_type=secure_transfer(sum_op=True))
 def mean_local(local_data):
-  sx = local_data.sum()
-  n = len(local_data)
+    sx = local_data.sum()
+    n = len(local_data)
 
-  results = {"sx": {"data": sx, "operation": "sum", "type": float},
-             "n": {"data": n, "operation": "sum", "type": int}}
-  return results
+    results = {"sx": {"data": sx, "operation": "sum", "type": float},
+               "n": {"data": n, "operation": "sum", "type": int}}
+    return results
 ```
 
 First we have to activate one or more aggregation operations. Here we activate
@@ -615,8 +615,8 @@ this. For a real world example you should see the `fit` method in the [logistic 
 algorithm](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/logistic_regression.py).
 
 ```python
-from exareme2.algorithms.in_database.algorithm import Algorithm
-from exareme2.algorithms.in_database.helpers import get_transfer_data
+from exareme2.algorithms.exareme2.algorithm import Algorithm
+from exareme2.algorithms.exareme2.helpers import get_transfer_data
 
 
 class MyAlgorithm(Algorithm, algname="iterative"):
@@ -658,7 +658,7 @@ model to the data, and the second does prediction on new data. Both methods coul
 algorithm, see for example [here](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/linear_regression_cv.py).
 
 ```python
-from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.exareme2.algorithm import Algorithm
 
 
 class MyModel:

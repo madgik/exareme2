@@ -4,28 +4,28 @@ from unittest.mock import patch
 import pytest
 
 from exareme2 import AttrDict
-from exareme2.node import logger as node_logger
+from exareme2.worker.utils import logger as node_logger
 
 task_loggers = {}
 
 
 @pytest.fixture(scope="module", autouse=True)
-def mock_node_config():
-    node_config = AttrDict(
+def mock_worker_config():
+    worker_config = AttrDict(
         {
-            "identifier": "localnode1",
+            "identifier": "localworker1",
             "log_level": "INFO",
-            "role": "LOCALNODE",
+            "role": "LOCALWORKER",
         }
     )
 
     with patch(
-        "exareme2.node.logger.node_config",
-        node_config,
+        "exareme2.worker.utils.logger.worker_config",
+        worker_config,
     ):
         yield
 
-    return node_config
+    return worker_config
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -33,7 +33,7 @@ def mock_current_task():
     current_task = AttrDict({"request": {"id": "1234"}})
 
     with patch(
-        "exareme2.node.logger.current_task",
+        "exareme2.worker.utils.logger.current_task",
         current_task,
     ):
         yield
@@ -56,7 +56,7 @@ def test_get_ctx_id_from_args(capsys):
     my_regex = re.compile(r'\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\s-[^"]*')
     assert my_regex.match(captured.err) is not None
     assert captured.err.find(" INFO ") > -1
-    assert captured.err.find(" NODE ") > -1
+    assert captured.err.find(" WORKER ") > -1
     assert captured.err.find("1234abcd") > -1
     assert test_ctx_id.name == "1234abcd"
     assert test_ctx_id.level == 20
@@ -80,7 +80,7 @@ def test_get_ctx_id_from_args1(capsys):
     my_regex = re.compile(r'\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\s-[^"]*')
     assert my_regex.match(captured.err) is not None
     assert captured.err.find(" INFO ") > -1
-    assert captured.err.find(" NODE ") > -1
+    assert captured.err.find(" WORKER ") > -1
     assert captured.err.find("logger1") > -1
     assert logger1.name == "logger1"
     assert logger1.level == 20

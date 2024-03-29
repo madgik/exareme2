@@ -13,6 +13,6 @@ The SVM algorithm uses the state-of-art python library, scikit-learn to calculat
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[SVM](../../exareme2/algorithms/in_database/svm_scikit.py)
+[SVM](../../exareme2/algorithms/exareme2/svm_scikit.py)
 
-[Federated Averaging Strategy](../../exareme2/algorithms/in_database/fedaverage.py)
+[Federated Averaging Strategy](../../exareme2/algorithms/exareme2/fedaverage.py)

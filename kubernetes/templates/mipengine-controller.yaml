@@ -37,15 +37,15 @@ spec:
           value: "KUBERNETES"
         - name: NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
           value: {{ quote .Values.controller.node_landscape_aggregator_update_interval }}
-        - name: NODES_CLEANUP_INTERVAL
-          value: {{ quote .Values.controller.nodes_cleanup_interval }}
-        - name: NODES_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
+        - name: WORKERS_CLEANUP_INTERVAL
+          value: {{ quote .Values.controller.workers_cleanup_interval }}
+        - name: WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
           value: "86400"  # One day in seconds
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
-        - name: LOCALNODES_DNS
-          value: "exareme2-nodes-service"
-        - name: LOCALNODES_PORT
+        - name: LOCALWORKERS_DNS
+          value: "exareme2-workers-service"
+        - name: LOCALWORKERS_PORT
           value: "5672"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
@@ -155,11 +155,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: exareme2-nodes-service
+  name: exareme2-workers-service
 spec:
   clusterIP: None
   selector:
-    app: exareme2-node
+    app: exareme2-worker
   ports:
     - protocol: TCP
       port: 5672

@@ -3,7 +3,7 @@ from typing import Dict
 import pymonetdb.sql.monetize as monetize
 
 from exareme2 import DType
-from exareme2.node_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElement
 
 FILTER_OPERATORS = {
     "equal": lambda column, value: f"{column} = {value}",

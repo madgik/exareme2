@@ -20,7 +20,7 @@ db:
 controller:
   node_landscape_aggregator_update_interval: 20
   celery_tasks_timeout: 120
-  nodes_cleanup_interval: 60
+  workers_cleanup_interval: 60
   cleanup_file_folder: /opt/cleanup
 
 smpc:

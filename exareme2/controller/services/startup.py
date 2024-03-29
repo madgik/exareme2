@@ -1,11 +1,11 @@
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services import set_node_landscape_aggregator
-from exareme2.controller.services.in_database import set_cleaner
-from exareme2.controller.services.in_database import set_controller
-from exareme2.controller.services.in_database.cleaner import Cleaner
-from exareme2.controller.services.in_database.controller import Controller
-from exareme2.controller.services.in_database.execution_engine import SMPCParams
+from exareme2.controller.services.exareme2 import set_cleaner
+from exareme2.controller.services.exareme2 import set_controller
+from exareme2.controller.services.exareme2.cleaner import Cleaner
+from exareme2.controller.services.exareme2.controller import Controller
+from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.node_landscape_aggregator import (
     NodeLandscapeAggregator,
 )
@@ -19,14 +19,14 @@ def start_background_services():
         tasks_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=ctrl_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=ctrl_config.deployment_type,
-        localnodes=ctrl_config.localnodes,
+        localnodes=ctrl_config.localworkers,
     )
     node_landscape_aggregator.start()
     set_node_landscape_aggregator(node_landscape_aggregator)
 
     cleaner = Cleaner(
         logger=ctrl_logger.get_background_service_logger(),
-        cleanup_interval=ctrl_config.cleanup.nodes_cleanup_interval,
+        cleanup_interval=ctrl_config.cleanup.workers_cleanup_interval,
         contextid_release_timelimit=ctrl_config.cleanup.contextid_release_timelimit,
         cleanup_task_timeout=ctrl_config.rabbitmq.celery_cleanup_task_timeout,
         run_udf_task_timeout=ctrl_config.rabbitmq.celery_run_udf_task_timeout,

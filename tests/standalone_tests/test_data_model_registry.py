@@ -5,9 +5,9 @@ from exareme2.controller.services.node_landscape_aggregator import DataModelRegi
 from exareme2.controller.services.node_landscape_aggregator import DataModelsAttributes
 from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
 from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
-from exareme2.node_communication import CommonDataElement
-from exareme2.node_communication import CommonDataElements
-from exareme2.node_communication import DataModelAttributes
+from exareme2.worker_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelAttributes
 
 
 @pytest.fixture

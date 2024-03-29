@@ -8,31 +8,31 @@ from celery.result import AsyncResult
 
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryAppFactory
-from exareme2.node_communication import NodeUDFDTO
-from exareme2.node_communication import NodeUDFKeyArguments
-from exareme2.node_communication import NodeUDFPosArguments
-from exareme2.node_communication import NodeUDFResults
-from exareme2.node_communication import TableData
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.worker_communication import NodeUDFDTO
+from exareme2.worker_communication import NodeUDFKeyArguments
+from exareme2.worker_communication import NodeUDFPosArguments
+from exareme2.worker_communication import NodeUDFResults
+from exareme2.worker_communication import TableData
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
 
 TASK_SIGNATURES: Final = {
-    "get_tables": "exareme2.node.celery_tasks.tables.get_tables",
-    "get_remote_tables": "exareme2.node.celery_tasks.tables.get_remote_tables",
-    "get_merge_tables": "exareme2.node.celery_tasks.tables.get_merge_tables",
-    "get_table_schema": "exareme2.node.celery_tasks.tables.get_table_schema",
-    "get_table_data": "exareme2.node.celery_tasks.tables.get_table_data",
-    "create_table": "exareme2.node.celery_tasks.tables.create_table",
-    "create_remote_table": "exareme2.node.celery_tasks.tables.create_remote_table",
-    "create_merge_table": "exareme2.node.celery_tasks.tables.create_merge_table",
-    "get_views": "exareme2.node.celery_tasks.views.get_views",
-    "create_data_model_views": "exareme2.node.celery_tasks.views.create_data_model_views",
-    "run_udf": "exareme2.node.celery_tasks.udfs.run_udf",
-    "cleanup": "exareme2.node.celery_tasks.cleanup.cleanup",
-    "validate_smpc_templates_match": "exareme2.node.celery_tasks.smpc.validate_smpc_templates_match",
-    "load_data_to_smpc_client": "exareme2.node.celery_tasks.smpc.load_data_to_smpc_client",
-    "get_smpc_result": "exareme2.node.celery_tasks.smpc.get_smpc_result",
+    "get_tables": "exareme2.worker.exareme2.tables.tables_api.get_tables",
+    "get_remote_tables": "exareme2.worker.exareme2.tables.tables_api.get_remote_tables",
+    "get_merge_tables": "exareme2.worker.exareme2.tables.tables_api.get_merge_tables",
+    "get_table_schema": "exareme2.worker.exareme2.tables.tables_api.get_table_schema",
+    "get_table_data": "exareme2.worker.exareme2.tables.tables_api.get_table_data",
+    "create_table": "exareme2.worker.exareme2.tables.tables_api.create_table",
+    "create_remote_table": "exareme2.worker.exareme2.tables.tables_api.create_remote_table",
+    "create_merge_table": "exareme2.worker.exareme2.tables.tables_api.create_merge_table",
+    "get_views": "exareme2.worker.exareme2.views_views_api.get_views",
+    "create_data_model_views": "exareme2.worker.exareme2.views.views_api.create_data_model_views",
+    "run_udf": "exareme2.worker.exareme2.udfs.udfs_api.run_udf",
+    "cleanup": "exareme2.worker.exareme2.cleanup.cleanup_api.cleanup",
+    "validate_smpc_templates_match": "exareme2.worker.exareme2.smpc.smpc_api.validate_smpc_templates_match",
+    "load_data_to_smpc_client": "exareme2.worker.exareme2.smpc.smpc_api.load_data_to_smpc_client",
+    "get_smpc_result": "exareme2.worker.exareme2.smpc.smpc_api.get_smpc_result",
 }
 
 

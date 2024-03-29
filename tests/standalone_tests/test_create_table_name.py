@@ -1,9 +1,9 @@
 import pytest
 
-from exareme2.node.monetdb.tables import create_table_name
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.worker.exareme2.tables.tables_service import create_table_name
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
 
 
 def test_create_table_name():

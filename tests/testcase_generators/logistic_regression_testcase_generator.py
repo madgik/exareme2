@@ -7,9 +7,7 @@ import statsmodels.formula.api as smf
 from statsmodels.discrete.discrete_model import PerfectSeparationError
 from statsmodels.tools.sm_exceptions import ConvergenceWarning
 
-from exareme2.algorithms.in_database.logistic_regression import (
-    LogisticRegressionSummary,
-)
+from exareme2.algorithms.exareme2.logistic_regression import LogisticRegressionSummary
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 warnings.filterwarnings("error")

@@ -18,10 +18,10 @@ from exareme2.controller.services.node_landscape_aggregator import (
 from exareme2.controller.services.node_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
-from exareme2.node_communication import CommonDataElement
-from exareme2.node_communication import CommonDataElements
-from exareme2.node_communication import DataModelAttributes
-from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_ADDR
+from exareme2.worker_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelAttributes
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_ADDR
 
 
 @pytest.fixture
@@ -2539,7 +2539,9 @@ def test_data_model_registry_missing_data_model_attributes(node_landscape_aggreg
 
 @pytest.mark.slow
 def test_get_nodes_info_properly_handles_errors(node_landscape_aggregator):
-    nodes_info = node_landscape_aggregator._get_nodes_info([RABBITMQ_LOCALNODETMP_ADDR])
+    nodes_info = node_landscape_aggregator._get_nodes_info(
+        [RABBITMQ_LOCALWORKERTMP_ADDR]
+    )
     assert not nodes_info
 
 
@@ -2549,7 +2551,7 @@ def test_get_node_datasets_per_data_model_properly_handles_errors(
 ):
     datasets_per_data_model = (
         node_landscape_aggregator._get_node_datasets_per_data_model(
-            RABBITMQ_LOCALNODETMP_ADDR
+            RABBITMQ_LOCALWORKERTMP_ADDR
         )
     )
     assert not datasets_per_data_model
@@ -2558,6 +2560,6 @@ def test_get_node_datasets_per_data_model_properly_handles_errors(
 @pytest.mark.slow
 def test_get_node_cdes_properly_handles_errors(node_landscape_aggregator):
     cdes = node_landscape_aggregator._get_node_cdes(
-        RABBITMQ_LOCALNODETMP_ADDR, "dementia:0.1"
+        RABBITMQ_LOCALWORKERTMP_ADDR, "dementia:0.1"
     )
     assert not cdes

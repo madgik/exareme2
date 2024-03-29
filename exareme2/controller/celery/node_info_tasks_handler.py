@@ -7,16 +7,16 @@ from exareme2.celery_app_conf import CELERY_APP_QUEUE_MAX_PRIORITY
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryWrapper
-from exareme2.node_communication import CommonDataElements
-from exareme2.node_communication import DataModelAttributes
-from exareme2.node_communication import NodeInfo
+from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import WorkerInfo
 
 TASK_SIGNATURES: Final = {
-    "get_node_info": "exareme2.node.celery_tasks.node_info.get_node_info",
-    "get_node_datasets_per_data_model": "exareme2.node.celery_tasks.node_info.get_node_datasets_per_data_model",
-    "get_data_model_cdes": "exareme2.node.celery_tasks.node_info.get_data_model_cdes",
-    "get_data_model_attributes": "exareme2.node.celery_tasks.node_info.get_data_model_attributes",
-    "healthcheck": "exareme2.node.celery_tasks.node_info.healthcheck",
+    "get_node_info": "exareme2.worker.worker_info.worker_info_api.get_worker_info",
+    "get_node_datasets_per_data_model": "exareme2.worker.worker_info.worker_info_api.get_node_datasets_per_data_model",
+    "get_data_model_cdes": "exareme2.worker.worker_info.worker_info_api.get_data_model_cdes",
+    "get_data_model_attributes": "exareme2.worker.worker_info.worker_info_api.get_data_model_attributes",
+    "healthcheck": "exareme2.worker.worker_info.worker_info_api.healthcheck",
 }
 
 
@@ -52,7 +52,7 @@ class NodeInfoTasksHandler:
     # BLOCKING
     def result_node_info_task(
         self, async_result: AsyncResult, request_id: str
-    ) -> NodeInfo:
+    ) -> WorkerInfo:
         celery_app = self._get_node_celery_app()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         result = celery_app.get_result(
@@ -60,7 +60,7 @@ class NodeInfoTasksHandler:
             timeout=self._tasks_timeout,
             logger=logger,
         )
-        return NodeInfo.parse_raw(result)
+        return WorkerInfo.parse_raw(result)
 
     # --------------- get_node_datasets_per_data_model task ---------------
     # NON-BLOCKING

@@ -19,15 +19,15 @@ from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added
 from exareme2.controller.federation_info_logs import log_dataset_removed
-from exareme2.controller.federation_info_logs import log_node_joined_federation
-from exareme2.controller.federation_info_logs import log_node_left_federation
+from exareme2.controller.federation_info_logs import log_worker_joined_federation
+from exareme2.controller.federation_info_logs import log_worker_left_federation
 from exareme2.controller.nodes_addresses import NodesAddressesFactory
-from exareme2.node_communication import CommonDataElement
-from exareme2.node_communication import CommonDataElements
-from exareme2.node_communication import DataModelAttributes
-from exareme2.node_communication import NodeInfo
-from exareme2.node_communication import NodeRole
 from exareme2.utils import AttrDict
+from exareme2.worker_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import WorkerInfo
+from exareme2.worker_communication import WorkerRole
 
 NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
 LONGITUDINAL = "longitudinal"
@@ -38,7 +38,7 @@ class ImmutableBaseModel(BaseModel, ABC):
         allow_mutation = False
 
 
-def _get_node_socket_addr(node_info: NodeInfo):
+def _get_node_socket_addr(node_info: WorkerInfo):
     return f"{node_info.ip}:{node_info.port}"
 
 
@@ -170,12 +170,12 @@ class NodeRegistry(ImmutableBaseModel):
             global_nodes = [
                 node_info
                 for node_info in nodes_info
-                if node_info.role == NodeRole.GLOBALNODE
+                if node_info.role == WorkerRole.GLOBALWORKER
             ]
             local_nodes = [
                 node_info
                 for node_info in nodes_info
-                if node_info.role == NodeRole.LOCALNODE
+                if node_info.role == WorkerRole.LOCALWORKER
             ]
             _nodes_per_id = {
                 node_info.id: node_info for node_info in global_nodes + local_nodes
@@ -188,9 +188,9 @@ class NodeRegistry(ImmutableBaseModel):
         else:
             super().__init__()
 
-    global_nodes: List[NodeInfo] = []
-    local_nodes: List[NodeInfo] = []
-    nodes_per_id: Dict[str, NodeInfo] = {}
+    global_nodes: List[WorkerInfo] = []
+    local_nodes: List[WorkerInfo] = []
+    nodes_per_id: Dict[str, WorkerInfo] = {}
 
     class Config:
         allow_mutation = False
@@ -356,7 +356,7 @@ class NodeLandscapeAggregator:
                 async_result, NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
             )
 
-    def _get_nodes_info(self, nodes_socket_addr: List[str]) -> List[NodeInfo]:
+    def _get_nodes_info(self, nodes_socket_addr: List[str]) -> List[WorkerInfo]:
         node_info_tasks_handlers = [
             NodeInfoTasksHandler(
                 node_queue_addr=node_socket_addr,
@@ -475,18 +475,18 @@ class NodeLandscapeAggregator:
             node_registry=node_registry, data_model_registry=data_model_registry
         )
 
-    def get_nodes(self) -> List[NodeInfo]:
+    def get_nodes(self) -> List[WorkerInfo]:
         return list(self._registries.node_registry.nodes_per_id.values())
 
-    def get_global_node(self) -> NodeInfo:
+    def get_global_node(self) -> WorkerInfo:
         if not self._registries.node_registry.global_nodes:
             raise Exception("Global Node is unavailable")
         return self._registries.node_registry.global_nodes[0]
 
-    def get_all_local_nodes(self) -> List[NodeInfo]:
+    def get_all_local_nodes(self) -> List[WorkerInfo]:
         return self._registries.node_registry.local_nodes
 
-    def get_node_info(self, node_id: str) -> NodeInfo:
+    def get_node_info(self, node_id: str) -> WorkerInfo:
         return self._registries.node_registry.nodes_per_id[node_id]
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
@@ -539,7 +539,7 @@ class NodeLandscapeAggregator:
 
     def _fetch_nodes_metadata(
         self,
-    ) -> Tuple[List[NodeInfo], DataModelsMetadataPerNode,]:
+    ) -> Tuple[List[WorkerInfo], DataModelsMetadataPerNode,]:
         """
         Returns a list of all the nodes in the federation and their metadata (data_models, datasets, cdes).
         """
@@ -552,7 +552,7 @@ class NodeLandscapeAggregator:
         local_nodes = [
             node_info
             for node_info in nodes_info
-            if node_info.role == NodeRole.LOCALNODE
+            if node_info.role == WorkerRole.LOCALWORKER
         ]
         data_models_metadata_per_node = self._get_data_models_metadata_per_node(
             local_nodes
@@ -561,7 +561,7 @@ class NodeLandscapeAggregator:
 
     def _get_data_models_metadata_per_node(
         self,
-        nodes: List[NodeInfo],
+        nodes: List[WorkerInfo],
     ) -> DataModelsMetadataPerNode:
         data_models_metadata_per_node = {}
 
@@ -847,12 +847,12 @@ def _log_node_changes(old_nodes, new_nodes, logger):
     new_nodes_per_node_id = {node.id: node for node in new_nodes}
     added_nodes = set(new_nodes_per_node_id.keys()) - set(old_nodes_per_node_id.keys())
     for node in added_nodes:
-        log_node_joined_federation(logger, node)
+        log_worker_joined_federation(logger, node)
     removed_nodes = set(old_nodes_per_node_id.keys()) - set(
         new_nodes_per_node_id.keys()
     )
     for node in removed_nodes:
-        log_node_left_federation(logger, node)
+        log_worker_left_federation(logger, node)
 
 
 def _log_data_model_changes(old_data_models, new_data_models, logger):

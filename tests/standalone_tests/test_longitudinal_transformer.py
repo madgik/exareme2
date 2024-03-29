@@ -5,13 +5,13 @@ from unittest.mock import Mock
 import pytest
 
 from exareme2 import DType
-from exareme2.algorithms.in_database.longitudinal_transformer import (
+from exareme2.algorithms.exareme2.longitudinal_transformer import (
     LongitudinalTransformer,
 )
-from exareme2.algorithms.in_database.longitudinal_transformer import (
+from exareme2.algorithms.exareme2.longitudinal_transformer import (
     LongitudinalTransformerUdf,
 )
-from exareme2.node_communication import BadUserInput
+from exareme2.worker_communication import BadUserInput
 
 
 class TestLongitudinalTransformerUdf:
@@ -193,8 +193,8 @@ class TestLongitudinalTransformerUdf:
 
 # Alias globalnode_db_cursor to db
 @pytest.fixture(scope="module")
-def db(globalnode_db_cursor):
-    return globalnode_db_cursor
+def db(globalworker_db_cursor):
+    return globalworker_db_cursor
 
 
 @pytest.mark.slow

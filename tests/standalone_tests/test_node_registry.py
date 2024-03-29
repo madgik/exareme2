@@ -7,8 +7,8 @@ from exareme2.controller.services.node_landscape_aggregator import (
     NodeLandscapeAggregator,
 )
 from exareme2.controller.services.node_landscape_aggregator import NodeRegistry
-from exareme2.node_communication import NodeInfo
-from exareme2.node_communication import NodeRole
+from exareme2.worker_communication import WorkerInfo
+from exareme2.worker_communication import WorkerRole
 
 mocked_node_addresses = [
     "127.0.0.1:5672",
@@ -33,33 +33,33 @@ def mocked_nla():
 
     node_registry = NodeRegistry(
         nodes_info=[
-            NodeInfo(
+            WorkerInfo(
                 id="globalnode",
-                role=NodeRole.GLOBALNODE,
+                role=WorkerRole.GLOBALWORKER,
                 ip=mocked_node_addresses[0].split(":")[0],
                 port=mocked_node_addresses[0].split(":")[1],
                 db_ip="127.0.0.1",
                 db_port=50000,
             ),
-            NodeInfo(
+            WorkerInfo(
                 id="localnode1",
-                role=NodeRole.LOCALNODE,
+                role=WorkerRole.LOCALWORKER,
                 ip=mocked_node_addresses[1].split(":")[0],
                 port=mocked_node_addresses[1].split(":")[1],
                 db_ip="127.0.0.1",
                 db_port=50001,
             ),
-            NodeInfo(
+            WorkerInfo(
                 id="localnode2",
-                role=NodeRole.LOCALNODE,
+                role=WorkerRole.LOCALWORKER,
                 ip=mocked_node_addresses[2].split(":")[0],
                 port=mocked_node_addresses[2].split(":")[1],
                 db_ip="127.0.0.1",
                 db_port=50002,
             ),
-            NodeInfo(
+            WorkerInfo(
                 id="localnode3",
-                role=NodeRole.LOCALNODE,
+                role=WorkerRole.LOCALWORKER,
                 ip=mocked_node_addresses[2].split(":")[0],
                 port=mocked_node_addresses[2].split(":")[1],
                 db_ip="127.0.0.1",
@@ -76,27 +76,27 @@ def mocked_nla():
 def test_get_nodes(mocked_nla):
     nodes = mocked_nla.get_nodes()
     assert len(nodes) == 4
-    assert len([node for node in nodes if node.role == NodeRole.LOCALNODE]) == 3
-    assert len([node for node in nodes if node.role == NodeRole.GLOBALNODE]) == 1
+    assert len([node for node in nodes if node.role == WorkerRole.LOCALWORKER]) == 3
+    assert len([node for node in nodes if node.role == WorkerRole.GLOBALWORKER]) == 1
 
 
 def test_get_global_node(mocked_nla):
     global_node = mocked_nla.get_global_node()
-    assert global_node.role == NodeRole.GLOBALNODE
+    assert global_node.role == WorkerRole.GLOBALWORKER
 
 
 def test_get_all_local_nodes(mocked_nla):
     local_nodes = mocked_nla.get_all_local_nodes()
     assert len(local_nodes) == 3
     for node_info in local_nodes:
-        assert node_info.role == NodeRole.LOCALNODE
+        assert node_info.role == WorkerRole.LOCALWORKER
 
 
 def test_get_node_info(mocked_nla):
     expected_id = "localnode1"
     node_info = mocked_nla.get_node_info(expected_id)
     assert node_info.id == expected_id
-    assert node_info.role == NodeRole.LOCALNODE
+    assert node_info.role == WorkerRole.LOCALWORKER
     assert node_info.db_port == 50001
 
 

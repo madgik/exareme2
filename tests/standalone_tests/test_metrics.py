@@ -11,11 +11,11 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
-from exareme2.algorithms.in_database.metrics import _confusion_matrix_binary_local
-from exareme2.algorithms.in_database.metrics import _confusion_matrix_multiclass_local
-from exareme2.algorithms.in_database.metrics import _get_tpr_fpr_from_counts
-from exareme2.algorithms.in_database.metrics import _roc_curve_local
-from exareme2.algorithms.in_database.metrics import multiclass_classification_metrics
+from exareme2.algorithms.exareme2.metrics import _confusion_matrix_binary_local
+from exareme2.algorithms.exareme2.metrics import _confusion_matrix_multiclass_local
+from exareme2.algorithms.exareme2.metrics import _get_tpr_fpr_from_counts
+from exareme2.algorithms.exareme2.metrics import _roc_curve_local
+from exareme2.algorithms.exareme2.metrics import multiclass_classification_metrics
 
 
 def test__confusion_matrix_local_binary():

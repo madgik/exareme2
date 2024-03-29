@@ -23,7 +23,7 @@ LOG_LEVEL=INFO
 FRAMEWORK_LOG_LEVEL=INFO
 DEPLOYMENT_TYPE=LOCAL
 NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL=30
-LOCALNODES_CONFIG_FILE=/home/user/localnodes_config.json
+LOCALWORKERS_CONFIG_FILE=/home/user/localnodes_config.json
 ```
 
 Then start the container with:

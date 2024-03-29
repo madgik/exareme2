@@ -1,0 +1,37 @@
+identifier = "$WORKER_IDENTIFIER"
+role = "$WORKER_ROLE"
+
+log_level = "$LOG_LEVEL"
+framework_log_level = "$FRAMEWORK_LOG_LEVEL"
+
+[privacy]
+minimum_row_count = 10
+protect_local_data = "$PROTECT_LOCAL_DATA"
+
+[celery]
+worker_concurrency = 16
+tasks_timeout="$CELERY_TASKS_TIMEOUT"
+run_udf_task_timeout="$CELERY_TASKS_TIMEOUT"
+
+[rabbitmq]
+ip = "$RABBITMQ_IP"
+port = "$RABBITMQ_PORT"
+user = "user"
+password = "password"
+vhost = "user_vhost"
+
+[monetdb]
+ip = "$MONETDB_IP"
+port = "$MONETDB_PORT"
+database = "db"
+local_username = "$MONETDB_LOCAL_USERNAME"
+local_password = "$MONETDB_LOCAL_PASSWORD"
+public_username = "$MONETDB_PUBLIC_USERNAME"
+public_password = "$MONETDB_PUBLIC_PASSWORD"
+
+[smpc]
+enabled = "$SMPC_ENABLED"
+optional = "$SMPC_OPTIONAL"
+client_id = "$SMPC_CLIENT_ID"
+client_address = "$SMPC_CLIENT_ADDRESS"
+coordinator_address = "$SMPC_COORDINATOR_ADDRESS"
