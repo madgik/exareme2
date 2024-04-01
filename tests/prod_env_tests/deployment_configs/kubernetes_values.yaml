@@ -1,4 +1,4 @@
-localworkers: 3
+localnodes: 3
 
 exareme2_images:
   repository: madgik
