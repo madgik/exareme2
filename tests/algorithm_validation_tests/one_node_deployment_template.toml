@@ -9,7 +9,7 @@ monetdb_memory_limit = 4096 # MB
 
 algorithm_folders = "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
 
-node_landscape_aggregator_update_interval = 30
+worker_landscape_aggregator_update_interval = 30
 celery_tasks_timeout = 60
 celery_cleanup_task_timeout=2
 celery_run_udf_task_timeout = 120

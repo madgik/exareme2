@@ -12,17 +12,17 @@ from typing import List
 import toml
 from pydantic import BaseModel
 
-from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
 
 CLEANER_REQUEST_ID = "CLEANER"
 CLEANUP_FILE_TEMPLATE = string.Template("cleanup_${context_id}.toml")
 
 
-class _NodeInfoDTO(BaseModel):
-    node_id: str
+class _WorkerInfoDTO(BaseModel):
+    worker_id: str
     queue_address: str
     db_address: str
     cleanup_task_timeout: int
@@ -34,7 +34,7 @@ class _NodeInfoDTO(BaseModel):
 
 class _CleanupEntry(BaseModel):
     context_id: str
-    node_ids: List[str]
+    worker_ids: List[str]
     timestamp: str
     released: bool
 
@@ -53,22 +53,22 @@ class Cleaner:
     started (method start()), it constantly loops through all the entries, finds the ones that
     either have their 'released' flag set to 'true' or their 'timestamp' has expired
     (check _is_timestamp_expired function) and processes them by calling the cleanup celery
-    on the respective nodes for the respective context_id. When the cleanup celery on all
-    the nodes of an entry are succesfull, the entry file is deleted. Otherwise the 'node_ids'
-    list of the entry is updated to contain only the failed 'node_ids' and will be re-processed
+    on the respective workers for the respective context_id. When the cleanup celery on all
+    the workers of an entry are succesfull, the entry file is deleted. Otherwise the 'worker_ids'
+    list of the entry is updated to contain only the failed 'worker_ids' and will be re-processed
     in the next iteration of the loop.
 
     Cleanup entry example:
     context_id= "3502300"
-    node_ids = [ "testglobalworker", "testlocalworker1", "testlocalworker2",]
+    worker_ids = [ "testglobalworker", "testlocalworker1", "testlocalworker2",]
     timestamp = "2022-05-23T14:40:34.203085+00:00"
     released = false
 
     Methods
     -------
     cleanup_context_id(context_id: str) -> bool:
-        Execute the cleanup task on all nodes of a given context_id.
-        Returns True if the cleanup task was successful on all nodes, False otherwise.
+        Execute the cleanup task on all workers of a given context_id.
+        Returns True if the cleanup task was successful on all workers, False otherwise.
 
     start():
         Start the cleanup loop
@@ -76,7 +76,7 @@ class Cleaner:
     stop():
         Stop the cleanup loop
 
-    add_contextid_for_cleanup(context_id: str, algo_execution_node_ids: List[str]):
+    add_contextid_for_cleanup(context_id: str, algo_execution_worker_ids: List[str]):
         Create a new cleanup entry
 
     release_context_id(context_id):
@@ -91,7 +91,7 @@ class Cleaner:
         cleanup_task_timeout: int,
         run_udf_task_timeout: int,
         contextids_cleanup_folder: str,
-        node_landscape_aggregator: NodeLandscapeAggregator,
+        worker_landscape_aggregator: WorkerLandscapeAggregator,
     ):
         self._logger = logger
         self._cleanup_interval = cleanup_interval
@@ -99,7 +99,7 @@ class Cleaner:
         self._celery_cleanup_task_timeout = cleanup_task_timeout
         self._celery_run_udf_task_timeout = run_udf_task_timeout
         self._contextids_cleanup_folder = contextids_cleanup_folder
-        self._node_landscape_aggregator = node_landscape_aggregator
+        self._worker_landscape_aggregator = worker_landscape_aggregator
         self._cleanup_files_processor = CleanupFilesProcessor(
             self._logger, self._contextids_cleanup_folder
         )
@@ -110,7 +110,7 @@ class Cleaner:
     def cleanup_context_id(self, context_id: str) -> bool:
         """
         Synchronously cleanup context_id. Calls the cleanup task on all the relevant
-        nodes for the given context_id.
+        workers for the given context_id.
 
         Parameters
         ----------
@@ -121,9 +121,9 @@ class Cleaner:
         Returns
         -------
         bool
-            True if the cleanup task was successful on all nodes, False otherwise.
+            True if the cleanup task was successful on all workers, False otherwise.
         """
-        # returns True if cleanup task was succesful for all nodes of the context_id
+        # returns True if cleanup task was succesful for all workers of the context_id
         entry = self._cleanup_files_processor.get_entry_by_context_id(context_id)
         return self._exec_cleanup(entry)
 
@@ -146,36 +146,36 @@ class Cleaner:
         return time_elapsed.total_seconds() > self._contextid_release_timelimit
 
     def _exec_cleanup(self, entry: _CleanupEntry) -> bool:
-        # returns True if cleanup task was succesful for all nodes of the context_id
-        failed_node_ids = []
-        node_task_handlers_to_async_results = {}
-        for node_id in entry.node_ids:
+        # returns True if cleanup task was succesful for all workers of the context_id
+        failed_worker_ids = []
+        worker_task_handlers_to_async_results = {}
+        for worker_id in entry.worker_ids:
             try:
-                node_info = self._get_node_info_by_id(node_id)
+                worker_info = self._get_worker_info_by_id(worker_id)
             except Exception as exc:
                 self._logger.debug(
-                    f"Could not get node info for {node_id=}. The node is "
+                    f"Could not get worker info for {worker_id=}. The worker is "
                     f"most likely offline exception:{exc=}"
                 )
-                failed_node_ids.append(node_id)
+                failed_worker_ids.append(worker_id)
                 continue
-            task_handler = _get_node_task_handler(node_info)
+            task_handler = _get_worker_task_handler(worker_info)
 
-            node_task_handlers_to_async_results[
+            worker_task_handlers_to_async_results[
                 task_handler
             ] = task_handler.queue_cleanup(
                 context_id=entry.context_id,
             )
 
-        for task_handler, async_result in node_task_handlers_to_async_results.items():
+        for task_handler, async_result in worker_task_handlers_to_async_results.items():
             try:
                 task_handler.wait_queued_cleanup_complete(
                     async_result=async_result,
                 )
             except Exception as exc:
-                failed_node_ids.append(task_handler.node_id)
+                failed_worker_ids.append(task_handler.worker_id)
                 self._logger.warning(
-                    f"Cleanup task for {task_handler.node_id=}, for {entry.context_id=} FAILED. "
+                    f"Cleanup task for {task_handler.worker_id=}, for {entry.context_id=} FAILED. "
                     f"Will retry in {self._cleanup_interval=} secs. Failure occured while "
                     "waiting the completion of the task (wait_queued_cleanup_complete), "
                     f"the exception raised was: {type(exc)}:{exc}"
@@ -183,20 +183,20 @@ class Cleaner:
                 continue
 
             self._logger.debug(
-                f"Cleanup task succeeded for {task_handler.node_id=} for {entry.context_id=}"
+                f"Cleanup task succeeded for {task_handler.worker_id=} for {entry.context_id=}"
             )
 
-        if not failed_node_ids:
+        if not failed_worker_ids:
             self._logger.debug(f"Cleanup for {entry.context_id=} complete.")
             self._cleanup_files_processor.delete_file_by_context_id(entry.context_id)
             return True
         else:
             self._logger.debug(
-                f"'Altering' file with {entry.context_id=}, removing node ids "
-                "which succeeded cleanup, keeping only failed node ids: "
-                f"{failed_node_ids=}"
+                f"'Altering' file with {entry.context_id=}, removing worker ids "
+                "which succeeded cleanup, keeping only failed worker ids: "
+                f"{failed_worker_ids=}"
             )
-            entry.node_ids = failed_node_ids
+            entry.worker_ids = failed_worker_ids
             self._cleanup_files_processor.update_file(entry)
             return False
 
@@ -221,26 +221,26 @@ class Cleaner:
             self._cleanup_loop_thread.join()
 
     def add_contextid_for_cleanup(
-        self, context_id: str, algo_execution_node_ids: List[str]
+        self, context_id: str, algo_execution_worker_ids: List[str]
     ):
         """
         Create a new cleanup entry for the specified context_id along with the
-        respective node_ids. Calling this method will not call the cleanup task on any
-        node, it just "stores" the information that db artifacts with the specific
-        context_id will be (potentially) created on the specified nodes
+        respective worker_ids. Calling this method will not call the cleanup task on any
+        worker, it just "stores" the information that db artifacts with the specific
+        context_id will be (potentially) created on the specified workers
 
         Parameters
         ----------
         context_id : str
             The context_id of the algorithm execution.
-        algo_execution_node_ids : List[str]
-            The node_ids participating in the algorithm execution.
+        algo_execution_worker_ids : List[str]
+            The worker_ids participating in the algorithm execution.
         """
         self._logger.debug(f"Creating file for new {context_id=}")
         now_timestamp = datetime.now(timezone.utc).isoformat()
         entry = _CleanupEntry(
             context_id=context_id,
-            node_ids=algo_execution_node_ids,
+            worker_ids=algo_execution_worker_ids,
             timestamp=now_timestamp,
             released=False,
         )
@@ -249,8 +249,8 @@ class Cleaner:
     def release_context_id(self, context_id):
         """
         Asynchronously cleanup context_id. Sets the "released" flag of the cleanup entry
-        to true and will call the cleanup task on the relevant nodes again and again in
-        the "cleanup loop" until the task succeds on all nodes
+        to true and will call the cleanup task on the relevant workers again and again in
+        the "cleanup loop" until the task succeeds on all workers
 
         Parameters
         ----------
@@ -263,12 +263,12 @@ class Cleaner:
         self._cleanup_files_processor.delete_file_by_context_id(context_id)
         self._cleanup_files_processor.create_file_from_cleanup_entry(entry)
 
-    def _get_node_info_by_id(self, node_id: str) -> _NodeInfoDTO:
-        node_info = self._node_landscape_aggregator.get_node_info(node_id)
-        return _NodeInfoDTO(
-            node_id=node_info.id,
-            queue_address=":".join([str(node_info.ip), str(node_info.port)]),
-            db_address=":".join([str(node_info.db_ip), str(node_info.db_port)]),
+    def _get_worker_info_by_id(self, worker_id: str) -> _WorkerInfoDTO:
+        worker_info = self._worker_landscape_aggregator.get_worker_info(worker_id)
+        return _WorkerInfoDTO(
+            worker_id=worker_info.id,
+            queue_address=":".join([str(worker_info.ip), str(worker_info.port)]),
+            db_address=":".join([str(worker_info.db_ip), str(worker_info.db_port)]),
             cleanup_task_timeout=self._celery_cleanup_task_timeout,
             run_udf_task_timeout=self._celery_run_udf_task_timeout,
         )
@@ -279,14 +279,16 @@ class Cleaner:
         self._cleanup_files_processor._delete_all_entries()
 
 
-def _get_node_task_handler(node_info: _NodeInfoDTO) -> NodeAlgorithmTasksHandler:
-    return NodeAlgorithmTasksHandler(
+def _get_worker_task_handler(
+    worker_info: _WorkerInfoDTO,
+) -> WorkerAlgorithmTasksHandler:
+    return WorkerAlgorithmTasksHandler(
         request_id=CLEANER_REQUEST_ID,
-        node_id=node_info.node_id,
-        node_queue_addr=node_info.queue_address,
-        node_db_addr=node_info.db_address,
-        tasks_timeout=node_info.cleanup_task_timeout,
-        run_udf_task_timeout=node_info.run_udf_task_timeout,
+        worker_id=worker_info.worker_id,
+        worker_queue_addr=worker_info.queue_address,
+        worker_db_addr=worker_info.db_address,
+        tasks_timeout=worker_info.cleanup_task_timeout,
+        run_udf_task_timeout=worker_info.run_udf_task_timeout,
     )
 
 

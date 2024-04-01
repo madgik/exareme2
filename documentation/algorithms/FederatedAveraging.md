@@ -12,7 +12,7 @@ whereas those running on Master are called _global_.
 
 In this premise, we implement federated averaging by building the models locally, using
 state-of-the-art Python libraries, such as scikit learn and then averaging the parameters
-on the global node.
+on the global worker.
 
 #### Algorithm Description
 

@@ -16,7 +16,7 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.exareme2.controller import Controller
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
-from exareme2.controller.services.exareme2.controller import NodesFederation
+from exareme2.controller.services.exareme2.controller import WorkersFederation
 from exareme2.controller.services.exareme2.controller import (
     _algorithm_run_in_event_loop,
 )
@@ -28,10 +28,10 @@ from exareme2.controller.services.exareme2.execution_engine import CommandIdGene
 from exareme2.controller.services.exareme2.execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.services.exareme2.execution_engine import Nodes
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import CONTROLLER_LOCALWORKER1_ADDRESSES_FILE
@@ -54,8 +54,8 @@ def controller_config():
         "log_level": "DEBUG",
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
-        "node_landscape_aggregator_update_interval": 30,
-        "localnodes": {
+        "worker_landscape_aggregator_update_interval": 30,
+        "localworkers": {
             "config_file": path.join(
                 TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALWORKER1_ADDRESSES_FILE
             ),
@@ -80,23 +80,23 @@ def controller_config():
 
 
 @pytest.fixture(scope="function")
-def node_landscape_aggregator(
+def worker_landscape_aggregator(
     controller_config, localworker1_worker_service, load_data_localworker1
 ):
     controller_config = AttrDict(controller_config)
 
-    node_landscape_aggregator = NodeLandscapeAggregator(
+    worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
-        update_interval=controller_config.node_landscape_aggregator_update_interval,
+        update_interval=controller_config.worker_landscape_aggregator_update_interval,
         tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=controller_config.deployment_type,
-        localnodes=controller_config.localnodes,
+        localworkers=controller_config.localworkers,
     )
-    node_landscape_aggregator.update()
-    node_landscape_aggregator.start()
+    worker_landscape_aggregator.update()
+    worker_landscape_aggregator.start()
 
-    return node_landscape_aggregator
+    return worker_landscape_aggregator
 
 
 @pytest.fixture
@@ -214,26 +214,26 @@ def algorithm_request_case_2(datasets):
 
 
 @pytest.fixture(scope="function")
-def metadata_case_1(node_landscape_aggregator, algorithm_request_case_1):
+def metadata_case_1(worker_landscape_aggregator, algorithm_request_case_1):
     algorithm_request_dto = algorithm_request_case_1[1]
 
     variable_names = (algorithm_request_dto.inputdata.x or []) + (
         algorithm_request_dto.inputdata.y or []
     )
-    return node_landscape_aggregator.get_metadata(
+    return worker_landscape_aggregator.get_metadata(
         data_model=algorithm_request_dto.inputdata.data_model,
         variable_names=variable_names,
     )
 
 
 @pytest.fixture(scope="function")
-def metadata_case_2(node_landscape_aggregator, algorithm_request_case_2):
+def metadata_case_2(worker_landscape_aggregator, algorithm_request_case_2):
     algorithm_request_dto = algorithm_request_case_2[1]
 
     variable_names = (algorithm_request_dto.inputdata.x or []) + (
         algorithm_request_dto.inputdata.y or []
     )
-    return node_landscape_aggregator.get_metadata(
+    return worker_landscape_aggregator.get_metadata(
         data_model=algorithm_request_dto.inputdata.data_model,
         variable_names=variable_names,
     )
@@ -327,24 +327,24 @@ def context_id():
 
 
 @pytest.fixture(scope="function")
-def nodes_case_1(
+def workers_case_1(
     controller,
     context_id,
     algorithm_request_case_1,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     controller_config,
 ):
     algorithm_request_dto = algorithm_request_case_1[1]
 
     controller_config = AttrDict(controller_config)
 
-    nodes_federation = NodesFederation(
+    workers_federation = WorkersFederation(
         request_id=algorithm_request_dto.request_id,
         context_id=context_id,
         data_model=algorithm_request_dto.inputdata.data_model,
         datasets=algorithm_request_dto.inputdata.datasets,
         var_filters=algorithm_request_dto.inputdata.filters,
-        node_landscape_aggregator=node_landscape_aggregator,
+        worker_landscape_aggregator=worker_landscape_aggregator,
         celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         command_id_generator=command_id_generator,
@@ -352,28 +352,28 @@ def nodes_case_1(
             request_id=algorithm_request_dto.request_id
         ),
     )
-    return nodes_federation.nodes
+    return workers_federation.workers
 
 
 @pytest.fixture(scope="function")
-def nodes_case_2(
+def workers_case_2(
     controller,
     context_id,
     algorithm_request_case_2,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     controller_config,
 ):
     algorithm_request_dto = algorithm_request_case_2[1]
 
     controller_config = AttrDict(controller_config)
 
-    nodes_federation = NodesFederation(
+    workers_federation = WorkersFederation(
         request_id=algorithm_request_dto.request_id,
         context_id=context_id,
         data_model=algorithm_request_dto.inputdata.data_model,
         datasets=algorithm_request_dto.inputdata.datasets,
         var_filters=algorithm_request_dto.inputdata.filters,
-        node_landscape_aggregator=node_landscape_aggregator,
+        worker_landscape_aggregator=worker_landscape_aggregator,
         celery_tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         celery_run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         command_id_generator=command_id_generator,
@@ -381,15 +381,15 @@ def nodes_case_2(
             request_id=algorithm_request_dto.request_id
         ),
     )
-    return nodes_federation.nodes
+    return workers_federation.workers
 
 
 @pytest.fixture(scope="function")
-def controller(controller_config, node_landscape_aggregator):
+def controller(controller_config, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
     controller = Controller(
-        node_landscape_aggregator=node_landscape_aggregator,
+        worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=None,
         logger=ctrl_logger.get_background_service_logger(),
         tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
@@ -401,19 +401,19 @@ def controller(controller_config, node_landscape_aggregator):
 
 
 @pytest.fixture(scope="function")
-def data_model_views_and_nodes_case_1(
+def data_model_views_and_workers_case_1(
     datasets,
     algorithm_request_case_1,
-    nodes_case_1,
+    workers_case_1,
     algorithm_data_loader_case_1,
     command_id_generator,
     controller,
 ):
     algorithm_request_dto = algorithm_request_case_1[1]
-    nodes = nodes_case_1
+    workers = workers_case_1
 
     data_model_views_creator = DataModelViewsCreator(
-        local_nodes=nodes.local_nodes,
+        local_workers=workers.local_workers,
         variable_groups=algorithm_data_loader_case_1.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm_data_loader_case_1.get_dropna(),
@@ -423,30 +423,34 @@ def data_model_views_and_nodes_case_1(
     data_model_views_creator.create_data_model_views()
     data_model_views = data_model_views_creator.data_model_views
 
-    local_nodes_filtered = data_model_views_creator.data_model_views.get_list_of_nodes()
-    if not local_nodes_filtered:
+    local_workers_filtered = (
+        data_model_views_creator.data_model_views.get_list_of_workers()
+    )
+    if not local_workers_filtered:
         pytest.fail(
-            f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
+            f"None of the workers contains data to execute the request: {algorithm_request_dto=}"
         )
 
-    nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
-    return (data_model_views, nodes)
+    workers = Workers(
+        global_worker=workers.global_worker, local_workers=local_workers_filtered
+    )
+    return (data_model_views, workers)
 
 
 @pytest.fixture(scope="function")
-def data_model_views_and_nodes_case_2(
+def data_model_views_and_workers_case_2(
     datasets,
     algorithm_request_case_2,
-    nodes_case_2,
+    workers_case_2,
     algorithm_data_loader_case_2,
     command_id_generator,
     controller,
 ):
     algorithm_request_dto = algorithm_request_case_2[1]
-    nodes = nodes_case_2
+    workers = workers_case_2
 
     data_model_views_creator = DataModelViewsCreator(
-        local_nodes=nodes.local_nodes,
+        local_workers=workers.local_workers,
         variable_groups=algorithm_data_loader_case_2.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm_data_loader_case_2.get_dropna(),
@@ -456,21 +460,25 @@ def data_model_views_and_nodes_case_2(
     data_model_views_creator.create_data_model_views()
     data_model_views = data_model_views_creator.data_model_views
 
-    local_nodes_filtered = data_model_views_creator.data_model_views.get_list_of_nodes()
-    if not local_nodes_filtered:
+    local_workers_filtered = (
+        data_model_views_creator.data_model_views.get_list_of_workers()
+    )
+    if not local_workers_filtered:
         pytest.fail(
-            f"None of the nodes contains data to execute the request: {algorithm_request_dto=}"
+            f"None of the workers contains data to execute the request: {algorithm_request_dto=}"
         )
 
-    nodes = Nodes(global_node=nodes.global_node, local_nodes=local_nodes_filtered)
-    return (data_model_views, nodes)
+    workers = Workers(
+        global_worker=workers.global_worker, local_workers=local_workers_filtered
+    )
+    return (data_model_views, workers)
 
 
 @pytest.fixture(scope="function")
 def engine_case_1(
     algorithm_request_case_1,
     context_id,
-    data_model_views_and_nodes_case_1,
+    data_model_views_and_workers_case_1,
     command_id_generator,
 ):
     algorithm_request_dto = algorithm_request_case_1[1]
@@ -483,7 +491,7 @@ def engine_case_1(
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
-        nodes=data_model_views_and_nodes_case_1[1],
+        workers=data_model_views_and_workers_case_1[1],
     )
 
 
@@ -491,7 +499,7 @@ def engine_case_1(
 def engine_case_2(
     algorithm_request_case_2,
     context_id,
-    data_model_views_and_nodes_case_2,
+    data_model_views_and_workers_case_2,
     command_id_generator,
 ):
     algorithm_request_dto = algorithm_request_case_2[1]
@@ -504,37 +512,37 @@ def engine_case_2(
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
-        nodes=data_model_views_and_nodes_case_2[1],
+        workers=data_model_views_and_workers_case_2[1],
     )
 
 
 @pytest.mark.slow
 @pytest.mark.parametrize(
-    "algorithm,data_model_views_and_nodes,metadata",
+    "algorithm,data_model_views_and_workers,metadata",
     [
         (
             "algorithm_case_1",
-            "data_model_views_and_nodes_case_1",
+            "data_model_views_and_workers_case_1",
             "metadata_case_1",
         ),
         (
             "algorithm_case_2",
-            "data_model_views_and_nodes_case_2",
+            "data_model_views_and_workers_case_2",
             "metadata_case_2",
         ),
     ],
 )
 @pytest.mark.asyncio
-async def test_single_local_node_algorithm_execution(
+async def test_single_local_worker_algorithm_execution(
     algorithm,
-    data_model_views_and_nodes,
+    data_model_views_and_workers,
     metadata,
     controller,
     request,
     reset_celery_app_factory,  # celery celery fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
-    data_model_views = request.getfixturevalue(data_model_views_and_nodes)
+    data_model_views = request.getfixturevalue(data_model_views_and_workers)
     metadata = request.getfixturevalue(metadata)
     try:
         algorithm_result = await _algorithm_run_in_event_loop(

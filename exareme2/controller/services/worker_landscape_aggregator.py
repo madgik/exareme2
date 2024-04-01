@@ -14,14 +14,14 @@ from pydantic import BaseModel
 from exareme2.controller import DeploymentType
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.node_info_tasks_handler import NodeInfoTasksHandler
+from exareme2.controller.celery.worker_info_tasks_handler import WorkerInfoTasksHandler
 from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added
 from exareme2.controller.federation_info_logs import log_dataset_removed
 from exareme2.controller.federation_info_logs import log_worker_joined_federation
 from exareme2.controller.federation_info_logs import log_worker_left_federation
-from exareme2.controller.nodes_addresses import NodesAddressesFactory
+from exareme2.controller.workers_addresses import WorkersAddressesFactory
 from exareme2.utils import AttrDict
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
@@ -29,7 +29,7 @@ from exareme2.worker_communication import DataModelAttributes
 from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerRole
 
-NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID = "NODE_LANDSCAPE_AGGREGATOR"
+WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID = "WORKER_LANDSCAPE_AGGREGATOR"
 LONGITUDINAL = "longitudinal"
 
 
@@ -38,8 +38,8 @@ class ImmutableBaseModel(BaseModel, ABC):
         allow_mutation = False
 
 
-def _get_node_socket_addr(node_info: WorkerInfo):
-    return f"{node_info.ip}:{node_info.port}"
+def _get_worker_socket_addr(worker_info: WorkerInfo):
+    return f"{worker_info.ip}:{worker_info.port}"
 
 
 def _have_common_elements(a: List[Any], b: List[Any]):
@@ -120,77 +120,78 @@ class DataModelRegistry(ImmutableBaseModel):
             and dataset in self.datasets_locations.datasets_locations[data_model]
         )
 
-    def get_node_ids_with_any_of_datasets(
+    def get_worker_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
         if not self.data_model_exists(data_model):
             return []
 
-        local_nodes_with_datasets = [
+        local_workers_with_datasets = [
             self.datasets_locations.datasets_locations[data_model][dataset]
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in datasets
         ]
-        return list(set(local_nodes_with_datasets))
+        return list(set(local_workers_with_datasets))
 
-    def get_node_specific_datasets(
-        self, node_id: str, data_model: str, wanted_datasets: List[str]
+    def get_worker_specific_datasets(
+        self, worker_id: str, data_model: str, wanted_datasets: List[str]
     ) -> List[str]:
         """
-        From the datasets provided, returns only the ones located in the node.
+        From the datasets provided, returns only the ones located in the worker.
 
         Parameters
         ----------
-        node_id: the id of the node
+        worker_id: the id of the worker
         data_model: the data model of the datasets
         wanted_datasets: the datasets to look for
 
         Returns
         -------
-        some, all or none of the wanted_datasets that are located in the node
+        some, all or none of the wanted_datasets that are located in the worker
         """
         if not self.data_model_exists(data_model):
             raise ValueError(
-                f"Data model '{data_model}' is not available in the node '{node_id}'."
+                f"Data model '{data_model}' is not available in the worker '{worker_id}'."
             )
 
-        datasets_in_node = [
+        datasets_in_worker = [
             dataset
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in wanted_datasets
-            and node_id
+            and worker_id
             == self.datasets_locations.datasets_locations[data_model][dataset]
         ]
-        return datasets_in_node
+        return datasets_in_worker
 
 
-class NodeRegistry(ImmutableBaseModel):
-    def __init__(self, nodes_info=None):
-        if nodes_info:
-            global_nodes = [
-                node_info
-                for node_info in nodes_info
-                if node_info.role == WorkerRole.GLOBALWORKER
+class WorkerRegistry(ImmutableBaseModel):
+    def __init__(self, workers_info=None):
+        if workers_info:
+            global_workers = [
+                worker_info
+                for worker_info in workers_info
+                if worker_info.role == WorkerRole.GLOBALWORKER
             ]
-            local_nodes = [
-                node_info
-                for node_info in nodes_info
-                if node_info.role == WorkerRole.LOCALWORKER
+            local_workers = [
+                worker_info
+                for worker_info in workers_info
+                if worker_info.role == WorkerRole.LOCALWORKER
             ]
-            _nodes_per_id = {
-                node_info.id: node_info for node_info in global_nodes + local_nodes
+            _workers_per_id = {
+                worker_info.id: worker_info
+                for worker_info in global_workers + local_workers
             }
             super().__init__(
-                global_nodes=global_nodes,
-                local_nodes=local_nodes,
-                nodes_per_id=_nodes_per_id,
+                global_workers=global_workers,
+                local_workers=local_workers,
+                workers_per_id=_workers_per_id,
             )
         else:
             super().__init__()
 
-    global_nodes: List[WorkerInfo] = []
-    local_nodes: List[WorkerInfo] = []
-    nodes_per_id: Dict[str, WorkerInfo] = {}
+    global_workers: List[WorkerInfo] = []
+    local_workers: List[WorkerInfo] = []
+    workers_per_id: Dict[str, WorkerInfo] = {}
 
     class Config:
         allow_mutation = False
@@ -198,7 +199,7 @@ class NodeRegistry(ImmutableBaseModel):
 
 
 class _NLARegistries(ImmutableBaseModel):
-    node_registry: Optional[NodeRegistry] = NodeRegistry()
+    worker_registry: Optional[WorkerRegistry] = WorkerRegistry()
     data_model_registry: Optional[DataModelRegistry] = DataModelRegistry()
 
     class Config:
@@ -245,17 +246,17 @@ class DataModelsMetadata(ImmutableBaseModel):
     data_models_metadata: Dict[str, DataModelMetadata]
 
 
-class DataModelsMetadataPerNode(ImmutableBaseModel):
+class DataModelsMetadataPerWorker(ImmutableBaseModel):
     """
-    A dictionary representation of all information for the data model's Metadata per node.
-    Key values are nodes.
+    A dictionary representation of all information for the data model's Metadata per worker.
+    Key values are workers.
     Values are data model's Metadata.
     """
 
-    data_models_metadata_per_node: Dict[str, DataModelsMetadata]
+    data_models_metadata_per_worker: Dict[str, DataModelsMetadata]
 
 
-class NodeLandscapeAggregator:
+class WorkerLandscapeAggregator:
     def __init__(
         self,
         logger: Logger,
@@ -263,47 +264,49 @@ class NodeLandscapeAggregator:
         tasks_timeout: int,
         run_udf_task_timeout: int,
         deployment_type: DeploymentType,
-        localnodes: AttrDict,
+        localworkers: AttrDict,
     ):
         self._logger = logger
         self._update_interval = update_interval
-        self._node_info_tasks_timeout = run_udf_task_timeout + tasks_timeout
+        self._worker_info_tasks_timeout = run_udf_task_timeout + tasks_timeout
         self._deployment_type = deployment_type
-        self._localnodes = localnodes
+        self._localworkers = localworkers
         self._registries = _NLARegistries()
         self._keep_updating = True
         self._update_loop_thread = None
 
     def update(self):
         """
-        Node Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
-        to keep up-to-date and in sync the Node Registry and the Data Model Registry.
-        The Node Registry contains information about the node such as id, ip, port etc.
+        Worker Landscape Aggregator(NLA) is a module that handles the aggregation of necessary information,
+        to keep up-to-date and in sync the Worker Registry and the Data Model Registry.
+        The Worker Registry contains information about the worker such as id, ip, port etc.
         The Data Model Registry contains two types of information, data_models and datasets_locations.
         data_models contains information about the data models and their corresponding cdes.
-        datasets_locations contains information about datasets and their locations(nodes).
-        NLA periodically will send requests (get_node_info, get_node_datasets_per_data_model, get_data_model_cdes),
-        to the nodes to retrieve the current information that they contain.
+        datasets_locations contains information about datasets and their locations(workers).
+        NLA periodically will send requests (get_worker_info, get_worker_datasets_per_data_model, get_data_model_cdes),
+        to the workers to retrieve the current information that they contain.
         Once all information about data models and cdes is aggregated,
-        any data model that is incompatible across nodes will be removed.
-        A data model is incompatible when the cdes across nodes are not identical, except one edge case.
+        any data model that is incompatible across workers will be removed.
+        A data model is incompatible when the cdes across workers are not identical, except one edge case.
         The edge case is that the cdes can only contain a difference in the field of 'enumerations' in
         the cde with code 'dataset' and still be considered compatible.
-        For each data model the 'enumerations' field in the cde with code 'dataset' is updated with all datasets across nodes.
-        Once all the information is aggregated and validated the NLA will provide the information to the Node Registry and to the Data Model Registry.
+        For each data model the 'enumerations' field in the cde with code 'dataset' is updated with all datasets across workers.
+        Once all the information is aggregated and validated the NLA will provide the information to the Worker Registry and to the Data Model Registry.
         """
         (
-            nodes_info,
-            data_models_metadata_per_node,
-        ) = self._fetch_nodes_metadata()
-        node_registry = NodeRegistry(nodes_info=nodes_info)
+            workers_info,
+            data_models_metadata_per_worker,
+        ) = self._fetch_workers_metadata()
+        worker_registry = WorkerRegistry(workers_info=workers_info)
         dmr = _crunch_data_model_registry_data(
-            data_models_metadata_per_node, self._logger
+            data_models_metadata_per_worker, self._logger
         )
 
-        self._set_new_registries(node_registry, dmr)
+        self._set_new_registries(worker_registry, dmr)
 
-        self._logger.debug(f"Nodes:{[node_info.id for node_info in self.get_nodes()]}")
+        self._logger.debug(
+            f"Workers:{[worker_info.id for worker_info in self.get_workers()]}"
+        )
 
     def _update_loop(self):
         while self._keep_updating:
@@ -311,7 +314,7 @@ class NodeLandscapeAggregator:
                 self.update()
             except Exception as exc:
                 self._logger.warning(
-                    f"NodeLandscapeAggregator caught an exception but will continue to "
+                    f"WorkerLandscapeAggregator caught an exception but will continue to "
                     f"update {exc=}"
                 )
                 tr = traceback.format_exc()
@@ -320,7 +323,7 @@ class NodeLandscapeAggregator:
                 time.sleep(self._update_interval)
 
     def start(self):
-        self._logger.info("NodeLandscapeAggregator starting ...")
+        self._logger.info("WorkerLandscapeAggregator starting ...")
 
         self.stop()
         self._keep_updating = True
@@ -329,7 +332,7 @@ class NodeLandscapeAggregator:
         )
         self._update_loop_thread.start()
 
-        self._logger.info("NodeLandscapeAggregator started.")
+        self._logger.info("WorkerLandscapeAggregator started.")
 
     def stop(self):
         if self._update_loop_thread and self._update_loop_thread.is_alive():
@@ -337,68 +340,68 @@ class NodeLandscapeAggregator:
             self._update_loop_thread.join()
 
     def healthcheck(self):
-        node_info_tasks_handlers = [
-            NodeInfoTasksHandler(
-                node_queue_addr=node_socket_addr,
-                tasks_timeout=self._node_info_tasks_timeout,
+        worker_info_tasks_handlers = [
+            WorkerInfoTasksHandler(
+                worker_queue_addr=worker_socket_addr,
+                tasks_timeout=self._worker_info_tasks_timeout,
             )
-            for node_socket_addr in NodesAddressesFactory(
-                self._deployment_type, self._localnodes
+            for worker_socket_addr in WorkersAddressesFactory(
+                self._deployment_type, self._localworkers
             )
-            .get_nodes_addresses()
+            .get_workers_addresses()
             .socket_addresses
         ]
-        for task_handler in node_info_tasks_handlers:
+        for task_handler in worker_info_tasks_handlers:
             async_result = task_handler.queue_healthcheck_task(
-                NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, False
+                WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID, False
             )
             task_handler.result_healthcheck(
-                async_result, NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+                async_result, WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID
             )
 
-    def _get_nodes_info(self, nodes_socket_addr: List[str]) -> List[WorkerInfo]:
-        node_info_tasks_handlers = [
-            NodeInfoTasksHandler(
-                node_queue_addr=node_socket_addr,
-                tasks_timeout=self._node_info_tasks_timeout,
+    def _get_workers_info(self, workers_socket_addr: List[str]) -> List[WorkerInfo]:
+        worker_info_tasks_handlers = [
+            WorkerInfoTasksHandler(
+                worker_queue_addr=worker_socket_addr,
+                tasks_timeout=self._worker_info_tasks_timeout,
             )
-            for node_socket_addr in nodes_socket_addr
+            for worker_socket_addr in workers_socket_addr
         ]
-        nodes_info = []
-        for tasks_handler in node_info_tasks_handlers:
+        workers_info = []
+        for tasks_handler in worker_info_tasks_handlers:
             try:
-                async_result = tasks_handler.queue_node_info_task(
-                    request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+                async_result = tasks_handler.queue_worker_info_task(
+                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID
                 )
-                result = tasks_handler.result_node_info_task(
+                result = tasks_handler.result_worker_info_task(
                     async_result=async_result,
-                    request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
                 )
-                nodes_info.append(result)
+                workers_info.append(result)
             except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
                 # just log the exception do not reraise it
                 self._logger.warning(exc)
             except Exception:
                 # just log full traceback exception as error and do not reraise it
                 self._logger.error(traceback.format_exc())
-        return nodes_info
+        return workers_info
 
-    def _get_node_datasets_per_data_model(
+    def _get_worker_datasets_per_data_model(
         self,
-        node_socket_addr: str,
+        worker_socket_addr: str,
     ) -> Dict[str, Dict[str, str]]:
-        tasks_handler = NodeInfoTasksHandler(
-            node_queue_addr=node_socket_addr,
-            tasks_timeout=self._node_info_tasks_timeout,
+        tasks_handler = WorkerInfoTasksHandler(
+            worker_queue_addr=worker_socket_addr,
+            tasks_timeout=self._worker_info_tasks_timeout,
         )
         try:
-            async_result = tasks_handler.queue_node_datasets_per_data_model_task(
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID
+            async_result = tasks_handler.queue_worker_datasets_per_data_model_task(
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID
             )
             datasets_per_data_model = (
-                tasks_handler.result_node_datasets_per_data_model_task(
+                tasks_handler.result_worker_datasets_per_data_model_task(
                     async_result=async_result,
-                    request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
                 )
             )
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
@@ -411,22 +414,22 @@ class NodeLandscapeAggregator:
             return {}
         return datasets_per_data_model
 
-    def _get_node_cdes(
-        self, node_socket_addr: str, data_model: str
+    def _get_worker_cdes(
+        self, worker_socket_addr: str, data_model: str
     ) -> CommonDataElements:
-        tasks_handler = NodeInfoTasksHandler(
-            node_queue_addr=node_socket_addr,
-            tasks_timeout=self._node_info_tasks_timeout,
+        tasks_handler = WorkerInfoTasksHandler(
+            worker_queue_addr=worker_socket_addr,
+            tasks_timeout=self._worker_info_tasks_timeout,
         )
         try:
             async_result = tasks_handler.queue_data_model_cdes_task(
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
             )
-            node_cdes = tasks_handler.result_data_model_cdes_task(
+            worker_cdes = tasks_handler.result_data_model_cdes_task(
                 async_result=async_result,
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
-            return node_cdes
+            return worker_cdes
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
             self._logger.warning(exc)
@@ -435,19 +438,19 @@ class NodeLandscapeAggregator:
             self._logger.error(traceback.format_exc())
 
     def _get_data_model_attributes(
-        self, node_socket_addr: str, data_model: str
+        self, worker_socket_addr: str, data_model: str
     ) -> DataModelAttributes:
-        tasks_handler = NodeInfoTasksHandler(
-            node_queue_addr=node_socket_addr,
-            tasks_timeout=self._node_info_tasks_timeout,
+        tasks_handler = WorkerInfoTasksHandler(
+            worker_queue_addr=worker_socket_addr,
+            tasks_timeout=self._worker_info_tasks_timeout,
         )
         try:
             async_result = tasks_handler.queue_data_model_attributes_task(
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
             )
             attributes = tasks_handler.result_data_model_attributes_task(
                 async_result=async_result,
-                request_id=NODE_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
             return attributes
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
@@ -457,9 +460,11 @@ class NodeLandscapeAggregator:
             # just log full traceback exception as error and do not reraise it
             self._logger.error(traceback.format_exc())
 
-    def _set_new_registries(self, node_registry, data_model_registry):
-        _log_node_changes(
-            self.get_nodes(), list(node_registry.nodes_per_id.values()), self._logger
+    def _set_new_registries(self, worker_registry, data_model_registry):
+        _log_worker_changes(
+            self.get_workers(),
+            list(worker_registry.workers_per_id.values()),
+            self._logger,
         )
         _log_data_model_changes(
             self._registries.data_model_registry.data_models_cdes.data_models_cdes,
@@ -472,22 +477,22 @@ class NodeLandscapeAggregator:
             self._logger,
         )
         self._registries = _NLARegistries(
-            node_registry=node_registry, data_model_registry=data_model_registry
+            worker_registry=worker_registry, data_model_registry=data_model_registry
         )
 
-    def get_nodes(self) -> List[WorkerInfo]:
-        return list(self._registries.node_registry.nodes_per_id.values())
+    def get_workers(self) -> List[WorkerInfo]:
+        return list(self._registries.worker_registry.workers_per_id.values())
 
-    def get_global_node(self) -> WorkerInfo:
-        if not self._registries.node_registry.global_nodes:
-            raise Exception("Global Node is unavailable")
-        return self._registries.node_registry.global_nodes[0]
+    def get_global_worker(self) -> WorkerInfo:
+        if not self._registries.worker_registry.global_workers:
+            raise Exception("Global Worker is unavailable")
+        return self._registries.worker_registry.global_workers[0]
 
-    def get_all_local_nodes(self) -> List[WorkerInfo]:
-        return self._registries.node_registry.local_nodes
+    def get_all_local_workers(self) -> List[WorkerInfo]:
+        return self._registries.worker_registry.local_workers
 
-    def get_node_info(self, node_id: str) -> WorkerInfo:
-        return self._registries.node_registry.nodes_per_id[node_id]
+    def get_worker_info(self, worker_id: str) -> WorkerInfo:
+        return self._registries.worker_registry.workers_per_id[worker_id]
 
     def get_cdes(self, data_model: str) -> Dict[str, CommonDataElement]:
         return self._registries.data_model_registry.get_cdes_specific_data_model(
@@ -520,64 +525,64 @@ class NodeLandscapeAggregator:
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
         return self._registries.data_model_registry.dataset_exists(data_model, dataset)
 
-    def get_node_ids_with_any_of_datasets(
+    def get_worker_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
-        return self._registries.data_model_registry.get_node_ids_with_any_of_datasets(
+        return self._registries.data_model_registry.get_worker_ids_with_any_of_datasets(
             data_model, datasets
         )
 
-    def get_node_specific_datasets(
-        self, node_id: str, data_model: str, wanted_datasets: List[str]
+    def get_worker_specific_datasets(
+        self, worker_id: str, data_model: str, wanted_datasets: List[str]
     ) -> List[str]:
-        return self._registries.data_model_registry.get_node_specific_datasets(
-            node_id, data_model, wanted_datasets
+        return self._registries.data_model_registry.get_worker_specific_datasets(
+            worker_id, data_model, wanted_datasets
         )
 
     def get_data_models_attributes(self) -> Dict[str, DataModelAttributes]:
         return self._registries.data_model_registry.get_data_models_attributes()
 
-    def _fetch_nodes_metadata(
+    def _fetch_workers_metadata(
         self,
-    ) -> Tuple[List[WorkerInfo], DataModelsMetadataPerNode,]:
+    ) -> Tuple[List[WorkerInfo], DataModelsMetadataPerWorker,]:
         """
-        Returns a list of all the nodes in the federation and their metadata (data_models, datasets, cdes).
+        Returns a list of all the workers in the federation and their metadata (data_models, datasets, cdes).
         """
-        nodes_addresses = (
-            NodesAddressesFactory(self._deployment_type, self._localnodes)
-            .get_nodes_addresses()
+        workers_addresses = (
+            WorkersAddressesFactory(self._deployment_type, self._localworkers)
+            .get_workers_addresses()
             .socket_addresses
         )
-        nodes_info = self._get_nodes_info(nodes_addresses)
-        local_nodes = [
-            node_info
-            for node_info in nodes_info
-            if node_info.role == WorkerRole.LOCALWORKER
+        workers_info = self._get_workers_info(workers_addresses)
+        local_workers = [
+            worker_info
+            for worker_info in workers_info
+            if worker_info.role == WorkerRole.LOCALWORKER
         ]
-        data_models_metadata_per_node = self._get_data_models_metadata_per_node(
-            local_nodes
+        data_models_metadata_per_worker = self._get_data_models_metadata_per_worker(
+            local_workers
         )
-        return nodes_info, data_models_metadata_per_node
+        return workers_info, data_models_metadata_per_worker
 
-    def _get_data_models_metadata_per_node(
+    def _get_data_models_metadata_per_worker(
         self,
-        nodes: List[WorkerInfo],
-    ) -> DataModelsMetadataPerNode:
-        data_models_metadata_per_node = {}
+        workers: List[WorkerInfo],
+    ) -> DataModelsMetadataPerWorker:
+        data_models_metadata_per_worker = {}
 
-        for node_info in nodes:
+        for worker_info in workers:
             data_models_metadata = {}
 
-            node_socket_addr = _get_node_socket_addr(node_info)
-            datasets_per_data_model = self._get_node_datasets_per_data_model(
-                node_socket_addr
+            worker_socket_addr = _get_worker_socket_addr(worker_info)
+            datasets_per_data_model = self._get_worker_datasets_per_data_model(
+                worker_socket_addr
             )
             if datasets_per_data_model:
-                node_socket_addr = _get_node_socket_addr(node_info)
+                worker_socket_addr = _get_worker_socket_addr(worker_info)
                 for data_model, datasets in datasets_per_data_model.items():
-                    cdes = self._get_node_cdes(node_socket_addr, data_model)
+                    cdes = self._get_worker_cdes(worker_socket_addr, data_model)
                     attributes = self._get_data_model_attributes(
-                        node_socket_addr, data_model
+                        worker_socket_addr, data_model
                     )
                     cdes = cdes if cdes else None
                     attributes = attributes if attributes else None
@@ -586,38 +591,38 @@ class NodeLandscapeAggregator:
                         cdes=cdes,
                         attributes=attributes,
                     )
-                    data_models_metadata_per_node[node_info.id] = DataModelsMetadata(
-                        data_models_metadata=data_models_metadata
-                    )
+                    data_models_metadata_per_worker[
+                        worker_info.id
+                    ] = DataModelsMetadata(data_models_metadata=data_models_metadata)
 
-        return DataModelsMetadataPerNode(
-            data_models_metadata_per_node=data_models_metadata_per_node
+        return DataModelsMetadataPerWorker(
+            data_models_metadata_per_worker=data_models_metadata_per_worker
         )
 
 
 def _crunch_data_model_registry_data(
-    data_models_metadata_per_node: DataModelsMetadataPerNode, logger
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker, logger
 ) -> DataModelRegistry:
     incompatible_data_models = _get_incompatible_data_models(
-        data_models_metadata_per_node, logger
+        data_models_metadata_per_worker, logger
     )
-    data_models_metadata_per_node_with_compatible_data_models = (
-        _remove_incompatible_data_models_from_data_models_metadata_per_node(
-            data_models_metadata_per_node, incompatible_data_models
+    data_models_metadata_per_worker_with_compatible_data_models = (
+        _remove_incompatible_data_models_from_data_models_metadata_per_worker(
+            data_models_metadata_per_worker, incompatible_data_models
         )
     )
     (
         datasets_locations,
         datasets_labels_per_data_model,
     ) = _aggregate_datasets_locations_and_labels(
-        data_models_metadata_per_node_with_compatible_data_models, logger
+        data_models_metadata_per_worker_with_compatible_data_models, logger
     )
     data_models_cdes = _aggregate_data_models_cdes(
-        data_models_metadata_per_node_with_compatible_data_models,
+        data_models_metadata_per_worker_with_compatible_data_models,
         datasets_labels_per_data_model,
     )
     data_models_attributes = _aggregate_data_models_attributes(
-        data_models_metadata_per_node_with_compatible_data_models,
+        data_models_metadata_per_worker_with_compatible_data_models,
     )
 
     return DataModelRegistry(
@@ -628,11 +633,11 @@ def _crunch_data_model_registry_data(
 
 
 def _aggregate_datasets_locations_and_labels(
-    data_models_metadata_per_node, logger
+    data_models_metadata_per_worker, logger
 ) -> Tuple[DatasetsLocations, DatasetsLabelsPerDataModel]:
     """
     Args:
-        data_models_metadata_per_node
+        data_models_metadata_per_worker
     Returns:
         A tuple with:
          1. DatasetsLocations
@@ -641,9 +646,9 @@ def _aggregate_datasets_locations_and_labels(
     datasets_locations = {}
     datasets_labels = {}
     for (
-        node_id,
+        worker_id,
         data_models_metadata,
-    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+    ) in data_models_metadata_per_worker.data_models_metadata_per_worker.items():
         for (
             data_model,
             data_model_metadata,
@@ -666,9 +671,9 @@ def _aggregate_datasets_locations_and_labels(
                 current_labels[dataset_name] = dataset_label
 
                 if dataset_name in current_datasets:
-                    current_datasets[dataset_name].append(node_id)
+                    current_datasets[dataset_name].append(worker_id)
                 else:
-                    current_datasets[dataset_name] = [node_id]
+                    current_datasets[dataset_name] = [worker_id]
 
             datasets_labels[data_model] = DatasetsLabels(datasets_labels=current_labels)
             datasets_locations[data_model] = current_datasets
@@ -677,12 +682,14 @@ def _aggregate_datasets_locations_and_labels(
     for data_model, dataset_locations in datasets_locations.items():
         datasets_locations_without_duplicates[data_model] = {}
 
-        for dataset, node_ids in dataset_locations.items():
-            if len(node_ids) == 1:
-                datasets_locations_without_duplicates[data_model][dataset] = node_ids[0]
+        for dataset, worker_ids in dataset_locations.items():
+            if len(worker_ids) == 1:
+                datasets_locations_without_duplicates[data_model][dataset] = worker_ids[
+                    0
+                ]
             else:
                 del datasets_labels[data_model].datasets_labels[dataset]
-                _log_duplicated_dataset(node_ids, data_model, dataset, logger)
+                _log_duplicated_dataset(worker_ids, data_model, dataset, logger)
 
     return DatasetsLocations(
         datasets_locations=datasets_locations_without_duplicates
@@ -690,14 +697,14 @@ def _aggregate_datasets_locations_and_labels(
 
 
 def _aggregate_data_models_cdes(
-    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker,
     datasets_labels_per_data_model: DatasetsLabelsPerDataModel,
 ) -> DataModelsCDES:
     data_models = {}
     for (
-        node_id,
+        worker_id,
         data_models_metadata,
-    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+    ) in data_models_metadata_per_worker.data_models_metadata_per_worker.items():
         for (
             data_model,
             data_model_metadata,
@@ -720,13 +727,13 @@ def _aggregate_data_models_cdes(
 
 
 def _aggregate_data_models_attributes(
-    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker,
 ) -> DataModelsAttributes:
     data_models_attributes = {}
     for (
-        node_id,
+        worker_id,
         data_models_metadata,
-    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+    ) in data_models_metadata_per_worker.data_models_metadata_per_worker.items():
         for (
             data_model,
             data_model_metadata,
@@ -771,16 +778,16 @@ def _get_updated_tags(data_model, data_models_attributes, tags):
 
 
 def _get_incompatible_data_models(
-    data_models_metadata_per_node: DataModelsMetadataPerNode, logger
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker, logger
 ) -> List[str]:
     """
-    Each node has its own data models definition.
-    We need to check for each data model if the definitions across all nodes is the same.
-    If the data model is not the same across all nodes containing it, we log the incompatibility.
-    The data models with similar definitions across all nodes are returned.
+    Each worker has its own data models definition.
+    We need to check for each data model if the definitions across all workers is the same.
+    If the data model is not the same across all workers containing it, we log the incompatibility.
+    The data models with similar definitions across all workers are returned.
     Parameters
     ----------
-        data_models_metadata_per_node: DataModelsMetadataPerNode
+        data_models_metadata_per_worker: DataModelsMetadataPerWorker
     Returns
     ----------
         List[str]
@@ -790,9 +797,9 @@ def _get_incompatible_data_models(
 
     incompatible_data_models = []
     for (
-        node_id,
+        worker_id,
         data_models_metadata,
-    ) in data_models_metadata_per_node.data_models_metadata_per_node.items():
+    ) in data_models_metadata_per_worker.data_models_metadata_per_worker.items():
         for (
             data_model,
             data_model_metadata,
@@ -805,30 +812,33 @@ def _get_incompatible_data_models(
                 continue
 
             if data_model in validation_dictionary:
-                valid_node_id, valid_cdes = validation_dictionary[data_model]
+                valid_worker_id, valid_cdes = validation_dictionary[data_model]
                 if not valid_cdes == data_model_metadata.cdes:
-                    nodes = [node_id, valid_node_id]
+                    workers = [worker_id, valid_worker_id]
                     incompatible_data_models.append(data_model)
                     _log_incompatible_data_models(
-                        nodes,
+                        workers,
                         data_model,
                         [data_model_metadata.cdes, valid_cdes],
                         logger,
                     )
                     break
             else:
-                validation_dictionary[data_model] = (node_id, data_model_metadata.cdes)
+                validation_dictionary[data_model] = (
+                    worker_id,
+                    data_model_metadata.cdes,
+                )
 
     return incompatible_data_models
 
 
-def _remove_incompatible_data_models_from_data_models_metadata_per_node(
-    data_models_metadata_per_node: DataModelsMetadataPerNode,
+def _remove_incompatible_data_models_from_data_models_metadata_per_worker(
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker,
     incompatible_data_models: List[str],
-) -> DataModelsMetadataPerNode:
-    return DataModelsMetadataPerNode(
-        data_models_metadata_per_node={
-            node_id: DataModelsMetadata(
+) -> DataModelsMetadataPerWorker:
+    return DataModelsMetadataPerWorker(
+        data_models_metadata_per_worker={
+            worker_id: DataModelsMetadata(
                 data_models_metadata={
                     data_model: data_model_metadata
                     for data_model, data_model_metadata in data_models_metadata.data_models_metadata.items()
@@ -837,22 +847,24 @@ def _remove_incompatible_data_models_from_data_models_metadata_per_node(
                     and data_model_metadata.attributes
                 }
             )
-            for node_id, data_models_metadata in data_models_metadata_per_node.data_models_metadata_per_node.items()
+            for worker_id, data_models_metadata in data_models_metadata_per_worker.data_models_metadata_per_worker.items()
         }
     )
 
 
-def _log_node_changes(old_nodes, new_nodes, logger):
-    old_nodes_per_node_id = {node.id: node for node in old_nodes}
-    new_nodes_per_node_id = {node.id: node for node in new_nodes}
-    added_nodes = set(new_nodes_per_node_id.keys()) - set(old_nodes_per_node_id.keys())
-    for node in added_nodes:
-        log_worker_joined_federation(logger, node)
-    removed_nodes = set(old_nodes_per_node_id.keys()) - set(
-        new_nodes_per_node_id.keys()
+def _log_worker_changes(old_workers, new_workers, logger):
+    old_workers_per_worker_id = {worker.id: worker for worker in old_workers}
+    new_workers_per_worker_id = {worker.id: worker for worker in new_workers}
+    added_workers = set(new_workers_per_worker_id.keys()) - set(
+        old_workers_per_worker_id.keys()
     )
-    for node in removed_nodes:
-        log_worker_left_federation(logger, node)
+    for worker in added_workers:
+        log_worker_joined_federation(logger, worker)
+    removed_workers = set(old_workers_per_worker_id.keys()) - set(
+        new_workers_per_worker_id.keys()
+    )
+    for worker in removed_workers:
+        log_worker_left_federation(logger, worker)
 
 
 def _log_data_model_changes(old_data_models, new_data_models, logger):
@@ -897,13 +909,13 @@ def _log_datasets_removed(old_datasets_locations, new_datasets_locations, logger
             )
 
 
-def _log_incompatible_data_models(nodes, data_model, conflicting_cdes, logger):
+def _log_incompatible_data_models(workers, data_model, conflicting_cdes, logger):
     logger.info(
-        f"""Nodes: '[{", ".join(nodes)}]' on data model '{data_model}' have incompatibility on the following cdes: '[{", ".join([cdes.__str__() for cdes in conflicting_cdes])}]' """
+        f"""Workers: '[{", ".join(workers)}]' on data model '{data_model}' have incompatibility on the following cdes: '[{", ".join([cdes.__str__() for cdes in conflicting_cdes])}]' """
     )
 
 
-def _log_duplicated_dataset(nodes, data_model, dataset, logger):
+def _log_duplicated_dataset(workers, data_model, dataset, logger):
     logger.info(
-        f"""Dataset '{dataset}' of the data_model: '{data_model}' is not unique in the federation. Nodes that contain the dataset: '[{", ".join(nodes)}]'"""
+        f"""Dataset '{dataset}' of the data_model: '{data_model}' is not unique in the federation. Workers that contain the dataset: '[{", ".join(workers)}]'"""
     )

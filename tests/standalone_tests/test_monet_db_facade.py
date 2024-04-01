@@ -22,7 +22,7 @@ from tests.standalone_tests.conftest import restart_monetdb_container
 
 
 @pytest.fixture(scope="module", autouse=True)
-def patch_node_logger():
+def patch_worker_logger():
     current_task = AttrDict({"request": {"id": "1234"}})
 
     with patch(
@@ -30,8 +30,8 @@ def patch_node_logger():
         AttrDict(
             {
                 "log_level": "DEBUG",
-                "role": "localnode",
-                "identifier": "localnodetmp",
+                "role": "localworker",
+                "identifier": "localworkertmp",
             },
         ),
     ), patch(
@@ -45,7 +45,7 @@ def patch_node_logger():
 
 
 @pytest.fixture(autouse=True, scope="module")
-def patch_node_config():
+def patch_worker_config():
     with patch(
         "exareme2.worker.exareme2.monetdb.monetdb_facade.worker_config",
         AttrDict(

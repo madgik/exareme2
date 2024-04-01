@@ -14,8 +14,10 @@ from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import create_table_in_db
 from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.conftest import insert_data_to_db
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 create_remote_table_task_signature = get_celery_task_signature("create_remote_table")
 
@@ -43,7 +45,7 @@ def test_remote_table_properly_mirrors_data(
     globalworker_worker_service,
     globalworker_celery_app,
 ):
-    local_node_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER1_PORT}"
+    local_worker_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER1_PORT}"
 
     table_schema = TableSchema(
         columns=[
@@ -72,7 +74,7 @@ def test_remote_table_properly_mirrors_data(
         request_id=request_id,
         table_name=table_info.name,
         table_schema_json=table_schema.json(),
-        monetdb_socket_address=local_node_monetdb_sock_address,
+        monetdb_socket_address=local_worker_monetdb_sock_address,
     )
     globalworker_celery_app.get_result(
         async_result=async_result,
@@ -106,7 +108,7 @@ def test_remote_table_error_on_non_published_table(
     The error returned is an OperationalError with message
     "Exception occurred in the remote server, please check the log there".
     """
-    local_node_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER1_PORT}"
+    local_worker_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER1_PORT}"
 
     table_schema = TableSchema(
         columns=[
@@ -133,7 +135,7 @@ def test_remote_table_error_on_non_published_table(
         request_id=request_id,
         table_name=table_info.name,
         table_schema_json=table_schema.json(),
-        monetdb_socket_address=local_node_monetdb_sock_address,
+        monetdb_socket_address=local_worker_monetdb_sock_address,
     )
     globalworker_celery_app.get_result(
         async_result=async_result,

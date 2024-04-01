@@ -17,7 +17,7 @@ from exareme2 import DType
 
 """
 !!!!!!!!!!!!!!!!!!!!!! ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!
-In some cases an exception thrown by the NODE(celery) will be received
+In some cases an exception thrown by the WORKER(celery) will be received
 in the CONTROLLER(celery get method) as a generic Exception and catching
 it by its definition won't be possible.
 
@@ -93,35 +93,35 @@ class RequestIDNotFound(Exception):
 
 class DataModelUnavailable(Exception):
     """
-    Exception raised when a data model is not available in the NODE db.
+    Exception raised when a data model is not available in the WORKER db.
 
     Attributes:
-        node_id -- the node id that threw the exception
+        worker_id -- the worker id that threw the exception
         data_model --  the unavailable data model
         message -- explanation of the error
     """
 
-    def __init__(self, node_id: str, data_model: str):
-        self.node_id = node_id
+    def __init__(self, worker_id: str, data_model: str):
+        self.worker_id = worker_id
         self.data_model = data_model
-        self.message = f"Data model '{self.data_model}' is not available in node: '{self.node_id}'."
+        self.message = f"Data model '{self.data_model}' is not available in worker: '{self.worker_id}'."
 
 
 class DatasetUnavailable(Exception):
     """
-    Exception raised when a dataset is not available in the NODE db.
+    Exception raised when a dataset is not available in the WORKER db.
 
     Attributes:
-        node_id -- the node id that threw the exception
+        worker_id -- the worker id that threw the exception
         dataset --  the unavailable dataset
         message -- explanation of the error
     """
 
-    def __init__(self, node_id: str, dataset: str):
-        self.node_id = node_id
+    def __init__(self, worker_id: str, dataset: str):
+        self.worker_id = worker_id
         self.dataset = dataset
         self.message = (
-            f"Dataset '{self.dataset}' is not available in node: '{self.node_id}'."
+            f"Dataset '{self.dataset}' is not available in worker: '{self.worker_id}'."
         )
 
 
@@ -140,7 +140,7 @@ class BadUserInput(Exception):
 # ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
 
 
-class _NodeUDFDTOType(Enum):
+class _WorkerUDFDTOType(Enum):
     TABLE = "TABLE"
     LITERAL = "LITERAL"
     SMPC = "SMPC"
@@ -217,13 +217,13 @@ class TableInfo(ImmutableBaseModel):
 
     @property
     def _tablename_parts(self) -> Tuple[str, str, str, str]:
-        table_type, node_id, context_id, command_id, result_id = self.name.split("_")
-        return node_id, context_id, command_id, result_id
+        table_type, worker_id, context_id, command_id, result_id = self.name.split("_")
+        return worker_id, context_id, command_id, result_id
 
     @property
-    def node_id(self) -> str:
-        node_id, _, _, _ = self._tablename_parts
-        return node_id
+    def worker_id(self) -> str:
+        worker_id, _, _, _ = self._tablename_parts
+        return worker_id
 
     @property
     def context_id(self) -> str:
@@ -241,7 +241,7 @@ class TableInfo(ImmutableBaseModel):
         return result_id
 
     @property
-    def name_without_node_id(self) -> str:
+    def name_without_worker_id(self) -> str:
         return (
             str(self.type_)
             + "_"
@@ -401,16 +401,16 @@ class SMPCTablesInfo(ImmutableBaseModel):
     max_op: Optional[TableInfo]
 
 
-class NodeUDFDTO(ImmutableBaseModel):
-    type: _NodeUDFDTOType
+class WorkerUDFDTO(ImmutableBaseModel):
+    type: _WorkerUDFDTOType
     value: Any
 
     @validator("type")
     def validate_type(cls, tp):
-        if cls.__name__ == "NodeUDFDTO":
+        if cls.__name__ == "WorkerUDFDTO":
             raise TypeError(
-                "NodeUDFDTO should not be instantiated. "
-                "Use NodeLiteralDTO, NodeTableDTO or NodeSMPCDTO instead."
+                "WorkerUDFDTO should not be instantiated. "
+                "Use WorkerLiteralDTO, WorkerTableDTO or WorkerSMPCDTO instead."
             )
         udf_argument_type = cls.__fields__["type"].default
         if tp != udf_argument_type:
@@ -421,31 +421,31 @@ class NodeUDFDTO(ImmutableBaseModel):
         return tp
 
 
-class NodeLiteralDTO(NodeUDFDTO):
-    type = _NodeUDFDTOType.LITERAL
+class WorkerLiteralDTO(WorkerUDFDTO):
+    type = _WorkerUDFDTOType.LITERAL
     value: Any
 
 
-class NodeTableDTO(NodeUDFDTO):
-    type = _NodeUDFDTOType.TABLE
+class WorkerTableDTO(WorkerUDFDTO):
+    type = _WorkerUDFDTOType.TABLE
     value: TableInfo
 
 
-class NodeSMPCDTO(NodeUDFDTO):
-    type = _NodeUDFDTOType.SMPC
+class WorkerSMPCDTO(WorkerUDFDTO):
+    type = _WorkerUDFDTOType.SMPC
     value: SMPCTablesInfo
 
 
-class NodeUDFPosArguments(ImmutableBaseModel):
-    # The NodeSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
-    args: List[Union[NodeLiteralDTO, NodeTableDTO, NodeSMPCDTO]]
+class WorkerUDFPosArguments(ImmutableBaseModel):
+    # The WorkerSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
+    args: List[Union[WorkerLiteralDTO, WorkerTableDTO, WorkerSMPCDTO]]
 
 
-class NodeUDFKeyArguments(ImmutableBaseModel):
-    # The NodeSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
-    args: Dict[str, Union[NodeLiteralDTO, NodeTableDTO, NodeSMPCDTO]]
+class WorkerUDFKeyArguments(ImmutableBaseModel):
+    # The WorkerSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
+    args: Dict[str, Union[WorkerLiteralDTO, WorkerTableDTO, WorkerSMPCDTO]]
 
 
-class NodeUDFResults(ImmutableBaseModel):
-    # The NodeSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
-    results: List[Union[NodeLiteralDTO, NodeTableDTO, NodeSMPCDTO]]
+class WorkerUDFResults(ImmutableBaseModel):
+    # The WorkerSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
+    results: List[Union[WorkerLiteralDTO, WorkerTableDTO, WorkerSMPCDTO]]

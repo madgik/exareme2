@@ -8,19 +8,19 @@ from exareme2.worker_communication import ColumnDataInt
 from exareme2.worker_communication import ColumnDataStr
 from exareme2.worker_communication import ColumnInfo
 from exareme2.worker_communication import DType
-from exareme2.worker_communication import NodeLiteralDTO
-from exareme2.worker_communication import NodeSMPCDTO
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFDTO
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
-from exareme2.worker_communication import NodeUDFResults
 from exareme2.worker_communication import SMPCTablesInfo
 from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import TableType
-from exareme2.worker_communication import _NodeUDFDTOType
+from exareme2.worker_communication import WorkerLiteralDTO
+from exareme2.worker_communication import WorkerSMPCDTO
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
+from exareme2.worker_communication import WorkerUDFResults
+from exareme2.worker_communication import _WorkerUDFDTOType
 
 
 @pytest.fixture
@@ -174,15 +174,15 @@ def test_table_info_immutable():
 
 def test_table_info__valid_name():
     info = TableInfo(
-        name="NORMAL_nodeid_ctxid_cmdid_resid",
+        name="NORMAL_workerid_ctxid_cmdid_resid",
         schema_=TableSchema(columns=[]),
         type_=TableType.NORMAL,
     )
-    assert info.node_id == "nodeid"
+    assert info.worker_id == "workerid"
     assert info.context_id == "ctxid"
     assert info.command_id == "cmdid"
     assert info.result_id == "resid"
-    assert info.name_without_node_id == "NORMAL_ctxid_cmdid_resid"
+    assert info.name_without_worker_id == "NORMAL_ctxid_cmdid_resid"
 
 
 def test_table_info__invalid_name():
@@ -192,7 +192,7 @@ def test_table_info__invalid_name():
         type_=TableType.NORMAL,
     )
     with pytest.raises(ValueError):
-        info.node_id
+        info.worker_id
 
 
 def test_table_data_error():
@@ -222,12 +222,12 @@ def test_table_data():
 
 def test_udf_dto_instantiation():
     with pytest.raises(ValidationError) as exc:
-        NodeUDFDTO(type="LITERAL", value="this can be anything")
+        WorkerUDFDTO(type="LITERAL", value="this can be anything")
     assert "should not be instantiated." in str(exc)
 
 
 def test_udf_dtos_immutable():
-    argument = NodeTableDTO(
+    argument = WorkerTableDTO(
         value=TableInfo(
             name="a_b_c_d_e",
             schema_=TableSchema(columns=[ColumnInfo(name="test", dtype=DType.INT)]),
@@ -238,12 +238,12 @@ def test_udf_dtos_immutable():
         argument.value = None
     assert "is immutable" in str(exc)
 
-    argument = NodeLiteralDTO(value=10)
+    argument = WorkerLiteralDTO(value=10)
     with pytest.raises(TypeError) as exc:
         argument.value = "new"
     assert "is immutable" in str(exc)
 
-    argument = NodeSMPCDTO(
+    argument = WorkerSMPCDTO(
         value=SMPCTablesInfo(
             template=TableInfo(
                 name="a_b_c_d_e",
@@ -258,19 +258,19 @@ def test_udf_dtos_immutable():
 
 
 def test_udf_dtos_correct_type():
-    argument = NodeTableDTO(
+    argument = WorkerTableDTO(
         value=TableInfo(
             name="a_b_c_d_e",
             schema_=TableSchema(columns=[ColumnInfo(name="test", dtype=DType.INT)]),
             type_=TableType.NORMAL,
         )
     )
-    assert argument.type == _NodeUDFDTOType.TABLE
+    assert argument.type == _WorkerUDFDTOType.TABLE
 
-    argument = NodeLiteralDTO(value=10)
-    assert argument.type == _NodeUDFDTOType.LITERAL
+    argument = WorkerLiteralDTO(value=10)
+    assert argument.type == _WorkerUDFDTOType.LITERAL
 
-    argument = NodeSMPCDTO(
+    argument = WorkerSMPCDTO(
         value=SMPCTablesInfo(
             template=TableInfo(
                 name="a_b_c_d_e",
@@ -279,13 +279,13 @@ def test_udf_dtos_correct_type():
             )
         )
     )
-    assert argument.type == _NodeUDFDTOType.SMPC
+    assert argument.type == _WorkerUDFDTOType.SMPC
 
 
 def get_udf_args_cases():
     return [
         [
-            NodeTableDTO(
+            WorkerTableDTO(
                 value=TableInfo(
                     name="a_b_c_d_e",
                     schema_=TableSchema(
@@ -296,7 +296,7 @@ def get_udf_args_cases():
             ),
         ],
         [
-            NodeTableDTO(
+            WorkerTableDTO(
                 value=TableInfo(
                     name="a_b_c_d_e",
                     schema_=TableSchema(
@@ -305,10 +305,10 @@ def get_udf_args_cases():
                     type_=TableType.NORMAL,
                 )
             ),
-            NodeLiteralDTO(value="a_b_c_d_e"),
+            WorkerLiteralDTO(value="a_b_c_d_e"),
         ],
         [
-            NodeTableDTO(
+            WorkerTableDTO(
                 value=TableInfo(
                     name="a_b_c_d_e",
                     schema_=TableSchema(
@@ -317,8 +317,8 @@ def get_udf_args_cases():
                     type_=TableType.NORMAL,
                 )
             ),
-            NodeLiteralDTO(value="a_b_c_d_e"),
-            NodeSMPCDTO(
+            WorkerLiteralDTO(value="a_b_c_d_e"),
+            WorkerSMPCDTO(
                 value=SMPCTablesInfo(
                     template=TableInfo(
                         name="a_b_c_d_e",
@@ -335,29 +335,29 @@ def get_udf_args_cases():
 
 @pytest.mark.parametrize("args", get_udf_args_cases())
 def test_pos_udf_arguments_correct_resolutions(args):
-    pos_args = NodeUDFPosArguments(args=args)
+    pos_args = WorkerUDFPosArguments(args=args)
     pos_args_json = pos_args.json()
 
-    pos_args_unpacked = NodeUDFPosArguments.parse_raw(pos_args_json)
+    pos_args_unpacked = WorkerUDFPosArguments.parse_raw(pos_args_json)
 
     assert pos_args == pos_args_unpacked
 
 
 @pytest.mark.parametrize("args", get_udf_args_cases())
 def test_kw_udf_arguments_correct_resolutions(args):
-    kw_args = NodeUDFKeyArguments(args={pos: arg for pos, arg in enumerate(args)})
+    kw_args = WorkerUDFKeyArguments(args={pos: arg for pos, arg in enumerate(args)})
     kw_args_json = kw_args.json()
 
-    kw_args_unpacked = NodeUDFKeyArguments.parse_raw(kw_args_json)
+    kw_args_unpacked = WorkerUDFKeyArguments.parse_raw(kw_args_json)
 
     assert kw_args == kw_args_unpacked
 
 
 def get_udf_results_cases():
     return [
-        NodeUDFResults(
+        WorkerUDFResults(
             results=[
-                NodeTableDTO(
+                WorkerTableDTO(
                     value=TableInfo(
                         name="a_b_c_d_e",
                         schema_=TableSchema(
@@ -368,9 +368,9 @@ def get_udf_results_cases():
                 ),
             ],
         ),
-        NodeUDFResults(
+        WorkerUDFResults(
             results=[
-                NodeSMPCDTO(
+                WorkerSMPCDTO(
                     value=SMPCTablesInfo(
                         template=TableInfo(
                             name="a_b_c_d_e",
@@ -383,9 +383,9 @@ def get_udf_results_cases():
                 ),
             ],
         ),
-        NodeUDFResults(
+        WorkerUDFResults(
             results=[
-                NodeTableDTO(
+                WorkerTableDTO(
                     value=TableInfo(
                         name="a_b_c_d_e",
                         schema_=TableSchema(
@@ -394,7 +394,7 @@ def get_udf_results_cases():
                         type_=TableType.NORMAL,
                     )
                 ),
-                NodeSMPCDTO(
+                WorkerSMPCDTO(
                     value=SMPCTablesInfo(
                         template=TableInfo(
                             name="a_b_c_d_e",
@@ -413,5 +413,5 @@ def get_udf_results_cases():
 @pytest.mark.parametrize("udf_results", get_udf_results_cases())
 def test_udf_results_correct_resolutions(udf_results):
     udf_results_json = udf_results.json()
-    udf_results_unpacked = NodeUDFResults.parse_raw(udf_results_json)
+    udf_results_unpacked = WorkerUDFResults.parse_raw(udf_results_json)
     assert udf_results == udf_results_unpacked

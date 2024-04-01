@@ -198,9 +198,9 @@ def create_configs(c):
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-    controller_config["node_landscape_aggregator_update_interval"] = deployment_config[
-        "node_landscape_aggregator_update_interval"
-    ]
+    controller_config[
+        "worker_landscape_aggregator_update_interval"
+    ] = deployment_config["worker_landscape_aggregator_update_interval"]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]

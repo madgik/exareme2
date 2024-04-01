@@ -114,8 +114,8 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 class GaussianNB:
     def __init__(self, engine, metadata):
-        self.local_run = engine.run_udf_on_local_nodes
-        self.global_run = engine.run_udf_on_global_node
+        self.local_run = engine.run_udf_on_local_workers
+        self.global_run = engine.run_udf_on_global_worker
         self.metadata = metadata
 
     def fit(self, X, y):

@@ -29,10 +29,10 @@ from exareme2.controller.services.exareme2.execution_engine import CommandIdGene
 from exareme2.controller.services.exareme2.execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.services.exareme2.execution_engine import Nodes
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
@@ -58,7 +58,7 @@ def controller_config():
         "log_level": "DEBUG",
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
-        "node_landscape_aggregator_update_interval": 30,
+        "worker_landscape_aggregator_update_interval": 30,
         "cleanup": {
             "contextids_cleanup_folder": "/tmp/test_cleanup_entries",
             "workers_cleanup_interval": 2,
@@ -95,11 +95,11 @@ def init_background_controller_logger():
 
 
 @pytest.fixture(scope="function")
-def controller(controller_config, cleaner, node_landscape_aggregator):
+def controller(controller_config, cleaner, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
     controller = Controller(
-        node_landscape_aggregator=node_landscape_aggregator,
+        worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=cleaner,
         logger=ctrl_logger.get_background_service_logger(),
         tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
@@ -199,7 +199,7 @@ def algorithm_name():
 
 
 @pytest.fixture(scope="function")
-def node_landscape_aggregator(
+def worker_landscape_aggregator(
     controller_config,
     globalworker_worker_service,
     localworker1_worker_service,
@@ -208,18 +208,18 @@ def node_landscape_aggregator(
 ):
     controller_config = AttrDict(controller_config)
 
-    node_landscape_aggregator = NodeLandscapeAggregator(
+    worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
-        update_interval=controller_config.node_landscape_aggregator_update_interval,
+        update_interval=controller_config.worker_landscape_aggregator_update_interval,
         tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=controller_config.deployment_type,
-        localnodes=controller_config.localworkers,
+        localworkers=controller_config.localworkers,
     )
-    node_landscape_aggregator.update()
-    node_landscape_aggregator.start()
+    worker_landscape_aggregator.update()
+    worker_landscape_aggregator.start()
 
-    return node_landscape_aggregator
+    return worker_landscape_aggregator
 
 
 @pytest.fixture(scope="function")
@@ -242,7 +242,7 @@ def data_model_views_and_workers(
     command_id_generator,
 ):
     data_model_views_creator = DataModelViewsCreator(
-        nodes=workers.local_workers,
+        workers=workers.local_workers,
         variable_groups=algorithm.get_variable_groups(),
         var_filters=algorithm_request_dto.inputdata.filters,
         dropna=algorithm.get_dropna(),
@@ -253,20 +253,20 @@ def data_model_views_and_workers(
     data_model_views = data_model_views_creator.data_model_views
 
     local_workers_filtered = (
-        data_model_views_creator.data_model_views.get_list_of_nodes()
+        data_model_views_creator.data_model_views.get_list_of_workers()
     )
-    workers = Nodes(
-        global_node=workers.global_worker, local_nodes=local_workers_filtered
+    workers = Workers(
+        global_worker=workers.global_worker, local_workers=local_workers_filtered
     )
     return (data_model_views, workers)
 
 
 @pytest.fixture(scope="function")
-def metadata(node_landscape_aggregator, algorithm_request_dto):
+def metadata(worker_landscape_aggregator, algorithm_request_dto):
     variable_names = (algorithm_request_dto.inputdata.x or []) + (
         algorithm_request_dto.inputdata.y or []
     )
-    return node_landscape_aggregator.get_metadata(
+    return worker_landscape_aggregator.get_metadata(
         data_model=algorithm_request_dto.inputdata.data_model,
         variable_names=variable_names,
     )
@@ -315,12 +315,12 @@ def engine(
     return _create_algorithm_execution_engine(
         engine_init_params=engine_init_params,
         command_id_generator=command_id_generator,
-        nodes=data_model_views_and_workers[1],  # workers,
+        workers=data_model_views_and_workers[1],  # workers,
     )
 
 
 @pytest.fixture(scope="function")
-def cleaner(controller_config, node_landscape_aggregator):
+def cleaner(controller_config, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
     cleaner = Cleaner(
@@ -330,7 +330,7 @@ def cleaner(controller_config, node_landscape_aggregator):
         cleanup_task_timeout=controller_config.rabbitmq.celery_cleanup_task_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         contextids_cleanup_folder=controller_config.cleanup.contextids_cleanup_folder,
-        node_landscape_aggregator=node_landscape_aggregator,
+        worker_landscape_aggregator=worker_landscape_aggregator,
     )
 
     return cleaner
@@ -361,13 +361,13 @@ def db_cursors(
 def test_synchronous_cleanup(
     context_id,
     cleaner,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     reset_celery_app_factory,  # celery fail if this is not reset
     db_cursors,
 ):
-    # Cleaner gets info about the workers via the NodeLandscapeAggregator
-    # Poll NodeLandscapeAggregator until it has some worker info
-    wait_nla(node_landscape_aggregator)
+    # Cleaner gets info about the workers via the WorkerLandscapeAggregator
+    # Poll WorkerLandscapeAggregator until it has some worker info
+    wait_nla(worker_landscape_aggregator)
 
     cleaner._reset()  # deletes all existing persistence files (cleanup_<context_id>.toml files)
 
@@ -419,13 +419,13 @@ def test_synchronous_cleanup(
 def test_asynchronous_cleanup(
     context_id,
     cleaner,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     reset_celery_app_factory,  # celery fail if this is not reset
     db_cursors,
 ):
-    # Cleaner gets info about the workers via the NodeLandscapeAggregator
-    # Poll NodeLandscapeAggregator until it has some worker info
-    wait_nla(node_landscape_aggregator)
+    # Cleaner gets info about the workers via the WorkerLandscapeAggregator
+    # Poll WorkerLandscapeAggregator until it has some worker info
+    wait_nla(worker_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files (cleanup_<context_id>.toml files)
@@ -482,14 +482,14 @@ def test_asynchronous_cleanup(
 def test_cleanup_triggered_by_release_timelimit(
     context_id,
     cleaner,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
     controller_config,
 ):
-    # Cleaner gets info about the workers via the NodeLandscapeAggregator
-    # Poll NodeLandscapeAggregator until it has some worker info
-    wait_nla(node_landscape_aggregator)
+    # Cleaner gets info about the workers via the WorkerLandscapeAggregator
+    # Poll WorkerLandscapeAggregator until it has some worker info
+    wait_nla(worker_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
@@ -548,13 +548,13 @@ def test_cleanup_after_rabbitmq_restart(
     localworkertmp_worker_service,
     context_id,
     cleaner,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     reset_celery_app_factory,  # celery fail if this is not reset
     db_cursors,
 ):
-    # Cleaner gets info about the workers via the NodeLandscapeAggregator
-    # Poll NodeLandscapeAggregator until it has some worker info
-    wait_nla(node_landscape_aggregator)
+    # Cleaner gets info about the workers via the WorkerLandscapeAggregator
+    # Poll WorkerLandscapeAggregator until it has some worker info
+    wait_nla(worker_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
@@ -634,13 +634,13 @@ def test_cleanup_after_worker_service_restart(
     localworkertmp_worker_service,
     context_id,
     cleaner,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     reset_celery_app_factory,  # celery celery fail if this is not reset
     db_cursors,
 ):
-    # Cleaner gets info about the workers via the NodeLandscapeAggregator
-    # Poll NodeLandscapeAggregator until it has some worker info
-    wait_nla(node_landscape_aggregator)
+    # Cleaner gets info about the workers via the WorkerLandscapeAggregator
+    # Poll WorkerLandscapeAggregator until it has some worker info
+    wait_nla(worker_landscape_aggregator)
 
     # Start the Cleaner
     cleaner._reset()  # deletes all existing persistence files(cleanup files)
@@ -738,16 +738,16 @@ def get_tables(cursor, context_id):
     return [i[0] for i in result]
 
 
-def wait_nla(node_landscape_aggregator):
+def wait_nla(worker_landscape_aggregator):
     start = time.time()
     while (
-        not node_landscape_aggregator.get_nodes()
-        or not node_landscape_aggregator.get_cdes_per_data_model()
-        or not node_landscape_aggregator.get_datasets_locations()
+        not worker_landscape_aggregator.get_workers()
+        or not worker_landscape_aggregator.get_cdes_per_data_model()
+        or not worker_landscape_aggregator.get_datasets_locations()
     ):
         if time.time() - start > NLA_WAIT_TIME_LIMIT:
             pytest.fail(
-                "Exceeded max retries while waiting for the node landscape aggregator to"
+                "Exceeded max retries while waiting for the worker landscape aggregator to"
                 "return some workers"
             )
         time.sleep(0.5)

@@ -3,16 +3,18 @@ import pytest
 from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.node_info_tasks_handler import NodeInfoTasksHandler
-from exareme2.worker import config as node_config
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
+from exareme2.controller.celery.worker_info_tasks_handler import WorkerInfoTasksHandler
+from exareme2.worker import config as worker_config
 from exareme2.worker_communication import WorkerInfo
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
 from tests.algorithms.orphan_udfs import one_second_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALWORKER_ADDR
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 request_id = "TestingSystemCallPriority"
 command_id = 0
@@ -25,8 +27,8 @@ def queue_one_second_udf(
 ):
     run_udf_task = get_celery_task_signature("run_udf")
 
-    kw_args_str = NodeUDFKeyArguments(
-        args={"table": NodeTableDTO(value=input_table_name)}
+    kw_args_str = WorkerUDFKeyArguments(
+        args={"table": WorkerTableDTO(value=input_table_name)}
     ).json()
 
     global command_id
@@ -38,14 +40,14 @@ def queue_one_second_udf(
         command_id=str(command_id),
         context_id=request_id,
         func_name=make_unique_func_name(one_second_udf),
-        positional_args_json=NodeUDFPosArguments(args=[]).json(),
+        positional_args_json=WorkerUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
 
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-def test_node_info_tasks_have_higher_priority_over_other_tasks(
+def test_worker_info_tasks_have_higher_priority_over_other_tasks(
     globalworker_worker_service,
     globalworker_db_cursor,
     reset_celery_app_factory,
@@ -58,8 +60,8 @@ def test_node_info_tasks_have_higher_priority_over_other_tasks(
     )
 
     # Queue an X amount of udfs to fill the rabbitmq.
-    # The queued udfs should be greater than the NODE workers that consume them.
-    number_of_udfs_to_schedule = node_config.celery.worker_concurrency + 10
+    # The queued udfs should be greater than the WORKER workers that consume them.
+    number_of_udfs_to_schedule = worker_config.celery.worker_concurrency + 10
     udf_async_results = [
         queue_one_second_udf(
             cel_app_wrapper, input_table_name, get_controller_testing_logger
@@ -67,20 +69,22 @@ def test_node_info_tasks_have_higher_priority_over_other_tasks(
         for _ in range(number_of_udfs_to_schedule)
     ]
 
-    # The node info task should wait for one udf to complete (~1-2sec), in order to start being executed,
+    # The worker info task should wait for one udf to complete (~1-2sec), in order to start being executed,
     # but shouldn't wait for more than one, since it has priority of the other celery.
     # The timeout should be the time taken for one udf to complete, plus some additional time for
-    # the actual get_node_info task to complete.
-    node_info_task_timeout = 3
-    node_info_task_handler = NodeInfoTasksHandler(
-        RABBITMQ_GLOBALWORKER_ADDR, node_info_task_timeout
+    # the actual get_worker_info task to complete.
+    worker_info_task_timeout = 3
+    worker_info_task_handler = WorkerInfoTasksHandler(
+        RABBITMQ_GLOBALWORKER_ADDR, worker_info_task_timeout
     )
-    node_info_ar = node_info_task_handler.queue_node_info_task(request_id)
+    worker_info_ar = worker_info_task_handler.queue_worker_info_task(request_id)
     try:
-        result = node_info_task_handler.result_node_info_task(node_info_ar, request_id)
+        result = worker_info_task_handler.result_worker_info_task(
+            worker_info_ar, request_id
+        )
     except CeleryTaskTimeoutException as exc:
         pytest.fail(
-            f"The node info task should not wait for the other tasks but a timeout occurred."
+            f"The worker info task should not wait for the other tasks but a timeout occurred."
             f"Exception: {exc}"
         )
     assert isinstance(result, WorkerInfo)

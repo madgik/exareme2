@@ -10,10 +10,10 @@ from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
 from exareme2.controller.celery.app import CeleryWrapper
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
 from exareme2.worker_communication import WorkerInfo
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
 from tests.algorithms.orphan_udfs import five_seconds_udf
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALWORKER_ADDR
 from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_ADDR
@@ -24,24 +24,26 @@ from tests.standalone_tests.conftest import create_localworkertmp_worker_service
 from tests.standalone_tests.conftest import is_localworkertmp_worker_service_ok
 from tests.standalone_tests.conftest import kill_service
 from tests.standalone_tests.conftest import remove_localworkertmp_rabbitmq
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.test_udfs import create_table_with_one_column_and_ten_rows
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 request_id = "TestingCeleryApp"
-GET_NODE_INFO_TASK_TIMEOUT = 2
+GET_WORKER_INFO_TASK_TIMEOUT = 2
 
 
-def execute_get_node_info_task_and_assert_response(
+def execute_get_worker_info_task_and_assert_response(
     cel_app_wrapper, controller_testing_logger
 ):
     async_res = cel_app_wrapper.queue_task(
-        task_signature=get_celery_task_signature("get_node_info"),
+        task_signature=get_celery_task_signature("get_worker_info"),
         logger=controller_testing_logger,
         request_id=request_id,
     )
     res = cel_app_wrapper.get_result(
         async_result=async_res,
-        timeout=GET_NODE_INFO_TASK_TIMEOUT,
+        timeout=GET_WORKER_INFO_TASK_TIMEOUT,
         logger=controller_testing_logger,
     )
     assert WorkerInfo.parse_raw(res)
@@ -52,14 +54,14 @@ def execute_task_and_assert_connection_error_raised(
 ):
     # Due to a bug on the rpc, the rabbitmq cannot recover the result, only the next scheduled task will be able to.
     async_res = cel_app_wrapper.queue_task(
-        task_signature=get_celery_task_signature("get_node_info"),
+        task_signature=get_celery_task_signature("get_worker_info"),
         logger=controller_testing_logger,
         request_id=request_id,
     )
     with pytest.raises(CeleryConnectionError):
         cel_app_wrapper.get_result(
             async_result=async_res,
-            timeout=GET_NODE_INFO_TASK_TIMEOUT,
+            timeout=GET_WORKER_INFO_TASK_TIMEOUT,
             logger=controller_testing_logger,
         )
 
@@ -69,8 +71,8 @@ def queue_slow_udf(cel_app, db_cursor, logger):
     input_table_name, _ = create_table_with_one_column_and_ten_rows(
         cel_app, db_cursor, request_id
     )
-    kw_args_str = NodeUDFKeyArguments(
-        args={"table": NodeTableDTO(value=input_table_name)}
+    kw_args_str = WorkerUDFKeyArguments(
+        args={"table": WorkerTableDTO(value=input_table_name)}
     ).json()
 
     return cel_app.queue_task(
@@ -80,7 +82,7 @@ def queue_slow_udf(cel_app, db_cursor, logger):
         command_id="1",
         context_id=request_id,
         func_name=make_unique_func_name(five_seconds_udf),
-        positional_args_json=NodeUDFPosArguments(args=[]).json(),
+        positional_args_json=WorkerUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
 
@@ -95,7 +97,7 @@ def test_celery_app_is_the_same_after_executing_task(
     cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALWORKER_ADDR)
     initial_cel_app = cel_app_wrapper._celery_app
 
-    execute_get_node_info_task_and_assert_response(
+    execute_get_worker_info_task_and_assert_response(
         cel_app_wrapper, get_controller_testing_logger
     )
 
@@ -141,9 +143,9 @@ def test_celery_app_is_the_same_after_get_task_result_with_exception(
     cel_app_wrapper = CeleryAppFactory().get_celery_app(RABBITMQ_GLOBALWORKER_ADDR)
     initial_cel_app = cel_app_wrapper._celery_app
 
-    # Queue get node info task without providing the `request_id` thus causing an IndexError
+    # Queue get worker info task without providing the `request_id` thus causing an IndexError
     async_res = cel_app_wrapper.queue_task(
-        task_signature=get_celery_task_signature("get_node_info"),
+        task_signature=get_celery_task_signature("get_worker_info"),
         logger=get_controller_testing_logger,
     )
     with pytest.raises(TypeError):
@@ -170,7 +172,7 @@ def test_celery_app_is_different_after_queue_task_when_rabbitmq_is_down(
 
     with pytest.raises(CeleryConnectionError):
         cel_app_wrapper.queue_task(
-            task_signature=get_celery_task_signature("get_node_info"),
+            task_signature=get_celery_task_signature("get_worker_info"),
             logger=get_controller_testing_logger,
             request_id=request_id,
         )
@@ -234,7 +236,7 @@ def test_celery_app_is_the_same_after_get_task_res_with_worker_down(
     with pytest.raises(CeleryTaskTimeoutException):
         cel_app_wrapper.get_result(
             async_result=async_res,
-            timeout=GET_NODE_INFO_TASK_TIMEOUT,
+            timeout=GET_WORKER_INFO_TASK_TIMEOUT,
             logger=get_controller_testing_logger,
         )
 
@@ -258,7 +260,7 @@ def test_celery_app_is_the_same_after_getting_task_when_worker_restarted(
     kill_service(localworkertmp_worker_service)
     restarted_localworkertmp_worker_service = create_localworkertmp_worker_service()
 
-    execute_get_node_info_task_and_assert_response(
+    execute_get_worker_info_task_and_assert_response(
         cel_app_wrapper, get_controller_testing_logger
     )
 
@@ -283,7 +285,7 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
     # Initialize the celery app by using it to queue a task and get its result.
     # This is needed because the celery_app result consumer doesn't recover if
     # the connection is severed.
-    execute_get_node_info_task_and_assert_response(
+    execute_get_worker_info_task_and_assert_response(
         cel_app_wrapper, get_controller_testing_logger
     )
 
@@ -313,7 +315,7 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
         Celery,
     ), "The new celery app is not an instance of Celery. Something unexpected occurred during the reset."
 
-    execute_get_node_info_task_and_assert_response(
+    execute_get_worker_info_task_and_assert_response(
         cel_app_wrapper, get_controller_testing_logger
     )
 
@@ -333,13 +335,13 @@ def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_w
     concurrent_requests = 20
 
     # Initialize celery app to open channels
-    execute_get_node_info_task_and_assert_response(
+    execute_get_worker_info_task_and_assert_response(
         cel_app_wrapper, get_controller_testing_logger
     )
 
     async_results = [
         cel_app_wrapper.queue_task(
-            task_signature=get_celery_task_signature("get_node_info"),
+            task_signature=get_celery_task_signature("get_worker_info"),
             logger=get_controller_testing_logger,
             request_id=request_id,
         )
@@ -365,7 +367,7 @@ def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_w
                 executor.submit(
                     cel_app_wrapper.get_result,
                     async_res,
-                    GET_NODE_INFO_TASK_TIMEOUT,
+                    GET_WORKER_INFO_TASK_TIMEOUT,
                     get_controller_testing_logger,
                 )
                 for async_res in async_results
@@ -403,7 +405,7 @@ def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_w
         Celery,
     ), "The new celery app is not an instance of Celery. Something unexpected occurred during the reset."
 
-    execute_get_node_info_task_and_assert_response(
+    execute_get_worker_info_task_and_assert_response(
         cel_app_wrapper, get_controller_testing_logger
     )
 

@@ -14,7 +14,7 @@ class KFold:
     """Slits dataset into train and test sets for performing k-flod cross-validation
 
     NOTE: This is currently implemented in a very inefficient maner, making one
-    `run_udf_on_local_nodes` per split, per table. The reason is limitations in
+    `run_udf_on_local_workers` per split, per table. The reason is limitations in
     the current UDF generator. In the future this class might be re-implemented
     more efficiently. However, the interface won't change.
     """
@@ -26,8 +26,8 @@ class KFold:
         angine: AlgorithmExecutionEngine
         n_splits: int
         """
-        self._local_run = engine.run_udf_on_local_nodes
-        self._global_run = engine.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_workers
+        self._global_run = engine.run_udf_on_global_worker
         self.n_splits = n_splits
 
     def split(self, X, y):
@@ -41,7 +41,7 @@ class KFold:
         conditions = [json.loads(t) for t in transfer_data]
         if not all(cond["n_obs >= n_splits"] for cond in conditions):
             raise BadUserInput(
-                "Cross validation cannot run because some of the nodes "
+                "Cross validation cannot run because some of the workers "
                 "participating in the experiment have a number of observations "
                 f"smaller than the number of splits, {self.n_splits}."
             )
@@ -177,9 +177,9 @@ def cross_validate(X, y, models, splitter, pred_type: _PredictionType):
 
     Parameters
     ----------
-    X : LocalNodesTable
+    X : LocalWorkersTable
         A table of features
-    y : LocalNodesTable
+    y : LocalWorkersTable
         A table of targets
     models : list of objects supporting `fit` and `predict` or `predict_proba`
         The estimator models used in cross-validation. These are mutated by the
@@ -194,9 +194,9 @@ def cross_validate(X, y, models, splitter, pred_type: _PredictionType):
 
     Returns
     -------
-    List[LocalNodesTable]
+    List[LocalWorkersTable]
         A table of predictions for each split
-    List[LocalNodesTable]
+    List[LocalWorkersTable]
         The testing set, i.e. a table of true values for each split
     """
     X_train, X_test, y_train, y_test = splitter.split(X, y)

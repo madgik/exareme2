@@ -95,8 +95,8 @@ def placeholder(name):
     return PlaceholderType(name)
 
 
-# special type for passing MIN_ROW_COUNT in UDF. Only Node knows the actual
-# value so here it's exported as a placeholder and replaced by Node.
+# special type for passing MIN_ROW_COUNT in UDF. Only Worker knows the actual
+# value so here it's exported as a placeholder and replaced by Worker.
 MIN_ROW_COUNT = placeholder("min_row_count")
 
 

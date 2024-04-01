@@ -21,8 +21,8 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
 )
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterEnumType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterType
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
 from exareme2.data_filters import validate_filter
 from exareme2.smpc_cluster_communication import validate_smpc_usage
@@ -41,14 +41,14 @@ def validate_algorithm_request(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithms_specs: Dict[str, AlgorithmSpecification],
     transformers_specs: Dict[str, TransformerSpecification],
-    node_landscape_aggregator: NodeLandscapeAggregator,
+    worker_landscape_aggregator: WorkerLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
     algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
 
     available_datasets_per_data_model = (
-        node_landscape_aggregator.get_all_available_datasets_per_data_model()
+        worker_landscape_aggregator.get_all_available_datasets_per_data_model()
     )
 
     _validate_data_model(
@@ -56,7 +56,7 @@ def validate_algorithm_request(
         available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
-    data_model_cdes = node_landscape_aggregator.get_cdes(
+    data_model_cdes = worker_landscape_aggregator.get_cdes(
         algorithm_request_dto.inputdata.data_model
     )
 

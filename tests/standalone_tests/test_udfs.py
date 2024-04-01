@@ -15,19 +15,21 @@ from exareme2.worker.exareme2.udfs.udfs_service import _convert_result
 from exareme2.worker.exareme2.udfs.udfs_service import _get_udf_table_sharing_queries
 from exareme2.worker.exareme2.udfs.udfs_service import _make_output_table_names
 from exareme2.worker_communication import ColumnInfo
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
-from exareme2.worker_communication import NodeUDFResults
 from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import TableType
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
+from exareme2.worker_communication import WorkerUDFResults
 from tests.algorithms.orphan_udfs import local_step
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import insert_data_to_db
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 command_id = "command123"
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
@@ -94,14 +96,14 @@ def test_run_udf_state_and_transfer_output(
 ):
     run_udf_task = get_celery_task_signature("run_udf")
 
-    local_node_get_table_data = get_celery_task_signature("get_table_data")
+    local_worker_get_table_data = get_celery_task_signature("get_table_data")
 
     input_table_info, input_table_name_sum = create_table_with_one_column_and_ten_rows(
         localworker1_celery_app, localworker1_db_cursor, request_id
     )
 
-    kw_args_str = NodeUDFKeyArguments(
-        args={"table": NodeTableDTO(value=input_table_info)}
+    kw_args_str = WorkerUDFKeyArguments(
+        args={"table": WorkerTableDTO(value=input_table_info)}
     ).json()
 
     async_result = localworker1_celery_app.queue_task(
@@ -111,7 +113,7 @@ def test_run_udf_state_and_transfer_output(
         request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(local_step),
-        positional_args_json=NodeUDFPosArguments(args=[]).json(),
+        positional_args_json=WorkerUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
     udf_results_str = localworker1_celery_app.get_result(
@@ -120,17 +122,17 @@ def test_run_udf_state_and_transfer_output(
         timeout=TASKS_TIMEOUT,
     )
 
-    results = NodeUDFResults.parse_raw(udf_results_str).results
+    results = WorkerUDFResults.parse_raw(udf_results_str).results
     assert len(results) == 2
 
     state_result = results[0]
-    assert isinstance(state_result, NodeTableDTO)
+    assert isinstance(state_result, WorkerTableDTO)
 
     transfer_result = results[1]
-    assert isinstance(transfer_result, NodeTableDTO)
+    assert isinstance(transfer_result, WorkerTableDTO)
 
     async_result = localworker1_celery_app.queue_task(
-        task_signature=local_node_get_table_data,
+        task_signature=local_worker_get_table_data,
         logger=StdOutputLogger(),
         request_id=request_id,
         table_name=transfer_result.value.name,
@@ -173,8 +175,8 @@ def test_run_udf_with_remote_state_table_passed_as_normal_table(
         name=table_info.name, schema_=table_info.schema_, type_=TableType.NORMAL
     )
 
-    kw_args_str = NodeUDFKeyArguments(
-        args={"remote_state_table": NodeTableDTO(value=invalid_table_info)}
+    kw_args_str = WorkerUDFKeyArguments(
+        args={"remote_state_table": WorkerTableDTO(value=invalid_table_info)}
     ).json()
 
     async_result = localworker1_celery_app.queue_task(
@@ -184,7 +186,7 @@ def test_run_udf_with_remote_state_table_passed_as_normal_table(
         request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(local_step),
-        positional_args_json=NodeUDFPosArguments(args=[]).json(),
+        positional_args_json=WorkerUDFPosArguments(args=[]).json(),
         keyword_args_json=kw_args_str,
     )
     with pytest.raises(ValueError) as exc_info:
@@ -214,19 +216,19 @@ def test_parse_output_schema():
 def test_create_table_name():
     table_name = create_table_name(
         table_type=TableType.NORMAL,
-        node_id="node1",
+        worker_id="worker1",
         context_id="context2",
         command_id="command3",
         result_id="output4",
     )
-    assert table_name == "normal_node1_context2_command3_output4"
+    assert table_name == "normal_worker1_context2_command3_output4"
 
 
 def test_convert_table_result():
     udfgen_result = UDFGenTableResult(
         table_schema=[("a", DType.INT)], create_query="", table_name="table_name"
     )
-    expected = NodeTableDTO(
+    expected = WorkerTableDTO(
         value=TableInfo(
             name="table_name",
             schema_=TableSchema(columns=[ColumnInfo(name="a", dtype=DType.INT)]),
@@ -239,11 +241,11 @@ def test_convert_table_result():
 
 def test_create_output_table_names():
     names = _make_output_table_names(
-        outputlen=2, node_id="node1", context_id="context2", command_id="command3"
+        outputlen=2, worker_id="worker1", context_id="context2", command_id="command3"
     )
     assert names == [
-        "normal_node1_context2_command3_0",
-        "normal_node1_context2_command3_1",
+        "normal_worker1_context2_command3_0",
+        "normal_worker1_context2_command3_1",
     ]
 
 

@@ -37,7 +37,7 @@ def db_cursor(ip, port):
 def cli():
     """
     This is a log aggregation script.
-    It can be used either in a local hospital node to show database actions or in the federation master node
+    It can be used either in a local hospital worker to show database actions or in the federation master worker
     to show information for all the federation workers.
     """
     pass

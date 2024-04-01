@@ -35,8 +35,8 @@ microk8s disable ingress
 2. Append the following lines to the kubelet configuration files:
 
 ```
-sudo echo --node-ip=<MASTER_NODE_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kubelet
-sudo echo --advertise-address=<MASTER_NODE_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kube-apiserver
+sudo echo --node-ip=<MASTER_WORKER_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kubelet
+sudo echo --advertise-address=<MASTER_WORKER_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kube-apiserver
 ```
 
 3. Restart MicroK8s with:

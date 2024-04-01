@@ -16,9 +16,11 @@ from tests.standalone_tests.conftest import ALGORITHMS_URL
 from tests.standalone_tests.conftest import create_table_in_db
 from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.conftest import insert_data_to_db
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-from tests.standalone_tests.test_smpc_node_tasks import TASKS_TIMEOUT
+from tests.standalone_tests.test_smpc_worker_tasks import TASKS_TIMEOUT
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 create_view_task_signature = get_celery_task_signature("create_view")
 create_data_model_views_task_signature = get_celery_task_signature(
@@ -404,7 +406,7 @@ def test_insufficient_data_error_raised_when_data_model_view_generated_with_fewe
     five_rows_data_model_view_generating_params,
 ):
     # check InsufficientDataError raised when data model view with less than
-    # minimum_row_count (defined in testing_env_configs/test_localnode1.toml)
+    # minimum_row_count (defined in testing_env_configs/test_localworker1.toml)
     with pytest.raises(InsufficientDataError):
         async_result = localworker1_celery_app.queue_task(
             task_signature=create_data_model_views_task_signature,
@@ -451,7 +453,7 @@ def test_data_model_view_with_data_model_unavailable_exception(
         )
 
     assert (
-        f"Data model 'non_existing' is not available in node: 'testlocalworker1'"
+        f"Data model 'non_existing' is not available in worker: 'testlocalworker1'"
         in exc.value.message
     )
 
@@ -485,7 +487,7 @@ def test_data_model_view_with_dataset_unavailable_exception(
         )
 
     assert (
-        f"Dataset 'non_existing' is not available in node: 'testlocalworker1'"
+        f"Dataset 'non_existing' is not available in worker: 'testlocalworker1'"
         in exc.value.message
     )
 
@@ -563,7 +565,7 @@ def test_multiple_data_model_views(
 # from the relevant modules ex. celery/views.py module and
 # 2.instead of searching in the primary data tables for data that would fit the test,
 # there should be a mechanism to add specifically crafted data for each test case in the
-# db of the node
+# db of the worker
 @pytest.mark.slow
 def test_multiple_data_model_views_null_constraints(
     request_id,

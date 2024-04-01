@@ -6,17 +6,19 @@ import pytest
 from exareme2 import AttrDict
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryConnectionError
-from exareme2.controller.nodes_addresses import NodesAddresses
-from exareme2.controller.nodes_addresses import NodesAddressesFactory
-from exareme2.controller.services import NodeLandscapeAggregator
-from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
+from exareme2.controller.services import WorkerLandscapeAggregator
+from exareme2.controller.services.worker_landscape_aggregator import _NLARegistries
+from exareme2.controller.workers_addresses import WorkersAddresses
+from exareme2.controller.workers_addresses import WorkersAddressesFactory
 from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKER1_ADDR
 from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_ADDR
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
-from tests.standalone_tests.test_node_landscape_aggregator_update_loop import (
-    CustomNodeAddresses,
+from tests.standalone_tests.test_worker_landscape_aggregator_update_loop import (
+    CustomWorkerAddresses,
+)
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
 )
 
 healthcheck_task_signature = get_celery_task_signature("healthcheck")
@@ -68,61 +70,61 @@ def controller_config():
     return controller_config
 
 
-def get_custom_nodes_addresses_localnode1() -> NodesAddresses:
-    return CustomNodeAddresses([RABBITMQ_LOCALWORKER1_ADDR])
+def get_custom_workers_addresses_localworker1() -> WorkersAddresses:
+    return CustomWorkerAddresses([RABBITMQ_LOCALWORKER1_ADDR])
 
 
-def get_custom_nodes_addresses_localnodetmp() -> NodesAddresses:
-    return CustomNodeAddresses([RABBITMQ_LOCALWORKERTMP_ADDR])
+def get_custom_workers_addresses_localworkertmp() -> WorkersAddresses:
+    return CustomWorkerAddresses([RABBITMQ_LOCALWORKERTMP_ADDR])
 
 
 @pytest.fixture(autouse=True, scope="function")
-def patch_nodes_addresses():
+def patch_workers_addresses():
     with patch.object(
-        NodesAddressesFactory,
-        "get_nodes_addresses",
+        WorkersAddressesFactory,
+        "get_workers_addresses",
     ) as patched:
         yield patched
 
 
 @pytest.fixture(scope="function")
-def node_landscape_aggregator(controller_config):
+def worker_landscape_aggregator(controller_config):
     controller_config = AttrDict(controller_config)
 
-    node_landscape_aggregator = NodeLandscapeAggregator(
+    worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
         update_interval=0,
         tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=None,
-        localnodes=None,
+        localworkers=None,
     )
-    node_landscape_aggregator.stop()
-    node_landscape_aggregator.keep_updating = False
-    node_landscape_aggregator._nla_registries = _NLARegistries()
+    worker_landscape_aggregator.stop()
+    worker_landscape_aggregator.keep_updating = False
+    worker_landscape_aggregator._nla_registries = _NLARegistries()
 
-    return node_landscape_aggregator
+    return worker_landscape_aggregator
 
 
 @pytest.mark.slow
 def test_healthcheck_success(
-    patch_nodes_addresses,
+    patch_workers_addresses,
     localworker1_worker_service,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
 ):
-    patch_nodes_addresses.side_effect = get_custom_nodes_addresses_localnode1
+    patch_workers_addresses.side_effect = get_custom_workers_addresses_localworker1
 
     try:
-        node_landscape_aggregator.healthcheck()
+        worker_landscape_aggregator.healthcheck()
     except Exception as exc:
         pytest.fail(f"Healthcheck failed with exception: {exc}")
 
 
 def test_healthcheck_fail(
-    patch_nodes_addresses,
-    node_landscape_aggregator,
+    patch_workers_addresses,
+    worker_landscape_aggregator,
 ):
-    patch_nodes_addresses.side_effect = get_custom_nodes_addresses_localnodetmp
+    patch_workers_addresses.side_effect = get_custom_workers_addresses_localworkertmp
 
     with pytest.raises(CeleryConnectionError):
-        node_landscape_aggregator.healthcheck()
+        worker_landscape_aggregator.healthcheck()

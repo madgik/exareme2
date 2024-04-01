@@ -12,8 +12,8 @@ from exareme2.worker_communication import DataModelAttributes
 from exareme2.worker_communication import WorkerInfo
 
 TASK_SIGNATURES: Final = {
-    "get_node_info": "exareme2.worker.worker_info.worker_info_api.get_worker_info",
-    "get_node_datasets_per_data_model": "exareme2.worker.worker_info.worker_info_api.get_node_datasets_per_data_model",
+    "get_worker_info": "exareme2.worker.worker_info.worker_info_api.get_worker_info",
+    "get_worker_datasets_per_data_model": "exareme2.worker.worker_info.worker_info_api.get_worker_datasets_per_data_model",
     "get_data_model_cdes": "exareme2.worker.worker_info.worker_info_api.get_data_model_cdes",
     "get_data_model_attributes": "exareme2.worker.worker_info.worker_info_api.get_data_model_attributes",
     "healthcheck": "exareme2.worker.worker_info.worker_info_api.healthcheck",
@@ -23,23 +23,23 @@ TASK_SIGNATURES: Final = {
 # TODO (Refactor) Split the task handlers from the celery logic
 # The interface should be used in the engines and celery/grpc should implement them.
 # The interface task handler should be in the services package.
-class NodeInfoTasksHandler:
-    def __init__(self, node_queue_addr: str, tasks_timeout: int):
-        self._node_queue_addr = node_queue_addr
+class WorkerInfoTasksHandler:
+    def __init__(self, worker_queue_addr: str, tasks_timeout: int):
+        self._worker_queue_addr = worker_queue_addr
         self._tasks_timeout = tasks_timeout
 
     @property
-    def node_queue_addr(self) -> str:
-        return self._node_queue_addr
+    def worker_queue_addr(self) -> str:
+        return self._worker_queue_addr
 
-    def _get_node_celery_app(self) -> CeleryWrapper:
-        return CeleryAppFactory().get_celery_app(socket_addr=self._node_queue_addr)
+    def _get_worker_celery_app(self) -> CeleryWrapper:
+        return CeleryAppFactory().get_celery_app(socket_addr=self._worker_queue_addr)
 
-    # --------------- get_node_info task ---------------
+    # --------------- get_worker_info task ---------------
     # NON-BLOCKING
-    def queue_node_info_task(self, request_id: str) -> AsyncResult:
-        celery_app = self._get_node_celery_app()
-        task_signature = TASK_SIGNATURES["get_node_info"]
+    def queue_worker_info_task(self, request_id: str) -> AsyncResult:
+        celery_app = self._get_worker_celery_app()
+        task_signature = TASK_SIGNATURES["get_worker_info"]
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         async_result = celery_app.queue_task(
             task_signature=task_signature,
@@ -50,10 +50,10 @@ class NodeInfoTasksHandler:
         return async_result
 
     # BLOCKING
-    def result_node_info_task(
+    def result_worker_info_task(
         self, async_result: AsyncResult, request_id: str
     ) -> WorkerInfo:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         result = celery_app.get_result(
             async_result=async_result,
@@ -62,11 +62,11 @@ class NodeInfoTasksHandler:
         )
         return WorkerInfo.parse_raw(result)
 
-    # --------------- get_node_datasets_per_data_model task ---------------
+    # --------------- get_worker_datasets_per_data_model task ---------------
     # NON-BLOCKING
-    def queue_node_datasets_per_data_model_task(self, request_id: str) -> AsyncResult:
-        celery_app = self._get_node_celery_app()
-        task_signature = TASK_SIGNATURES["get_node_datasets_per_data_model"]
+    def queue_worker_datasets_per_data_model_task(self, request_id: str) -> AsyncResult:
+        celery_app = self._get_worker_celery_app()
+        task_signature = TASK_SIGNATURES["get_worker_datasets_per_data_model"]
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         async_result = celery_app.queue_task(
             task_signature=task_signature,
@@ -77,10 +77,10 @@ class NodeInfoTasksHandler:
         return async_result
 
     # BLOCKING
-    def result_node_datasets_per_data_model_task(
+    def result_worker_datasets_per_data_model_task(
         self, async_result: AsyncResult, request_id: str
     ) -> Dict[str, Dict[str, str]]:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         result = celery_app.get_result(
             async_result=async_result,
@@ -94,7 +94,7 @@ class NodeInfoTasksHandler:
     def queue_data_model_cdes_task(
         self, request_id: str, data_model: str
     ) -> AsyncResult:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         task_signature = TASK_SIGNATURES["get_data_model_cdes"]
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         async_result = celery_app.queue_task(
@@ -110,7 +110,7 @@ class NodeInfoTasksHandler:
     def result_data_model_cdes_task(
         self, async_result: AsyncResult, request_id: str
     ) -> CommonDataElements:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         result = celery_app.get_result(
             async_result=async_result,
@@ -124,7 +124,7 @@ class NodeInfoTasksHandler:
     def queue_data_model_attributes_task(
         self, request_id: str, data_model: str
     ) -> AsyncResult:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         task_signature = TASK_SIGNATURES["get_data_model_attributes"]
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         async_result = celery_app.queue_task(
@@ -140,7 +140,7 @@ class NodeInfoTasksHandler:
     def result_data_model_attributes_task(
         self, async_result: AsyncResult, request_id: str
     ) -> DataModelAttributes:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         result = celery_app.get_result(
             async_result=async_result,
@@ -152,7 +152,7 @@ class NodeInfoTasksHandler:
     # --------------- healthcheck task ---------------
     # NON-BLOCKING
     def queue_healthcheck_task(self, request_id: str, check_db: bool) -> AsyncResult:
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         task_signature = TASK_SIGNATURES["healthcheck"]
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         async_result = celery_app.queue_task(
@@ -166,7 +166,7 @@ class NodeInfoTasksHandler:
 
     # BLOCKING
     def result_healthcheck(self, async_result: AsyncResult, request_id: str):
-        celery_app = self._get_node_celery_app()
+        celery_app = self._get_worker_celery_app()
         logger = ctrl_logger.get_request_logger(request_id=request_id)
         return celery_app.get_result(
             async_result=async_result,

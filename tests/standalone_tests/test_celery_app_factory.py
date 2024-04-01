@@ -107,7 +107,7 @@ def test_get_result(localworker1_worker_service, task_signatures):
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-def test_queue_task_node_down(localworkertmp_worker_service, task_signatures):
+def test_queue_task_worker_down(localworkertmp_worker_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALWORKERTMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
 
@@ -133,7 +133,7 @@ def test_queue_task_node_down(localworkertmp_worker_service, task_signatures):
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-def test_get_result_node_down(localworkertmp_worker_service, task_signatures):
+def test_get_result_worker_down(localworkertmp_worker_service, task_signatures):
     socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALWORKERTMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
 

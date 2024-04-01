@@ -113,8 +113,8 @@ class Result(BaseModel):
 
 class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, data, metadata):
-        local_run = self.engine.run_udf_on_local_nodes
-        global_run = self.engine.run_udf_on_global_node
+        local_run = self.engine.run_udf_on_local_workers
+        global_run = self.engine.run_udf_on_global_worker
 
         [data] = data
         metadata = metadata
@@ -135,7 +135,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
         # global udf is actually a nop but is necessary because we can't get_table_data
-        # from local nodes
+        # from local workers
         local_transfers = get_transfer_data(
             global_run(
                 func=global_,

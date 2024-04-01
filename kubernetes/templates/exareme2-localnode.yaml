@@ -4,7 +4,7 @@ metadata:
   name: exareme2-localworker-deployment
   labels:
     app: exareme2-worker
-    nodeType: localnode
+    nodeType: localworker
 spec:
   replicas: {{ .Values.localnodes }}
   selector:
@@ -14,7 +14,7 @@ spec:
     metadata:
       labels:
         app: exareme2-worker
-        nodeType: localnode
+        nodeType: localworker
     spec:
       nodeSelector:
         worker: "true"

@@ -110,7 +110,7 @@ class LogisticRegressionFedAverage(LogisticRegression):
 
     Federated logistic regression version where the `fit` method is implemented
     using the fed_average strategy, i.e. the model is fitted independently in
-    each local node and the global model is computed by averaging the model
+    each local worker and the global model is computed by averaging the model
     parameters, namely the coefficients.
     """
 
@@ -120,14 +120,14 @@ class LogisticRegressionFedAverage(LogisticRegression):
     # parameters locally using a SoA library (here sklearn) and then call
     # `fed_average` to compute the global model.
     #
-    # `fed_average` needs the number of local nodes `num_local_nodes` which is
+    # `fed_average` needs the number of local workers `num_local_workers` which is
     # provided by the `engine` instance.
     #
     # Other parameters, besides the ones to be averaged, can be computed
     # locally but need to be placed in a different object (see `other_params`
     # below).
     def __init__(self, engine):
-        self.num_local_nodes = engine.num_local_nodes
+        self.num_local_workers = engine.num_local_workers
         super().__init__(engine)
 
     def fit(self, X, y):
@@ -139,7 +139,7 @@ class LogisticRegressionFedAverage(LogisticRegression):
         averaged_params_table = self.global_run(
             func=fed_average,
             keyword_args=dict(
-                params=params_to_average, num_local_nodes=self.num_local_nodes
+                params=params_to_average, num_local_workers=self.num_local_workers
             ),
         )
         other_params_table = self.global_run(

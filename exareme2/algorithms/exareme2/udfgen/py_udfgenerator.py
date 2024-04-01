@@ -127,8 +127,8 @@ State and Transfer explained
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 State and Transfer are special input/output types. They are materialized as a
 simple dict within the udf, where the user is free to insert any variable.
-States are then saved locally on the same node, to be used in later udfs,
-whereas Transfers are always transferred to the opposite node.
+States are then saved locally on the same worker, to be used in later udfs,
+whereas Transfers are always transferred to the opposite worker.
 
 ======================= ==================== =====================
                         State                Transfer
@@ -146,8 +146,8 @@ Local/Global steps explained
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 For State and Transfer there is also the option of multiple return values.
 This is used for the local/global step logic where a local step (udf) keeps a State
-locally and sends a Transfer to the global node. Respectively, a global step (udf)
-keeps a State globally and sends a Transfer object to all the local nodes.
+locally and sends a Transfer to the global worker. Respectively, a global step (udf)
+keeps a State globally and sends a Transfer object to all the local workers.
 
 Local UDF step Example
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -194,7 +194,7 @@ Global UDF step Example
 >>> @udf(x=state(), y=secure_transfer(), return_type=[state(), transfer()])
 ... def global_step(x, y):
 ...     state["x"] = x["key"]
-...     sum = y["sum"]      # The values from all the local nodes are already aggregated
+...     sum = y["sum"]      # The values from all the local workers are already aggregated
 ...     state["y"] = sum
 ...     transfer["sum"] = x["key"] + y["key"]
 ...     return state, transfer
@@ -936,7 +936,7 @@ class UdfResultBuilder:
 
     @staticmethod
     def _is_output_type_shareable(output_type: OutputType) -> bool:
-        # TransferType tables are meant to be shared with the remote nodes
+        # TransferType tables are meant to be shared with the remote workers
         if isinstance(output_type, TransferType):
             return True
 

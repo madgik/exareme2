@@ -62,9 +62,9 @@ S = TypeVar("S")
 
 class SVMFedAverage:
     def __init__(self, engine):
-        self.num_local_nodes = engine.num_local_nodes
-        self.local_run = engine.run_udf_on_local_nodes
-        self.global_run = engine.run_udf_on_global_node
+        self.num_local_workers = engine.num_local_workers
+        self.local_run = engine.run_udf_on_local_workers
+        self.global_run = engine.run_udf_on_global_worker
 
     def fit(self, x, y, gamma, C):
         params_to_average, other_params = self.local_run(
@@ -75,7 +75,7 @@ class SVMFedAverage:
         averaged_params_table = self.global_run(
             func=fed_average,
             keyword_args=dict(
-                params=params_to_average, num_local_nodes=self.num_local_nodes
+                params=params_to_average, num_local_workers=self.num_local_workers
             ),
         )
         other_params_table = self.global_run(

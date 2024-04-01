@@ -9,7 +9,7 @@ from exareme2.algorithms.exareme2.udfgen.udfio import split_secure_transfer_dict
 
 def test_merge_tensor_to_list_2tables_0D():
     columns = dict(
-        node_id=np.array(["a", "b"]),
+        worker_id=np.array(["a", "b"]),
         dim0=np.array([0, 0]),
         val=np.array([1, 2]),
     )
@@ -19,7 +19,7 @@ def test_merge_tensor_to_list_2tables_0D():
 
 def test_merge_tensor_to_list_2tables_1D():
     columns = dict(
-        node_id=np.array(["a", "a", "b", "b"]),
+        worker_id=np.array(["a", "a", "b", "b"]),
         dim0=np.array([0, 1, 0, 1]),
         val=np.array([1, 1, 2, 2]),
     )
@@ -30,7 +30,7 @@ def test_merge_tensor_to_list_2tables_1D():
 
 def test_merge_tensor_to_list_2tables_2D():
     columns = dict(
-        node_id=np.array(["a", "a", "a", "a", "b", "b", "b", "b"]),
+        worker_id=np.array(["a", "a", "a", "a", "b", "b", "b", "b"]),
         dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1]),
         dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1]),
         val=np.array([1, 1, 1, 1, 2, 2, 2, 2]),
@@ -42,7 +42,9 @@ def test_merge_tensor_to_list_2tables_2D():
 
 def test_merge_tensor_to_list_3tables_2D():
     columns = dict(
-        node_id=np.array(["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]),
+        worker_id=np.array(
+            ["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]
+        ),
         dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
         dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
         val=np.array([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),
@@ -56,9 +58,9 @@ def test_merge_tensor_to_list_3tables_2D():
     assert all((x == expected_x).all() for x, expected_x in zip(xs, expected_xs))
 
 
-def test_merge_tensor_to_list_no_nodeid():
+def test_merge_tensor_to_list_no_workerid():
     columns = dict(
-        nodeid=np.array(["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]),
+        workerid=np.array(["a", "a", "a", "a", "b", "b", "b", "b", "c", "c", "c", "c"]),
         dim0=np.array([0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]),
         dim1=np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),
         val=np.array([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3]),

@@ -13,7 +13,7 @@ from exareme2.algorithms.specifications import AlgorithmSpecification
 
 if TYPE_CHECKING:
     from exareme2.controller.services.exareme2 import AlgorithmExecutionEngine
-    from exareme2.controller.services.exareme2 import LocalNodesTable
+    from exareme2.controller.services.exareme2 import LocalWorkersTable
 
 
 class Variables(BaseModel):
@@ -38,7 +38,7 @@ class AlgorithmDataLoader(ABC):
         """
         This method must be implemented to return the variable groups from which the
         data model view tables will be created. The algorithm execution engine
-        will take care of creating the data model view tables on the nodes' dbs. The
+        will take care of creating the data model view tables on the workers' dbs. The
         data model views can be accessed from the algorithm flow code via
         engine.data_model_views list inside the run() method .
 
@@ -54,7 +54,7 @@ class AlgorithmDataLoader(ABC):
         If an algorithm needs to keep the 'Not Available' values in its data model view
         tables, this method must be overridden to return False. The algorithm execution
         engine will access this value when the data model view tables on the
-        nodes' dbs are created.
+        workers' dbs are created.
 
         Returns
         -------
@@ -67,7 +67,7 @@ class AlgorithmDataLoader(ABC):
         If an algorithm needs to ignore the minimum row count threshold for its data
         model view tables, this method must be overridden to return False. The algorithm
         execution engine will access this value when the data model view tables
-        on the nodes' dbs are created.
+        on the workers' dbs are created.
 
         Returns
         -------
@@ -175,7 +175,7 @@ class Algorithm(ABC):
         return AlgorithmSpecification.parse_file(file)
 
     @abstractmethod
-    def run(self, data: "LocalNodesTable", metadata: dict):
+    def run(self, data: "LocalWorkersTable", metadata: dict):
         """
         The implementation of the algorithm flow logic goes in this method.
         """

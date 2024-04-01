@@ -56,8 +56,8 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 class LogisticRegression:
     def __init__(self, engine):
-        self.local_run = engine.run_udf_on_local_nodes
-        self.global_run = engine.run_udf_on_global_node
+        self.local_run = engine.run_udf_on_local_workers
+        self.global_run = engine.run_udf_on_global_worker
 
     def fit(self, X, y):
         self.p = len(X.columns)

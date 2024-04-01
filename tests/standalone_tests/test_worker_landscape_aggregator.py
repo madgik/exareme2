@@ -2,20 +2,22 @@ import pytest
 
 from exareme2 import AttrDict
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.services.node_landscape_aggregator import DataModelMetadata
-from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.services.node_landscape_aggregator import DataModelsAttributes
-from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
-from exareme2.controller.services.node_landscape_aggregator import DataModelsMetadata
-from exareme2.controller.services.node_landscape_aggregator import (
-    DataModelsMetadataPerNode,
+from exareme2.controller.services.worker_landscape_aggregator import DataModelMetadata
+from exareme2.controller.services.worker_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.worker_landscape_aggregator import (
+    DataModelsAttributes,
 )
-from exareme2.controller.services.node_landscape_aggregator import DatasetsLabels
-from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.worker_landscape_aggregator import DataModelsCDES
+from exareme2.controller.services.worker_landscape_aggregator import DataModelsMetadata
+from exareme2.controller.services.worker_landscape_aggregator import (
+    DataModelsMetadataPerWorker,
 )
-from exareme2.controller.services.node_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator import DatasetsLabels
+from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
+)
+from exareme2.controller.services.worker_landscape_aggregator import (
     _crunch_data_model_registry_data,
 )
 from exareme2.worker_communication import CommonDataElement
@@ -28,12 +30,12 @@ from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_ADDR
 def controller_config():
     controller_config = {
         "deployment_type": "LOCAL",
-        "node_landscape_aggregator_update_interval": 30,
+        "worker_landscape_aggregator_update_interval": 30,
         "rabbitmq": {
             "celery_tasks_timeout": 5,
             "celery_run_udf_task_timeout": 10,
         },
-        "localnodes": {
+        "localworkers": {
             "config_file": None,
         },
     }
@@ -41,28 +43,28 @@ def controller_config():
 
 
 @pytest.fixture(scope="function")
-def node_landscape_aggregator(
+def worker_landscape_aggregator(
     controller_config,
 ):
     controller_config = AttrDict(controller_config)
 
-    node_landscape_aggregator = NodeLandscapeAggregator(
+    worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
-        update_interval=controller_config.node_landscape_aggregator_update_interval,
+        update_interval=controller_config.worker_landscape_aggregator_update_interval,
         tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         deployment_type=controller_config.deployment_type,
-        localnodes=controller_config.localnodes,
+        localworkers=controller_config.localworkers,
     )
-    return node_landscape_aggregator
+    return worker_landscape_aggregator
 
 
 def get_parametrization_cases():
     return [
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -120,7 +122,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -152,7 +154,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -275,16 +277,16 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode1",
-                            "dataset3": "localnode2",
-                            "dataset4": "localnode2",
-                            "dataset5": "localnode3",
-                            "dataset6": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -292,9 +294,9 @@ def get_parametrization_cases():
             id="common_case",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -337,7 +339,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -369,7 +371,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -477,14 +479,14 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset3": "localnode2",
-                            "dataset4": "localnode2",
-                            "dataset5": "localnode3",
-                            "dataset6": "localnode3",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -492,9 +494,9 @@ def get_parametrization_cases():
             id="none_cdes_on_data_model_1",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -561,7 +563,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -602,7 +604,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -700,18 +702,18 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
             ),
-            id="incompatible_cdes_on_data_model1_on_node1_and_node3",
+            id="incompatible_cdes_on_data_model1_on_worker1_and_worker3",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(datasets_labels={}),
@@ -760,7 +762,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(datasets_labels={}),
@@ -787,7 +789,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(datasets_labels={}),
@@ -885,10 +887,10 @@ def get_parametrization_cases():
             id="no_data_model_or_dataset_case",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(data_models_metadata={}),
-                    "localnode2": DataModelsMetadata(data_models_metadata={}),
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(data_models_metadata={}),
+                    "localworker2": DataModelsMetadata(data_models_metadata={}),
                 }
             ),
             DataModelRegistry(
@@ -899,9 +901,9 @@ def get_parametrization_cases():
             id="no_data_model_or_dataset_case",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -959,7 +961,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1017,7 +1019,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1075,7 +1077,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode4": DataModelsMetadata(
+                    "localworker4": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1176,12 +1178,12 @@ def get_parametrization_cases():
                     datasets_locations={"data_model:1": {}, "data_model:2": {}}
                 ),
             ),
-            id="same_data_models_and_datasets_on_all_nodes",
+            id="same_data_models_and_datasets_on_all_workers",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1239,7 +1241,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1271,7 +1273,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1378,12 +1380,12 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode1",
-                            "dataset3": "localnode2",
-                            "dataset4": "localnode2",
-                            "dataset5": "localnode3",
-                            "dataset6": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {},
                     }
@@ -1392,9 +1394,9 @@ def get_parametrization_cases():
             id="duplicated_dataset1_on_data_model2",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1461,7 +1463,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1493,7 +1495,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1582,8 +1584,8 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -1591,9 +1593,9 @@ def get_parametrization_cases():
             id="incompatible_cdes_on_data_model1",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1660,7 +1662,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1692,7 +1694,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1781,8 +1783,8 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -1790,9 +1792,9 @@ def get_parametrization_cases():
             id="incompatible_cdes_on_data_model1",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1853,7 +1855,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -1888,7 +1890,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -2012,16 +2014,16 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode1",
-                            "dataset3": "localnode2",
-                            "dataset4": "localnode2",
-                            "dataset5": "localnode3",
-                            "dataset6": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -2029,9 +2031,9 @@ def get_parametrization_cases():
             id="duplicated_tags_and_properties",
         ),
         pytest.param(
-            DataModelsMetadataPerNode(
-                data_models_metadata_per_node={
-                    "localnode1": DataModelsMetadata(
+            DataModelsMetadataPerWorker(
+                data_models_metadata_per_worker={
+                    "localworker1": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -2092,7 +2094,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode2": DataModelsMetadata(
+                    "localworker2": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -2127,7 +2129,7 @@ def get_parametrization_cases():
                             ),
                         }
                     ),
-                    "localnode3": DataModelsMetadata(
+                    "localworker3": DataModelsMetadata(
                         data_models_metadata={
                             "data_model:1": DataModelMetadata(
                                 datasets_labels=DatasetsLabels(
@@ -2251,16 +2253,16 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode1",
-                            "dataset3": "localnode2",
-                            "dataset4": "localnode2",
-                            "dataset5": "localnode3",
-                            "dataset6": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": "localnode1",
-                            "dataset2": "localnode3",
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -2271,16 +2273,16 @@ def get_parametrization_cases():
 
 
 @pytest.mark.parametrize(
-    "data_models_metadata_per_node,expected",
+    "data_models_metadata_per_worker,expected",
     get_parametrization_cases(),
 )
 def test_data_model_registry(
-    data_models_metadata_per_node: DataModelsMetadataPerNode,
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker,
     expected: DataModelRegistry,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
 ):
     dmr = _crunch_data_model_registry_data(
-        data_models_metadata_per_node, node_landscape_aggregator._logger
+        data_models_metadata_per_worker, worker_landscape_aggregator._logger
     )
     assert (
         dmr.data_models_cdes.data_models_cdes
@@ -2296,10 +2298,10 @@ def test_data_model_registry(
     )
 
 
-def test_data_model_registry_missing_data_model_attributes(node_landscape_aggregator):
-    data_models_metadata_per_node = DataModelsMetadataPerNode(
-        data_models_metadata_per_node={
-            "localnode1": DataModelsMetadata(
+def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggregator):
+    data_models_metadata_per_worker = DataModelsMetadataPerWorker(
+        data_models_metadata_per_worker={
+            "localworker1": DataModelsMetadata(
                 data_models_metadata={
                     "data_model:1": DataModelMetadata(
                         datasets_labels=DatasetsLabels(
@@ -2354,7 +2356,7 @@ def test_data_model_registry_missing_data_model_attributes(node_landscape_aggreg
                     ),
                 }
             ),
-            "localnode2": DataModelsMetadata(
+            "localworker2": DataModelsMetadata(
                 data_models_metadata={
                     "data_model:1": DataModelMetadata(
                         datasets_labels=DatasetsLabels(
@@ -2386,7 +2388,7 @@ def test_data_model_registry_missing_data_model_attributes(node_landscape_aggreg
                     ),
                 }
             ),
-            "localnode3": DataModelsMetadata(
+            "localworker3": DataModelsMetadata(
                 data_models_metadata={
                     "data_model:1": DataModelMetadata(
                         datasets_labels=DatasetsLabels(
@@ -2508,20 +2510,20 @@ def test_data_model_registry_missing_data_model_attributes(node_landscape_aggreg
         datasets_locations=DatasetsLocations(
             datasets_locations={
                 "data_model:1": {
-                    "dataset3": "localnode2",
-                    "dataset4": "localnode2",
-                    "dataset5": "localnode3",
-                    "dataset6": "localnode3",
+                    "dataset3": "localworker2",
+                    "dataset4": "localworker2",
+                    "dataset5": "localworker3",
+                    "dataset6": "localworker3",
                 },
                 "data_model:2": {
-                    "dataset1": "localnode1",
-                    "dataset2": "localnode3",
+                    "dataset1": "localworker1",
+                    "dataset2": "localworker3",
                 },
             }
         ),
     )
     dmr = _crunch_data_model_registry_data(
-        data_models_metadata_per_node, node_landscape_aggregator._logger
+        data_models_metadata_per_worker, worker_landscape_aggregator._logger
     )
     assert (
         dmr.data_models_cdes.data_models_cdes
@@ -2538,19 +2540,19 @@ def test_data_model_registry_missing_data_model_attributes(node_landscape_aggreg
 
 
 @pytest.mark.slow
-def test_get_nodes_info_properly_handles_errors(node_landscape_aggregator):
-    nodes_info = node_landscape_aggregator._get_nodes_info(
+def test_get_workers_info_properly_handles_errors(worker_landscape_aggregator):
+    workers_info = worker_landscape_aggregator._get_workers_info(
         [RABBITMQ_LOCALWORKERTMP_ADDR]
     )
-    assert not nodes_info
+    assert not workers_info
 
 
 @pytest.mark.slow
-def test_get_node_datasets_per_data_model_properly_handles_errors(
-    node_landscape_aggregator,
+def test_get_worker_datasets_per_data_model_properly_handles_errors(
+    worker_landscape_aggregator,
 ):
     datasets_per_data_model = (
-        node_landscape_aggregator._get_node_datasets_per_data_model(
+        worker_landscape_aggregator._get_worker_datasets_per_data_model(
             RABBITMQ_LOCALWORKERTMP_ADDR
         )
     )
@@ -2558,8 +2560,8 @@ def test_get_node_datasets_per_data_model_properly_handles_errors(
 
 
 @pytest.mark.slow
-def test_get_node_cdes_properly_handles_errors(node_landscape_aggregator):
-    cdes = node_landscape_aggregator._get_node_cdes(
+def test_get_worker_cdes_properly_handles_errors(worker_landscape_aggregator):
+    cdes = worker_landscape_aggregator._get_worker_cdes(
         RABBITMQ_LOCALWORKERTMP_ADDR, "dementia:0.1"
     )
     assert not cdes

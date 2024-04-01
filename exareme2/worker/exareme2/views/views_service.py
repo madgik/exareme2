@@ -109,7 +109,7 @@ def create_data_model_view(
 ) -> TableInfo:
     view_name = create_table_name(
         table_type=TableType.VIEW,
-        node_id=worker_config.identifier,
+        worker_id=worker_config.identifier,
         context_id=context_id,
         command_id=command_id,
         result_id=result_id,

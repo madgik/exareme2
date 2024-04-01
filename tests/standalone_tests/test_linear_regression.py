@@ -9,10 +9,10 @@ np.random.seed(0)
 
 
 class InMemoryExecutionEngine:
-    def run_udf_on_local_nodes(self, func, keyword_args, *args, **kwargs):
+    def run_udf_on_local_workers(self, func, keyword_args, *args, **kwargs):
         return func(**keyword_args)
 
-    run_udf_on_global_node = run_udf_on_local_nodes
+    run_udf_on_global_worker = run_udf_on_local_workers
 
 
 class TestLinearRegression:

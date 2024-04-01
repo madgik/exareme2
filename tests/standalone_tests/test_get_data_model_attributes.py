@@ -4,8 +4,10 @@ import pytest
 
 from exareme2.worker_communication import DataModelAttributes
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 
 def get_data_model():

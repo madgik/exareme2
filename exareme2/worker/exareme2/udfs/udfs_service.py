@@ -21,17 +21,17 @@ from exareme2.worker.exareme2.tables.tables_db import create_table_name
 from exareme2.worker.exareme2.tables.tables_db import get_table_type
 from exareme2.worker.exareme2.udfs import udfs_db
 from exareme2.worker.utils.logger import initialise_logger
-from exareme2.worker_communication import NodeLiteralDTO
-from exareme2.worker_communication import NodeSMPCDTO
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFDTO
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
-from exareme2.worker_communication import NodeUDFResults
 from exareme2.worker_communication import SMPCTablesInfo
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import TableType
+from exareme2.worker_communication import WorkerLiteralDTO
+from exareme2.worker_communication import WorkerSMPCDTO
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
+from exareme2.worker_communication import WorkerUDFResults
 
 
 @initialise_logger
@@ -40,11 +40,11 @@ def run_udf(
     command_id: str,
     context_id: str,
     func_name: str,
-    positional_args: NodeUDFPosArguments,
-    keyword_args: NodeUDFKeyArguments,
+    positional_args: WorkerUDFPosArguments,
+    keyword_args: WorkerUDFKeyArguments,
     use_smpc: bool = False,
     output_schema: Optional[str] = None,
-) -> NodeUDFResults:
+) -> WorkerUDFResults:
     """
     Creates the UDF, if provided, and adds it in the database.
     Then it runs the select statement with the input provided.
@@ -59,9 +59,9 @@ def run_udf(
             The experiment identifier, common among all experiment related actions.
         func_name: str
             Name of function from which to generate UDF.
-        positional_args: NodeUDFPosArguments
+        positional_args: WorkerUDFPosArguments
             Positional arguments of the udf call.
-        keyword_args: NodeUDFKeyArguments
+        keyword_args: WorkerUDFKeyArguments
             Keyword arguments of the udf call.
         use_smpc: bool
             Should SMPC be used?
@@ -69,7 +69,7 @@ def run_udf(
             Schema of main UDF output when deferred mechanism is used.
     Returns
     -------
-        NodeUDFResults
+        WorkerUDFResults
             The results, with the tablenames, that the execution created.
     """
     validate_smpc_usage(
@@ -108,9 +108,9 @@ def _create_udf_name(func_name: str, command_id: str, context_id: str) -> str:
     return f"{func_name}_{command_id}_{context_id}"
 
 
-def _convert_nodeudf_to_flow_args(
-    positional_args: NodeUDFPosArguments,
-    keyword_args: NodeUDFKeyArguments,
+def _convert_workerudf_to_flow_args(
+    positional_args: WorkerUDFPosArguments,
+    keyword_args: WorkerUDFKeyArguments,
 ) -> Tuple[List[FlowUdfArg], Dict[str, FlowUdfArg]]:
     """
     Converts UDF arguments DTOs in format understood by UDF generator
@@ -124,9 +124,9 @@ def _convert_nodeudf_to_flow_args(
 
     Parameters
     ----------
-    positional_args : NodeUDFPosArguments
+    positional_args : WorkerUDFPosArguments
         The pos arguments received from the controller.
-    keyword_args : NodeUDFKeyArguments
+    keyword_args : WorkerUDFKeyArguments
         The kw arguments received from the controller.
 
     Returns
@@ -137,16 +137,16 @@ def _convert_nodeudf_to_flow_args(
         Kwargs for the UDF generator.
     """
 
-    def convert(arg: NodeUDFDTO) -> FlowUdfArg:
-        if isinstance(arg, NodeTableDTO):
+    def convert(arg: WorkerUDFDTO) -> FlowUdfArg:
+        if isinstance(arg, WorkerTableDTO):
             _validate_tableinfo_type_matches_actual_tabletype(arg.value)
             return arg.value
-        elif isinstance(arg, NodeSMPCDTO):
+        elif isinstance(arg, WorkerSMPCDTO):
             _validate_smpctablesinfo_type_matches_actual_tablestype(arg.value)
             return arg.value
-        elif isinstance(arg, NodeLiteralDTO):
+        elif isinstance(arg, WorkerLiteralDTO):
             return arg.value
-        raise ValueError(f"A UDF argument needs to be an instance of {NodeUDFDTO}'.")
+        raise ValueError(f"A UDF argument needs to be an instance of {WorkerUDFDTO}'.")
 
     flowargs = [convert(arg) for arg in positional_args.args]
 
@@ -188,14 +188,16 @@ def _generate_udf_statements(
     command_id: str,
     context_id: str,
     func_name: str,
-    positional_args: NodeUDFPosArguments,
-    keyword_args: NodeUDFKeyArguments,
+    positional_args: WorkerUDFPosArguments,
+    keyword_args: WorkerUDFKeyArguments,
     use_smpc: bool,
     output_schema,
-) -> Tuple[List[str], str, NodeUDFResults]:
+) -> Tuple[List[str], str, WorkerUDFResults]:
     # Data needed for UDF generation
     # ------------------------------
-    flowargs, flowkwargs = _convert_nodeudf_to_flow_args(positional_args, keyword_args)
+    flowargs, flowkwargs = _convert_workerudf_to_flow_args(
+        positional_args, keyword_args
+    )
     udf_name = _create_udf_name(func_name, command_id, context_id)
 
     # worker_id is needed for table name creation
@@ -237,18 +239,18 @@ def _generate_udf_statements(
 
     # Convert results
     results = [_convert_result(res) for res in udf_results]
-    results_dto = NodeUDFResults(results=results)
+    results_dto = WorkerUDFResults(results=results)
 
     return udf_definitions, udf_exec_stmt, results_dto
 
 
 def _make_output_table_names(
-    outputlen: int, node_id: str, context_id: str, command_id: str
+    outputlen: int, worker_id: str, context_id: str, command_id: str
 ) -> List[str]:
     return [
         create_table_name(
             table_type=TableType.NORMAL,
-            node_id=node_id,
+            worker_id=worker_id,
             context_id=context_id,
             command_id=command_id,
             result_id=str(id),
@@ -309,7 +311,7 @@ def _get_udf_table_sharing_queries(
     return queries
 
 
-def _convert_result(result: UDFGenResult) -> NodeUDFDTO:
+def _convert_result(result: UDFGenResult) -> WorkerUDFDTO:
     if isinstance(result, UDFGenTableResult):
         return _convert_table_result(result)
     elif isinstance(result, UDFGenSMPCResult):
@@ -317,16 +319,16 @@ def _convert_result(result: UDFGenResult) -> NodeUDFDTO:
     raise TypeError(f"Unknown result type {result.__class__}")
 
 
-def _convert_table_result(result: UDFGenTableResult) -> NodeTableDTO:
+def _convert_table_result(result: UDFGenTableResult) -> WorkerTableDTO:
     table_info = TableInfo(
         name=result.table_name,
         schema_=TableSchema.from_list(result.table_schema),
         type_=TableType.NORMAL,
     )
-    return NodeTableDTO(value=table_info)
+    return WorkerTableDTO(value=table_info)
 
 
-def _convert_smpc_result(result: UDFGenSMPCResult) -> NodeSMPCDTO:
+def _convert_smpc_result(result: UDFGenSMPCResult) -> WorkerSMPCDTO:
     table_infos = {}
 
     table_infos["template"] = TableInfo(
@@ -356,4 +358,4 @@ def _convert_smpc_result(result: UDFGenSMPCResult) -> NodeSMPCDTO:
             type_=TableType.NORMAL,
         )
 
-    return NodeSMPCDTO(value=SMPCTablesInfo(**table_infos))
+    return WorkerSMPCDTO(value=SMPCTablesInfo(**table_infos))

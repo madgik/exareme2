@@ -56,4 +56,4 @@ transformers_specifications = {
     LongitudinalTransformerRunner.get_transformer_name(): LongitudinalTransformerRunner.get_specification()
 }
 
-node_landscape_aggregator = None
+worker_landscape_aggregator = None

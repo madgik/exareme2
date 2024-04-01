@@ -16,8 +16,10 @@ from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import create_table_in_db
 from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.conftest import insert_data_to_db
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 create_remote_task_signature = get_celery_task_signature("create_remote_table")
 create_merge_table_task_signature = get_celery_task_signature("create_merge_table")
@@ -214,7 +216,7 @@ def test_create_merge_table_on_top_of_remote_tables(
 ):
     """
     The following method tests that the monetdb concept of remote tables combined by a merge table works properly.
-    We are using the create_remote_table and create_merge_table celery in the NODE to create the flow.
+    We are using the create_remote_table and create_merge_table celery in the WORKER to create the flow.
     The initial tables are created through a db cursor.
     """
     table_schema = TableSchema(
@@ -225,46 +227,50 @@ def test_create_merge_table_on_top_of_remote_tables(
         ]
     )
     initial_table_values = [[1, 0.1, "test1"], [2, 0.2, "test2"], [3, 0.3, "test3"]]
-    localnode1_tableinfo = TableInfo(
+    localworker1_tableinfo = TableInfo(
         name=f"normal_testlocalworker1_{context_id}",
         schema_=table_schema,
         type_=TableType.NORMAL,
     )
-    localnode2_tableinfo = TableInfo(
+    localworker2_tableinfo = TableInfo(
         name=f"normal_testlocalworker2_{context_id}",
         schema_=table_schema,
         type_=TableType.NORMAL,
     )
     create_table_in_db(
         localworker1_db_cursor,
-        localnode1_tableinfo.name,
-        localnode1_tableinfo.schema_,
+        localworker1_tableinfo.name,
+        localworker1_tableinfo.schema_,
         True,
     )
     create_table_in_db(
         localworker2_db_cursor,
-        localnode2_tableinfo.name,
-        localnode2_tableinfo.schema_,
+        localworker2_tableinfo.name,
+        localworker2_tableinfo.schema_,
         True,
     )
     insert_data_to_db(
-        localnode1_tableinfo.name, initial_table_values, localworker1_db_cursor
+        localworker1_tableinfo.name, initial_table_values, localworker1_db_cursor
     )
     insert_data_to_db(
-        localnode2_tableinfo.name, initial_table_values, localworker2_db_cursor
+        localworker2_tableinfo.name, initial_table_values, localworker2_db_cursor
     )
 
     # Create remote tables
-    local_node_1_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER1_PORT}"
-    local_node_2_monetdb_sock_address = f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER2_PORT}"
+    local_worker_1_monetdb_sock_address = (
+        f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER1_PORT}"
+    )
+    local_worker_2_monetdb_sock_address = (
+        f"{str(COMMON_IP)}:{MONETDB_LOCALWORKER2_PORT}"
+    )
 
     async_result = globalworker_celery_app.queue_task(
         task_signature=create_remote_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=localnode1_tableinfo.name,
+        table_name=localworker1_tableinfo.name,
         table_schema_json=table_schema.json(),
-        monetdb_socket_address=local_node_1_monetdb_sock_address,
+        monetdb_socket_address=local_worker_1_monetdb_sock_address,
     )
 
     globalworker_celery_app.get_result(
@@ -277,9 +283,9 @@ def test_create_merge_table_on_top_of_remote_tables(
         task_signature=create_remote_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
-        table_name=localnode2_tableinfo.name,
+        table_name=localworker2_tableinfo.name,
         table_schema_json=table_schema.json(),
-        monetdb_socket_address=local_node_2_monetdb_sock_address,
+        monetdb_socket_address=local_worker_2_monetdb_sock_address,
     )
 
     globalworker_celery_app.get_result(
@@ -296,8 +302,8 @@ def test_create_merge_table_on_top_of_remote_tables(
         context_id=context_id,
         command_id=uuid.uuid4().hex,
         table_infos_json=[
-            localnode1_tableinfo.json(),
-            localnode2_tableinfo.json(),
+            localworker1_tableinfo.json(),
+            localworker2_tableinfo.json(),
         ],
     )
 
@@ -320,4 +326,4 @@ def test_create_merge_table_on_top_of_remote_tables(
     row_count = len(initial_table_values)
     assert row_count * 2 == len(
         merge_table_values
-    )  # The rows are doubled since we have 2 localnodes with N rows each.
+    )  # The rows are doubled since we have 2 localworkers with N rows each.

@@ -11,8 +11,8 @@ def get_worker_info(request_id: str) -> str:
 
 
 @shared_task
-def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
-    return worker_info_service.get_node_datasets_per_data_model(request_id)
+def get_worker_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
+    return worker_info_service.get_worker_datasets_per_data_model(request_id)
 
 
 @shared_task

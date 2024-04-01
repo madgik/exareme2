@@ -19,27 +19,27 @@ from exareme2.controller.services.api.algorithm_request_validator import BadRequ
 from exareme2.controller.services.api.algorithm_request_validator import (
     validate_algorithm_request,
 )
-from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
-from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.worker_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.worker_landscape_aggregator import DataModelsCDES
+from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
-from exareme2.controller.services.node_landscape_aggregator import _NLARegistries
+from exareme2.controller.services.worker_landscape_aggregator import _NLARegistries
 from exareme2.worker_communication import BadUserInput
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 
 
 @pytest.fixture
-def node_landscape_aggregator():
-    node_landscape_aggregator = NodeLandscapeAggregator(
+def worker_landscape_aggregator():
+    worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
         update_interval=0,
         tasks_timeout=0,
         run_udf_task_timeout=0,
         deployment_type="",
-        localnodes={},
+        localworkers={},
     )
 
     data_models = {
@@ -105,18 +105,18 @@ def node_landscape_aggregator():
         datasets_locations=DatasetsLocations(
             datasets_locations={
                 "data_model_with_all_cde_types:0.1": {
-                    "sample_dataset1": "sample_node",
-                    "sample_dataset2": "sample_node",
+                    "sample_dataset1": "sample_worker",
+                    "sample_dataset2": "sample_worker",
                 },
-                "sample_data_model:0.1": {"sample_dataset": "sample_node"},
+                "sample_data_model:0.1": {"sample_dataset": "sample_worker"},
             }
         ),
     )
-    node_landscape_aggregator._registries = _NLARegistries(
+    worker_landscape_aggregator._registries = _NLARegistries(
         data_model_registry=_data_model_registry
     )
 
-    return node_landscape_aggregator
+    return worker_landscape_aggregator
 
 
 @pytest.fixture(scope="module")
@@ -729,7 +729,7 @@ def get_parametrization_list_success_cases():
 def test_validate_algorithm_success(
     algorithm_name,
     request_dto,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
     algorithms_specs,
     transformers_specs,
 ):
@@ -738,7 +738,7 @@ def test_validate_algorithm_success(
         algorithm_request_dto=request_dto,
         algorithms_specs=algorithms_specs,
         transformers_specs=transformers_specs,
-        node_landscape_aggregator=node_landscape_aggregator,
+        worker_landscape_aggregator=worker_landscape_aggregator,
         smpc_enabled=False,
         smpc_optional=False,
     )
@@ -1256,7 +1256,7 @@ def test_validate_algorithm_exceptions(
     exception,
     algorithms_specs,
     transformers_specs,
-    node_landscape_aggregator,
+    worker_landscape_aggregator,
 ):
     exception_type, exception_message = exception
     with pytest.raises(exception_type, match=exception_message):
@@ -1265,7 +1265,7 @@ def test_validate_algorithm_exceptions(
             algorithm_request_dto=request_dto,
             algorithms_specs=algorithms_specs,
             transformers_specs=transformers_specs,
-            node_landscape_aggregator=node_landscape_aggregator,
+            worker_landscape_aggregator=worker_landscape_aggregator,
             smpc_enabled=False,
             smpc_optional=False,
         )

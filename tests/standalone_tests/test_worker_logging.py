@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from exareme2 import AttrDict
-from exareme2.worker.utils import logger as node_logger
+from exareme2.worker.utils import logger as worker_logger
 
 task_loggers = {}
 
@@ -41,9 +41,9 @@ def mock_current_task():
     return current_task
 
 
-@node_logger.initialise_logger
+@worker_logger.initialise_logger
 def pass_rqst_id(request_id):
-    logger = node_logger.get_logger()
+    logger = worker_logger.get_logger()
     logger.info("Yolo!")
     return logger
 
@@ -62,9 +62,9 @@ def test_get_ctx_id_from_args(capsys):
     assert test_ctx_id.level == 20
 
 
-@node_logger.initialise_logger
+@worker_logger.initialise_logger
 def initialize_and_return_logger(request_id):
-    logger = node_logger.get_logger()
+    logger = worker_logger.get_logger()
     return logger
 
 

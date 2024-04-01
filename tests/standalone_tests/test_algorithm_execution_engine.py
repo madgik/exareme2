@@ -29,17 +29,17 @@ class TestAlgorithmExecutionEngine:
         return AlgorithmExecutionEngine(
             initialization_params=algorithm_execution_engine_init_params,
             command_id_generator="dummy_id_generator",
-            nodes="dummy_nodes",
+            workers="dummy_workers",
         )
 
     def test_initialiazation(self, algorithm_execution_engine_init_params):
         dummy_command_id_generator = "dummy_id_generator"
-        dummy_nodes = "dummy_nodes"
+        dummy_workers = "dummy_workers"
 
         algorithm_execution_engine = AlgorithmExecutionEngine(
             initialization_params=algorithm_execution_engine_init_params,
             command_id_generator=dummy_command_id_generator,
-            nodes=dummy_nodes,
+            workers=dummy_workers,
         )
 
         assert algorithm_execution_engine._logger == ctrl_logger.get_request_logger(
@@ -57,7 +57,7 @@ class TestAlgorithmExecutionEngine:
             algorithm_execution_engine._command_id_generator
             == dummy_command_id_generator
         )
-        assert algorithm_execution_engine._nodes == dummy_nodes
+        assert algorithm_execution_engine._workers == dummy_workers
 
     # NOTE: This unittest was written during the 'differential privacy' feature implementation. The
     # only thing it actually tests is that the _share_local_smpc_tables_to_global method passes the
@@ -77,8 +77,8 @@ class TestAlgorithmExecutionEngine:
         ) as mock_wait_for_smpc_results_to_be_ready, patch(
             "exareme2.controller.services.exareme2.execution_engine.get_smpc_results"
         ) as mock_get_smpc_results, patch(
-            "exareme2.controller.services.exareme2.execution_engine.GlobalNodeSMPCTables"
-        ) as MockGlobalNodeSMPCTables, patch(
+            "exareme2.controller.services.exareme2.execution_engine.GlobalWorkerSMPCTables"
+        ) as MockGlobalWorkerSMPCTables, patch(
             "exareme2.controller.services.exareme2.execution_engine.SMPCTablesInfo"
         ) as MockSMPCTablesInfo:
             command_id = 12345
@@ -100,28 +100,28 @@ class TestAlgorithmExecutionEngine:
                 "another_dummy_value",
             ]
 
-            class MockLocalNodesSMPCTables:
-                template_local_nodes_table = ""
+            class MockLocalWorkersSMPCTables:
+                template_local_workers_table = ""
 
-            class MockNodes:
-                class MockGlobalNode:
+            class MockWorkers:
+                class MockGlobalWorker:
                     context_id = "contextid"
 
                     def validate_smpc_templates_match(self, arg):
                         pass
 
-                global_node = MockGlobalNode()
+                global_worker = MockGlobalWorker()
 
-            algorithm_execution_engine._nodes = MockNodes()
+            algorithm_execution_engine._workers = MockWorkers()
 
             algorithm_execution_engine._share_local_smpc_tables_to_global(
-                local_nodes_smpc_tables=MockLocalNodesSMPCTables(),
+                local_workers_smpc_tables=MockLocalWorkersSMPCTables(),
                 command_id=command_id,
             )
 
             mock_trigger_smpc_operations.assert_called_once_with(
                 logger=algorithm_execution_engine._logger,
-                context_id=algorithm_execution_engine._nodes.global_node.context_id,
+                context_id=algorithm_execution_engine._workers.global_worker.context_id,
                 command_id=command_id,
                 smpc_clients_per_op=mock_load_data_to_smpc_clients_return_value,
                 dp_params=algorithm_execution_engine._smpc_params.dp_params,

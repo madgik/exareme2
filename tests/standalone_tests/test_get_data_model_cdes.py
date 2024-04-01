@@ -5,8 +5,10 @@ import pytest
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 
 def get_test_cases_get_data_model_cdes():
@@ -128,7 +130,7 @@ def test_get_data_model_cdes(
     localworker1_celery_app,
     use_localworker1_database,
 ):
-    request_id = "test_node_info_" + uuid.uuid4().hex + "_request"
+    request_id = "test_worker_info_" + uuid.uuid4().hex + "_request"
 
     task_signature = get_celery_task_signature("get_data_model_cdes")
     async_result = localworker1_celery_app.queue_task(

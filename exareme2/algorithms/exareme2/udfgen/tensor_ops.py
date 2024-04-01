@@ -84,8 +84,8 @@ def get_tensor_tensor_elementwise_op_template(tensor0, tensor1, operator):
             "Cannot perform elementwise operation if the operand "
             f"dimensions are different: {tensor0.ndims}, {tensor1.ndims}"
         )
-    table0 = convert_table_arg_to_table_ast_node(tensor0, alias="tensor_0")
-    table1 = convert_table_arg_to_table_ast_node(tensor1, alias="tensor_1")
+    table0 = convert_table_arg_to_table_ast_worker(tensor0, alias="tensor_0")
+    table1 = convert_table_arg_to_table_ast_worker(tensor1, alias="tensor_1")
 
     columns = get_columns_for_tensor_tensor_binary_op(table0, table1, operator)
     where = get_where_params_for_tensor_tensor_binary_op(table0, table1)
@@ -122,12 +122,12 @@ def get_where_params_for_tensor_tensor_binary_op(table0, table1):
 def get_tensor_number_binary_op_template(operand_0, operand_1, operator):
     if isinstance(operand_0, LiteralArg):
         number = operand_0.value
-        table = convert_table_arg_to_table_ast_node(operand_1, alias="tensor_0")
+        table = convert_table_arg_to_table_ast_worker(operand_1, alias="tensor_0")
         valcolumn = operator.value(number, table.c["val"])
         valcolumn.alias = "val"
     else:
         number = operand_1.value
-        table = convert_table_arg_to_table_ast_node(operand_0, alias="tensor_0")
+        table = convert_table_arg_to_table_ast_worker(operand_0, alias="tensor_0")
         valcolumn = operator.value(table.c["val"], number)
         valcolumn.alias = "val"
     columns = get_columns_for_tensor_number_binary_op(table, valcolumn)
@@ -152,8 +152,8 @@ def get_tensor_matmul_template(tensor0: TensorArg, tensor1: TensorArg):
         raise NotImplementedError(
             "Cannot multiply tensors of dimension greated than 2."
         )
-    table0 = convert_table_arg_to_table_ast_node(tensor0)
-    table1 = convert_table_arg_to_table_ast_node(tensor1)
+    table0 = convert_table_arg_to_table_ast_worker(tensor0)
+    table1 = convert_table_arg_to_table_ast_worker(tensor1)
     table0.alias, table1.alias = "tensor_0", "tensor_1"
     ndims0, ndims1 = tensor0.ndims, tensor1.ndims
 
@@ -248,7 +248,7 @@ def get_matrix_transpose_template(matrix):
     return select_stmt.compile()
 
 
-def convert_table_arg_to_table_ast_node(table_arg, alias=None):
+def convert_table_arg_to_table_ast_worker(table_arg, alias=None):
     return Table(
         name=table_arg.table_name,
         columns=table_arg.column_names(),

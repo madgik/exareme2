@@ -1,4 +1,4 @@
-localnodes: 2
+localworkers: 2
 
 exareme2_images:
   repository: madgik
@@ -14,7 +14,7 @@ db:
   max_memory: 1024Mi    # k8s memory limit
 
 controller:
-  node_landscape_aggregator_update_interval: 30
+  worker_landscape_aggregator_update_interval: 30
   celery_tasks_timeout: 20
   celery_run_udf_task_timeout: 120
   workers_cleanup_interval: 60

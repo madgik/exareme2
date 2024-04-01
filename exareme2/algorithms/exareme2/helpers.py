@@ -11,8 +11,8 @@ def get_transfer_data(udf_result) -> dict:
 
     Parameters
     ----------
-    udf_result : GlobalNodeData
-        Result of run_udf_on_global_node when the corresponding UDF returns a transfer
+    udf_result : GlobalWorkerData
+        Result of run_udf_on_global_worker when the corresponding UDF returns a transfer
     """
     [[val]] = udf_result.get_table_data()  # get_table_data returns List[List[str]]
     return json.loads(val)

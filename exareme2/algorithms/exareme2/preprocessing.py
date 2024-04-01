@@ -16,8 +16,8 @@ from exareme2.algorithms.exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 # TODO extract EnumAggregator class
 class DummyEncoder:
     def __init__(self, engine, metadata, intercept=True):
-        self._local_run = engine.run_udf_on_local_nodes
-        self._global_run = engine.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_workers
+        self._global_run = engine.run_udf_on_global_worker
         self.metadata = metadata
         self.intercept = intercept
         self.new_varnames = None
@@ -188,7 +188,7 @@ class LabelBinarizer:
     being considered 'positive'.
 
     In our case this might lead to errors in cases where not all classes are
-    present in every node, thus causing mismatches between local results. The
+    present in every worker, thus causing mismatches between local results. The
     remedy is to provide a `positive_class` parameter and to return only the
     corresponding binary column.
 
@@ -200,8 +200,8 @@ class LabelBinarizer:
     """
 
     def __init__(self, engine, positive_class):
-        self._local_run = engine.run_udf_on_local_nodes
-        self._global_run = engine.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_workers
+        self._global_run = engine.run_udf_on_global_worker
         self.positive_class = positive_class
 
     def transform(self, y):
@@ -225,7 +225,7 @@ class LabelBinarizer:
 
 
 def relation_to_vector(rel, engine):
-    return engine.run_udf_on_local_nodes(
+    return engine.run_udf_on_local_workers(
         func=relation_to_vector_local_udf,
         keyword_args={"rel": rel},
         share_to_global=[False],
@@ -254,8 +254,8 @@ class FormulaTransformer:
         formula : str
             R style model formula.
         """
-        self._local_run = engine.run_udf_on_local_nodes
-        self._global_run = engine.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_workers
+        self._global_run = engine.run_udf_on_global_worker
         self._categorical_vars = [
             varname for varname in variables.x if metadata[varname]["is_categorical"]
         ]
@@ -267,11 +267,11 @@ class FormulaTransformer:
 
         Parameters
         ----------
-        X : LocalNodeTable
+        X : LocalworkerTable
 
         Returns
         -------
-        LocalNodeTable
+        LocalworkerTable
         """
         self.enums = self._gather_enums(X)
         schema = self._compute_output_schema(X, self.enums)
@@ -284,7 +284,7 @@ class FormulaTransformer:
     def _gather_enums(self, x):
         """In order to compute columns corresponding to terms of the formula,
         we need to know all actual categorical enumerations present in the data.
-        This method gathers enumerations from local nodes by calling one local and
+        This method gathers enumerations from local workers by calling one local and
         one global UDF."""
         if self._categorical_vars:
             local_transfers = self._local_run(

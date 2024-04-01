@@ -17,15 +17,15 @@ from exareme2.smpc_cluster_communication import SMPCResponse
 from exareme2.smpc_cluster_communication import SMPCResponseStatus
 from exareme2.smpc_cluster_communication import get_smpc_result
 from exareme2.worker_communication import ColumnInfo
-from exareme2.worker_communication import NodeSMPCDTO
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
-from exareme2.worker_communication import NodeUDFResults
 from exareme2.worker_communication import SMPCTablesInfo
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import TableType
+from exareme2.worker_communication import WorkerSMPCDTO
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
+from exareme2.worker_communication import WorkerUDFResults
 from tests.algorithms.orphan_udfs import smpc_global_step
 from tests.algorithms.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import LOCALWORKER1_SMPC_CONFIG_FILE
@@ -36,7 +36,9 @@ from tests.standalone_tests.conftest import create_table_in_db
 from tests.standalone_tests.conftest import get_table_data_from_db
 from tests.standalone_tests.conftest import get_worker_config_by_id
 from tests.standalone_tests.conftest import insert_data_to_db
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 request_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10] + "request"
 context_id = "testsmpcudfs" + str(uuid.uuid4().hex)[:10]
@@ -173,8 +175,8 @@ def test_secure_transfer_output_with_smpc_off(
         localworker1_db_cursor
     )
 
-    pos_args_str = NodeUDFPosArguments(
-        args=[NodeTableDTO(value=input_table_info)]
+    pos_args_str = WorkerUDFPosArguments(
+        args=[WorkerTableDTO(value=input_table_info)]
     ).json()
     udf_results_str = (
         localworker1_celery_app.signature(run_udf_task)
@@ -184,16 +186,16 @@ def test_secure_transfer_output_with_smpc_off(
             context_id=context_id,
             func_name=make_unique_func_name(smpc_local_step),
             positional_args_json=pos_args_str,
-            keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+            keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
         )
         .get(timeout=TASKS_TIMEOUT)
     )
 
-    results = NodeUDFResults.parse_raw(udf_results_str).results
+    results = WorkerUDFResults.parse_raw(udf_results_str).results
     assert len(results) == 1
 
     secure_transfer_result = results[0]
-    assert isinstance(secure_transfer_result, NodeTableDTO)
+    assert isinstance(secure_transfer_result, WorkerTableDTO)
 
     expected_result = {
         "sum": {"data": input_table_name_sum, "operation": "sum", "type": "int"}
@@ -220,8 +222,8 @@ def test_secure_transfer_input_with_smpc_off(
         secure_transfer_results_values_sum,
     ) = create_table_with_secure_transfer_results_with_smpc_off(localworker1_db_cursor)
 
-    pos_args_str = NodeUDFPosArguments(
-        args=[NodeTableDTO(value=secure_transfer_results_tableinfo)]
+    pos_args_str = WorkerUDFPosArguments(
+        args=[WorkerTableDTO(value=secure_transfer_results_tableinfo)]
     ).json()
 
     udf_results_str = (
@@ -232,16 +234,16 @@ def test_secure_transfer_input_with_smpc_off(
             context_id=context_id,
             func_name=make_unique_func_name(smpc_global_step),
             positional_args_json=pos_args_str,
-            keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+            keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
         )
         .get(timeout=TASKS_TIMEOUT)
     )
 
-    results = NodeUDFResults.parse_raw(udf_results_str).results
+    results = WorkerUDFResults.parse_raw(udf_results_str).results
     assert len(results) == 1
 
     transfer_result = results[0]
-    assert isinstance(transfer_result, NodeTableDTO)
+    assert isinstance(transfer_result, WorkerTableDTO)
 
     expected_result = {"total_sum": secure_transfer_results_values_sum}
     validate_table_data_match_expected(
@@ -323,8 +325,8 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
         localworker1_smpc_db_cursor
     )
 
-    pos_args_str = NodeUDFPosArguments(
-        args=[NodeTableDTO(value=input_table_name)]
+    pos_args_str = WorkerUDFPosArguments(
+        args=[WorkerTableDTO(value=input_table_name)]
     ).json()
 
     udf_results_str = (
@@ -335,17 +337,17 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
             context_id=context_id,
             func_name=make_unique_func_name(smpc_local_step),
             positional_args_json=pos_args_str,
-            keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+            keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
             use_smpc=True,
         )
         .get(timeout=TASKS_TIMEOUT)
     )
 
-    local_step_results = NodeUDFResults.parse_raw(udf_results_str).results
+    local_step_results = WorkerUDFResults.parse_raw(udf_results_str).results
     assert len(local_step_results) == 1
 
     smpc_result = local_step_results[0]
-    assert isinstance(smpc_result, NodeSMPCDTO)
+    assert isinstance(smpc_result, WorkerSMPCDTO)
 
     assert smpc_result.value.template is not None
     expected_template = {"sum": {"data": 0, "operation": "sum", "type": "int"}}
@@ -364,7 +366,7 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
     )
 
     # ----------------------- SECURE TRANSFER INPUT----------------------
-    pos_args_str = NodeUDFPosArguments(args=[smpc_result]).json()
+    pos_args_str = WorkerUDFPosArguments(args=[smpc_result]).json()
 
     udf_results_str = (
         smpc_localworker1_celery_app.signature(run_udf_task)
@@ -374,17 +376,17 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
             context_id=context_id,
             func_name=make_unique_func_name(smpc_global_step),
             positional_args_json=pos_args_str,
-            keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+            keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
             use_smpc=True,
         )
         .get(timeout=TASKS_TIMEOUT)
     )
 
-    global_step_results = NodeUDFResults.parse_raw(udf_results_str).results
+    global_step_results = WorkerUDFResults.parse_raw(udf_results_str).results
     assert len(global_step_results) == 1
 
     global_step_result = global_step_results[0]
-    assert isinstance(global_step_result, NodeTableDTO)
+    assert isinstance(global_step_result, WorkerTableDTO)
 
     expected_result = {"total_sum": input_table_name_sum}
     validate_table_data_match_expected(
@@ -623,11 +625,11 @@ def test_orchestrate_SMPC_between_two_localworkers_and_the_globalworker(
     ) = create_table_with_one_column_and_ten_rows(localworker2_smpc_db_cursor)
 
     # ---------------- RUN LOCAL UDFS WITH SECURE TRANSFER OUTPUT ----------------------
-    pos_args_str_localworker1 = NodeUDFPosArguments(
-        args=[NodeTableDTO(value=input_table_1_name)]
+    pos_args_str_localworker1 = WorkerUDFPosArguments(
+        args=[WorkerTableDTO(value=input_table_1_name)]
     ).json()
-    pos_args_str_localworker2 = NodeUDFPosArguments(
-        args=[NodeTableDTO(value=input_table_2_name)]
+    pos_args_str_localworker2 = WorkerUDFPosArguments(
+        args=[WorkerTableDTO(value=input_table_2_name)]
     ).json()
 
     udf_results_str_localworker1 = run_udf_task_localworker1.delay(
@@ -636,7 +638,7 @@ def test_orchestrate_SMPC_between_two_localworkers_and_the_globalworker(
         context_id=context_id,
         func_name=make_unique_func_name(smpc_local_step),
         positional_args_json=pos_args_str_localworker1,
-        keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+        keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
         use_smpc=True,
     ).get()
 
@@ -646,18 +648,18 @@ def test_orchestrate_SMPC_between_two_localworkers_and_the_globalworker(
         context_id=context_id,
         func_name=make_unique_func_name(smpc_local_step),
         positional_args_json=pos_args_str_localworker2,
-        keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+        keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
         use_smpc=True,
     ).get()
 
-    local_1_smpc_result = NodeUDFResults.parse_raw(
+    local_1_smpc_result = WorkerUDFResults.parse_raw(
         udf_results_str_localworker1
     ).results[0]
-    assert isinstance(local_1_smpc_result, NodeSMPCDTO)
-    local_2_smpc_result = NodeUDFResults.parse_raw(
+    assert isinstance(local_1_smpc_result, WorkerSMPCDTO)
+    local_2_smpc_result = WorkerUDFResults.parse_raw(
         udf_results_str_localworker2
     ).results[0]
-    assert isinstance(local_2_smpc_result, NodeSMPCDTO)
+    assert isinstance(local_2_smpc_result, WorkerSMPCDTO)
 
     # ---------- CREATE REMOTE/MERGE TABLE ON GLOBALWORKER WITH SMPC TEMPLATE ---------
     localworker1_config = get_worker_config_by_id(LOCALWORKER1_SMPC_CONFIG_FILE)
@@ -758,25 +760,25 @@ def test_orchestrate_SMPC_between_two_localworkers_and_the_globalworker(
     )
 
     # ----------------------- RUN GLOBAL UDF USING SMPC RESULTS ----------------------
-    smpc_arg = NodeSMPCDTO(
+    smpc_arg = WorkerSMPCDTO(
         value=SMPCTablesInfo(
             template=globalworker_template_tableinfo,
             sum_op=sum_op_values_tableinfo,
         )
     )
-    pos_args_str = NodeUDFPosArguments(args=[smpc_arg]).json()
+    pos_args_str = WorkerUDFPosArguments(args=[smpc_arg]).json()
     udf_results_str = run_udf_task_globalworker.delay(
         command_id="5",
         request_id=request_id,
         context_id=context_id,
         func_name=make_unique_func_name(smpc_global_step),
         positional_args_json=pos_args_str,
-        keyword_args_json=NodeUDFKeyArguments(args={}).json(),
+        keyword_args_json=WorkerUDFKeyArguments(args={}).json(),
         use_smpc=True,
     ).get()
 
-    global_step_result = NodeUDFResults.parse_raw(udf_results_str).results[0]
-    assert isinstance(global_step_result, NodeTableDTO)
+    global_step_result = WorkerUDFResults.parse_raw(udf_results_str).results[0]
+    assert isinstance(global_step_result, WorkerTableDTO)
 
     expected_result = {"total_sum": input_table_1_name_sum + input_table_2_name_sum}
     validate_table_data_match_expected(

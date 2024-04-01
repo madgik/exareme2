@@ -2,10 +2,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: exareme2-globalnode-deployment
+  name: exareme2-globalworker-deployment
   labels:
     app: exareme2-worker
-    nodeType: globalnode
+    nodeType: globalworker
 spec:
   replicas: 1
   selector:
@@ -15,7 +15,7 @@ spec:
     metadata:
       labels:
         app: exareme2-worker
-        nodeType: globalnode
+        nodeType: globalworker
     spec:
       nodeSelector:
         master: "true"

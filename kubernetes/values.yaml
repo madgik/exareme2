@@ -18,7 +18,7 @@ db:
   percentage_hard_memory_limit: 85
 
 controller:
-  node_landscape_aggregator_update_interval: 30
+  worker_landscape_aggregator_update_interval: 30
   celery_tasks_timeout: 300
   workers_cleanup_interval: 60
   cleanup_file_folder: /opt/cleanup

@@ -35,8 +35,8 @@ spec:
           value: {{ .Values.framework_log_level }}
         - name: DEPLOYMENT_TYPE
           value: "KUBERNETES"
-        - name: NODE_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
-          value: {{ quote .Values.controller.node_landscape_aggregator_update_interval }}
+        - name: WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
+          value: {{ quote .Values.controller.worker_landscape_aggregator_update_interval }}
         - name: WORKERS_CLEANUP_INTERVAL
           value: {{ quote .Values.controller.workers_cleanup_interval }}
         - name: WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT

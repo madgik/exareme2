@@ -7,12 +7,12 @@ from typing import Tuple
 from exareme2 import smpc_cluster_communication as smpc_cluster
 from exareme2.controller import config as ctrl_config
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
-    LocalNodesSMPCTables,
+    LocalWorkersSMPCTables,
 )
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
-    LocalNodesTable,
+    LocalWorkersTable,
 )
-from exareme2.controller.services.exareme2.nodes import GlobalNode
+from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 from exareme2.smpc_cluster_communication import SMPCComputationError
 from exareme2.smpc_cluster_communication import SMPCRequestType
@@ -31,14 +31,14 @@ def get_smpc_job_id(
 
 def load_operation_data_to_smpc_clients(
     command_id: int,
-    local_nodes_table: Optional[LocalNodesTable],
+    local_workers_table: Optional[LocalWorkersTable],
     op_type: SMPCRequestType,
 ) -> List[str]:
     smpc_clients = []
-    if local_nodes_table:
-        for node, table_info in local_nodes_table.nodes_tables_info.items():
+    if local_workers_table:
+        for worker, table_info in local_workers_table.workers_tables_info.items():
             smpc_clients.append(
-                node.load_data_to_smpc_client(
+                worker.load_data_to_smpc_client(
                     table_name=table_info.name,
                     jobid=get_smpc_job_id(table_info.context_id, command_id, op_type),
                 )
@@ -47,16 +47,16 @@ def load_operation_data_to_smpc_clients(
 
 
 def load_data_to_smpc_clients(
-    command_id: int, smpc_tables: LocalNodesSMPCTables
+    command_id: int, smpc_tables: LocalWorkersSMPCTables
 ) -> Tuple[List[str], List[str], List[str]]:
     sum_op_smpc_clients = load_operation_data_to_smpc_clients(
-        command_id, smpc_tables.sum_op_local_nodes_table, SMPCRequestType.SUM
+        command_id, smpc_tables.sum_op_local_workers_table, SMPCRequestType.SUM
     )
     min_op_smpc_clients = load_operation_data_to_smpc_clients(
-        command_id, smpc_tables.min_op_local_nodes_table, SMPCRequestType.MIN
+        command_id, smpc_tables.min_op_local_workers_table, SMPCRequestType.MIN
     )
     max_op_smpc_clients = load_operation_data_to_smpc_clients(
-        command_id, smpc_tables.max_op_local_nodes_table, SMPCRequestType.MAX
+        command_id, smpc_tables.max_op_local_workers_table, SMPCRequestType.MAX
     )
     return (
         sum_op_smpc_clients,
@@ -194,7 +194,7 @@ def wait_for_smpc_results_to_be_ready(
 
 
 def get_smpc_results(
-    node: GlobalNode,
+    worker: GlobalWorker,
     context_id: str,
     command_id: int,
     sum_op: bool,
@@ -202,7 +202,7 @@ def get_smpc_results(
     max_op: bool,
 ) -> Tuple[TableInfo, TableInfo, TableInfo]:
     sum_op_result_table = (
-        node.get_smpc_result(
+        worker.get_smpc_result(
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
@@ -215,7 +215,7 @@ def get_smpc_results(
         else None
     )
     min_op_result_table = (
-        node.get_smpc_result(
+        worker.get_smpc_result(
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,
@@ -228,7 +228,7 @@ def get_smpc_results(
         else None
     )
     max_op_result_table = (
-        node.get_smpc_result(
+        worker.get_smpc_result(
             jobid=get_smpc_job_id(
                 context_id=context_id,
                 command_id=command_id,

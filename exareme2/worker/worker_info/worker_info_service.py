@@ -33,7 +33,7 @@ def get_worker_info(request_id: str) -> WorkerInfo:
 
 
 @initialise_logger
-def get_node_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
+def get_worker_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
     """
     Parameters
     ----------

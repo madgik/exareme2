@@ -141,7 +141,7 @@ class CeleryWrapper:
             raise exc
 
     # It seems that Celery objects are somewhat expensive, do not have more than one
-    # instance per node at any time
+    # instance per worker at any time
     def _instantiate_celery_object(self) -> Celery:
         user = controller_config.rabbitmq.user
         password = controller_config.rabbitmq.password

@@ -7,11 +7,13 @@ import pytest
 from exareme2 import AttrDict
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.logger import init_logger
-from exareme2.controller.services.node_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator import (
     _log_data_model_changes,
 )
-from exareme2.controller.services.node_landscape_aggregator import _log_dataset_changes
-from exareme2.controller.services.node_landscape_aggregator import _log_node_changes
+from exareme2.controller.services.worker_landscape_aggregator import (
+    _log_dataset_changes,
+)
+from exareme2.controller.services.worker_landscape_aggregator import _log_worker_changes
 from exareme2.worker_communication import WorkerInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_PORT
 from tests.standalone_tests.conftest import MonetDBConfigurations
@@ -64,8 +66,8 @@ def patch_controller_logger_config(controller_config_dict_mock):
 @pytest.mark.slow
 def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     logger = init_logger("BACKGROUND")
-    _log_node_changes(
-        old_nodes=[
+    _log_worker_changes(
+        old_workers=[
             WorkerInfo(
                 id="localworker1",
                 role="LOCALWORKER",
@@ -75,7 +77,7 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
                 db_port=61001,
             )
         ],
-        new_nodes=[
+        new_workers=[
             WorkerInfo(
                 id="localworker2",
                 role="LOCALWORKER",

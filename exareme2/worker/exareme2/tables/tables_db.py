@@ -28,19 +28,19 @@ from exareme2.worker_communication import TableType
 
 def create_table_name(
     table_type: TableType,
-    node_id: str,
+    worker_id: str,
     context_id: str,
     command_id: str,
     result_id: str = "0",
 ) -> str:
     """
     Creates and returns in lower case a table name with the format
-    <nodeId>_<contextId>_<tableType>_<commandId>_<command_subid>
+    <workerId>_<contextId>_<tableType>_<commandId>_<command_subid>
 
     Underscores are not allowed in any parameter provided.
     """
-    if not node_id.isalnum():
-        raise ValueError(f"'node_id' is not alphanumeric. Value: '{node_id}'")
+    if not worker_id.isalnum():
+        raise ValueError(f"'worker_id' is not alphanumeric. Value: '{worker_id}'")
     if not context_id.isalnum():
         raise ValueError(f"'context_id' is not alphanumeric. Value: '{context_id}'")
     if not command_id.isalnum():
@@ -51,7 +51,7 @@ def create_table_name(
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
-    return f"{table_type}_{node_id}_{context_id}_{command_id}_{result_id}".lower()
+    return f"{table_type}_{worker_id}_{context_id}_{command_id}_{result_id}".lower()
 
 
 @sql_injection_guard(table_type=None, context_id=str.isalnum)

@@ -3,8 +3,8 @@ from typing import Optional
 from celery import shared_task
 
 from exareme2.worker.exareme2.udfs import udfs_service
-from exareme2.worker_communication import NodeUDFKeyArguments
-from exareme2.worker_communication import NodeUDFPosArguments
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
 
 
 @shared_task
@@ -18,8 +18,8 @@ def run_udf(
     use_smpc: bool = False,
     output_schema: Optional[str] = None,
 ) -> str:
-    positional_args = NodeUDFPosArguments.parse_raw(positional_args_json)
-    keyword_args = NodeUDFKeyArguments.parse_raw(keyword_args_json)
+    positional_args = WorkerUDFPosArguments.parse_raw(positional_args_json)
+    keyword_args = WorkerUDFKeyArguments.parse_raw(keyword_args_json)
     return udfs_service.run_udf(
         request_id,
         command_id,

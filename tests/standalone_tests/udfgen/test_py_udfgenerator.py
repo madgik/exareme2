@@ -1786,7 +1786,7 @@ FROM
         assert results[0] == expected_udf_outputs[0]
 
 
-class TestUDFGen_RelationExcludeNodeid(TestUDFGenBase):
+class TestUDFGen_RelationExcludeWorkerid(TestUDFGenBase):
     def define_pyfunc(self):
         S = TypeVar("S")
 
@@ -3419,7 +3419,7 @@ FROM
         "create_transfer_table",
         "create_state_table",
     )
-    def test_udf_with_globalnode_db_cursor(
+    def test_udf_with_globalworker_db_cursor(
         self,
         expected_udf_outputs,
         expected_udfdef,

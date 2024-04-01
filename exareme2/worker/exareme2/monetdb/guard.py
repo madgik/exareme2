@@ -7,13 +7,13 @@ from typing import Any
 from typing import Callable
 from typing import Optional
 
-from exareme2.worker_communication import NodeLiteralDTO
-from exareme2.worker_communication import NodeSMPCDTO
-from exareme2.worker_communication import NodeTableDTO
-from exareme2.worker_communication import NodeUDFDTO
 from exareme2.worker_communication import SMPCTablesInfo
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import WorkerLiteralDTO
+from exareme2.worker_communication import WorkerSMPCDTO
+from exareme2.worker_communication import WorkerTableDTO
+from exareme2.worker_communication import WorkerUDFDTO
 
 
 def sql_injection_guard(**validators: Optional[Callable[[Any], bool]]):
@@ -22,7 +22,7 @@ def sql_injection_guard(**validators: Optional[Callable[[Any], bool]]):
     suspect for SQL injections.
 
     All  functions  that receive string arguments, sent from Controller to
-    Node  via  a  Celery  task,  should  be  decorated  with the decorator
+    Worker  via  a  Celery  task,  should  be  decorated  with the decorator
     returned   by  this  function.  This  function  accepts  only  keyword
     arguments  which  should  be  one-to-one  with  the  arguments  of the
     decorated  function.  For  each argument there should be one validator
@@ -155,15 +155,15 @@ def is_valid_table_schema(schema: TableSchema):
 
 
 def is_valid_udf_arg(arg):
-    if isinstance(arg, NodeUDFDTO):
-        if isinstance(arg, NodeTableDTO):
+    if isinstance(arg, WorkerUDFDTO):
+        if isinstance(arg, WorkerTableDTO):
             return is_valid_table_info(arg.value)
-        elif isinstance(arg, NodeSMPCDTO):
+        elif isinstance(arg, WorkerSMPCDTO):
             return is_valid_smpc_tables_info(arg.value)
-        elif isinstance(arg, NodeLiteralDTO):
+        elif isinstance(arg, WorkerLiteralDTO):
             return is_valid_literal_value(arg.value)
         raise NotImplementedError(f"{arg.__class__} has no validator implementation")
-    raise TypeError("UDF args have to be subclasses of NodeUDFDTO")
+    raise TypeError("UDF args have to be subclasses of WorkerUDFDTO")
 
 
 def is_valid_table_info(info: TableInfo):

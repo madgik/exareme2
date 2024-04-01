@@ -191,7 +191,7 @@ class TestLongitudinalTransformerUdf:
         }
 
 
-# Alias globalnode_db_cursor to db
+# Alias globalworker_db_cursor to db
 @pytest.fixture(scope="module")
 def db(globalworker_db_cursor):
     return globalworker_db_cursor
@@ -356,7 +356,7 @@ class TestLongitudinalTransformer:
             ("numvar_diff", DType.INT),
             ("nomvar", DType.STR),
         ]
-        call_kwargs = engine.run_udf_on_local_nodes.call_args.kwargs
+        call_kwargs = engine.run_udf_on_local_workers.call_args.kwargs
         assert call_kwargs["output_schema"] == expected_schema
 
     def test_transform_schema__invalid_diff(self):

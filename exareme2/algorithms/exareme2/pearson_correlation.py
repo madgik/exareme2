@@ -35,8 +35,8 @@ class PearsonResult(BaseModel):
 
 class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, data, metadata):
-        local_run = self.engine.run_udf_on_local_nodes
-        global_run = self.engine.run_udf_on_global_node
+        local_run = self.engine.run_udf_on_local_workers
+        global_run = self.engine.run_udf_on_global_worker
         alpha = self.algorithm_parameters["alpha"]
 
         X_relation, Y_relation = data

@@ -177,8 +177,8 @@ class LongitudinalTransformer:
                 msg = f"Cannot take the difference for the nominal variable '{name}'."
                 raise BadUserInput(msg)
 
-        self._local_run = engine.run_udf_on_local_nodes
-        self._global_run = engine.run_udf_on_global_node
+        self._local_run = engine.run_udf_on_local_workers
+        self._global_run = engine.run_udf_on_global_worker
         self.metadata = metadata
         self.strategies = strategies
         self.visit1 = visit1

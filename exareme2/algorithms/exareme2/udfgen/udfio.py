@@ -76,17 +76,17 @@ def reduce_tensor_pair(op, a: pd.DataFrame, b: pd.DataFrame):
 
 
 def reduce_tensor_merge_table(op, merge_table):
-    groups = [group for _, group in merge_table.groupby("node_id")]
-    groups = [group.drop("node_id", 1) for group in groups]
+    groups = [group for _, group in merge_table.groupby("worker_id")]
+    groups = [group.drop("worker_id", 1) for group in groups]
     result = reduce(partial(reduce_tensor_pair, op), groups)
     return result
 
 
 def make_tensor_merge_table(columns):
     colnames = columns.keys()
-    expected = {"node_id", "val"}
+    expected = {"worker_id", "val"}
     if expected - set(colnames):
-        raise ValueError("No node_id or val in columns.")
+        raise ValueError("No worker_id or val in columns.")
     columns = {n: v for n, v in columns.items() if n in expected or n.startswith("dim")}
     if len(columns) <= 2:
         raise ValueError(f"Columns have wrong format {columns}.")
@@ -96,15 +96,15 @@ def make_tensor_merge_table(columns):
 def merge_tensor_to_list(columns):
     colnames = list(columns.keys())
     try:
-        node_id_column_idx = next(
-            i for i, colname in enumerate(colnames) if re.match(r".*node_id", colname)
+        worker_id_column_idx = next(
+            i for i, colname in enumerate(colnames) if re.match(r".*worker_id", colname)
         )
     except StopIteration:
-        raise ValueError("No column is named .*node_id")
-    node_id_name = colnames[node_id_column_idx]
+        raise ValueError("No column is named .*worker_id")
+    worker_id_name = colnames[worker_id_column_idx]
     merge_df = pd.DataFrame(columns)
-    groups = [group for _, group in merge_df.groupby(node_id_name)]
-    groups = [group.drop(node_id_name, axis=1) for group in groups]
+    groups = [group for _, group in merge_df.groupby(worker_id_name)]
+    groups = [group.drop(worker_id_name, axis=1) for group in groups]
     all_cols = [
         {colname: np.array(x) for colname, x in df.to_dict(orient="list").items()}
         for df in groups

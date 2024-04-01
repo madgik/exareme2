@@ -5,10 +5,10 @@
 * In what follows, an **algorithm** is understood as being a *statistics* or
   *machine learning* algorithm which typically expects some data tables as input and outputs a *model* and/or some *
   statistics*. This model can be of interest to the user on its own, or can be used in further computations.
-* **Federated** algorithm means that the work is divided into smaller tasks, each executed on a different **node** of
-  the federation. The primary consideration of this design is the preservation of data privacy. One node is special,
-  named `global node`, and doesn't contain any primary data. All other nodes, named `local nodes` contain their own data
-  which they are not allowed to share with other nodes. The following diagram illustrates the execution flow of a
+* **Federated** algorithm means that the work is divided into smaller tasks, each executed on a different **worker** of
+  the federation. The primary consideration of this design is the preservation of data privacy. One worker is special,
+  named `global worker`, and doesn't contain any primary data. All other workers, named `local workers` contain their own data
+  which they are not allowed to share with other workers. The following diagram illustrates the execution flow of a
   federated algorithm.
 
 ![federated algorithm activity diagram](federated-algorithm.png)
@@ -121,7 +121,7 @@ A third party algorithm developer (as opposed to the developer of native algorit
 * An **algorithm developer** wants to supply the federation with her own algorithm, written in some machine learning
   friendly language (python, R, ...). Ideally:
     * The user is agnostic of the inner workings of the system, only being aware of the existence of many local and one
-      global nodes.
+      global workers.
     * The system enforces privacy restrictions independently of how the algorithm is written.
 
 ---

@@ -30,31 +30,31 @@ from exareme2.algorithms.specifications import TransformerName
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
-from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
+from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
+from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
-    LocalNodesTable,
+    LocalWorkersTable,
 )
 from exareme2.controller.services.exareme2.cleaner import Cleaner
 from exareme2.controller.services.exareme2.execution_engine import (
     AlgorithmExecutionEngine,
 )
 from exareme2.controller.services.exareme2.execution_engine import (
-    AlgorithmExecutionEngineSingleLocalNode,
+    AlgorithmExecutionEngineSingleLocalWorker,
 )
 from exareme2.controller.services.exareme2.execution_engine import CommandIdGenerator
 from exareme2.controller.services.exareme2.execution_engine import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.services.exareme2.execution_engine import Nodes
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.exareme2.nodes import GlobalNode
-from exareme2.controller.services.exareme2.nodes import LocalNode
-from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.workers import GlobalWorker
+from exareme2.controller.services.exareme2.workers import LocalWorker
+from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
 from exareme2.worker_communication import InsufficientDataError
@@ -63,22 +63,22 @@ from exareme2.worker_communication import WorkerInfo
 
 
 @dataclass(frozen=True)
-class NodesTasksHandlers:
-    global_node_tasks_handler: Optional[INodeAlgorithmTasksHandler]
-    local_nodes_tasks_handlers: List[INodeAlgorithmTasksHandler]
+class WorkersTasksHandlers:
+    global_worker_tasks_handler: Optional[IWorkerAlgorithmTasksHandler]
+    local_workers_tasks_handlers: List[IWorkerAlgorithmTasksHandler]
 
 
-class NodeUnresponsiveException(Exception):
+class WorkerUnresponsiveException(Exception):
     def __init__(self):
         message = (
-            "One of the nodes participating in the algorithm execution "
+            "One of the workers participating in the algorithm execution "
             "stopped responding"
         )
         super().__init__(message)
         self.message = message
 
 
-class NodeTaskTimeoutException(Exception):
+class WorkerTaskTimeoutException(Exception):
     def __init__(self):
         message = (
             f"One of the celery in the algorithm execution took longer to finish than "
@@ -90,87 +90,89 @@ class NodeTaskTimeoutException(Exception):
 
 
 class DataModelViews:
-    def __init__(self, local_node_tables: Iterable[LocalNodesTable]):
-        self._views = local_node_tables
+    def __init__(self, local_worker_tables: Iterable[LocalWorkersTable]):
+        self._views = local_worker_tables
 
     @classmethod
-    def from_views_per_localnode(
-        cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
+    def from_views_per_localworker(
+        cls, views_per_localworker: Dict[LocalWorker, List[TableInfo]]
     ):
-        return cls(cls._views_per_localnode_to_localnodestables(views_per_localnode))
+        return cls(
+            cls._views_per_localworker_to_localworkerstables(views_per_localworker)
+        )
 
     def to_list(self):
         return self._views
 
-    def get_list_of_nodes(self) -> List[LocalNode]:
+    def get_list_of_workers(self) -> List[LocalWorker]:
         """
-        LocalNodesTable is representation of a table across multiple nodes. A DataModelView
-        consists a collection of LocalNodesTables that might exist on different set
-        of nodes or even on overlapping set of nodes. This method returns a list of all
-        the nodes in the collection of LocalNodesTables without duplicates
+        LocalWorkersTable is representation of a table across multiple workers. A DataModelView
+        consists a collection of LocalWorkersTables that might exist on different set
+        of workers or even on overlapping set of workers. This method returns a list of all
+        the workers in the collection of LocalWorkersTables without duplicates
         """
-        nodes = set()
-        for local_nodes_table in self._views:
-            nodes.update(local_nodes_table.nodes_tables_info.keys())
-        if not nodes:
+        workers = set()
+        for local_workers_table in self._views:
+            workers.update(local_workers_table.workers_tables_info.keys())
+        if not workers:
             raise InsufficientDataError(
-                "None of the nodes has enough data to execute the algorithm."
+                "None of the workers has enough data to execute the algorithm."
             )
-        return list(nodes)
+        return list(workers)
 
     @classmethod
-    def _views_per_localnode_to_localnodestables(
-        cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
-    ) -> List[LocalNodesTable]:
+    def _views_per_localworker_to_localworkerstables(
+        cls, views_per_localworker: Dict[LocalWorker, List[TableInfo]]
+    ) -> List[LocalWorkersTable]:
         """
-        Combines the tables of different nodes into LocalNodesTables
+        Combines the tables of different workers into LocalWorkersTables
         """
-        number_of_tables = cls._validate_number_of_views(views_per_localnode)
+        number_of_tables = cls._validate_number_of_views(views_per_localworker)
 
-        local_nodes_tables = [
-            LocalNodesTable(
-                {node: tables[i] for node, tables in views_per_localnode.items()}
+        local_workers_tables = [
+            LocalWorkersTable(
+                {worker: tables[i] for worker, tables in views_per_localworker.items()}
             )
             for i in range(number_of_tables)
         ]
 
-        return local_nodes_tables
+        return local_workers_tables
 
     @classmethod
     def _validate_number_of_views(
-        cls, views_per_localnode: Dict[LocalNode, List[TableInfo]]
+        cls, views_per_localworker: Dict[LocalWorker, List[TableInfo]]
     ):
         """
-        Checks that the number of views is the same for all nodes
+        Checks that the number of views is the same for all workers
         """
-        number_of_tables = [len(tables) for tables in views_per_localnode.values()]
+        number_of_tables = [len(tables) for tables in views_per_localworker.values()]
         number_of_tables_equal = len(set(number_of_tables)) == 1
 
         if not number_of_tables_equal:
             raise ValueError(
-                "The number of views is not the same for all nodes"
-                f" {views_per_localnode=}"
+                "The number of views is not the same for all workers"
+                f" {views_per_localworker=}"
             )
         return number_of_tables[0]
 
 
 class DataModelViewsCreator:
     """
-    Choosing which subset of the connected to the system nodes will participate in an
-    execution takes place in 2 steps. The first step is choosing the nodes containing
+    Choosing which subset of the connected to the system workers will participate in an
+    execution takes place in 2 steps. The first step is choosing the workers containing
     the "data model" and datasets in the request. The second is when "data model views"
     are created. During this second step, depending on the "minimum_row_count" threshold,
-    a node that was chosen in the previous step might be left out because of
+    a worker that was chosen in the previous step might be left out because of
     "insufficient data". So the procedure of creating the, so called, "data model views"
-    plays a key role in defining the subset of the nodes that will participate in an
+    plays a key role in defining the subset of the workers that will participate in an
     execution. The DataModelCreator class implements the aforementioned functionality,
-    of generating a DataModelView object as well as identifying the subset of nodes
+    of generating a DataModelView object as well as identifying the subset of workers
     eligible for a specific execution request.
     """
 
     def __init__(
         self,
-        local_nodes: List[LocalNode],
+        local_workers: List[LocalWorker],
         variable_groups: List[List[str]],
         var_filters: list,
         dropna: bool,
@@ -180,8 +182,8 @@ class DataModelViewsCreator:
         """
         Parameters
         ----------
-        local_nodes: List[LocalNode]
-            The list of LocalNodes on which the "data model views" will be created(if
+        local_workers: List[LocalWorker]
+            The list of LocalWorkers on which the "data model views" will be created(if
             there is "sufficient data")
         variable_groups: List[List[str]]
             The variable groups
@@ -196,7 +198,7 @@ class DataModelViewsCreator:
         command_id: int
             A unique id
         """
-        self._local_nodes = local_nodes
+        self._local_workers = local_workers
         self._variable_groups = variable_groups
         self._var_filters = var_filters
         self._dropna = dropna
@@ -225,10 +227,10 @@ class DataModelViewsCreator:
         if self._data_model_views:
             return
 
-        views_per_localnode = {}
-        for node in self._local_nodes:
+        views_per_localworker = {}
+        for worker in self._local_workers:
             try:
-                data_model_views = node.create_data_model_views(
+                data_model_views = worker.create_data_model_views(
                     command_id=self._command_id,
                     columns_per_view=self._variable_groups,
                     filters=self._var_filters,
@@ -237,40 +239,40 @@ class DataModelViewsCreator:
                 )
             except InsufficientDataError:
                 continue
-            views_per_localnode[node] = data_model_views
+            views_per_localworker[worker] = data_model_views
 
-        if not views_per_localnode:
+        if not views_per_localworker:
             raise InsufficientDataError(
-                "None of the nodes has enough data to execute request: {LocalNodes:"
+                "None of the workers has enough data to execute request: {LocalWorkers:"
                 "Datasets}-> "
-                f"{ {node.node_id:node.datasets for node in self._local_nodes} } "
+                f"{ {worker.worker_id:worker.datasets for worker in self._local_workers} } "
                 f"{self._variable_groups=} {self._var_filters=} {self._dropna=} "
                 f"{self._check_min_rows=}"
             )
 
-        self._data_model_views = DataModelViews.from_views_per_localnode(
-            views_per_localnode
+        self._data_model_views = DataModelViews.from_views_per_localworker(
+            views_per_localworker
         )
 
 
-class NodesFederation:
+class WorkersFederation:
     """
-    When a NodesFederation object is instantiated, with respect to the algorithm execution
-    request parameters(data model, datasets), it takes care of finding which nodes of
+    When a WorkersFederation object is instantiated, with respect to the algorithm execution
+    request parameters(data model, datasets), it takes care of finding which workers of
     the federation contain the relevant data. Then, calling the create_data_model_views
-    method will create the appropriate view tables in the nodes databases and return a
+    method will create the appropriate view tables in the workers databases and return a
     DataModelViews object.
 
-    When the system is up and running there is a number of local nodes (and one global
-    node) waiting to execute celery and return results as building blocks of executing,
+    When the system is up and running there is a number of local workers (and one global
+    worker) waiting to execute celery and return results as building blocks of executing,
     what is called in the system, an "Algorithm". The request for executing an
     "Algorithm", appart from defining which "Algorithm" to execute, contains parameters
     constraining the data on which the "Algorithm" will be executed on, like
     "data model", datasets, variables, filters etc. These constraints on the data will
-    also define which nodes will be chosen to partiipate in a specific request for an
-    "Algorithm" execution. The NodesFederation class implements the functionality of
-    choosing (based on these request's parameters) the nodes (thus, a federation of
-    nodes) that participate on a single execution request. A NodesFederation object
+    also define which workers will be chosen to partiipate in a specific request for an
+    "Algorithm" execution. The WorkersFederation class implements the functionality of
+    choosing (based on these request's parameters) the workers (thus, a federation of
+    workers) that participate on a single execution request. A WorkersFederation object
     is instantiated for each request to execute an "Algorithm".
     """
 
@@ -281,7 +283,7 @@ class NodesFederation:
         data_model: str,
         datasets: List[str],
         var_filters: dict,
-        node_landscape_aggregator: NodeLandscapeAggregator,
+        worker_landscape_aggregator: WorkerLandscapeAggregator,
         celery_tasks_timeout: int,
         celery_run_udf_task_timeout: int,
         command_id_generator: CommandIdGenerator,
@@ -302,15 +304,15 @@ class NodesFederation:
             The datasets requested
         var_filters: dict
             The filtering parameters
-        node_landscape_aggregator: NodeLandscapeAggregator
-            The NodeLandscapeAggregator object that keeps track of the nodes currently
+        worker_landscape_aggregator: WorkerLandscapeAggregator
+            The WorkerLandscapeAggregator object that keeps track of the workers currently
             connected to the system
         celery_tasks_timeout: int
-            The timeout, in seconds, for the celery to be processed by the nodes in the system
+            The timeout, in seconds, for the celery to be processed by the workers in the system
         celery_run_udf_task_timeout: int
-            The timeout, in seconds, for the task executing a udf by the nodes in the system
+            The timeout, in seconds, for the task executing a udf by the workers in the system
         command_id_generator: CommandIdGenerator
-            Each node task(command) is assigned a unique id, a CommandIdGenerator takes care
+            Each worker task(command) is assigned a unique id, a CommandIdGenerator takes care
             of generating unique ids
         logger: Logger
             A logger
@@ -325,69 +327,72 @@ class NodesFederation:
         self._datasets = datasets
         self._var_filters = var_filters
 
-        self._node_landscape_aggregator = node_landscape_aggregator
+        self._worker_landscape_aggregator = worker_landscape_aggregator
 
         self._celery_tasks_timeout = celery_tasks_timeout
         self._celery_run_udf_task_timeout = celery_run_udf_task_timeout
 
-        self._nodes = self._create_nodes()
+        self._workers = self._create_workers()
 
-    def _get_nodeids_for_requested_datasets(self) -> List[str]:
-        return self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+    def _get_workerids_for_requested_datasets(self) -> List[str]:
+        return self._worker_landscape_aggregator.get_worker_ids_with_any_of_datasets(
             data_model=self._data_model, datasets=self._datasets
         )
 
-    def _get_nodeinfo_for_requested_datasets(
+    def _get_workerinfo_for_requested_datasets(
         self,
     ) -> List[WorkerInfo]:
-        nodeids = self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
-            data_model=self._data_model, datasets=self._datasets
+        workerids = (
+            self._worker_landscape_aggregator.get_worker_ids_with_any_of_datasets(
+                data_model=self._data_model, datasets=self._datasets
+            )
         )
         return [
-            self._node_landscape_aggregator.get_node_info(nodeid) for nodeid in nodeids
+            self._worker_landscape_aggregator.get_worker_info(workerid)
+            for workerid in workerids
         ]
 
-    def _get_globalnodeinfo(self) -> WorkerInfo:
-        # TODO why is NodeLandscape raising an exception when get_global_node is called
-        # and there is no Global Node?
+    def _get_globalworkerinfo(self) -> WorkerInfo:
+        # TODO why is WorkerLandscape raising an exception when get_global_worker is called
+        # and there is no Global Worker?
         try:
-            return self._node_landscape_aggregator.get_global_node()
+            return self._worker_landscape_aggregator.get_global_worker()
         except Exception:
-            # means there is no global node, single local node execution...
+            # means there is no global worker, single local worker execution...
             return None
 
     @property
-    def nodes(self) -> Nodes:
+    def workers(self) -> Workers:
         """
-        Returns the nodes (local nodes and global node) that have been selected based
+        Returns the workers (local workers and global worker) that have been selected based
         on whether they contain data belonging to the "data model" and "datasets" passed
-        during the instantioation of the NodesFederation.
+        during the instantioation of the WorkersFederation.
         NOTE: Getting this value can be different before and after calling method
         "create_data_model_views" if the check_min_rows flag is set to True. The reason
-        is that method "create_data_model_views" can potentially reject some nodes,
+        is that method "create_data_model_views" can potentially reject some workers,
         after applying the variables' filters and the dropna flag, on the specific
-        variable groups, since some of the local nodes might not contain "sufficient
+        variable groups, since some of the local workers might not contain "sufficient
         data".
         """
-        return self._nodes
+        return self._workers
 
     @property
-    def node_ids(self):
-        local_node_ids = [node.node_id for node in self._nodes.local_nodes]
+    def worker_ids(self):
+        local_worker_ids = [worker.worker_id for worker in self._workers.local_workers]
 
-        node_ids = []
-        if self._nodes.global_node:
-            node_ids = [self._nodes.global_node.node_id] + local_node_ids
+        worker_ids = []
+        if self._workers.global_worker:
+            worker_ids = [self._workers.global_worker.worker_id] + local_worker_ids
         else:
-            node_ids = local_node_ids
+            worker_ids = local_worker_ids
 
-        return node_ids
+        return worker_ids
 
     def create_data_model_views(
         self, variable_groups: List[List[str]], dropna: bool, check_min_rows: bool
     ) -> DataModelViews:
         """
-        Create the appropriate view tables in the nodes databases(what is called
+        Create the appropriate view tables in the workers databases(what is called
         "data model views") and return a DataModelViews object
 
         Returns
@@ -397,7 +402,7 @@ class NodesFederation:
 
         """
         data_model_views_creator = DataModelViewsCreator(
-            local_nodes=self._nodes.local_nodes,
+            local_workers=self._workers.local_workers,
             variable_groups=variable_groups,
             var_filters=self._var_filters,
             dropna=dropna,
@@ -406,105 +411,105 @@ class NodesFederation:
         )
         data_model_views_creator.create_data_model_views()
 
-        # NOTE after creating the "data model views" some of the local nodes in the
-        # original list (self._nodes.local_nodes), can be filtered out of the
+        # NOTE after creating the "data model views" some of the local workers in the
+        # original list (self._workers.local_workers), can be filtered out of the
         # execution if they do not contain "suffucient data", thus
-        # self._nodes.local_nodes are updated
-        local_nodes_filtered = (
-            data_model_views_creator.data_model_views.get_list_of_nodes()
+        # self._workers.local_workers are updated
+        local_workers_filtered = (
+            data_model_views_creator.data_model_views.get_list_of_workers()
         )
 
         self._logger.debug(
-            f"Local nodes after create_data_model_views:{local_nodes_filtered}"
+            f"Local workers after create_data_model_views:{local_workers_filtered}"
         )
 
-        # update local nodes
-        self._nodes.local_nodes = local_nodes_filtered
+        # update local workers
+        self._workers.local_workers = local_workers_filtered
 
         return data_model_views_creator.data_model_views
 
-    def get_global_node_info(self) -> WorkerInfo:
-        return self._node_landscape_aggregator.get_global_node()
+    def get_global_worker_info(self) -> WorkerInfo:
+        return self._worker_landscape_aggregator.get_global_worker()
 
-    def _create_nodes(self) -> Nodes:
+    def _create_workers(self) -> Workers:
         """
-        Create Nodes containing only the relevant datasets
+        Create Workers containing only the relevant datasets
         """
-        # Local Nodes
-        localnodesinfo = self._get_nodeinfo_for_requested_datasets()
+        # Local Workers
+        localworkersinfo = self._get_workerinfo_for_requested_datasets()
         tasks_handlers = [
-            _create_node_tasks_handler(
+            _create_worker_tasks_handler(
                 request_id=self._request_id,
-                nodeinfo=nodeinfo,
+                workerinfo=workerinfo,
                 tasks_timeout=self._celery_tasks_timeout,
                 run_udf_task_timeout=self._celery_run_udf_task_timeout,
             )
-            for nodeinfo in localnodesinfo
+            for workerinfo in localworkersinfo
         ]
 
-        nodeids = self._get_nodeids_for_requested_datasets()
-        nodeids_datasets = self._get_datasets_of_nodeids(
-            nodeids, self._data_model, self._datasets
+        workerids = self._get_workerids_for_requested_datasets()
+        workerids_datasets = self._get_datasets_of_workerids(
+            workerids, self._data_model, self._datasets
         )
 
-        localnodes = _create_local_nodes(
+        localworkers = _create_local_workers(
             request_id=self._request_id,
             context_id=self._context_id,
             data_model=self._data_model,
-            nodeids_datasets=nodeids_datasets,
-            nodes_tasks_handlers=tasks_handlers,
+            workerids_datasets=workerids_datasets,
+            workers_tasks_handlers=tasks_handlers,
         )
 
-        # Global Node
-        globalnodeinfo = self._get_globalnodeinfo()
-        if globalnodeinfo:
-            tasks_handler = _create_node_tasks_handler(
+        # Global Worker
+        globalworkerinfo = self._get_globalworkerinfo()
+        if globalworkerinfo:
+            tasks_handler = _create_worker_tasks_handler(
                 request_id=self._request_id,
-                nodeinfo=globalnodeinfo,
+                workerinfo=globalworkerinfo,
                 tasks_timeout=self._celery_tasks_timeout,
                 run_udf_task_timeout=self._celery_run_udf_task_timeout,
             )
-            globalnode = _create_global_node(
+            globalworker = _create_global_worker(
                 request_id=self._request_id,
                 context_id=self._context_id,
-                node_tasks_handler=tasks_handler,
+                worker_tasks_handler=tasks_handler,
             )
-            nodes = Nodes(global_node=globalnode, local_nodes=localnodes)
+            workers = Workers(global_worker=globalworker, local_workers=localworkers)
 
         else:
-            nodes = Nodes(local_nodes=localnodes)
+            workers = Workers(local_workers=localworkers)
 
-        self._logger.debug(f"Created Nodes object: {nodes}")
-        return nodes
+        self._logger.debug(f"Created Workers object: {workers}")
+        return workers
 
-    def _get_datasets_of_nodeids(
-        self, nodeids: List[str], data_model: str, datasets: List[str]
+    def _get_datasets_of_workerids(
+        self, workerids: List[str], data_model: str, datasets: List[str]
     ) -> Dict[str, List[str]]:
         """
-        Returns a dictionary with Node as keys and a subset or the datasets as values
+        Returns a dictionary with Worker as keys and a subset or the datasets as values
         """
-        datasets_per_local_node = {
-            nodeid: self._node_landscape_aggregator.get_node_specific_datasets(
-                nodeid,
+        datasets_per_local_worker = {
+            workerid: self._worker_landscape_aggregator.get_worker_specific_datasets(
+                workerid,
                 data_model,
                 datasets,
             )
-            for nodeid in nodeids
+            for workerid in workerids
         }
-        return datasets_per_local_node
+        return datasets_per_local_worker
 
-    def _get_nodes_info(self) -> List[WorkerInfo]:
-        local_node_ids = (
-            self._node_landscape_aggregator.get_node_ids_with_any_of_datasets(
+    def _get_workers_info(self) -> List[WorkerInfo]:
+        local_worker_ids = (
+            self._worker_landscape_aggregator.get_worker_ids_with_any_of_datasets(
                 data_model=self._data_model,
                 datasets=self._datasets,
             )
         )
-        local_nodes_info = [
-            self._node_landscape_aggregator.get_node_info(node_id)
-            for node_id in local_node_ids
+        local_workers_info = [
+            self._worker_landscape_aggregator.get_worker_info(worker_id)
+            for worker_id in local_worker_ids
         ]
-        return local_nodes_info
+        return local_workers_info
 
 
 class ExecutionStrategy(ABC):
@@ -694,12 +699,14 @@ class AlgorithmExecutor:
 
         log_experiment_execution(
             logger=self._logger,
-            request_id=self._engine._nodes.local_nodes[0].request_id,
-            context_id=self._engine._nodes.local_nodes[0].context_id,
+            request_id=self._engine._workers.local_workers[0].request_id,
+            context_id=self._engine._workers.local_workers[0].context_id,
             algorithm_name=self._algorithm_name,
             datasets=self._datasets,
             algorithm_parameters=self._params,
-            local_worker_ids=[node.node_id for node in self._engine._nodes.local_nodes],
+            local_worker_ids=[
+                worker.worker_id for worker in self._engine._workers.local_workers
+            ],
         )
 
         # Call Algorithm.run inside event loop
@@ -711,10 +718,10 @@ class AlgorithmExecutor:
             )
         except CeleryConnectionError as exc:
             self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
-            raise NodeUnresponsiveException()
+            raise WorkerUnresponsiveException()
         except CeleryTaskTimeoutException as exc:
             self._logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
-            raise NodeTaskTimeoutException()
+            raise WorkerTaskTimeoutException()
         except Exception as exc:
             self._logger.error(traceback.format_exc())
             raise exc
@@ -725,7 +732,7 @@ class AlgorithmExecutor:
 class Controller:
     def __init__(
         self,
-        node_landscape_aggregator: NodeLandscapeAggregator,
+        worker_landscape_aggregator: WorkerLandscapeAggregator,
         cleaner: Cleaner,
         logger: Logger,
         tasks_timeout: int,
@@ -733,7 +740,7 @@ class Controller:
         smpc_params: SMPCParams,
     ):
         self._controller_logger = logger
-        self._node_landscape_aggregator = node_landscape_aggregator
+        self._worker_landscape_aggregator = worker_landscape_aggregator
         self._cleaner = cleaner
 
         self._celery_tasks_timeout = tasks_timeout
@@ -762,15 +769,15 @@ class Controller:
         datasets = algorithm_request_dto.inputdata.datasets
         var_filters = algorithm_request_dto.inputdata.filters
 
-        # Instantiate a NodesFederation that will keep track of the local nodes that are
+        # Instantiate a WorkersFederation that will keep track of the local workers that are
         # relevant to the execution, based on the request parameters
-        nodes_federation = NodesFederation(
+        workers_federation = WorkersFederation(
             request_id=request_id,
             context_id=context_id,
             data_model=data_model,
             datasets=datasets,
             var_filters=var_filters,
-            node_landscape_aggregator=self._node_landscape_aggregator,
+            worker_landscape_aggregator=self._worker_landscape_aggregator,
             celery_tasks_timeout=self._celery_tasks_timeout,
             celery_run_udf_task_timeout=self._celery_run_udf_task_timeout,
             command_id_generator=command_id_generator,
@@ -778,21 +785,23 @@ class Controller:
         )
 
         # add the identifier of the execution(context_id), along with the relevant local
-        # node ids, to the cleaner so that whatever database artifacts are created during
+        # worker ids, to the cleaner so that whatever database artifacts are created during
         # the execution get dropped at the end of the execution, when not needed anymore
-        self._cleaner.add_contextid_for_cleanup(context_id, nodes_federation.node_ids)
+        self._cleaner.add_contextid_for_cleanup(
+            context_id, workers_federation.worker_ids
+        )
 
         # get metadata
         variable_names = (algorithm_request_dto.inputdata.x or []) + (
             algorithm_request_dto.inputdata.y or []
         )
-        metadata = self._node_landscape_aggregator.get_metadata(
+        metadata = self._worker_landscape_aggregator.get_metadata(
             data_model=data_model, variable_names=variable_names
         )
 
         # instantiate an algorithm execution engine, the engine is passed to the
         # "Algorithm" implementation and serves as an API for the "Algorithm" code to
-        # execute celery on nodes
+        # execute celery on workers
         engine_init_params = EngineInitParams(
             smpc_params=self._smpc_params,
             request_id=algorithm_request_dto.request_id,
@@ -801,7 +810,7 @@ class Controller:
         engine = _create_algorithm_execution_engine(
             engine_init_params=engine_init_params,
             command_id_generator=command_id_generator,
-            nodes=nodes_federation.nodes,
+            workers=workers_federation.workers,
         )
         variables = Variables(
             x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
@@ -832,7 +841,7 @@ class Controller:
             )
 
         # Create the "data model views"
-        data_model_views = nodes_federation.create_data_model_views(
+        data_model_views = workers_federation.create_data_model_views(
             variable_groups=execution_strategy.algorithm_data_loader.get_variable_groups(),
             dropna=execution_strategy.algorithm_data_loader.get_dropna(),
             check_min_rows=execution_strategy.algorithm_data_loader.get_check_min_rows(),
@@ -846,7 +855,7 @@ class Controller:
         logger.info(f"Finished execution->  {algorithm_name=} with {request_id=}")
         logger.debug(f"Algorithm {request_id=} result-> {algorithm_result=}")
 
-        # Cleanup artifacts created in the nodes' databases during the execution
+        # Cleanup artifacts created in the workers' databases during the execution
         if not self._cleaner.cleanup_context_id(context_id=context_id):
             # if the cleanup did not succeed, set the current "context_id" as released
             # so that the Cleaner retries later
@@ -854,105 +863,108 @@ class Controller:
 
         return algorithm_result
 
-    def _get_subset_of_nodes_containing_datasets(self, nodes, data_model, datasets):
-        datasets_per_local_node = {
-            node: self._node_landscape_aggregator.get_node_specific_datasets(
-                node.node_id,
+    def _get_subset_of_workers_containing_datasets(self, workers, data_model, datasets):
+        datasets_per_local_worker = {
+            worker: self._worker_landscape_aggregator.get_worker_specific_datasets(
+                worker.worker_id,
                 data_model,
                 datasets,
             )
-            for node in nodes
+            for worker in workers
         }
-        return datasets_per_local_node
+        return datasets_per_local_worker
 
     def get_datasets_locations(self) -> DatasetsLocations:
-        return self._node_landscape_aggregator.get_datasets_locations()
+        return self._worker_landscape_aggregator.get_datasets_locations()
 
     def get_cdes_per_data_model(self) -> dict:
         return {
             data_model: {
                 column: metadata.dict() for column, metadata in cdes.values.items()
             }
-            for data_model, cdes in self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
+            for data_model, cdes in self._worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
         }
 
     def get_data_models_attributes(self) -> Dict[str, Dict]:
         return {
             data_model: data_model_metadata.dict()
-            for data_model, data_model_metadata in self._node_landscape_aggregator.get_data_models_attributes().items()
+            for data_model, data_model_metadata in self._worker_landscape_aggregator.get_data_models_attributes().items()
         }
 
     def get_all_available_data_models(self) -> List[str]:
         return list(
-            self._node_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()
+            self._worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()
         )
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (
-            self._node_landscape_aggregator.get_all_available_datasets_per_data_model()
+            self._worker_landscape_aggregator.get_all_available_datasets_per_data_model()
         )
 
 
-def _create_node_tasks_handler(
-    request_id: str, nodeinfo: WorkerInfo, tasks_timeout: int, run_udf_task_timeout: int
+def _create_worker_tasks_handler(
+    request_id: str,
+    workerinfo: WorkerInfo,
+    tasks_timeout: int,
+    run_udf_task_timeout: int,
 ):
-    return NodeAlgorithmTasksHandler(
+    return WorkerAlgorithmTasksHandler(
         request_id=request_id,
-        node_id=nodeinfo.id,
-        node_queue_addr=str(nodeinfo.ip) + ":" + str(nodeinfo.port),
-        node_db_addr=str(nodeinfo.db_ip) + ":" + str(nodeinfo.db_port),
+        worker_id=workerinfo.id,
+        worker_queue_addr=str(workerinfo.ip) + ":" + str(workerinfo.port),
+        worker_db_addr=str(workerinfo.db_ip) + ":" + str(workerinfo.db_port),
         tasks_timeout=tasks_timeout,
         run_udf_task_timeout=run_udf_task_timeout,
     )
 
 
-def _create_local_nodes(
+def _create_local_workers(
     request_id: str,
     context_id: str,
     data_model: str,
-    nodeids_datasets: Dict[str, List[str]],
-    nodes_tasks_handlers: List[INodeAlgorithmTasksHandler],
+    workerids_datasets: Dict[str, List[str]],
+    workers_tasks_handlers: List[IWorkerAlgorithmTasksHandler],
 ):
-    local_nodes = []
-    for node_tasks_handler in nodes_tasks_handlers:
-        node_id = node_tasks_handler.node_id
-        node = LocalNode(
+    local_workers = []
+    for worker_tasks_handler in workers_tasks_handlers:
+        worker_id = worker_tasks_handler.worker_id
+        worker = LocalWorker(
             request_id=request_id,
             context_id=context_id,
             data_model=data_model,
-            datasets=nodeids_datasets[node_id],
-            node_tasks_handler=node_tasks_handler,
+            datasets=workerids_datasets[worker_id],
+            worker_tasks_handler=worker_tasks_handler,
         )
-        local_nodes.append(node)
+        local_workers.append(worker)
 
-    return local_nodes
+    return local_workers
 
 
-def _create_global_node(request_id, context_id, node_tasks_handler):
-    global_node: GlobalNode = GlobalNode(
+def _create_global_worker(request_id, context_id, worker_tasks_handler):
+    global_worker: GlobalWorker = GlobalWorker(
         request_id=request_id,
         context_id=context_id,
-        node_tasks_handler=node_tasks_handler,
+        worker_tasks_handler=worker_tasks_handler,
     )
-    return global_node
+    return global_worker
 
 
 def _create_algorithm_execution_engine(
     engine_init_params: EngineInitParams,
     command_id_generator: CommandIdGenerator,
-    nodes: Nodes,
+    workers: Workers,
 ):
-    if len(nodes.local_nodes) < 2:
-        return AlgorithmExecutionEngineSingleLocalNode(
+    if len(workers.local_workers) < 2:
+        return AlgorithmExecutionEngineSingleLocalWorker(
             initialization_params=engine_init_params,
             command_id_generator=command_id_generator,
-            nodes=nodes,
+            workers=workers,
         )
     else:
         return AlgorithmExecutionEngine(
             initialization_params=engine_init_params,
             command_id_generator=command_id_generator,
-            nodes=nodes,
+            workers=workers,
         )
 
 

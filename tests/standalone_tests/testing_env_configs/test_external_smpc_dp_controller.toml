@@ -1,7 +1,7 @@
 log_level = "DEBUG"
 framework_log_level = "INFO"
 deployment_type = "LOCAL"
-node_landscape_aggregator_update_interval = 30
+worker_landscape_aggregator_update_interval = 30
 
 [cleanup]
 contextids_cleanup_folder = "/tmp"
