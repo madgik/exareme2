@@ -1,13 +1,15 @@
 import pytest
 
 # TODO the testing should be better once the datasets are properly distributed and the are no duplicates.
-from exareme2.controller.services.node_landscape_aggregator import DataModelRegistry
-from exareme2.controller.services.node_landscape_aggregator import DataModelsAttributes
-from exareme2.controller.services.node_landscape_aggregator import DataModelsCDES
-from exareme2.controller.services.node_landscape_aggregator import DatasetsLocations
-from exareme2.node_communication import CommonDataElement
-from exareme2.node_communication import CommonDataElements
-from exareme2.node_communication import DataModelAttributes
+from exareme2.controller.services.worker_landscape_aggregator import DataModelRegistry
+from exareme2.controller.services.worker_landscape_aggregator import (
+    DataModelsAttributes,
+)
+from exareme2.controller.services.worker_landscape_aggregator import DataModelsCDES
+from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations
+from exareme2.worker_communication import CommonDataElement
+from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelAttributes
 
 
 @pytest.fixture
@@ -15,20 +17,20 @@ def mocked_datasets_locations():
     yield DatasetsLocations(
         datasets_locations={
             "tbi:0.1": {
-                "dummy_tbi0": "localnode1",
-                "dummy_tbi1": "localnode2",
-                "dummy_tbi3": "localnode2",
+                "dummy_tbi0": "localworker1",
+                "dummy_tbi1": "localworker2",
+                "dummy_tbi3": "localworker2",
             },
             "dementia:0.1": {
-                "ppmi0": "localnode1",
-                "ppmi1": "localnode2",
-                "ppmi3": "localnode2",
-                "edsd0": "localnode1",
-                "edsd1": "localnode2",
-                "edsd3": "localnode2",
-                "desd-synthdata0": "localnode1",
-                "desd-synthdata1": "localnode2",
-                "desd-synthdata3": "localnode2",
+                "ppmi0": "localworker1",
+                "ppmi1": "localworker2",
+                "ppmi3": "localworker2",
+                "edsd0": "localworker1",
+                "edsd1": "localworker2",
+                "edsd3": "localworker2",
+                "desd-synthdata0": "localworker1",
+                "desd-synthdata1": "localworker2",
+                "desd-synthdata3": "localworker2",
             },
         }
     )
@@ -140,18 +142,18 @@ def test_dataset_exists(mocked_data_model_registry):
     assert not mocked_data_model_registry.dataset_exists("tbi:0.1", "non-existing")
 
 
-def test_get_nodes_with_any_of_datasets(mocked_data_model_registry):
+def test_get_workers_with_any_of_datasets(mocked_data_model_registry):
     assert set(
-        mocked_data_model_registry.get_node_ids_with_any_of_datasets(
+        mocked_data_model_registry.get_worker_ids_with_any_of_datasets(
             "tbi:0.1", ["dummy_tbi0", "dummy_tbi1"]
         )
-    ) == {"localnode1", "localnode2"}
+    ) == {"localworker1", "localworker2"}
 
 
-def test_get_node_specific_datasets(mocked_data_model_registry):
+def test_get_worker_specific_datasets(mocked_data_model_registry):
     assert set(
-        mocked_data_model_registry.get_node_specific_datasets(
-            "localnode1", "dementia:0.1", ["edsd0", "ppmi0"]
+        mocked_data_model_registry.get_worker_specific_datasets(
+            "localworker1", "dementia:0.1", ["edsd0", "ppmi0"]
         )
     ) == {"edsd0", "ppmi0"}
 

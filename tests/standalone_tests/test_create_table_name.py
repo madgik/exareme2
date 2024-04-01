@@ -1,15 +1,15 @@
 import pytest
 
-from exareme2.node.monetdb.tables import create_table_name
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.worker.exareme2.tables.tables_service import create_table_name
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
 
 
 def test_create_table_name():
     tablename = create_table_name(
         table_type=TableType.NORMAL,
-        node_id="nodeid",
+        worker_id="workerid",
         context_id="contextid",
         command_id="commandid",
         result_id="commandsubid",
@@ -20,7 +20,7 @@ def test_create_table_name():
     )
 
     assert tablename_obj.type_ == TableType.NORMAL
-    assert tablename_obj.node_id == "nodeid"
+    assert tablename_obj.worker_id == "workerid"
     assert tablename_obj.context_id == "contextid"
     assert tablename_obj.command_id == "commandid"
     assert tablename_obj.result_id == "commandsubid"
@@ -30,7 +30,7 @@ def test_create_table_name_with_bad_table_type():
     with pytest.raises(TypeError) as exc:
         create_table_name(
             table_type="badtabletype",
-            node_id="nodeid",
+            worker_id="workerid",
             context_id="contextid",
             command_id="commandid",
             result_id="commandsubid",
@@ -43,49 +43,49 @@ def get_test_create_table_name_with_bad_parameters_cases():
     test_create_table_name_with_bad_parameters_cases = [
         (
             TableType.NORMAL,
-            "nodeid_1",
+            "workerid_1",
             "contextid2",
             "commandid3",
             "commandsubid4",
         ),
         (
             TableType.NORMAL,
-            "nodeid1",
+            "workerid1",
             "contextid_2",
             "commandid3",
             "commandsubid4",
         ),
         (
             TableType.NORMAL,
-            "nodeid1",
+            "workerid1",
             "contextid2",
             "commandid_3",
             "commandsubid4",
         ),
         (
             TableType.NORMAL,
-            "nodeid1",
+            "workerid1",
             "contextid2",
             "commandid3",
             "commandsubid_4",
         ),
         (
             TableType.NORMAL,
-            "nodeid1",
+            "workerid1",
             "contextid2",
             "commandid3",
             "commandsubid4.",
         ),
         (
             TableType.NORMAL,
-            "nodeid1",
+            "workerid1",
             "contextid2",
             "commandid3",
             "commandsubid4!",
         ),
         (
             TableType.NORMAL,
-            "nodeid1",
+            "workerid1",
             "contextid2",
             "commandid3",
             "commandsubid4+",
@@ -95,16 +95,16 @@ def get_test_create_table_name_with_bad_parameters_cases():
 
 
 @pytest.mark.parametrize(
-    "table_type, node_id, context_id, command_id, result_id",
+    "table_type, worker_id, context_id, command_id, result_id",
     get_test_create_table_name_with_bad_parameters_cases(),
 )
 def test_create_table_with_bad_parameters(
-    table_type, node_id, context_id, command_id, result_id
+    table_type, worker_id, context_id, command_id, result_id
 ):
     with pytest.raises(ValueError) as exc:
         create_table_name(
             table_type=table_type,
-            node_id=node_id,
+            worker_id=worker_id,
             context_id=context_id,
             command_id=command_id,
             result_id=result_id,

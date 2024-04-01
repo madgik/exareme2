@@ -7,13 +7,15 @@ import pytest
 from exareme2 import AttrDict
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.logger import init_logger
-from exareme2.controller.services.node_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator import (
     _log_data_model_changes,
 )
-from exareme2.controller.services.node_landscape_aggregator import _log_dataset_changes
-from exareme2.controller.services.node_landscape_aggregator import _log_node_changes
-from exareme2.node_communication import NodeInfo
-from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
+from exareme2.controller.services.worker_landscape_aggregator import (
+    _log_dataset_changes,
+)
+from exareme2.controller.services.worker_landscape_aggregator import _log_worker_changes
+from exareme2.worker_communication import WorkerInfo
+from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_PORT
 from tests.standalone_tests.conftest import MonetDBConfigurations
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
@@ -21,19 +23,19 @@ LOGFILE_NAME = "test_show_controller_audit_entries.out"
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-def test_show_node_db_actions(monetdb_localnodetmp, load_data_localnodetmp):
+def test_show_worker_db_actions(monetdb_localworkertmp, load_data_localworkertmp):
     """
     Load data into the db and then remove datamodel and datasets.
     Assert that the logs produced with federation_info.py contain these changes.
     """
-    monet_db_confs = MonetDBConfigurations(port=MONETDB_LOCALNODETMP_PORT)
+    monet_db_confs = MonetDBConfigurations(port=MONETDB_LOCALWORKERTMP_PORT)
     cmd = f'mipdb delete-data-model dementia -v "0.1" {monet_db_confs.convert_to_mipdb_format()} --force'
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     assert res.returncode == 0
 
-    cmd = f"python3 federation_info.py show-node-db-actions --port {MONETDB_LOCALNODETMP_PORT}"
+    cmd = f"python3 federation_info.py show-worker-db-actions --port {MONETDB_LOCALWORKERTMP_PORT}"
     res = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
@@ -64,21 +66,21 @@ def patch_controller_logger_config(controller_config_dict_mock):
 @pytest.mark.slow
 def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     logger = init_logger("BACKGROUND")
-    _log_node_changes(
-        old_nodes=[
-            NodeInfo(
-                id="localnode1",
-                role="LOCALNODE",
+    _log_worker_changes(
+        old_workers=[
+            WorkerInfo(
+                id="localworker1",
+                role="LOCALWORKER",
                 ip="172.17.0.1",
                 port=60001,
                 db_ip="172.17.0.1",
                 db_port=61001,
             )
         ],
-        new_nodes=[
-            NodeInfo(
-                id="localnode2",
-                role="LOCALNODE",
+        new_workers=[
+            WorkerInfo(
+                id="localworker2",
+                role="LOCALWORKER",
                 ip="172.17.0.1",
                 port=60002,
                 db_ip="172.17.0.1",
@@ -93,8 +95,8 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
         logger=logger,
     )
     _log_dataset_changes(
-        old_datasets_locations={"dementia:0.1": {"edsd": "localnode1"}},
-        new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localnode2"}},
+        old_datasets_locations={"dementia:0.1": {"edsd": "localworker1"}},
+        new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localworker2"}},
         logger=logger,
     )
     log_experiment_execution(
@@ -104,7 +106,7 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
         algorithm_name="test_algorithm",
         datasets=["edsd"],
         algorithm_parameters="parameters",
-        local_node_ids=["localnode1"],
+        local_worker_ids=["localworker1"],
     )
 
     # Get the logged output
@@ -120,15 +122,15 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
     )
 
     output = str(res.stdout)
-    assert re.match(r".* - NODE_JOINED - localnode2\\n.*", output)
-    assert re.match(r".*\\n.* - NODE_LEFT - localnode1\\n.*", output)
+    assert re.match(r".* - WORKER_JOINED - localworker2\\n.*", output)
+    assert re.match(r".*\\n.* - WORKER_LEFT - localworker1\\n.*", output)
     assert re.match(r".*\\n.* - DATAMODEL_ADDED - tbi:0.1\\n.*", output)
     assert re.match(r".*\\n.* - DATAMODEL_REMOVED - dementia:0.1\\n.*", output)
     assert re.match(
-        r".*\\n.* - DATASET_ADDED - localnode2 - tbi:0.1 - dummy_tbi\\n.*", output
+        r".*\\n.* - DATASET_ADDED - localworker2 - tbi:0.1 - dummy_tbi\\n.*", output
     )
     assert re.match(
-        r".*\\n.* - DATASET_REMOVED - localnode1 - dementia:0.1 - edsd\\n.*", output
+        r".*\\n.* - DATASET_REMOVED - localworker1 - dementia:0.1 - edsd\\n.*", output
     )
     assert re.match(
         r".*\\n.* - EXPERIMENT_STARTED - test - test_algorithm - edsd - parameters\\n.*",

@@ -75,6 +75,6 @@ Based on the type of sum of squares selected by the user as well as the full mod
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[ANOVA one-way](../../exareme2/algorithms/in_database/anova_oneway.py)
+[ANOVA one-way](../../exareme2/algorithms/exareme2/anova_oneway.py)
 
-[ANOVA two-way](../../exareme2/algorithms/in_database/anova.py)
+[ANOVA two-way](../../exareme2/algorithms/exareme2/anova.py)

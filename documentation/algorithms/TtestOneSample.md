@@ -24,4 +24,4 @@ The Student’s One-sample t-test is used to test the null hypothesis that the t
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[One Sample T-test](../../exareme2/algorithms/in_database/ttest_onesample.py)
+[One Sample T-test](../../exareme2/algorithms/exareme2/ttest_onesample.py)

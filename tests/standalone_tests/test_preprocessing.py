@@ -1,14 +1,14 @@
 import pandas as pd
 import pytest
 
-from exareme2.algorithms.in_database.preprocessing import LabelBinarizer
+from exareme2.algorithms.exareme2.preprocessing import LabelBinarizer
 
 
 @pytest.fixture
 def fake_engine():
     class FakeEngine:
-        run_udf_on_local_nodes = None
-        run_udf_on_global_node = None
+        run_udf_on_local_workers = None
+        run_udf_on_global_worker = None
 
     return FakeEngine()
 

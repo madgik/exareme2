@@ -18,13 +18,15 @@ import sqlalchemy as sql
 import toml
 
 from exareme2 import AttrDict
-from exareme2.algorithms.in_database.udfgen import udfio
+from exareme2.algorithms.exareme2.udfgen import udfio
 from exareme2.controller.celery.app import CeleryAppFactory
-from exareme2.controller.celery.node_tasks_handler import NodeAlgorithmTasksHandler
+from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
 from exareme2.controller.logger import init_logger
-from exareme2.node_communication import TableSchema
+from exareme2.worker_communication import TableSchema
 
-ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
+ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
+    "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
+)
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
 TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"
 
@@ -54,88 +56,88 @@ SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
 HEALTHCHECK_URL = f"http://{COMMON_IP}:4500/healthcheck"
 
 
-RABBITMQ_GLOBALNODE_NAME = "rabbitmq_test_globalnode"
-RABBITMQ_LOCALNODE1_NAME = "rabbitmq_test_localnode1"
-RABBITMQ_LOCALNODE2_NAME = "rabbitmq_test_localnode2"
+RABBITMQ_GLOBALWORKER_NAME = "rabbitmq_test_globalworker"
+RABBITMQ_LOCALWORKER1_NAME = "rabbitmq_test_localworker1"
+RABBITMQ_LOCALWORKER2_NAME = "rabbitmq_test_localworker2"
 
-RABBITMQ_LOCALNODETMP_NAME = "rabbitmq_test_localnodetmp"
-RABBITMQ_SMPC_GLOBALNODE_NAME = "rabbitmq_test_smpc_globalnode"
-RABBITMQ_SMPC_LOCALNODE1_NAME = "rabbitmq_test_smpc_localnode1"
-RABBITMQ_SMPC_LOCALNODE2_NAME = "rabbitmq_test_smpc_localnode2"
+RABBITMQ_LOCALWORKERTMP_NAME = "rabbitmq_test_localworkertmp"
+RABBITMQ_SMPC_GLOBALWORKER_NAME = "rabbitmq_test_smpc_globalworker"
+RABBITMQ_SMPC_LOCALWORKER1_NAME = "rabbitmq_test_smpc_localworker1"
+RABBITMQ_SMPC_LOCALWORKER2_NAME = "rabbitmq_test_smpc_localworker2"
 
-RABBITMQ_GLOBALNODE_PORT = 60000
-RABBITMQ_GLOBALNODE_ADDR = f"{COMMON_IP}:{str(RABBITMQ_GLOBALNODE_PORT)}"
-RABBITMQ_LOCALNODE1_PORT = 60001
-RABBITMQ_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALNODE1_PORT)}"
-RABBITMQ_LOCALNODE2_PORT = 60002
-RABBITMQ_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALNODE2_PORT)}"
-RABBITMQ_LOCALNODETMP_PORT = 60003
-RABBITMQ_LOCALNODETMP_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALNODETMP_PORT)}"
-RABBITMQ_SMPC_GLOBALNODE_PORT = 60004
-RABBITMQ_SMPC_GLOBALNODE_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_GLOBALNODE_PORT)}"
-RABBITMQ_SMPC_LOCALNODE1_PORT = 60005
-RABBITMQ_SMPC_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE1_PORT)}"
-RABBITMQ_SMPC_LOCALNODE2_PORT = 60006
-RABBITMQ_SMPC_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALNODE2_PORT)}"
+RABBITMQ_GLOBALWORKER_PORT = 60000
+RABBITMQ_GLOBALWORKER_ADDR = f"{COMMON_IP}:{str(RABBITMQ_GLOBALWORKER_PORT)}"
+RABBITMQ_LOCALWORKER1_PORT = 60001
+RABBITMQ_LOCALWORKER1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALWORKER1_PORT)}"
+RABBITMQ_LOCALWORKER2_PORT = 60002
+RABBITMQ_LOCALWORKER2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALWORKER2_PORT)}"
+RABBITMQ_LOCALWORKERTMP_PORT = 60003
+RABBITMQ_LOCALWORKERTMP_ADDR = f"{COMMON_IP}:{str(RABBITMQ_LOCALWORKERTMP_PORT)}"
+RABBITMQ_SMPC_GLOBALWORKER_PORT = 60004
+RABBITMQ_SMPC_GLOBALWORKER_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_GLOBALWORKER_PORT)}"
+RABBITMQ_SMPC_LOCALWORKER1_PORT = 60005
+RABBITMQ_SMPC_LOCALWORKER1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALWORKER1_PORT)}"
+RABBITMQ_SMPC_LOCALWORKER2_PORT = 60006
+RABBITMQ_SMPC_LOCALWORKER2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALWORKER2_PORT)}"
 
 
-DATASET_SUFFIXES_LOCALNODE1 = [0, 1, 2, 3]
-DATASET_SUFFIXES_LOCALNODE2 = [4, 5, 6]
-DATASET_SUFFIXES_LOCALNODETMP = [7, 8, 9]
-DATASET_SUFFIXES_SMPC_LOCALNODE1 = [0, 1, 2, 3, 4]
-DATASET_SUFFIXES_SMPC_LOCALNODE2 = [5, 6, 7, 8, 9]
-MONETDB_GLOBALNODE_NAME = "monetdb_test_globalnode"
-MONETDB_LOCALNODE1_NAME = "monetdb_test_localnode1"
-MONETDB_LOCALNODE2_NAME = "monetdb_test_localnode2"
-MONETDB_LOCALNODETMP_NAME = "monetdb_test_localnodetmp"
-MONETDB_SMPC_GLOBALNODE_NAME = "monetdb_test_smpc_globalnode"
-MONETDB_SMPC_LOCALNODE1_NAME = "monetdb_test_smpc_localnode1"
-MONETDB_SMPC_LOCALNODE2_NAME = "monetdb_test_smpc_localnode2"
-MONETDB_GLOBALNODE_PORT = 61000
-MONETDB_GLOBALNODE_ADDR = f"{COMMON_IP}:{str(MONETDB_GLOBALNODE_PORT)}"
-MONETDB_LOCALNODE1_PORT = 61001
-MONETDB_LOCALNODE1_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALNODE1_PORT)}"
-MONETDB_LOCALNODE2_PORT = 61002
-MONETDB_LOCALNODE2_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALNODE2_PORT)}"
-MONETDB_LOCALNODETMP_PORT = 61003
-MONETDB_LOCALNODETMP_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALNODETMP_PORT)}"
-MONETDB_SMPC_GLOBALNODE_PORT = 61004
-MONETDB_SMPC_LOCALNODE1_PORT = 61005
-MONETDB_SMPC_LOCALNODE2_PORT = 61006
+DATASET_SUFFIXES_LOCALWORKER1 = [0, 1, 2, 3]
+DATASET_SUFFIXES_LOCALWORKER2 = [4, 5, 6]
+DATASET_SUFFIXES_LOCALWORKERTMP = [7, 8, 9]
+DATASET_SUFFIXES_SMPC_LOCALWORKER1 = [0, 1, 2, 3, 4]
+DATASET_SUFFIXES_SMPC_LOCALWORKER2 = [5, 6, 7, 8, 9]
+MONETDB_GLOBALWORKER_NAME = "monetdb_test_globalworker"
+MONETDB_LOCALWORKER1_NAME = "monetdb_test_localworker1"
+MONETDB_LOCALWORKER2_NAME = "monetdb_test_localworker2"
+MONETDB_LOCALWORKERTMP_NAME = "monetdb_test_localworkertmp"
+MONETDB_SMPC_GLOBALWORKER_NAME = "monetdb_test_smpc_globalworker"
+MONETDB_SMPC_LOCALWORKER1_NAME = "monetdb_test_smpc_localworker1"
+MONETDB_SMPC_LOCALWORKER2_NAME = "monetdb_test_smpc_localworker2"
+MONETDB_GLOBALWORKER_PORT = 61000
+MONETDB_GLOBALWORKER_ADDR = f"{COMMON_IP}:{str(MONETDB_GLOBALWORKER_PORT)}"
+MONETDB_LOCALWORKER1_PORT = 61001
+MONETDB_LOCALWORKER1_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALWORKER1_PORT)}"
+MONETDB_LOCALWORKER2_PORT = 61002
+MONETDB_LOCALWORKER2_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALWORKER2_PORT)}"
+MONETDB_LOCALWORKERTMP_PORT = 61003
+MONETDB_LOCALWORKERTMP_ADDR = f"{COMMON_IP}:{str(MONETDB_LOCALWORKERTMP_PORT)}"
+MONETDB_SMPC_GLOBALWORKER_PORT = 61004
+MONETDB_SMPC_LOCALWORKER1_PORT = 61005
+MONETDB_SMPC_LOCALWORKER2_PORT = 61006
 CONTROLLER_PORT = 4500
 CONTROLLER_SMPC_PORT = 4501
 
-GLOBALNODE_CONFIG_FILE = "test_globalnode.toml"
-LOCALNODE1_CONFIG_FILE = "test_localnode1.toml"
-LOCALNODE2_CONFIG_FILE = "test_localnode2.toml"
-LOCALNODETMP_CONFIG_FILE = "test_localnodetmp.toml"
+GLOBALWORKER_CONFIG_FILE = "test_globalworker.toml"
+LOCALWORKER1_CONFIG_FILE = "test_localworker1.toml"
+LOCALWORKER2_CONFIG_FILE = "test_localworker2.toml"
+LOCALWORKERTMP_CONFIG_FILE = "test_localworkertmp.toml"
 CONTROLLER_CONFIG_FILE = "test_controller.toml"
-CONTROLLER_GLOBALNODE_LOCALNODE1_ADDRESSES_FILE = (
-    "test_localnode1_globalnode_addresses.json"
+CONTROLLER_GLOBALWORKER_LOCALWORKER1_ADDRESSES_FILE = (
+    "test_localworker1_globalworker_addresses.json"
 )
-CONTROLLER_LOCALNODE1_ADDRESSES_FILE = "test_localnode1_addresses.json"
-CONTROLLER_LOCALNODETMP_ADDRESSES_FILE = "test_localnodetmp_addresses.json"
-CONTROLLER_GLOBALNODE_LOCALNODE1_LOCALNODE2_ADDRESSES_FILE = (
-    "test_globalnode_localnode1_localnode2_addresses.json"
+CONTROLLER_LOCALWORKER1_ADDRESSES_FILE = "test_localworker1_addresses.json"
+CONTROLLER_LOCALWORKERTMP_ADDRESSES_FILE = "test_localworkertmp_addresses.json"
+CONTROLLER_GLOBALWORKER_LOCALWORKER1_LOCALWORKER2_ADDRESSES_FILE = (
+    "test_globalworker_localworker1_localworker2_addresses.json"
 )
-CONTROLLER_GLOBALNODE_LOCALNODE1_LOCALNODE2_LOCALNODETMP_ADDRESSES_FILE = (
-    "test_globalnode_localnode1_localnode2_localnodetmp_addresses.json"
+CONTROLLER_GLOBALWORKER_LOCALWORKER1_LOCALWORKER2_LOCALWORKERTMP_ADDRESSES_FILE = (
+    "test_globalworker_localworker1_localworker2_localworkertmp_addresses.json"
 )
 CONTROLLER_OUTPUT_FILE = "test_controller.out"
 if USE_EXTERNAL_SMPC_CLUSTER:
-    GLOBALNODE_SMPC_CONFIG_FILE = "test_external_smpc_globalnode.toml"
-    LOCALNODE1_SMPC_CONFIG_FILE = "test_external_smpc_localnode1.toml"
-    LOCALNODE2_SMPC_CONFIG_FILE = "test_external_smpc_localnode2.toml"
+    GLOBALWORKER_SMPC_CONFIG_FILE = "test_external_smpc_globalworker.toml"
+    LOCALWORKER1_SMPC_CONFIG_FILE = "test_external_smpc_localworker1.toml"
+    LOCALWORKER2_SMPC_CONFIG_FILE = "test_external_smpc_localworker2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_external_smpc_controller.toml"
     CONTROLLER_SMPC_DP_CONFIG_FILE = "test_external_smpc_dp_controller.toml"
     SMPC_COORDINATOR_ADDRESS = "http://167.71.139.232:12314"
 else:
-    GLOBALNODE_SMPC_CONFIG_FILE = "test_smpc_globalnode.toml"
-    LOCALNODE1_SMPC_CONFIG_FILE = "test_smpc_localnode1.toml"
-    LOCALNODE2_SMPC_CONFIG_FILE = "test_smpc_localnode2.toml"
+    GLOBALWORKER_SMPC_CONFIG_FILE = "test_smpc_globalworker.toml"
+    LOCALWORKER1_SMPC_CONFIG_FILE = "test_smpc_localworker1.toml"
+    LOCALWORKER2_SMPC_CONFIG_FILE = "test_smpc_localworker2.toml"
     CONTROLLER_SMPC_CONFIG_FILE = "test_smpc_controller.toml"
     SMPC_COORDINATOR_ADDRESS = "http://172.17.0.1:12314"
-CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE = "test_smpc_localnodes_addresses.json"
+CONTROLLER_SMPC_LOCALWORKERS_CONFIG_FILE = "test_smpc_localworkers_addresses.json"
 SMPC_CONTROLLER_OUTPUT_FILE = "test_smpc_controller.out"
 
 TASKS_TIMEOUT = 10
@@ -292,9 +294,9 @@ def remove_monetdb_container(cont_name):
 
 
 @pytest.fixture(scope="session")
-def monetdb_globalnode():
-    cont_name = MONETDB_GLOBALNODE_NAME
-    cont_port = MONETDB_GLOBALNODE_PORT
+def monetdb_globalworker():
+    cont_name = MONETDB_GLOBALWORKER_NAME
+    cont_port = MONETDB_GLOBALWORKER_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -302,9 +304,9 @@ def monetdb_globalnode():
 
 
 @pytest.fixture(scope="session")
-def monetdb_localnode1():
-    cont_name = MONETDB_LOCALNODE1_NAME
-    cont_port = MONETDB_LOCALNODE1_PORT
+def monetdb_localworker1():
+    cont_name = MONETDB_LOCALWORKER1_NAME
+    cont_port = MONETDB_LOCALWORKER1_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -312,9 +314,9 @@ def monetdb_localnode1():
 
 
 @pytest.fixture(scope="session")
-def monetdb_localnode2():
-    cont_name = MONETDB_LOCALNODE2_NAME
-    cont_port = MONETDB_LOCALNODE2_PORT
+def monetdb_localworker2():
+    cont_name = MONETDB_LOCALWORKER2_NAME
+    cont_port = MONETDB_LOCALWORKER2_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -322,9 +324,9 @@ def monetdb_localnode2():
 
 
 @pytest.fixture(scope="session")
-def monetdb_smpc_globalnode():
-    cont_name = MONETDB_SMPC_GLOBALNODE_NAME
-    cont_port = MONETDB_SMPC_GLOBALNODE_PORT
+def monetdb_smpc_globalworker():
+    cont_name = MONETDB_SMPC_GLOBALWORKER_NAME
+    cont_port = MONETDB_SMPC_GLOBALWORKER_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -332,9 +334,9 @@ def monetdb_smpc_globalnode():
 
 
 @pytest.fixture(scope="session")
-def monetdb_smpc_localnode1():
-    cont_name = MONETDB_SMPC_LOCALNODE1_NAME
-    cont_port = MONETDB_SMPC_LOCALNODE1_PORT
+def monetdb_smpc_localworker1():
+    cont_name = MONETDB_SMPC_LOCALWORKER1_NAME
+    cont_port = MONETDB_SMPC_LOCALWORKER1_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -342,9 +344,9 @@ def monetdb_smpc_localnode1():
 
 
 @pytest.fixture(scope="session")
-def monetdb_smpc_localnode2():
-    cont_name = MONETDB_SMPC_LOCALNODE2_NAME
-    cont_port = MONETDB_SMPC_LOCALNODE2_PORT
+def monetdb_smpc_localworker2():
+    cont_name = MONETDB_SMPC_LOCALWORKER2_NAME
+    cont_port = MONETDB_SMPC_LOCALWORKER2_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -352,9 +354,9 @@ def monetdb_smpc_localnode2():
 
 
 @pytest.fixture(scope="function")
-def monetdb_localnodetmp():
-    cont_name = MONETDB_LOCALNODETMP_NAME
-    cont_port = MONETDB_LOCALNODETMP_PORT
+def monetdb_localworkertmp():
+    cont_name = MONETDB_LOCALWORKERTMP_NAME
+    cont_port = MONETDB_LOCALWORKERTMP_PORT
     _create_monetdb_container(cont_name, cont_port)
     yield
     remove_monetdb_container(cont_name)
@@ -434,73 +436,73 @@ def _load_data_monetdb_container(db_port, dataset_suffixes):
     return datasets_per_data_model
 
 
-def _remove_data_model_from_localnodetmp_monetdb(data_model_code, data_model_version):
+def _remove_data_model_from_localworkertmp_monetdb(data_model_code, data_model_version):
     # Remove data_model
-    cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALNODETMP_PORT} "
+    cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALWORKERTMP_PORT} "
     subprocess.run(
         cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
 
 
 @pytest.fixture(scope="session")
-def init_data_globalnode(monetdb_globalnode):
+def init_data_globalworker(monetdb_globalworker):
     _init_database_monetdb_container(
-        MONETDB_GLOBALNODE_PORT,
+        MONETDB_GLOBALWORKER_PORT,
     )
     yield
 
 
 @pytest.fixture(scope="session")
-def load_data_localnode1(monetdb_localnode1):
+def load_data_localworker1(monetdb_localworker1):
     _init_database_monetdb_container(
-        MONETDB_LOCALNODE1_PORT,
+        MONETDB_LOCALWORKER1_PORT,
     )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        MONETDB_LOCALNODE1_PORT, DATASET_SUFFIXES_LOCALNODE1
+        MONETDB_LOCALWORKER1_PORT, DATASET_SUFFIXES_LOCALWORKER1
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
-def load_data_localnode2(monetdb_localnode2):
+def load_data_localworker2(monetdb_localworker2):
     _init_database_monetdb_container(
-        MONETDB_LOCALNODE2_PORT,
+        MONETDB_LOCALWORKER2_PORT,
     )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        MONETDB_LOCALNODE2_PORT, DATASET_SUFFIXES_LOCALNODE2
+        MONETDB_LOCALWORKER2_PORT, DATASET_SUFFIXES_LOCALWORKER2
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="function")
-def load_data_localnodetmp(monetdb_localnodetmp):
+def load_data_localworkertmp(monetdb_localworkertmp):
     _init_database_monetdb_container(
-        MONETDB_LOCALNODETMP_PORT,
+        MONETDB_LOCALWORKERTMP_PORT,
     )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        MONETDB_LOCALNODETMP_PORT, DATASET_SUFFIXES_LOCALNODETMP
+        MONETDB_LOCALWORKERTMP_PORT, DATASET_SUFFIXES_LOCALWORKERTMP
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
-def load_data_smpc_localnode1(monetdb_smpc_localnode1):
+def load_data_smpc_localworker1(monetdb_smpc_localworker1):
     _init_database_monetdb_container(
-        MONETDB_SMPC_LOCALNODE1_PORT,
+        MONETDB_SMPC_LOCALWORKER1_PORT,
     )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        MONETDB_SMPC_LOCALNODE1_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE1
+        MONETDB_SMPC_LOCALWORKER1_PORT, DATASET_SUFFIXES_SMPC_LOCALWORKER1
     )
     yield loaded_datasets_per_data_model
 
 
 @pytest.fixture(scope="session")
-def load_data_smpc_localnode2(monetdb_smpc_localnode2):
+def load_data_smpc_localworker2(monetdb_smpc_localworker2):
     _init_database_monetdb_container(
-        MONETDB_SMPC_LOCALNODE2_PORT,
+        MONETDB_SMPC_LOCALWORKER2_PORT,
     )
     loaded_datasets_per_data_model = _load_data_monetdb_container(
-        MONETDB_SMPC_LOCALNODE2_PORT, DATASET_SUFFIXES_SMPC_LOCALNODE2
+        MONETDB_SMPC_LOCALWORKER2_PORT, DATASET_SUFFIXES_SMPC_LOCALWORKER2
     )
     yield loaded_datasets_per_data_model
 
@@ -523,43 +525,43 @@ def _create_db_cursor(db_port, db_username="executor", db_password="executor"):
 
 
 @pytest.fixture(scope="session")
-def globalnode_db_cursor_with_user_admin():
-    return _create_db_cursor(MONETDB_GLOBALNODE_PORT, "admin", "executor")
+def globalworker_db_cursor_with_user_admin():
+    return _create_db_cursor(MONETDB_GLOBALWORKER_PORT, "admin", "executor")
 
 
 @pytest.fixture(scope="session")
-def globalnode_db_cursor():
-    return _create_db_cursor(MONETDB_GLOBALNODE_PORT)
+def globalworker_db_cursor():
+    return _create_db_cursor(MONETDB_GLOBALWORKER_PORT)
 
 
 @pytest.fixture(scope="session")
-def localnode1_db_cursor():
-    return _create_db_cursor(MONETDB_LOCALNODE1_PORT)
+def localworker1_db_cursor():
+    return _create_db_cursor(MONETDB_LOCALWORKER1_PORT)
 
 
 @pytest.fixture(scope="session")
-def localnode2_db_cursor():
-    return _create_db_cursor(MONETDB_LOCALNODE2_PORT)
+def localworker2_db_cursor():
+    return _create_db_cursor(MONETDB_LOCALWORKER2_PORT)
 
 
 @pytest.fixture(scope="session")
-def globalnode_smpc_db_cursor():
-    return _create_db_cursor(MONETDB_SMPC_GLOBALNODE_PORT)
+def globalworker_smpc_db_cursor():
+    return _create_db_cursor(MONETDB_SMPC_GLOBALWORKER_PORT)
 
 
 @pytest.fixture(scope="session")
-def localnode1_smpc_db_cursor():
-    return _create_db_cursor(MONETDB_SMPC_LOCALNODE1_PORT)
+def localworker1_smpc_db_cursor():
+    return _create_db_cursor(MONETDB_SMPC_LOCALWORKER1_PORT)
 
 
 @pytest.fixture(scope="session")
-def localnode2_smpc_db_cursor():
-    return _create_db_cursor(MONETDB_SMPC_LOCALNODE2_PORT)
+def localworker2_smpc_db_cursor():
+    return _create_db_cursor(MONETDB_SMPC_LOCALWORKER2_PORT)
 
 
 @pytest.fixture(scope="function")
-def localnodetmp_db_cursor():
-    return _create_db_cursor(MONETDB_LOCALNODETMP_PORT)
+def localworkertmp_db_cursor():
+    return _create_db_cursor(MONETDB_LOCALWORKERTMP_PORT)
 
 
 def create_table_in_db(
@@ -625,73 +627,73 @@ def _clean_db(cursor):
 
 
 @pytest.fixture(scope="function")
-def schedule_clean_globalnode_db(globalnode_db_cursor):
+def schedule_clean_globalworker_db(globalworker_db_cursor):
     yield
-    _clean_db(globalnode_db_cursor)
+    _clean_db(globalworker_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def schedule_clean_localnode1_db(localnode1_db_cursor):
+def schedule_clean_localworker1_db(localworker1_db_cursor):
     yield
-    _clean_db(localnode1_db_cursor)
+    _clean_db(localworker1_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def schedule_clean_smpc_globalnode_db(globalnode_smpc_db_cursor):
+def schedule_clean_smpc_globalworker_db(globalworker_smpc_db_cursor):
     yield
-    _clean_db(globalnode_smpc_db_cursor)
+    _clean_db(globalworker_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def schedule_clean_smpc_localnode1_db(localnode1_smpc_db_cursor):
+def schedule_clean_smpc_localworker1_db(localworker1_smpc_db_cursor):
     yield
-    _clean_db(localnode1_smpc_db_cursor)
+    _clean_db(localworker1_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def schedule_clean_smpc_localnode2_db(localnode2_smpc_db_cursor):
+def schedule_clean_smpc_localworker2_db(localworker2_smpc_db_cursor):
     yield
-    _clean_db(localnode2_smpc_db_cursor)
+    _clean_db(localworker2_smpc_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def schedule_clean_localnode2_db(localnode2_db_cursor):
+def schedule_clean_localworker2_db(localworker2_db_cursor):
     yield
-    _clean_db(localnode2_db_cursor)
+    _clean_db(localworker2_db_cursor)
 
 
 @pytest.fixture(scope="function")
-def use_globalnode_database(monetdb_globalnode, schedule_clean_globalnode_db):
+def use_globalworker_database(monetdb_globalworker, schedule_clean_globalworker_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode1_database(monetdb_localnode1, schedule_clean_localnode1_db):
+def use_localworker1_database(monetdb_localworker1, schedule_clean_localworker1_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_localnode2_database(monetdb_localnode2, schedule_clean_localnode2_db):
+def use_localworker2_database(monetdb_localworker2, schedule_clean_localworker2_db):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_globalnode_database(
-    monetdb_smpc_globalnode, schedule_clean_smpc_globalnode_db
+def use_smpc_globalworker_database(
+    monetdb_smpc_globalworker, schedule_clean_smpc_globalworker_db
 ):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode1_database(
-    monetdb_smpc_localnode1, schedule_clean_smpc_localnode1_db
+def use_smpc_localworker1_database(
+    monetdb_smpc_localworker1, schedule_clean_smpc_localworker1_db
 ):
     pass
 
 
 @pytest.fixture(scope="function")
-def use_smpc_localnode2_database(
-    monetdb_smpc_localnode2, schedule_clean_smpc_localnode2_db
+def use_smpc_localworker2_database(
+    monetdb_smpc_localworker2, schedule_clean_smpc_localworker2_db
 ):
     pass
 
@@ -744,9 +746,9 @@ def _remove_rabbitmq_container(cont_name):
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_globalnode():
-    cont_name = RABBITMQ_GLOBALNODE_NAME
-    cont_port = RABBITMQ_GLOBALNODE_PORT
+def rabbitmq_globalworker():
+    cont_name = RABBITMQ_GLOBALWORKER_NAME
+    cont_port = RABBITMQ_GLOBALWORKER_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -754,9 +756,9 @@ def rabbitmq_globalnode():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_localnode1():
-    cont_name = RABBITMQ_LOCALNODE1_NAME
-    cont_port = RABBITMQ_LOCALNODE1_PORT
+def rabbitmq_localworker1():
+    cont_name = RABBITMQ_LOCALWORKER1_NAME
+    cont_port = RABBITMQ_LOCALWORKER1_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -764,9 +766,9 @@ def rabbitmq_localnode1():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_localnode2():
-    cont_name = RABBITMQ_LOCALNODE2_NAME
-    cont_port = RABBITMQ_LOCALNODE2_PORT
+def rabbitmq_localworker2():
+    cont_name = RABBITMQ_LOCALWORKER2_NAME
+    cont_port = RABBITMQ_LOCALWORKER2_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -774,9 +776,9 @@ def rabbitmq_localnode2():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_smpc_globalnode():
-    cont_name = RABBITMQ_SMPC_GLOBALNODE_NAME
-    cont_port = RABBITMQ_SMPC_GLOBALNODE_PORT
+def rabbitmq_smpc_globalworker():
+    cont_name = RABBITMQ_SMPC_GLOBALWORKER_NAME
+    cont_port = RABBITMQ_SMPC_GLOBALWORKER_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -784,9 +786,9 @@ def rabbitmq_smpc_globalnode():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_smpc_localnode1():
-    cont_name = RABBITMQ_SMPC_LOCALNODE1_NAME
-    cont_port = RABBITMQ_SMPC_LOCALNODE1_PORT
+def rabbitmq_smpc_localworker1():
+    cont_name = RABBITMQ_SMPC_LOCALWORKER1_NAME
+    cont_port = RABBITMQ_SMPC_LOCALWORKER1_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -794,9 +796,9 @@ def rabbitmq_smpc_localnode1():
 
 
 @pytest.fixture(scope="session")
-def rabbitmq_smpc_localnode2():
-    cont_name = RABBITMQ_SMPC_LOCALNODE2_NAME
-    cont_port = RABBITMQ_SMPC_LOCALNODE2_PORT
+def rabbitmq_smpc_localworker2():
+    cont_name = RABBITMQ_SMPC_LOCALWORKER2_NAME
+    cont_port = RABBITMQ_SMPC_LOCALWORKER2_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     # TODO Very slow development if containers are always removed afterwards
@@ -804,35 +806,35 @@ def rabbitmq_smpc_localnode2():
 
 
 @pytest.fixture(scope="function")
-def rabbitmq_localnodetmp():
-    cont_name = RABBITMQ_LOCALNODETMP_NAME
-    cont_port = RABBITMQ_LOCALNODETMP_PORT
+def rabbitmq_localworkertmp():
+    cont_name = RABBITMQ_LOCALWORKERTMP_NAME
+    cont_port = RABBITMQ_LOCALWORKERTMP_PORT
     _create_rabbitmq_container(cont_name, cont_port)
     yield
     _remove_rabbitmq_container(cont_name)
 
 
-def remove_localnodetmp_rabbitmq():
-    cont_name = RABBITMQ_LOCALNODETMP_NAME
+def remove_localworkertmp_rabbitmq():
+    cont_name = RABBITMQ_LOCALWORKERTMP_NAME
     _remove_rabbitmq_container(cont_name)
 
 
-def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
-    with open(node_config_filepath) as fp:
+def _create_worker_service(algo_folders_env_variable_val, worker_config_filepath):
+    with open(worker_config_filepath) as fp:
         tmp = toml.load(fp)
-        node_id = tmp["identifier"]
+        worker_id = tmp["identifier"]
 
-    print(f"\nCreating node service with id '{node_id}'...")
+    print(f"\nCreating worker service with id '{worker_id}'...")
 
-    logpath = OUTDIR / (node_id + ".out")
+    logpath = OUTDIR / (worker_id + ".out")
     if os.path.isfile(logpath):
         os.remove(logpath)
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
-    env["EXAREME2_NODE_CONFIG_FILE"] = node_config_filepath
+    env["EXAREME2_WORKER_CONFIG_FILE"] = worker_config_filepath
 
-    cmd = f"poetry run celery -A exareme2.node.celery_tasks.app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
+    cmd = f"poetry run celery -A exareme2.worker.utils.celery_app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
 
     # if executed without "exec" it is spawned as a child process of the shell, so it is difficult to kill it
     # https://stackoverflow.com/questions/4789837/how-to-terminate-a-python-subprocess-launched-with-shell-true
@@ -847,7 +849,7 @@ def _create_node_service(algo_folders_env_variable_val, node_config_filepath):
     # Check that celery started
     _search_for_string_in_logfile("CELERY - FRAMEWORK - celery@.* ready.", logpath)
 
-    print(f"Created node service with id '{node_id}' and process id '{proc.pid}'.")
+    print(f"Created worker service with id '{worker_id}' and process id '{proc.pid}'.")
     return proc
 
 
@@ -872,95 +874,101 @@ def kill_service(proc):
 
 
 @pytest.fixture(scope="session")
-def globalnode_node_service(rabbitmq_globalnode, monetdb_globalnode):
-    node_config_file = GLOBALNODE_CONFIG_FILE
+def globalworker_worker_service(rabbitmq_globalworker, monetdb_globalworker):
+    worker_config_file = GLOBALWORKER_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
     kill_service(proc)
 
 
 @pytest.fixture(scope="session")
-def localnode1_node_service(rabbitmq_localnode1, monetdb_localnode1):
-    node_config_file = LOCALNODE1_CONFIG_FILE
+def localworker1_worker_service(rabbitmq_localworker1, monetdb_localworker1):
+    worker_config_file = LOCALWORKER1_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
     kill_service(proc)
 
 
 @pytest.fixture(scope="session")
-def localnode2_node_service(rabbitmq_localnode2, monetdb_localnode2):
-    node_config_file = LOCALNODE2_CONFIG_FILE
+def localworker2_worker_service(rabbitmq_localworker2, monetdb_localworker2):
+    worker_config_file = LOCALWORKER2_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
     kill_service(proc)
 
 
 @pytest.fixture(scope="session")
-def smpc_globalnode_node_service(rabbitmq_smpc_globalnode, monetdb_smpc_globalnode):
-    node_config_file = GLOBALNODE_SMPC_CONFIG_FILE
+def smpc_globalworker_worker_service(
+    rabbitmq_smpc_globalworker, monetdb_smpc_globalworker
+):
+    worker_config_file = GLOBALWORKER_SMPC_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
     kill_service(proc)
 
 
 @pytest.fixture(scope="session")
-def smpc_localnode1_node_service(rabbitmq_smpc_localnode1, monetdb_smpc_localnode1):
-    node_config_file = LOCALNODE1_SMPC_CONFIG_FILE
+def smpc_localworker1_worker_service(
+    rabbitmq_smpc_localworker1, monetdb_smpc_localworker1
+):
+    worker_config_file = LOCALWORKER1_SMPC_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
     kill_service(proc)
 
 
 @pytest.fixture(scope="session")
-def smpc_localnode2_node_service(rabbitmq_smpc_localnode2, monetdb_smpc_localnode2):
-    node_config_file = LOCALNODE2_SMPC_CONFIG_FILE
+def smpc_localworker2_worker_service(
+    rabbitmq_smpc_localworker2, monetdb_smpc_localworker2
+):
+    worker_config_file = LOCALWORKER2_SMPC_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    proc = _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
     kill_service(proc)
 
 
-def create_localnodetmp_node_service():
-    node_config_file = LOCALNODETMP_CONFIG_FILE
+def create_localworkertmp_worker_service():
+    worker_config_file = LOCALWORKERTMP_CONFIG_FILE
     algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)
-    return _create_node_service(algo_folders_env_variable_val, node_config_filepath)
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
+    return _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
 
 
 @pytest.fixture(scope="function")
-def localnodetmp_node_service(rabbitmq_localnodetmp, monetdb_localnodetmp):
+def localworkertmp_worker_service(rabbitmq_localworkertmp, monetdb_localworkertmp):
     """
     ATTENTION!
-    This node service fixture is the only one returning the process, so it can be killed.
-    The scope of the fixture is function, so it won't break tests if the node service is killed.
+    This worker service fixture is the only one returning the process, so it can be killed.
+    The scope of the fixture is function, so it won't break tests if the worker service is killed.
     The rabbitmq and monetdb containers have also 'function' scope so this is VERY slow.
     This should be used only when the service should be killed e.g. for testing.
     """
-    proc = create_localnodetmp_node_service()
+    proc = create_localworkertmp_worker_service()
     yield proc
     kill_service(proc)
 
 
-def is_localnodetmp_node_service_ok(node_process):
-    psutil_proc = psutil.Process(node_process.pid)
+def is_localworkertmp_worker_service_ok(worker_process):
+    psutil_proc = psutil.Process(worker_process.pid)
     return psutil_proc.status() != "zombie" and psutil_proc.status() != "sleeping"
 
 
-def create_node_tasks_handler_celery(node_config_filepath):
-    with open(node_config_filepath) as fp:
+def create_worker_tasks_handler_celery(worker_config_filepath):
+    with open(worker_config_filepath) as fp:
         tmp = toml.load(fp)
-        node_id = tmp["identifier"]
+        worker_id = tmp["identifier"]
         queue_domain = tmp["rabbitmq"]["ip"]
         queue_port = tmp["rabbitmq"]["port"]
         db_domain = tmp["monetdb"]["ip"]
@@ -968,83 +976,91 @@ def create_node_tasks_handler_celery(node_config_filepath):
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
-    return NodeAlgorithmTasksHandler(
+    return WorkerAlgorithmTasksHandler(
         request_id=REQUEST_ID,
-        node_id=node_id,
-        node_queue_addr=queue_address,
-        node_db_addr=db_address,
+        worker_id=worker_id,
+        worker_queue_addr=queue_address,
+        worker_db_addr=db_address,
         tasks_timeout=TASKS_TIMEOUT,
         run_udf_task_timeout=RUN_UDF_TASK_TIMEOUT,
     )
 
 
 @pytest.fixture(scope="session")
-def globalnode_tasks_handler(globalnode_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALNODE_CONFIG_FILE)
-    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+def globalworker_tasks_handler(globalworker_worker_service):
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALWORKER_CONFIG_FILE)
+    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
 @pytest.fixture(scope="session")
-def localnode1_tasks_handler(localnode1_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_CONFIG_FILE)
-    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+def localworker1_tasks_handler(localworker1_worker_service):
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER1_CONFIG_FILE)
+    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
 @pytest.fixture(scope="session")
-def localnode2_tasks_handler(localnode2_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_CONFIG_FILE)
-    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+def localworker2_tasks_handler(localworker2_worker_service):
+    worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER2_CONFIG_FILE)
+    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
 @pytest.fixture(scope="function")
-def localnodetmp_tasks_handler(localnodetmp_node_service):
-    node_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODETMP_CONFIG_FILE)
-    tasks_handler = create_node_tasks_handler_celery(node_config_filepath)
+def localworkertmp_tasks_handler(localworkertmp_worker_service):
+    worker_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, LOCALWORKERTMP_CONFIG_FILE
+    )
+    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
-def get_node_config_by_id(node_config_file: str):
-    with open(path.join(TEST_ENV_CONFIG_FOLDER, node_config_file)) as fp:
-        node_config = AttrDict(toml.load(fp))
-    return node_config
+def get_worker_config_by_id(worker_config_file: str):
+    with open(path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)) as fp:
+        worker_config = AttrDict(toml.load(fp))
+    return worker_config
 
 
 @pytest.fixture(scope="function")
-def globalnode_celery_app(globalnode_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_GLOBALNODE_ADDR)
+def globalworker_celery_app(globalworker_worker_service):
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_GLOBALWORKER_ADDR)
 
 
 @pytest.fixture(scope="function")
-def localnode1_celery_app(localnode1_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALNODE1_ADDR)
+def localworker1_celery_app(localworker1_worker_service):
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALWORKER1_ADDR)
 
 
 @pytest.fixture(scope="function")
-def localnode2_celery_app(localnode2_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALNODE2_ADDR)
+def localworker2_celery_app(localworker2_worker_service):
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALWORKER2_ADDR)
 
 
 @pytest.fixture(scope="function")
-def localnodetmp_celery_app(localnodetmp_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALNODETMP_ADDR)
+def localworkertmp_celery_app(localworkertmp_worker_service):
+    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_LOCALWORKERTMP_ADDR)
 
 
 @pytest.fixture(scope="function")
-def smpc_globalnode_celery_app(smpc_globalnode_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_GLOBALNODE_ADDR)
+def smpc_globalworker_celery_app(smpc_globalworker_worker_service):
+    return CeleryAppFactory().get_celery_app(
+        socket_addr=RABBITMQ_SMPC_GLOBALWORKER_ADDR
+    )
 
 
 @pytest.fixture(scope="function")
-def smpc_localnode1_celery_app(smpc_localnode1_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_LOCALNODE1_ADDR)
+def smpc_localworker1_celery_app(smpc_localworker1_worker_service):
+    return CeleryAppFactory().get_celery_app(
+        socket_addr=RABBITMQ_SMPC_LOCALWORKER1_ADDR
+    )
 
 
 @pytest.fixture(scope="session")
-def smpc_localnode2_celery_app(smpc_localnode2_node_service):
-    return CeleryAppFactory().get_celery_app(socket_addr=RABBITMQ_SMPC_LOCALNODE2_ADDR)
+def smpc_localworker2_celery_app(smpc_localworker2_worker_service):
+    return CeleryAppFactory().get_celery_app(
+        socket_addr=RABBITMQ_SMPC_LOCALWORKER2_ADDR
+    )
 
 
 @pytest.fixture(scope="function")
@@ -1053,19 +1069,19 @@ def reset_celery_app_factory():
 
 
 @pytest.fixture(scope="function")
-def controller_service_with_localnodetmp():
+def controller_service_with_localworkertmp():
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
-    localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALNODETMP_ADDRESSES_FILE
+    localworkers_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALWORKERTMP_ADDRESSES_FILE
     )
 
     proc = _create_controller_service(
         service_port,
         controller_config_filepath,
-        localnodes_config_filepath,
+        localworkers_config_filepath,
         CONTROLLER_OUTPUT_FILE,
     )
     yield
@@ -1073,19 +1089,19 @@ def controller_service_with_localnodetmp():
 
 
 @pytest.fixture(scope="function")
-def controller_service_with_localnode1():
+def controller_service_with_localworker1():
     service_port = CONTROLLER_PORT
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
-    localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_GLOBALNODE_LOCALNODE1_ADDRESSES_FILE
+    localworkers_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_GLOBALWORKER_LOCALWORKER1_ADDRESSES_FILE
     )
 
     proc = _create_controller_service(
         service_port,
         controller_config_filepath,
-        localnodes_config_filepath,
+        localworkers_config_filepath,
         CONTROLLER_OUTPUT_FILE,
     )
     yield
@@ -1098,14 +1114,14 @@ def smpc_controller_service():
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_CONFIG_FILE
     )
-    localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+    localworkers_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALWORKERS_CONFIG_FILE
     )
 
     proc = _create_controller_service(
         service_port,
         controller_config_filepath,
-        localnodes_config_filepath,
+        localworkers_config_filepath,
         SMPC_CONTROLLER_OUTPUT_FILE,
     )
     yield proc
@@ -1117,14 +1133,14 @@ def smpc_controller_service_with_dp():
     controller_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_DP_CONFIG_FILE
     )
-    localnodes_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALNODES_CONFIG_FILE
+    localworkers_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_SMPC_LOCALWORKERS_CONFIG_FILE
     )
 
     proc = _create_controller_service(
         service_port,
         controller_config_filepath,
-        localnodes_config_filepath,
+        localworkers_config_filepath,
         SMPC_CONTROLLER_OUTPUT_FILE,
     )
     return proc
@@ -1133,7 +1149,7 @@ def smpc_controller_service_with_dp():
 def _create_controller_service(
     service_port: int,
     controller_config_filepath: str,
-    localnodes_config_filepath: str,
+    localworkers_config_filepath: str,
     logs_filename: str,
 ):
     print(f"\nCreating controller service on port '{service_port}'...")
@@ -1144,7 +1160,7 @@ def _create_controller_service(
 
     env = os.environ.copy()
     env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
-    env["LOCALNODES_CONFIG_FILE"] = localnodes_config_filepath
+    env["LOCALWORKERS_CONFIG_FILE"] = localworkers_config_filepath
     env["EXAREME2_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)
 
@@ -1163,7 +1179,7 @@ def _create_controller_service(
     # Check that hypercorn started
     _search_for_string_in_logfile("Running on", logpath)
 
-    # Check that nodes were loaded
+    # Check that workers were loaded
     _search_for_string_in_logfile(
         "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
     )
@@ -1369,7 +1385,9 @@ def smpc_clients():
     try:
         docker_cli.containers.get(SMPC_CLIENT1_CONT_NAME)
     except docker.errors.NotFound:
-        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE1_SMPC_CONFIG_FILE)) as fp:
+        with open(
+            path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER1_SMPC_CONFIG_FILE)
+        ) as fp:
             tmp = toml.load(fp)
             client_id = tmp["smpc"]["client_id"]
         docker_cli.containers.run(
@@ -1396,7 +1414,9 @@ def smpc_clients():
     try:
         docker_cli.containers.get(SMPC_CLIENT2_CONT_NAME)
     except docker.errors.NotFound:
-        with open(path.join(TEST_ENV_CONFIG_FOLDER, LOCALNODE2_SMPC_CONFIG_FILE)) as fp:
+        with open(
+            path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER2_SMPC_CONFIG_FILE)
+        ) as fp:
             tmp = toml.load(fp)
             client_id = tmp["smpc"]["client_id"]
         docker_cli.containers.run(

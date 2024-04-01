@@ -340,11 +340,11 @@ def get_parametrization_list_success_cases():
 )
 def test_post_smpc_algorithm(
     smpc_cluster,
-    smpc_globalnode_node_service,
-    smpc_localnode1_node_service,
-    load_data_smpc_localnode1,
-    smpc_localnode2_node_service,
-    load_data_smpc_localnode2,
+    smpc_globalworker_worker_service,
+    smpc_localworker1_worker_service,
+    load_data_smpc_localworker1,
+    smpc_localworker2_worker_service,
+    load_data_smpc_localworker2,
     smpc_controller_service,
     algorithm_name,
     request_dict,
@@ -444,11 +444,11 @@ def get_parametrization_list_exception_cases():
     get_parametrization_list_exception_cases(),
 )
 def test_post_smpc_algorithm_exception(
-    smpc_globalnode_node_service,
-    smpc_localnode1_node_service,
-    load_data_smpc_localnode1,
-    smpc_localnode2_node_service,
-    load_data_smpc_localnode2,
+    smpc_globalworker_worker_service,
+    smpc_localworker1_worker_service,
+    load_data_smpc_localworker1,
+    smpc_localworker2_worker_service,
+    load_data_smpc_localworker2,
     smpc_controller_service,
     algorithm_name,
     request_dict,

@@ -15,7 +15,7 @@ helm [installation gude](https://helm.sh/docs/intro/install/)
 
 ## Data preparation (Temporary Solution)
 
-MonetDB needs to have the data loaded from a volume and not imported due to a memory leak. So, the idea is you load the data to a temporary container running monetdb, then copy the monetdb's produced files to the folders that will be mounted as volumes for the "real" monetdb containers for each node of the system.
+MonetDB needs to have the data loaded from a volume and not imported due to a memory leak. So, the idea is you load the data to a temporary container running monetdb, then copy the monetdb's produced files to the folders that will be mounted as volumes for the "real" monetdb containers for each worker of the system.
 
 1. Start a monetdb container:
 
@@ -99,7 +99,7 @@ First, build the images:
 ```
 docker build -f monetdb/Dockerfile -t madgik/exareme2_db:latest ./
 docker build -f rabbitmq/Dockerfile -t madgik/exareme2_rabbitmq:latest ./
-docker build -f exareme2/node/Dockerfile -t madgik/exareme2_node:latest ./
+docker build -f exareme2/worker/Dockerfile -t madgik/exareme2_worker:latest ./
 docker build -f exareme2/controller/Dockerfile -t madgik/exareme2_controller:latest ./
 ```
 
@@ -108,7 +108,7 @@ Second, load the docker images to the kuberentes cluster
 ```
 kind load docker-image madgik/exareme2_db:latest
 kind load docker-image madgik/exareme2_rabbitmq:latest
-kind load docker-image madgik/exareme2_node:latest
+kind load docker-image madgik/exareme2_worker:latest
 kind load docker-image madgik/exareme2_controller:latest --nodes kind-control-plane
 ```
 

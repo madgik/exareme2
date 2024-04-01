@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from exareme2.algorithms.in_database.preprocessing import DummyEncoderUdf
+from exareme2.algorithms.exareme2.preprocessing import DummyEncoderUdf
 
 
 def test_dummy_encoder__only_numerical_vars():

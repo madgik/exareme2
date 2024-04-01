@@ -5,7 +5,7 @@ from quart import Blueprint
 from quart import request
 
 from exareme2.controller.quart.loggers import loggers
-from exareme2.controller.services import get_node_landscape_aggregator
+from exareme2.controller.services import get_worker_landscape_aggregator
 from exareme2.controller.services.algorithm_execution import execute_algorithm
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.api.algorithm_request_validator import BadRequest
@@ -25,17 +25,17 @@ async def startup():
 
 @algorithms.route("/datasets", methods=["GET"])
 async def get_datasets() -> dict:
-    return get_node_landscape_aggregator().get_all_available_datasets_per_data_model()
+    return get_worker_landscape_aggregator().get_all_available_datasets_per_data_model()
 
 
 @algorithms.route("/datasets_locations", methods=["GET"])
 async def get_datasets_locations() -> dict:
-    return get_node_landscape_aggregator().get_datasets_locations().datasets_locations
+    return get_worker_landscape_aggregator().get_datasets_locations().datasets_locations
 
 
 @algorithms.route("/cdes_metadata", methods=["GET"])
 async def get_cdes_metadata() -> dict:
-    cdes_per_data_model = get_node_landscape_aggregator().get_cdes_per_data_model()
+    cdes_per_data_model = get_worker_landscape_aggregator().get_cdes_per_data_model()
 
     return {
         data_model: {
@@ -47,7 +47,7 @@ async def get_cdes_metadata() -> dict:
 
 @algorithms.route("/data_models_attributes", methods=["GET"])
 async def get_data_models_attributes() -> dict:
-    data_model_attrs = get_node_landscape_aggregator().get_data_models_attributes()
+    data_model_attrs = get_worker_landscape_aggregator().get_data_models_attributes()
     return {
         data_model: data_model_metadata.dict()
         for data_model, data_model_metadata in data_model_attrs.items()
@@ -61,13 +61,13 @@ async def get_algorithms() -> str:
 
 @algorithms.route("/nla", methods=["POST"])
 async def update_nla() -> str:
-    get_node_landscape_aggregator().update()
+    get_worker_landscape_aggregator().update()
     return ""
 
 
 @algorithms.route("/healthcheck", methods=["GET"])
 async def healthcheck() -> str:
-    get_node_landscape_aggregator().healthcheck()
+    get_worker_landscape_aggregator().healthcheck()
     return ""
 
 

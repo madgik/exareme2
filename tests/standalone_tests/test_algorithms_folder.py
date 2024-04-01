@@ -16,7 +16,7 @@ def set_default_algorithms_folder():
 def test_default_algorithms_folder(set_default_algorithms_folder):
     assert (
         exareme2.ALGORITHM_FOLDERS
-        == "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python"
+        == "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower"
     )
 
 

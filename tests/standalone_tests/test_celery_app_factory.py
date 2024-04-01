@@ -8,13 +8,13 @@ from exareme2 import AttrDict
 from exareme2 import DType
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryWrapper
-from exareme2.node_communication import ColumnInfo
-from exareme2.node_communication import TableSchema
+from exareme2.worker_communication import ColumnInfo
+from exareme2.worker_communication import TableSchema
 from tests.standalone_tests.conftest import COMMON_IP
-from tests.standalone_tests.conftest import RABBITMQ_LOCALNODE1_PORT
-from tests.standalone_tests.conftest import RABBITMQ_LOCALNODETMP_PORT
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKER1_PORT
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_PORT
 from tests.standalone_tests.conftest import kill_service
-from tests.standalone_tests.conftest import remove_localnodetmp_rabbitmq
+from tests.standalone_tests.conftest import remove_localworkertmp_rabbitmq
 from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 REQUEST_ID = "testrequestid"
@@ -47,7 +47,7 @@ def patch_celery_app(controller_config_dict_mock):
 @pytest.fixture(scope="session")
 def task_signatures():
     return {
-        "create_table": "exareme2.node.celery_tasks.tables.create_table",
+        "create_table": "exareme2.worker.exareme2.tables.tables_api.create_table",
     }
 
 
@@ -55,8 +55,8 @@ def task_signatures():
 
 
 @pytest.mark.slow
-def test_queue_task(localnode1_node_service, task_signatures):
-    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODE1_PORT}"
+def test_queue_task(localworker1_worker_service, task_signatures):
+    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALWORKER1_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
 
     test_table_schema = TableSchema(
@@ -77,8 +77,8 @@ def test_queue_task(localnode1_node_service, task_signatures):
 
 
 @pytest.mark.slow
-def test_get_result(localnode1_node_service, task_signatures):
-    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODE1_PORT}"
+def test_get_result(localworker1_worker_service, task_signatures):
+    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALWORKER1_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
 
     test_table_schema = TableSchema(
@@ -107,11 +107,11 @@ def test_get_result(localnode1_node_service, task_signatures):
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
-    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODETMP_PORT}"
+def test_queue_task_worker_down(localworkertmp_worker_service, task_signatures):
+    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALWORKERTMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
 
-    remove_localnodetmp_rabbitmq()
+    remove_localworkertmp_rabbitmq()
 
     test_table_schema = TableSchema(
         columns=[
@@ -133,8 +133,8 @@ def test_queue_task_node_down(localnodetmp_node_service, task_signatures):
 
 @pytest.mark.slow
 @pytest.mark.very_slow
-def test_get_result_node_down(localnodetmp_node_service, task_signatures):
-    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALNODETMP_PORT}"
+def test_get_result_worker_down(localworkertmp_worker_service, task_signatures):
+    socket_addr = f"{COMMON_IP}:{RABBITMQ_LOCALWORKERTMP_PORT}"
     celery_app = CeleryWrapper(socket_addr=socket_addr)
 
     test_table_schema = TableSchema(
@@ -153,8 +153,8 @@ def test_get_result_node_down(localnodetmp_node_service, task_signatures):
         schema_json=test_table_schema.json(),
     )
 
-    kill_service(localnodetmp_node_service)
-    remove_localnodetmp_rabbitmq()
+    kill_service(localworkertmp_worker_service)
+    remove_localworkertmp_rabbitmq()
 
     with pytest.raises(CeleryConnectionError):
         result = celery_app.get_result(

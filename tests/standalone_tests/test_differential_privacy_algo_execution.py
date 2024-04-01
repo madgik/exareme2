@@ -36,11 +36,11 @@ def algorithm_request():
 @pytest.mark.smpc_cluster
 def test_dp_vs_nondp_algorithm_execution(
     smpc_cluster,
-    smpc_globalnode_node_service,
-    smpc_localnode1_node_service,
-    load_data_smpc_localnode1,
-    smpc_localnode2_node_service,
-    load_data_smpc_localnode2,
+    smpc_globalworker_worker_service,
+    smpc_localworker1_worker_service,
+    load_data_smpc_localworker1,
+    smpc_localworker2_worker_service,
+    load_data_smpc_localworker2,
     smpc_controller_service,
     algorithm_request,
 ):

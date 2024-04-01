@@ -4,14 +4,14 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
-from exareme2.algorithms.in_database.specifications import InputDataSpecification
-from exareme2.algorithms.in_database.specifications import InputDataSpecifications
-from exareme2.algorithms.in_database.specifications import InputDataStatType
-from exareme2.algorithms.in_database.specifications import InputDataType
-from exareme2.algorithms.in_database.specifications import ParameterEnumSpecification
-from exareme2.algorithms.in_database.specifications import ParameterSpecification
-from exareme2.algorithms.in_database.specifications import TransformerSpecification
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import InputDataSpecification
+from exareme2.algorithms.specifications import InputDataSpecifications
+from exareme2.algorithms.specifications import InputDataStatType
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.specifications import ParameterEnumSpecification
+from exareme2.algorithms.specifications import ParameterSpecification
+from exareme2.algorithms.specifications import TransformerSpecification
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
@@ -21,13 +21,13 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
 )
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterEnumType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterType
-from exareme2.controller.services.node_landscape_aggregator import (
-    NodeLandscapeAggregator,
+from exareme2.controller.services.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
 )
 from exareme2.data_filters import validate_filter
-from exareme2.node_communication import BadUserInput
-from exareme2.node_communication import CommonDataElement
 from exareme2.smpc_cluster_communication import validate_smpc_usage
+from exareme2.worker_communication import BadUserInput
+from exareme2.worker_communication import CommonDataElement
 
 
 class BadRequest(Exception):
@@ -41,14 +41,14 @@ def validate_algorithm_request(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithms_specs: Dict[str, AlgorithmSpecification],
     transformers_specs: Dict[str, TransformerSpecification],
-    node_landscape_aggregator: NodeLandscapeAggregator,
+    worker_landscape_aggregator: WorkerLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
     algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
 
     available_datasets_per_data_model = (
-        node_landscape_aggregator.get_all_available_datasets_per_data_model()
+        worker_landscape_aggregator.get_all_available_datasets_per_data_model()
     )
 
     _validate_data_model(
@@ -56,7 +56,7 @@ def validate_algorithm_request(
         available_datasets_per_data_model=available_datasets_per_data_model,
     )
 
-    data_model_cdes = node_landscape_aggregator.get_cdes(
+    data_model_cdes = worker_landscape_aggregator.get_cdes(
         algorithm_request_dto.inputdata.data_model
     )
 

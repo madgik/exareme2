@@ -3,16 +3,16 @@ from typing import TypeVar
 
 import pytest
 
-from exareme2.algorithms.in_database.udfgen import DEFERRED
-from exareme2.algorithms.in_database.udfgen import literal
-from exareme2.algorithms.in_database.udfgen import relation
-from exareme2.algorithms.in_database.udfgen import state
-from exareme2.algorithms.in_database.udfgen import tensor
-from exareme2.algorithms.in_database.udfgen import transfer
-from exareme2.algorithms.in_database.udfgen.iotypes import IOType
-from exareme2.algorithms.in_database.udfgen.iotypes import RelationArg
-from exareme2.algorithms.in_database.udfgen.iotypes import RelationType
-from exareme2.algorithms.in_database.udfgen.iotypes import TensorArg
+from exareme2.algorithms.exareme2.udfgen import DEFERRED
+from exareme2.algorithms.exareme2.udfgen import literal
+from exareme2.algorithms.exareme2.udfgen import relation
+from exareme2.algorithms.exareme2.udfgen import state
+from exareme2.algorithms.exareme2.udfgen import tensor
+from exareme2.algorithms.exareme2.udfgen import transfer
+from exareme2.algorithms.exareme2.udfgen.iotypes import IOType
+from exareme2.algorithms.exareme2.udfgen.iotypes import RelationArg
+from exareme2.algorithms.exareme2.udfgen.iotypes import RelationType
+from exareme2.algorithms.exareme2.udfgen.iotypes import TensorArg
 from exareme2.datatypes import DType
 
 

@@ -41,7 +41,7 @@ RUN poetry install --no-dev
 # Copying the codebase
 #######################################################
 COPY exareme2/ ./exareme2/
-RUN rm -rf exareme2/node
+RUN rm -rf exareme2/worker
 
 #######################################################
 # Define Hypercorn needed env variables and start hypercorn

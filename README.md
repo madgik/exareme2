@@ -50,9 +50,9 @@
    monetdb_nclients = 128
    monetdb_memory_limit = 2048 # MB
 
-   algorithm_folders = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
+   algorithm_folders = "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
 
-   node_landscape_aggregator_update_interval = 30
+   worker_landscape_aggregator_update_interval = 30
    celery_tasks_timeout = 20
    celery_cleanup_task_timeout=2
    celery_run_udf_task_timeout = 120
@@ -62,7 +62,7 @@
    protect_local_data = false
 
    [cleanup]
-   nodes_cleanup_interval=10
+   workers_cleanup_interval=10
    contextid_release_timelimit=3600 #an hour
 
    [smpc]
@@ -78,9 +78,9 @@
    # sensitivity = 1
    # privacy_budget = 0.1
 
-   [[nodes]]
-   id = "globalnode"
-   role = "GLOBALNODE"
+   [[workers]]
+   id = "globalworker"
+   role = "GLOBALWORKER"
    rabbitmq_port=5670
    monetdb_port=50000
    monetdb_password="executor"
@@ -89,9 +89,9 @@
    public_monetdb_username="guest"
    public_monetdb_password="guest"
 
-   [[nodes]]
-   id = "localnode1"
-   role = "LOCALNODE"
+   [[workers]]
+   id = "localworker1"
+   role = "LOCALWORKER"
    rabbitmq_port=5671
    monetdb_port=50001
    local_monetdb_username="executor"
@@ -100,9 +100,9 @@
    public_monetdb_password="guest"
    smpc_client_port=9001
 
-   [[nodes]]
-   id = "localnode2"
-   role = "LOCALNODE"
+   [[workers]]
+   id = "localworker2"
+   role = "LOCALWORKER"
    rabbitmq_port=5672
    monetdb_port=50002
    local_monetdb_username="executor"
@@ -113,7 +113,7 @@
 
    ```
 
-   and then run the following command to create the config files that the node services will use
+   and then run the following command to create the config files that the worker services will use
 
    ```
    inv create-configs
@@ -141,18 +141,18 @@
    or
 
    ```
-   inv attach --node <NODE-NAME>
+   inv attach --worker <WORKER-NAME>
    ```
 
-1. Restart all the node/controller services and keep the same containers with
+1. Restart all the worker/controller services and keep the same containers with
 
    ```
-   inv start-node --all && inv start-controller --detached
+   inv start-worker --all && inv start-controller --detached
    ```
 
 #### Local Deployment (without single configuration file)
 
-1. Create the node configuration files inside the `./configs/nodes/` directory following the `./exareme2/node/config.toml` template.
+1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exareme2/worker/config.toml` template.
 
 1. Install dependencies, start the containers and then the services with
 
@@ -164,19 +164,19 @@
 
 1. Start Flower monitoring tool
 
-   by choosing a specific node to monitor
+   by choosing a specific worker to monitor
 
    ```
-   inv start-flower --node <NODE-NAME>
+   inv start-flower --worker <WORKER-NAME>
    ```
 
-   or start a separate flower instance for all of the nodes with
+   or start a separate flower instance for all of the workers with
 
    ```
    inv start-flower --all
    ```
 
-   Then go to the respective address on your browser to start monitoring the nodes.
+   Then go to the respective address on your browser to start monitoring the workers.
 
 1. Kill all flower instances at any point with
 

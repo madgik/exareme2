@@ -23,8 +23,8 @@ Linear regression is a linear approach to modeling the relationship between a de
 ![pseudo](images/linear_reg_pseudocode.png)
 
 Once the process has been completed we compute the usual diagnostics as follows.
-The local nodes compute and broadcast to the central node the quantities min(ε<sub>i</sub>), max(ε<sub>i</sub>), sum(ε<sub>i</sub>), max(ε<sub>i</sub><sup>2</sup>), where ε<sub>i</sub> are the residuals, as well as the partial *SST* and *SSE*. The central node then integrates these values to compute the corresponding global ones.
-From these quantities the central node then computes the following diagnostic quantities:
+The local workers compute and broadcast to the central worker the quantities min(ε<sub>i</sub>), max(ε<sub>i</sub>), sum(ε<sub>i</sub>), max(ε<sub>i</sub><sup>2</sup>), where ε<sub>i</sub> are the residuals, as well as the partial *SST* and *SSE*. The central worker then integrates these values to compute the corresponding global ones.
+From these quantities the central worker then computes the following diagnostic quantities:
 
 1. For each coefficient β<sub>k</sub>, the *SE*, *t*-statistic and Pr(>|t|)
 1. min, max, mean and SE of residuals ε<sub>i</sub> and the degrees of freedom
@@ -33,6 +33,6 @@ From these quantities the central node then computes the following diagnostic qu
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[Linear Regression](../../exareme2/algorithms/in_database/linear_regression.py)
+[Linear Regression](../../exareme2/algorithms/exareme2/linear_regression.py)
 
-[Linear Regression with Cross - Validation](../../exareme2/algorithms/in_database/linear_regression_cv.py)
+[Linear Regression with Cross - Validation](../../exareme2/algorithms/exareme2/linear_regression_cv.py)

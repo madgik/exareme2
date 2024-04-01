@@ -1,0 +1,164 @@
+{{ if gt .Values.localnodes 1.0}} # Single node deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exareme2-globalworker-deployment
+  labels:
+    app: exareme2-worker
+    nodeType: globalworker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exareme2-worker
+  template:
+    metadata:
+      labels:
+        app: exareme2-worker
+        nodeType: globalworker
+    spec:
+      nodeSelector:
+        master: "true"
+      volumes:
+      - name: db-data
+        hostPath:
+          path: {{ .Values.db.storage_location }}
+      containers:
+      - name: monetdb
+        image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
+        # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
+        # resources:
+        #  limits:
+        #    memory: "{{ .Values.db.max_memory }}Mi"
+        env:
+        - name: LOG_LEVEL
+          value: {{ .Values.log_level }}
+        - name: MONETDB_NCLIENTS
+          value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
+        - name: MAX_MEMORY   # Value in bytes
+          value: {{ mul .Values.db.max_memory 1048576 | quote }} # Conversion to bytes
+        - name: SOFT_RESTART_MEMORY_LIMIT   # Value in megabytes
+          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
+        - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
+          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
+        ports:
+          - containerPort: 50000
+        volumeMounts:
+        - mountPath: /home/monetdb
+          name: db-data
+        startupProbe:
+          exec:
+            command:
+            - mclient
+            - db
+            - -s
+            - "select 1;"
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        livenessProbe:
+          exec:
+            command:
+            - mclient
+            - db
+            - -s
+            - "select 1;"
+          periodSeconds: 30
+
+      - name: rabbitmq
+        image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
+        env:
+        - name: RABBITMQ_ADMIN_USER
+          value: "user"
+        - name: RABBITMQ_ADMIN_PASSWORD
+          value: "password"
+        - name: RABBITMQ_ADMIN_VHOST
+          value: "user_vhost"
+        - name: RABBITMQ_SLEEP_BEFORE_CONFIGURATION
+          value: "30"
+        ports:
+          - containerPort: 5672
+        startupProbe:
+          exec:
+            command:
+              - rabbitmq-diagnostics
+              - -q
+              - check_port_connectivity
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - rabbitmq-diagnostics
+              - -q
+              - check_port_connectivity
+          periodSeconds: 30
+          timeoutSeconds: 10
+
+      - name: worker
+        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
+        env:
+        - name: WORKER_IDENTIFIER
+          value: "globalworker"
+        - name: WORKER_ROLE
+          value: "GLOBALWORKER"
+        - name: LOG_LEVEL
+          value: {{ .Values.log_level }}
+        - name: FRAMEWORK_LOG_LEVEL
+          value: {{ .Values.framework_log_level }}
+        - name: PROTECT_LOCAL_DATA
+          value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
+        - name: CELERY_TASKS_TIMEOUT
+          value: {{ quote .Values.controller.celery_tasks_timeout }}
+        - name: RABBITMQ_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: RABBITMQ_PORT
+          value: "5672"
+        - name: MONETDB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: MONETDB_PORT
+          value: "50000"
+        - name: MONETDB_LOCAL_USERNAME
+          value: "executor"
+        - name: MONETDB_LOCAL_PASSWORD
+          value: "executor"
+        - name: MONETDB_PUBLIC_USERNAME
+          value: "guest"
+        - name: MONETDB_PUBLIC_PASSWORD
+          value: "guest"
+        - name: SMPC_ENABLED
+          value: {{ quote .Values.smpc.enabled }}
+        {{ if .Values.smpc.enabled }}
+        - name: SMPC_OPTIONAL
+          value: {{ quote .Values.smpc.optional }}
+        - name: SMPC_CLIENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: SMPC_COORDINATOR_IP
+          value: exareme2-smpc-coordinator-service
+        - name: SMPC_COORDINATOR_ADDRESS
+          value: "http://$(SMPC_COORDINATOR_IP):12314"
+        {{ end }}
+        startupProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exareme2.worker.healthcheck
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exareme2.worker.healthcheck
+          periodSeconds: 30
+          timeoutSeconds: 10
+{{end}}

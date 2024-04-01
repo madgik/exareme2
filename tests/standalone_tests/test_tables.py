@@ -4,14 +4,16 @@ import pytest
 from pymonetdb import OperationalError
 
 from exareme2.datatypes import DType
-from exareme2.node_communication import ColumnInfo
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
+from exareme2.worker_communication import ColumnInfo
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import create_table_in_db
 from tests.standalone_tests.conftest import get_table_data_from_db
-from tests.standalone_tests.nodes_communication_helper import get_celery_task_signature
 from tests.standalone_tests.std_output_logger import StdOutputLogger
+from tests.standalone_tests.workers_communication_helper import (
+    get_celery_task_signature,
+)
 
 create_table_task_signature = get_celery_task_signature("create_table")
 get_tables_task_signature = get_celery_task_signature("get_tables")
@@ -34,9 +36,9 @@ def context_id(request_id):
 def test_create_table(
     request_id,
     context_id,
-    localnode1_node_service,
-    localnode1_celery_app,
-    localnode1_db_cursor,
+    localworker1_worker_service,
+    localworker1_celery_app,
+    localworker1_db_cursor,
 ):
     table_schema = TableSchema(
         columns=[
@@ -46,7 +48,7 @@ def test_create_table(
         ]
     )
 
-    async_result = localnode1_celery_app.queue_task(
+    async_result = localworker1_celery_app.queue_task(
         task_signature=create_table_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
@@ -55,14 +57,14 @@ def test_create_table(
         schema_json=table_schema.json(),
     )
     table_1_info = TableInfo.parse_raw(
-        localnode1_celery_app.get_result(
+        localworker1_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),
             timeout=TASKS_TIMEOUT,
         )
     )
 
-    table_values = get_table_data_from_db(localnode1_db_cursor, table_1_info.name)
+    table_values = get_table_data_from_db(localworker1_db_cursor, table_1_info.name)
     assert len(table_values) == 0
 
 
@@ -70,11 +72,11 @@ def test_create_table(
 def test_get_tables(
     request_id,
     context_id,
-    localnode1_node_service,
-    localnode1_celery_app,
-    localnode1_db_cursor,
+    localworker1_worker_service,
+    localworker1_celery_app,
+    localworker1_db_cursor,
 ):
-    table_name = f"normal_testlocalnode1_{context_id}"
+    table_name = f"normal_testlocalworker1_{context_id}"
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
@@ -82,15 +84,15 @@ def test_get_tables(
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
-    create_table_in_db(localnode1_db_cursor, table_name, table_schema)
+    create_table_in_db(localworker1_db_cursor, table_name, table_schema)
 
-    async_result = localnode1_celery_app.queue_task(
+    async_result = localworker1_celery_app.queue_task(
         task_signature=get_tables_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         context_id=context_id,
     )
-    tables = localnode1_celery_app.get_result(
+    tables = localworker1_celery_app.get_result(
         async_result=async_result,
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
@@ -102,11 +104,11 @@ def test_get_tables(
 def test_get_table_data_not_working_from_unpublished_table(
     request_id,
     context_id,
-    localnode1_node_service,
-    localnode1_celery_app,
-    localnode1_db_cursor,
+    localworker1_worker_service,
+    localworker1_celery_app,
+    localworker1_db_cursor,
 ):
-    table_name = f"normal_testlocalnode1_{context_id}"
+    table_name = f"normal_testlocalworker1_{context_id}"
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
@@ -114,16 +116,16 @@ def test_get_table_data_not_working_from_unpublished_table(
             ColumnInfo(name="col3", dtype=DType.STR),
         ]
     )
-    create_table_in_db(localnode1_db_cursor, table_name, table_schema)
+    create_table_in_db(localworker1_db_cursor, table_name, table_schema)
 
-    async_result = localnode1_celery_app.queue_task(
+    async_result = localworker1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
         table_name=table_name,
     )
     with pytest.raises(OperationalError):
-        localnode1_celery_app.get_result(
+        localworker1_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),
             timeout=TASKS_TIMEOUT,
@@ -134,11 +136,11 @@ def test_get_table_data_not_working_from_unpublished_table(
 def test_get_table_data_works_on_published_table(
     request_id,
     context_id,
-    localnode1_node_service,
-    localnode1_celery_app,
-    localnode1_db_cursor,
+    localworker1_worker_service,
+    localworker1_celery_app,
+    localworker1_db_cursor,
 ):
-    table_name = f"normal_testlocalnode1_{context_id}"
+    table_name = f"normal_testlocalworker1_{context_id}"
     table_schema = TableSchema(
         columns=[
             ColumnInfo(name="col1", dtype=DType.INT),
@@ -147,10 +149,10 @@ def test_get_table_data_works_on_published_table(
         ]
     )
     create_table_in_db(
-        localnode1_db_cursor, table_name, table_schema, publish_table=True
+        localworker1_db_cursor, table_name, table_schema, publish_table=True
     )
 
-    async_result = localnode1_celery_app.queue_task(
+    async_result = localworker1_celery_app.queue_task(
         task_signature=get_table_data_task_signature,
         logger=StdOutputLogger(),
         request_id=request_id,
@@ -158,7 +160,7 @@ def test_get_table_data_works_on_published_table(
     )
 
     try:
-        localnode1_celery_app.get_result(
+        localworker1_celery_app.get_result(
             async_result=async_result,
             logger=StdOutputLogger(),
             timeout=TASKS_TIMEOUT,

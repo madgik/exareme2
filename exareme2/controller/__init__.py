@@ -4,7 +4,6 @@ from enum import unique
 from importlib.resources import open_text
 from typing import Dict
 from typing import List
-from typing import Optional
 from typing import Type
 
 import envtoml
@@ -13,10 +12,10 @@ from exareme2 import Algorithm
 from exareme2 import AttrDict
 from exareme2 import algorithm_classes
 from exareme2 import controller
-from exareme2.algorithms.in_database.longitudinal_transformer import (
+from exareme2.algorithms.exareme2.longitudinal_transformer import (
     LongitudinalTransformerRunner,
 )
-from exareme2.algorithms.in_database.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import AlgorithmSpecification
 
 BACKGROUND_LOGGER_NAME = "controller_background_service"
 
@@ -57,4 +56,4 @@ transformers_specifications = {
     LongitudinalTransformerRunner.get_transformer_name(): LongitudinalTransformerRunner.get_specification()
 }
 
-node_landscape_aggregator = None
+worker_landscape_aggregator = None

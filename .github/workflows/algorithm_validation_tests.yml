@@ -101,24 +101,24 @@ jobs:
 
       - name: Start api after data loading
         run: |
-          poetry run inv start-node --all
+          poetry run inv start-worker --all
           poetry run inv start-controller --detached
 
       - name: Controller logs
         run: cat /tmp/exareme2/controller.out
 
-      - name: Localnode logs
-        run: cat /tmp/exareme2/localnode1.out
+      - name: Localworker logs
+        run: cat /tmp/exareme2/localworker1.out
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/exareme2/controller.out
 
-      - name: Localnode logs (post run)
+      - name: Localworker logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/exareme2/localnode1.out
+          run: cat /tmp/exareme2/localworker1.out
 
       - name: Run algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16 --reruns 3 --reruns-delay 5
@@ -215,32 +215,32 @@ jobs:
 
       - name: Start api after data loading
         run: |
-          poetry run inv start-node --all
+          poetry run inv start-worker --all
           poetry run inv start-controller --detached
 
       - name: Controller logs
         run: cat /tmp/exareme2/controller.out
 
-      - name: Globalnode logs
-        run: cat /tmp/exareme2/globalnode.out
+      - name: Globalworker logs
+        run: cat /tmp/exareme2/globalworker.out
 
-      - name: Localnode logs
-        run: cat /tmp/exareme2/localnode1.out
+      - name: Localworker logs
+        run: cat /tmp/exareme2/localworker1.out
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/exareme2/controller.out
 
-      - name: Globalnode logs (post run)
+      - name: Globalworker logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/exareme2/globalnode.out
+          run: cat /tmp/exareme2/globalworker.out
 
-      - name: Localnode logs (post run)
+      - name: Localworker logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: cat /tmp/exareme2/localnode1.out
+          run: cat /tmp/exareme2/localworker1.out
 
       - name: Run algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests --verbosity=4 -n 16  --reruns 3 --reruns-delay 5 -k "input1 and not input1-" # run tests 10-19

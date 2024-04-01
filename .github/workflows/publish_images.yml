@@ -228,8 +228,8 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-  build_and_push_node:
-    name: Build NODE image and push to dockerhub
+  build_and_push_worker:
+    name: Build WORKER image and push to dockerhub
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -256,27 +256,27 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            madgik/exareme2_node
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_node
+            madgik/exareme2_worker
+            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_worker
 
-      - name: Load NODE service cached image
+      - name: Load WORKER service cached image
         uses: actions/cache@v3
         with:
-          path: /tmp/.buildx-cache/node
-          key: ${{ runner.os }}-buildx-node-${{hashFiles('exareme2/**')}}
+          path: /tmp/.buildx-cache/worker
+          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exareme2/**')}}
           restore-keys: |
-            ${{ runner.os }}-buildx-node-
+            ${{ runner.os }}-buildx-worker-
 
-      - name: Build NODE service docker image
+      - name: Build WORKER service docker image
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: exareme2/node/Dockerfile
+          file: exareme2/worker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/node
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/node
+          cache-from: type=local,src=/tmp/.buildx-cache/worker
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
 
         # Temp fix
         # https://github.com/docker/build-push-action/issues/252

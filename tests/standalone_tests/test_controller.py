@@ -7,87 +7,87 @@ from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller.celery.node_tasks_handler import INodeAlgorithmTasksHandler
-from exareme2.controller.services.in_database.algorithm_flow_data_objects import (
-    LocalNodesTable,
+from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
+from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
+    LocalWorkersTable,
 )
-from exareme2.controller.services.in_database.controller import DataModelViews
-from exareme2.controller.services.in_database.controller import DataModelViewsCreator
-from exareme2.controller.services.in_database.controller import NodesFederation
-from exareme2.controller.services.in_database.execution_engine import Nodes
-from exareme2.controller.services.in_database.nodes import LocalNode
-from exareme2.node_communication import InsufficientDataError
-from exareme2.node_communication import NodeUDFDTO
-from exareme2.node_communication import NodeUDFKeyArguments
-from exareme2.node_communication import NodeUDFPosArguments
-from exareme2.node_communication import TableData
-from exareme2.node_communication import TableInfo
-from exareme2.node_communication import TableSchema
-from exareme2.node_communication import TableType
+from exareme2.controller.services.exareme2.controller import DataModelViews
+from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
+from exareme2.controller.services.exareme2.controller import WorkersFederation
+from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.workers import LocalWorker
+from exareme2.worker_communication import InsufficientDataError
+from exareme2.worker_communication import TableData
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
+from exareme2.worker_communication import WorkerUDFDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
 
 
-def create_dummy_node(node_id: str, context_id: str, request_id: str):
-    return LocalNode(
+def create_dummy_worker(worker_id: str, context_id: str, request_id: str):
+    return LocalWorker(
         request_id=request_id,
         context_id=context_id,
-        node_tasks_handler=DummyNodeAlgorithmTasksHandler(node_id),
+        worker_tasks_handler=DummyWorkerAlgorithmTasksHandler(worker_id),
         data_model="",
         datasets=[],
     )
 
 
 @pytest.fixture
-def node_mocks():
+def worker_mocks():
     # context_id = "0"
-    nodes_ids = ["node" + str(i) for i in range(1, 11)]
-    nodes = [
-        LocalNode(
+    workers_ids = ["worker" + str(i) for i in range(1, 11)]
+    workers = [
+        LocalWorker(
             request_id="0",
             context_id="0",
-            node_tasks_handler=DummyNodeAlgorithmTasksHandler(node_id),
+            worker_tasks_handler=DummyWorkerAlgorithmTasksHandler(worker_id),
             data_model="",
             datasets=[],
         )
-        for node_id in nodes_ids
+        for worker_id in workers_ids
     ]
-    return nodes
+    return workers
 
 
-class TestNodesFederation:
-    class NodeInfoMock:
-        def __init__(self, node_id: str):
-            self.id = node_id
+class TestWorkersFederation:
+    class WorkerInfoMock:
+        def __init__(self, worker_id: str):
+            self.id = worker_id
             self.ip = ""
             self.port = ""
             self.db_ip = ""
             self.db_port = ""
 
-    class NodeLandscapeAggregatorMock:
+    class WorkerLandscapeAggregatorMock:
         @property
-        def nodeids_datasets_mock(self):
+        def workerids_datasets_mock(self):
             return {
-                "node1": ["dataset1", "dataset3", "dataset4"],
-                "node2": ["dataset2", "dataset8", "dataset5"],
-                "node3": ["dataset9", "dataset6", "dataset7"],
+                "worker1": ["dataset1", "dataset3", "dataset4"],
+                "worker2": ["dataset2", "dataset8", "dataset5"],
+                "worker3": ["dataset9", "dataset6", "dataset7"],
             }
 
         @property
-        def globalnodeid(self):
-            return "globalnode"
+        def globalworkerid(self):
+            return "globalworker"
 
-        def get_node_ids_with_any_of_datasets(self, *args, **kwargs):
-            return list(self.nodeids_datasets_mock.keys())
+        def get_worker_ids_with_any_of_datasets(self, *args, **kwargs):
+            return list(self.workerids_datasets_mock.keys())
 
-        def get_node_info(self, node_id: str):
-            return TestNodesFederation.NodeInfoMock(node_id)
+        def get_worker_info(self, worker_id: str):
+            return TestWorkersFederation.WorkerInfoMock(worker_id)
 
-        def get_node_specific_datasets(
-            self, node_id: str, data_model: str, wanted_datasets: List[str]
+        def get_worker_specific_datasets(
+            self, worker_id: str, data_model: str, wanted_datasets: List[str]
         ):
-            return self.nodeids_datasets_mock[node_id]
+            return self.workerids_datasets_mock[worker_id]
 
-        def get_global_node(self):
-            return TestNodesFederation.NodeInfoMock(self.globalnodeid)
+        def get_global_worker(self):
+            return TestWorkersFederation.WorkerInfoMock(self.globalworkerid)
 
     class CommandIdGeneratorMock:
         pass
@@ -100,162 +100,152 @@ class TestNodesFederation:
             pass
 
     @pytest.fixture
-    def nodes_federation_mock(self):
-        return NodesFederation(
+    def workers_federation_mock(self):
+        return WorkersFederation(
             request_id="0",
             context_id="0",
             data_model="",
             datasets=[""],
             var_filters={},
-            node_landscape_aggregator=self.NodeLandscapeAggregatorMock(),
+            worker_landscape_aggregator=self.WorkerLandscapeAggregatorMock(),
             celery_tasks_timeout=0,
             celery_run_udf_task_timeout=0,
             command_id_generator=self.CommandIdGeneratorMock(),
             logger=self.LoggerMock(),
         )
 
-    # def test_get_nodeinfo_for_requested_datasets(self):
+    # def test_get_workerinfo_for_requested_datasets(self):
     #     pass
 
-    # def test_node_ids(self):
+    # def test_worker_ids(self):
     #     pass
 
     # def test_create_data_model_views(self):
     #     pass
 
-    def test_create_nodes(self, nodes_federation_mock):
-        nodes_federation = nodes_federation_mock
-        created_nodes = nodes_federation._create_nodes()
+    def test_create_workers(self, workers_federation_mock):
+        workers_federation = workers_federation_mock
+        created_workers = workers_federation._create_workers()
 
-        assert isinstance(created_nodes, Nodes)
+        assert isinstance(created_workers, Workers)
 
-        created_localnodeids = [
-            localnode.node_id for localnode in created_nodes.local_nodes
+        created_localworkerids = [
+            localworker.worker_id for localworker in created_workers.local_workers
         ]
-        created_globalnodeid = created_nodes.global_node.node_id
+        created_globalworkerid = created_workers.global_worker.worker_id
 
-        expected_localnodeids = (
-            nodes_federation._node_landscape_aggregator.nodeids_datasets_mock.keys()
+        expected_localworkerids = (
+            workers_federation._worker_landscape_aggregator.workerids_datasets_mock.keys()
         )
-        assert all(nodeid in created_localnodeids for nodeid in expected_localnodeids)
+        assert all(
+            workerid in created_localworkerids for workerid in expected_localworkerids
+        )
 
-        expected_globalnodeid = nodes_federation._node_landscape_aggregator.globalnodeid
-        assert expected_globalnodeid == created_globalnodeid
+        expected_globalworkerid = (
+            workers_federation._worker_landscape_aggregator.globalworkerid
+        )
+        assert expected_globalworkerid == created_globalworkerid
 
-    # def test_get_datasets_of_nodeids(self):
+    # def test_get_datasets_of_workerids(self):
     #     pass
 
-    # def test_create_nodes_tasks_handlers(self):
+    # def test_create_workers_tasks_handlers(self):
     #     pass
 
-    # def test_get_nodes_info(self):
+    # def test_get_workers_info(self):
     #     pass
 
 
 class TestDataModelViews:
-    @pytest.fixture
-    def views_mocks(self, node_mocks):
-        # table naming convention <table_type>_<node_id>_<context_id>_<command_id>_<result_id>
-        table_info = TableInfo(
-            name=str(TableType.NORMAL).lower()
-            + "_"
-            + local_node.node_id
-            + "_0_"
-            + context_id
-            + "_0",
-            schema_=schema,
-            type_=TableType.NORMAL,
-        )
-        views = [LocalNodesTable(nodes_tables_info={node_mocks[0], table_info})]
-        return views
+    def test_get_workers(self):
+        class LocalWorkersTable:
+            def __init__(self, worker_ids: List[str]):
+                self.workers_tables_info = {worker_id: None for worker_id in worker_ids}
 
-    def test_get_nodes(self):
-        class LocalNodesTable:
-            def __init__(self, node_ids: List[str]):
-                self.nodes_tables_info = {node_id: None for node_id in node_ids}
-
-        # create a DataModelViews object that contains some LocalNodesTables
-        local_node_tables_mock = [
-            LocalNodesTable(["node1", "node2", "node3"]),
-            LocalNodesTable(["node1", "node8", "node3"]),
-            LocalNodesTable(["node1", "node3", "node2"]),
-            LocalNodesTable(["node3", "node1", "node8"]),
-            LocalNodesTable(["node2", "node1", "node3"]),
+        # create a DataModelViews object that contains some LocalWorkersTables
+        local_worker_tables_mock = [
+            LocalWorkersTable(["worker1", "worker2", "worker3"]),
+            LocalWorkersTable(["worker1", "worker8", "worker3"]),
+            LocalWorkersTable(["worker1", "worker3", "worker2"]),
+            LocalWorkersTable(["worker3", "worker1", "worker8"]),
+            LocalWorkersTable(["worker2", "worker1", "worker3"]),
         ]
-        data_model_views = DataModelViews(local_node_tables_mock)
-        result = data_model_views.get_list_of_nodes()
+        data_model_views = DataModelViews(local_worker_tables_mock)
+        result = data_model_views.get_list_of_workers()
 
-        # get all node_ids from local_node_tables_mock
+        # get all worker_ids from local_worker_tables_mock
         tmp = [
-            local_node_table.nodes_tables_info.keys()
-            for local_node_table in local_node_tables_mock
+            local_worker_table.workers_tables_info.keys()
+            for local_worker_table in local_worker_tables_mock
         ]
         tmp_lists = [list(t) for t in tmp]
-        expected_node_ids = set(
-            [node_id for sublist in tmp_lists for node_id in sublist]
+        expected_worker_ids = set(
+            [worker_id for sublist in tmp_lists for worker_id in sublist]
         )
 
-        assert all(node_id in result for node_id in expected_node_ids)
+        assert all(worker_id in result for worker_id in expected_worker_ids)
 
         @pytest.fixture
-        def views_per_local_nodes():
+        def views_per_local_workers():
             tables_views = {
-                "node1": ["view1_1", "view1_2"],
-                "node2": ["view2_1", "view2_2"],
-                "node3": ["view3_1", "view3_2"],
+                "worker1": ["view1_1", "view1_2"],
+                "worker2": ["view2_1", "view2_2"],
+                "worker3": ["view3_1", "view3_2"],
             }
             return tables_views
 
         @pytest.fixture
-        def nodes_tables_expected():
+        def workers_tables_expected():
             expected = [
-                {"node1": "view1_1", "node2": "view2_1", "node3": "view3_1"},
-                {"node1": "view1_2", "node2": "view2_2", "node3": "view3_2"},
+                {"worker1": "view1_1", "worker2": "view2_1", "worker3": "view3_1"},
+                {"worker1": "view1_2", "worker2": "view2_2", "worker3": "view3_2"},
             ]
             return expected
 
         @pytest.fixture
-        def views_per_local_nodes_invalid():
+        def views_per_local_workers_invalid():
             tables_views = {
-                "node1": ["view1_1", "view1_2"],
-                "node2": ["view2_1"],
-                "node3": ["view3_1", "view3_2"],
+                "worker1": ["view1_1", "view1_2"],
+                "worker2": ["view2_1"],
+                "worker3": ["view3_1", "view3_2"],
             }
             return tables_views
 
         def test_validate_number_of_views(
-            views_per_local_nodes, views_per_local_nodes_invalid
+            views_per_local_workers, views_per_local_workers_invalid
         ):
-            tableinfo_list = list(views_per_local_nodes.values())
+            tableinfo_list = list(views_per_local_workers.values())
             assert DataModelViews._validate_number_of_views(
-                views_per_local_nodes
+                views_per_local_workers
             ) == len(tableinfo_list[0])
 
             with pytest.raises(ValueError):
-                DataModelViews._validate_number_of_views(views_per_local_nodes_invalid)
+                DataModelViews._validate_number_of_views(
+                    views_per_local_workers_invalid
+                )
 
-        def test_views_per_localnode_to_localnodestables(
-            views_per_local_nodes, nodes_tables_expected
+        def test_views_per_localworker_to_localworkerstables(
+            views_per_local_workers, workers_tables_expected
         ):
-            class MockLocalNodesTable:
-                def __init__(self, nodes_tables_info: dict):
-                    self._nodes_tables_info = nodes_tables_info
+            class MockLocalWorkersTable:
+                def __init__(self, workers_tables_info: dict):
+                    self._workers_tables_info = workers_tables_info
 
             with patch(
-                "exareme2.controller.controller.LocalNodesTable",
-                MockLocalNodesTable,
+                "exareme2.controller.controller.LocalWorkersTable",
+                MockLocalWorkersTable,
             ):
-                local_nodes_tables = (
-                    DataModelViews._views_per_localnode_to_localnodestables(
-                        views_per_local_nodes
+                local_workers_tables = (
+                    DataModelViews._views_per_localworker_to_localworkerstables(
+                        views_per_local_workers
                     )
                 )
 
-            nodes_tables_info = [t._nodes_tables_info for t in local_nodes_tables]
-            for expected in nodes_tables_expected:
-                assert expected in nodes_tables_info
+            workers_tables_info = [t._workers_tables_info for t in local_workers_tables]
+            for expected in workers_tables_expected:
+                assert expected in workers_tables_info
 
-                assert len(nodes_tables_expected) == len(nodes_tables_info)
+                assert len(workers_tables_expected) == len(workers_tables_info)
 
 
 class TestDataModelViewsCreator:
@@ -273,7 +263,7 @@ class TestDataModelViewsCreator:
             pass
 
         @property
-        def node_id(self) -> str:
+        def worker_id(self) -> str:
             pass
 
         @property
@@ -289,18 +279,18 @@ class TestDataModelViewsCreator:
             pass
 
         @property
-        def name_without_node_id(self) -> str:
-            return "nodename"
+        def name_without_worker_id(self) -> str:
+            return "workername"
 
     @pytest.fixture
-    def local_node_mocks(self):
-        return [MagicMock(LocalNode) for number_of_nodes in range(10)]
+    def local_worker_mocks(self):
+        return [MagicMock(LocalWorker) for number_of_workers in range(10)]
 
     @pytest.fixture
-    def data_model_views_creator_init_params(self, local_node_mocks):
+    def data_model_views_creator_init_params(self, local_worker_mocks):
         @dataclass
         class DataModelViewsCreatorInitParams:
-            local_nodes: List[LocalNode]
+            local_workers: List[LocalWorker]
             variable_groups: List[List[str]]
             var_filters: list
             dropna: bool
@@ -308,7 +298,7 @@ class TestDataModelViewsCreator:
             command_id: int
 
         return DataModelViewsCreatorInitParams(
-            local_nodes=local_node_mocks,
+            local_workers=local_worker_mocks,
             variable_groups=[["v1," "v2"], ["v3", "v4"]],
             var_filters=[],
             dropna=False,
@@ -316,11 +306,11 @@ class TestDataModelViewsCreator:
             command_id=123,
         )
 
-    def test_create_data_model_views_called_on_all_nodes(
-        self, local_node_mocks, data_model_views_creator_init_params
+    def test_create_data_model_views_called_on_all_workers(
+        self, local_worker_mocks, data_model_views_creator_init_params
     ):
         data_model_views_creator = DataModelViewsCreator(
-            local_nodes=data_model_views_creator_init_params.local_nodes,
+            local_workers=data_model_views_creator_init_params.local_workers,
             variable_groups=data_model_views_creator_init_params.variable_groups,
             var_filters=data_model_views_creator_init_params.var_filters,
             dropna=data_model_views_creator_init_params.dropna,
@@ -328,11 +318,11 @@ class TestDataModelViewsCreator:
             command_id=data_model_views_creator_init_params.command_id,
         )
 
-        # assert that create_data_model_views was called for all local nodes with the
+        # assert that create_data_model_views was called for all local workers with the
         # expected args
         data_model_views_creator.create_data_model_views()
-        for node in local_node_mocks:
-            node.create_data_model_views.assert_called_once_with(
+        for worker in local_worker_mocks:
+            worker.create_data_model_views.assert_called_once_with(
                 columns_per_view=data_model_views_creator_init_params.variable_groups,
                 filters=data_model_views_creator_init_params.var_filters,
                 dropna=data_model_views_creator_init_params.dropna,
@@ -342,31 +332,32 @@ class TestDataModelViewsCreator:
 
         assert isinstance(data_model_views_creator.data_model_views, DataModelViews)
 
-    def test_create_data_model_views_contains_only_nodes_with_sufficient_data(
+    def test_create_data_model_views_contains_only_workers_with_sufficient_data(
         self, data_model_views_creator_init_params
     ):
-        # Instantiate some local node mocks
-        local_node_mocks_sufficient_data = [
-            MagicMock(LocalNode) for number_of_nodes in range(5)
+        # Instantiate some local worker mocks
+        local_worker_mocks_sufficient_data = [
+            MagicMock(LocalWorker) for number_of_workers in range(5)
         ]
-        local_node_mocks_insufficient_data = [
-            MagicMock(LocalNode) for number_of_nodes in range(5)
+        local_worker_mocks_insufficient_data = [
+            MagicMock(LocalWorker) for number_of_workers in range(5)
         ]
 
         # some of them with sufficient data
-        for node in local_node_mocks_sufficient_data:
-            node.node_id = "sufficientdatanode"
+        for worker in local_worker_mocks_sufficient_data:
+            worker.worker_id = "sufficientdataworker"
             table_info = self.TableInfoMock()
             table_info.schema_ = "dummy_schema"
-            node.create_data_model_views.return_value = [table_info]
+            worker.create_data_model_views.return_value = [table_info]
         # and some of them without sufficient data
-        for node in local_node_mocks_insufficient_data:
-            node.node_id = "insufficientdatanode"
-            node.create_data_model_views.side_effect = InsufficientDataError("")
+        for worker in local_worker_mocks_insufficient_data:
+            worker.worker_id = "insufficientdataworker"
+            worker.create_data_model_views.side_effect = InsufficientDataError("")
 
         data_model_views_creator = DataModelViewsCreator(
-            local_nodes=(
-                local_node_mocks_sufficient_data + local_node_mocks_insufficient_data
+            local_workers=(
+                local_worker_mocks_sufficient_data
+                + local_worker_mocks_insufficient_data
             ),
             variable_groups=data_model_views_creator_init_params.variable_groups,
             var_filters=data_model_views_creator_init_params.var_filters,
@@ -377,22 +368,22 @@ class TestDataModelViewsCreator:
 
         data_model_views_creator.create_data_model_views()
 
-        # check that the data model views contains only nodes with sufficient data
+        # check that the data model views contains only workers with sufficient data
         data_model_views = data_model_views_creator.data_model_views.to_list()[0]
-        nodes = list(data_model_views.nodes_tables_info.keys())
-        assert set(nodes) == set(local_node_mocks_sufficient_data)
+        workers = list(data_model_views.workers_tables_info.keys())
+        assert set(workers) == set(local_worker_mocks_sufficient_data)
 
-    def test_create_data_model_views_raises_error_when_all_nodes_insufficient_data(
+    def test_create_data_model_views_raises_error_when_all_workers_insufficient_data(
         self, data_model_views_creator_init_params
     ):
-        # Instantiate local node mocks, all of them without sufficient data
-        local_node_mocks = [MagicMock(LocalNode) for number_of_nodes in range(10)]
-        for node_mock in local_node_mocks:
-            node_mock.node_id = "some_id.."
-            node_mock.create_data_model_views.side_effect = InsufficientDataError("")
+        # Instantiate local worker mocks, all of them without sufficient data
+        local_worker_mocks = [MagicMock(LocalWorker) for number_of_workers in range(10)]
+        for worker_mock in local_worker_mocks:
+            worker_mock.worker_id = "some_id.."
+            worker_mock.create_data_model_views.side_effect = InsufficientDataError("")
 
         data_model_views_creator = DataModelViewsCreator(
-            local_nodes=local_node_mocks,
+            local_workers=local_worker_mocks,
             variable_groups=data_model_views_creator_init_params.variable_groups,
             var_filters=data_model_views_creator_init_params.var_filters,
             dropna=data_model_views_creator_init_params.dropna,
@@ -407,16 +398,16 @@ class AsyncResult:
     pass
 
 
-class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
-    def __init__(self, node_id: str):
-        self._node_id = node_id
+class DummyWorkerAlgorithmTasksHandler(IWorkerAlgorithmTasksHandler):
+    def __init__(self, worker_id: str):
+        self._worker_id = worker_id
 
     @property
-    def node_id(self) -> str:
-        return self._node_id
+    def worker_id(self) -> str:
+        return self._worker_id
 
     @property
-    def node_data_address(self) -> str:
+    def worker_data_address(self) -> str:
         pass
 
     @property
@@ -477,8 +468,8 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
         context_id: str,
         command_id: str,
         func_name: str,
-        positional_args: NodeUDFPosArguments,
-        keyword_args: NodeUDFKeyArguments,
+        positional_args: WorkerUDFPosArguments,
+        keyword_args: WorkerUDFKeyArguments,
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
     ) -> AsyncResult:
@@ -486,7 +477,7 @@ class DummyNodeAlgorithmTasksHandler(INodeAlgorithmTasksHandler):
 
     def get_queued_udf_result(
         self, async_result: AsyncResult, request_id: str
-    ) -> List[NodeUDFDTO]:
+    ) -> List[WorkerUDFDTO]:
         pass
 
     def queue_cleanup(self, context_id: str):

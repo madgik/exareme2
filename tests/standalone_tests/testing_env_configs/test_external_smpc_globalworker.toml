@@ -1,0 +1,37 @@
+identifier = "testsmpcglobalworker"
+log_level = "DEBUG"
+framework_log_level = "INFO"
+role = "GLOBALWORKER"
+monetdb_nclients = 64
+
+[privacy]
+minimum_row_count = 10
+protect_local_data = false
+
+[celery]
+worker_concurrency = 16
+tasks_timeout = 120
+run_udf_task_timeout = 300
+
+[rabbitmq]
+ip = "172.17.0.1"
+port = 60004
+user = "user"
+password = "password"
+vhost = "user_vhost"
+
+[monetdb]
+ip = "172.17.0.1"
+port = 61004
+database = "db"
+local_username = "executor"
+local_password = "executor"
+public_username = "guest"
+public_password = "guest"
+
+[smpc]
+enabled = true
+optional = false
+client_id = ""
+client_address = ""
+coordinator_address = "http://167.71.139.232:12314"

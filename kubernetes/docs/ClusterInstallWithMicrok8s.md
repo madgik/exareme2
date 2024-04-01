@@ -19,26 +19,34 @@ microk8s enable dashboard
 ```
 
 ### (Optional) Cluster Configuration with Multiple Network Interfaces (e.g. VPN)
+
 If the cluster is going to be configured on top of a **VPN**, or the k8s **master** node has more than one network interface, we need to select the proper network interface on top of which the cluster will communicate.
 
 If this is not done properly, **it could result on worker node failing to join the cluster correctly**, leading to nodes appearing as `Not Ready`.
 
 In order to configure microk8s on the **master** node to use the proper network interface, followe these steps:
+
 1. Disable ingress with the command:
+
 ```
 microk8s disable ingress
 ```
+
 2. Append the following lines to the kubelet configuration files:
+
 ```
-sudo echo --node-ip=<MASTER_NODE_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kubelet
-sudo echo --advertise-address=<MASTER_NODE_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kube-apiserver
+sudo echo --node-ip=<MASTER_WORKER_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kubelet
+sudo echo --advertise-address=<MASTER_WORKER_PROPER_INTERFACE_IP> >> /var/snap/microk8s/current/args/kube-apiserver
 ```
+
 3. Restart MicroK8s with:
+
 ```
 sudo snap restart microk8s
 ```
 
 4. Finally, re-enable ingress with:
+
 ```
 microk8s enable ingress
 ```
@@ -47,8 +55,8 @@ Following these steps, your Kubernetes **master** node should be properly config
 
 For more details and reference, you can visit: [Kubernetes Bug Fix on GitHub](https://github.com/canonical/microk8s/issues/2402#issuecomment-1460214658)
 
-
 ## Cluster Management
+
 ### Configure the master node to run pods
 
 Allow master-specific pods to run on the **master** node with:
@@ -168,7 +176,7 @@ Pull all the images needed:
 
 ```
 sudo docker pull madgik/exareme2_controller:latest
-sudo docker pull madgik/exareme2_node:latest
+sudo docker pull madgik/exareme2_worker:latest
 sudo docker pull madgik/exareme2_mipdb:latest
 sudo docker pull madgik/exareme2_db:latest
 sudo docker pull madgik/exareme2_rabbitmq:latest
@@ -181,7 +189,7 @@ Tag them using the private registry:
 
 ```
 sudo docker tag madgik/exareme2_controller:latest <master_node_ip>:32000/exareme2_controller:latest
-sudo docker tag madgik/exareme2_node:latest <master_node_ip>:32000/exareme2_node:latest
+sudo docker tag madgik/exareme2_worker:latest <master_node_ip>:32000/exareme2_worker:latest
 sudo docker tag madgik/exareme2_mipdb:latest <master_node_ip>:32000/exareme2_mipdb:latest
 sudo docker tag madgik/exareme2_db:latest <master_node_ip>:32000/exareme2_db:latest
 sudo docker tag madgik/exareme2_rabbitmq:latest <master_node_ip>:32000/exareme2_rabbitmq:latest
@@ -192,7 +200,7 @@ sudo docker tag redis:alpine3.15 <master_node_ip>:32000/redis:alpine3.15
 
 ```
 sudo docker push <master_node_ip>:32000/exareme2_controller:latest
-sudo docker push <master_node_ip>:32000/exareme2_node:latest
+sudo docker push <master_node_ip>:32000/exareme2_worker:latest
 sudo docker push <master_node_ip>:32000/exareme2_mipdb:latest
 sudo docker push <master_node_ip>:32000/exareme2_db:latest
 sudo docker push <master_node_ip>:32000/exareme2_rabbitmq:latest

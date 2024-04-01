@@ -3,8 +3,8 @@ import random
 import pytest
 
 from exareme2 import DType
-from exareme2.node_communication import ColumnInfo
-from exareme2.node_communication import TableSchema
+from exareme2.worker_communication import ColumnInfo
+from exareme2.worker_communication import TableSchema
 
 COMMON_TASKS_REQUEST_ID = "rqst1"
 
@@ -23,13 +23,13 @@ def test_table_params():
 
 @pytest.mark.slow
 def test_create_table(
-    localnode1_tasks_handler, use_localnode1_database, test_table_params
+    localworker1_tasks_handler, use_localworker1_database, test_table_params
 ):
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
 
-    table_info = localnode1_tasks_handler.create_table(
+    table_info = localworker1_tasks_handler.create_table(
         context_id=context_id,
         command_id=command_id,
         schema=schema,
@@ -42,29 +42,29 @@ def test_create_table(
 
 @pytest.mark.slow
 def test_get_tables(
-    localnode1_tasks_handler, use_localnode1_database, test_table_params
+    localworker1_tasks_handler, use_localworker1_database, test_table_params
 ):
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_info = localnode1_tasks_handler.create_table(
+    table_info = localworker1_tasks_handler.create_table(
         context_id=context_id,
         command_id=command_id,
         schema=schema,
     )
-    tables = localnode1_tasks_handler.get_tables(context_id=context_id)
+    tables = localworker1_tasks_handler.get_tables(context_id=context_id)
 
     assert table_info.name in tables
 
 
 @pytest.mark.slow
 def test_get_table_schema(
-    localnode1_tasks_handler, use_localnode1_database, test_table_params
+    localworker1_tasks_handler, use_localworker1_database, test_table_params
 ):
     context_id = get_a_random_context_id()
     command_id = test_table_params["command_id"]
     schema = test_table_params["schema"]
-    table_info = localnode1_tasks_handler.create_table(
+    table_info = localworker1_tasks_handler.create_table(
         context_id=context_id,
         command_id=command_id,
         schema=schema,

@@ -7,9 +7,9 @@ rabbitmq_image = "madgik/exareme2_rabbitmq:testing"
 monetdb_nclients = 64
 monetdb_memory_limit = 4096 # MB
 
-algorithm_folders = "./exareme2/algorithms/in_database,./exareme2/algorithms/native_python,./tests/algorithms"
+algorithm_folders = "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
 
-node_landscape_aggregator_update_interval = 30
+worker_landscape_aggregator_update_interval = 30
 celery_tasks_timeout = 60
 celery_cleanup_task_timeout=2
 celery_run_udf_task_timeout = 120
@@ -19,7 +19,7 @@ minimum_row_count = 1
 protect_local_data = false
 
 [cleanup]
-nodes_cleanup_interval=30
+workers_cleanup_interval=30
 contextid_release_timelimit=3600 #an hour
 
 [smpc]
@@ -28,9 +28,9 @@ optional=false
 [smpc.dp]
 enabled = false
 
-[[nodes]]
-id = "localnode1"
-role="LOCALNODE"
+[[workers]]
+id = "localworker1"
+role="LOCALWORKER"
 rabbitmq_port=5670
 monetdb_port=50000
 local_monetdb_username="executor"

@@ -1,13 +1,13 @@
 import unittest.mock
 from logging import Logger
 
-from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+from exareme2.controller.services.exareme2.smpc_cluster_comm_helpers import (
     _trigger_smpc_operation,
 )
-from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+from exareme2.controller.services.exareme2.smpc_cluster_comm_helpers import (
     get_smpc_job_id,
 )
-from exareme2.controller.services.in_database.smpc_cluster_comm_helpers import (
+from exareme2.controller.services.exareme2.smpc_cluster_comm_helpers import (
     trigger_smpc_operations,
 )
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
@@ -28,9 +28,9 @@ def test_trigger_smpc_operation():
     )
 
     with unittest.mock.patch(
-        "exareme2.controller.services.in_database.smpc_cluster_comm_helpers.trigger_smpc"
+        "exareme2.controller.services.exareme2.smpc_cluster_comm_helpers.trigger_smpc"
     ) as mock_trigger_smpc, unittest.mock.patch(
-        "exareme2.controller.services.in_database.smpc_cluster_comm_helpers.ctrl_config"
+        "exareme2.controller.services.exareme2.smpc_cluster_comm_helpers.ctrl_config"
     ) as mock_ctrl_config:
         mock_ctrl_config.smpc = AttrDict({"coordinator_address": "dummy_address"})
 
@@ -84,7 +84,7 @@ def test_trigger_smpc_operations():
     )
 
     with unittest.mock.patch(
-        "exareme2.controller.services.in_database.smpc_cluster_comm_helpers._trigger_smpc_operation"
+        "exareme2.controller.services.exareme2.smpc_cluster_comm_helpers._trigger_smpc_operation"
     ) as mock_trigger_smpc_operation:
         expected_return1 = 123
         expected_return2 = 456

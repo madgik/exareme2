@@ -40,10 +40,10 @@ decentralized data sources.
 
 ## System Overview
 
-Exareme consists of multiple services distributed across remote nodes. There
-are multiple local nodes and a single global node. Local nodes host primary
-data sources, while the global node is responsible for receiving data from
-local nodes and perform global computations.
+Exareme consists of multiple services distributed across remote workers. There
+are multiple local workers and a single global worker. Local workers host primary
+data sources, while the global worker is responsible for receiving data from
+local workers and perform global computations.
 
 # Getting started
 
@@ -51,11 +51,11 @@ local nodes and perform global computations.
 
 In the highest level, a federated algorithm is composed of three ingredients.
 Local computations, global computations and the algorithm flow. A local
-computation takes places in each local node and usually produces some aggregate
-of the primary data found in the local node. A global computation takes place
-in a special node called the global node, and usually consolidates the local
+computation takes places in each local worker and usually produces some aggregate
+of the primary data found in the local worker. A global computation takes place
+in a special worker called the global worker, and usually consolidates the local
 aggregates into a global aggregate. Finally, the algorithm flow is responsible
-for coordinating these computations and the data exchange between nodes.
+for coordinating these computations and the data exchange between workers.
 
 ## Writing a federated algorithm
 
@@ -86,26 +86,26 @@ def mean_local(local_data):
     n = len(local_data)
 
     # Pack results into single dictionary which will
-    # be transferred to global node
+    # be transferred to global worker
     results = {"sx": sx, "n": n}
     return results
 ```
 
 The result packs the two aggregates, `sx` and `n` into a dictionary. A separate
-instance of this function will run on each local node, so `sx` and `n` are
-different for each node and reflect each node's local data.
+instance of this function will run on each local worker, so `sx` and `n` are
+different for each worker and reflect each worker's local data.
 
 #### Global computations
 
 A global computation is also a python function, and it usually takes the output
 of a local computation as an input. The local computations, coming from
-multiple nodes, produce a list of results, from which a global aggregate is
+multiple workers, produce a list of results, from which a global aggregate is
 computed. We can then perform further computations, as in the current example
 where the mean is computed by dividing the global `sx` with the global `n`.
 
 ```python
 def mean_global(local_results):
-    # Sum aggregates from all nodes
+    # Sum aggregates from all workers
     sx = sum(res["sx"] for res in local_results)
     n = sum(res["n"] for res in local_results)
 
@@ -118,9 +118,9 @@ def mean_global(local_results):
 #### Algorithm flow
 
 The algorithm flow coordinates local and global computations, as well as the
-exchange of data between nodes. We can write the algorithm flow as a python function
-`run` that calls `mean_local` on all local nodes and then calls `mean_global` on the
-global node, passing the results of the local computations.
+exchange of data between workers. We can write the algorithm flow as a python function
+`run` that calls `mean_local` on all local workers and then calls `mean_global` on the
+global worker, passing the results of the local computations.
 
 ```python
 def run(all_data):
@@ -164,9 +164,9 @@ interpreters, each embedded in the corresponding relational database. These
 computations will need to communicate with the database in order to read from
 and write data to it. Moreover, the outputs of these local and global
 computations can have different fates. Some will be sent across the network to
-other nodes, while others will be stored in the same node for later processing.
+other workers, while others will be stored in the same worker for later processing.
 Having variables with dynamic types would make the communication with the
-database and the communication between nodes very difficult to implement
+database and the communication between workers very difficult to implement
 efficiently. To overcome these difficulties, the `udfgen` module defines a
 number of *types* for the input and output variables of local and global
 computations.
@@ -175,26 +175,26 @@ Let's rewrite the local/global functions of the previous examples as Exareme
 UDFs. First the local UDF.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, relation, transfer
+from exareme2.algorithms.exareme2.udfgen import udf, relation, transfer
 
 
 @udf(local_data=relation(), return_type=transfer())
 def mean_local(local_data):
-  # Compute two aggregates, sx and n_obs
-  sx = local_data.sum()
-  n = len(local_data)
+    # Compute two aggregates, sx and n_obs
+    sx = local_data.sum()
+    n = len(local_data)
 
-  # Pack results into single dictionary which will
-  # be transferred to global node
-  results = {"sx": sx, "n": n}
-  return results
+    # Pack results into single dictionary which will
+    # be transferred to global worker
+    results = {"sx": sx, "n": n}
+    return results
 ```
 
 The actual function is exactly the same as before, the difference lies in the
 `udf` decorator. `local_data` is declared to be of type `relation`. This means
 that the variable will be a relational table, implemented in python as a pandas
 dataframe. The output is of type `transfer`. This means that we intend to
-transfer the output to another node. In our python implementation this is a
+transfer the output to another worker. In our python implementation this is a
 plain dictionary but it will be converted to a JSON object in order to be
 transferred. This means that the contents of the dictionary should be JSON
 serializable.
@@ -202,26 +202,26 @@ serializable.
 Now, let's write the global UDF.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, transfer, merge_transfer
+from exareme2.algorithms.exareme2.udfgen import udf, transfer, merge_transfer
 
 
 @udf(local_results=merge_transfer(), return_type=transfer())
 def mean_global(local_results):
-  # Sum aggregates from all nodes
-  sx = sum(res["sx"] for res in local_results)
-  n = sum(res["n"] for res in local_results)
+    # Sum aggregates from all workers
+    sx = sum(res["sx"] for res in local_results)
+    n = sum(res["n"] for res in local_results)
 
-  # Compute global mean
-  mean = sx / n
+    # Compute global mean
+    mean = sx / n
 
-  # Pack result into dictionary
-  result = {"mean": mean}
-  return result
+    # Pack result into dictionary
+    result = {"mean": mean}
+    return result
 ```
 
 The type of `local_results` is `merge_transfer`. This means that the
 `local_results` will be a list of dictionaries corresponding to one
-`mean_local` output per node. The return type is now again of type `transfer`
+`mean_local` output per worker. The return type is now again of type `transfer`
 since, unlike in the single-machine example, we now need to transfer the global
 result to the algorithm flow which might run in a different machine.
 
@@ -231,24 +231,24 @@ Finally, lets write the algorithm flow. This will be quite quite different from
 the single-machine case. The flow is encapsulated as a python object exposing a
 `run` method. This object is instantiated by the Exareme algorithm execution
 engine, which is the mechanism for executing federated algorithms and takes
-care of relaying work to the nodes and routing the transfer of data between
-nodes. As algorithm writers, we need to inform the algorithm execution
+care of relaying work to the workers and routing the transfer of data between
+workers. As algorithm writers, we need to inform the algorithm execution
 engine about UDF execution order and data transfer, and this is done through
 the algorithm execution interface. To have access to this interface we have to
 inherit from the `Algorithm` base class.
 
 ```python
-from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.exareme2.algorithm import Algorithm
 
 
 class MyAlgorithm(Algorithm, algname="my_algorithm"):
     def run(self, data, metadata):
-        local_results = self.engine.run_udf_on_local_nodes(
+        local_results = self.engine.run_udf_on_local_workers(
             func=mean_local,
             keyword_args={"local_data": data},
             share_to_global=True,
         )
-        result = self.engine.run_udf_on_global_node(
+        result = self.engine.run_udf_on_global_worker(
             func=mean_global,
             keyword_args={"local_results": local_results},
         )
@@ -256,11 +256,11 @@ class MyAlgorithm(Algorithm, algname="my_algorithm"):
 ```
 
 The attribute `engine`, inherited from `Algorithm`, has two methods for calling
-UDFs. `run_udf_on_local_nodes` runs a particular UDF **on all local nodes**,
-each with the corresponding local data. `run_udf_on_global_node` runs a UDF
-**on the global node**.
+UDFs. `run_udf_on_local_workers` runs a particular UDF **on all local workers**,
+each with the corresponding local data. `run_udf_on_global_worker` runs a UDF
+**on the global worker**.
 
-Since we want the local results to be transferred to the global node
+Since we want the local results to be transferred to the global worker
 for further computations, we have to pass the `share_to_global=True` argument
 to the first method.
 
@@ -269,7 +269,7 @@ to the first method.
 One issue that did not come up in the single machine version is data loading.
 In the single machine version this is a trivial operation. However, in the
 federated case, the actual data content has some essential impact on the
-algorithm orchestration. For a particular data choice by the user, all nodes
+algorithm orchestration. For a particular data choice by the user, all workers
 having no data, or having data below some [**privacy
 threshold**](#privacy-threshold) will not participate in the run. This is
 something that Exareme needs to know before the start of the algorithm
@@ -287,7 +287,7 @@ In our case we need a very simple data loader for a single dataframe with a
 single column, as requested by the user (see Examples for more advanced uses).
 
 ```python
-from exareme2.algorithms.in_database.algorithm import AlgorithmDataLoader
+from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 
 
 class MyDataLoader(AlgorithmDataLoader, algname="mean"):
@@ -393,12 +393,12 @@ to the UDF's code, hence the name.
 
 ##### `transfer()`
 
-Transfer objects are used to send data to and from local/global nodes. In
+Transfer objects are used to send data to and from local/global workers. In
 Python they are plain dictionaries, but they are transformed to JSON for the
 data transfer, so all values in the `dict` must be JSON serializable, and all
 keys must be strings. `transfer` does not encrypt data for
 [SMPC](#secure-multi-party-computation) and thus should be used for
-non-sensible data and for sending data from the global node to the local nodes.
+non-sensible data and for sending data from the global worker to the local workers.
 
 ##### `secure_transfer(sum_op=False, min_op=False, max_op=False)`
 
@@ -407,7 +407,7 @@ Type used for sending data thought the SMPC cluster. See
 
 ##### `state()`
 
-State objects are used to store data in the same node where they are produced,
+State objects are used to store data in the same worker where they are produced,
 for later consumption. Like `transfer`/`secure_transfer`, they are Python
 dictionaries but they are serialized as binary objects using `pickle`.
 
@@ -415,20 +415,20 @@ dictionaries but they are serialized as binary objects using `pickle`.
 
 A UDF can also have multiple outputs of different kinds. The typical use-case
 is when we want to store part of the output locally for later use in the same
-node, and we want to transfer the other part of the output to another node.
+worker, and we want to transfer the other part of the output to another worker.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, state, transfer
+from exareme2.algorithms.exareme2.udfgen import udf, state, transfer
 
 
 @udf(input=relation(), return_type=[state(), transfer()])
 def two_outputs(input):
-  ...  # compute stuff
-  output_state = {}  # output_state is a dict where we store variables for later use
-  ...  # add stuff to output_state
-  output_transfer = {}  # output_transfer is a dict with variables we want to transfer
-  ...  # add stuff to output_transfer
-  return output_state, output_transfer  # multiple return statement
+    ...  # compute stuff
+    output_state = {}  # output_state is a dict where we store variables for later use
+    ...  # add stuff to output_state
+    output_transfer = {}  # output_transfer is a dict with variables we want to transfer
+    ...  # add stuff to output_transfer
+    return output_state, output_transfer  # multiple return statement
 ```
 
 Note that this time we declared a list of outputs in the `udf` decorator. Then,
@@ -448,7 +448,7 @@ of aggregation, but wish for their individual data to remain private. For more
 details see
 [Wikipedia](https://en.wikipedia.org/wiki/Secure_multi-party_computation). In
 Exareme, SMPC is used to compute global aggregates. When a global aggregate
-must be computed, all participating local nodes first compute the local
+must be computed, all participating local workers first compute the local
 aggregates. These are then fed to the SMPC cluster in an encrypted form. The
 SMPC cluster performs the global aggregation and sends the result back to
 Exareme, where it is passed as an input to the global UDF.
@@ -457,17 +457,17 @@ To implement a SMPC computation we need to have a local UDF with a
 `secure_transfer` output.
 
 ```python
-from exareme2.algorithms.in_database.udfgen import udf, relation, secure_transfer
+from exareme2.algorithms.exareme2.udfgen import udf, relation, secure_transfer
 
 
 @udf(local_data=relation(), return_type=secure_transfer(sum_op=True))
 def mean_local(local_data):
-  sx = local_data.sum()
-  n = len(local_data)
+    sx = local_data.sum()
+    n = len(local_data)
 
-  results = {"sx": {"data": sx, "operation": "sum", "type": float},
-             "n": {"data": n, "operation": "sum", "type": int}}
-  return results
+    results = {"sx": {"data": sx, "operation": "sum", "type": float},
+               "n": {"data": n, "operation": "sum", "type": int}}
+    return results
 ```
 
 First we have to activate one or more aggregation operations. Here we activate
@@ -534,7 +534,7 @@ general, thus the same algorithm can be written in more than one ways. However,
 different decompositions might lead to important differences in execution time.
 This is related to the overall number of local and global steps. Let's call a
 sequence of one local and one global step, a **federation round**.. Each
-federation round, together with the required data interchange between nodes,
+federation round, together with the required data interchange between workers,
 takes a non-negligible amount of time. It is therefore desirable to find a
 decomposition that minimizes the number of federation rounds.
 
@@ -548,7 +548,7 @@ squares (TSS) is given by
 ```
 
 We might think that we have to compute $\\hat{y}$ in a single round, then share the
-result with the local nodes, and finally compute the TSS in a second round.
+result with the local workers, and finally compute the TSS in a second round.
 But in fact, the whole computation can be done in a single round. We first develop
 the square of the difference.
 
@@ -564,7 +564,7 @@ round, instead of two.
 ## Privacy
 
 Privacy is a very subtle subject. In the context of federated analytics it
-means to protect individual datapoints residing in local nodes, as these might
+means to protect individual datapoints residing in local workers, as these might
 correspond to a person's sensitive personal data. Exareme allows the user to
 learn something about a large group of individuals through statistics, but
 tries to prevent any individual's information to leak.
@@ -574,15 +574,15 @@ protection of sensible data.
 
 #### Privacy threshold
 
-First, there is a threshold of datapoints that a node needs in order to
-participate in a computation. No node with datapoints below this threshold is
+First, there is a threshold of datapoints that a worker needs in order to
+participate in a computation. No worker with datapoints below this threshold is
 allowed to participate. This threshold is system wide (its value is usually
 around 10) and the algorithm writer has no control over it.
 
 #### Share only aggregates
 
 The most important guideline you should follow, as an algorithm writer, is to
-allow local nodes to share only aggregates of the sensitive data they hold, and
+allow local workers to share only aggregates of the sensitive data they hold, and
 never the actual data! Every variable in the database contains multiple values,
 one for each individual. When some variable is involved in a computation we
 must make sure that we only share the result of some function that aggregates
@@ -615,15 +615,15 @@ this. For a real world example you should see the `fit` method in the [logistic 
 algorithm](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/logistic_regression.py).
 
 ```python
-from exareme2.algorithms.in_database.algorithm import Algorithm
-from exareme2.algorithms.in_database.helpers import get_transfer_data
+from exareme2.algorithms.exareme2.algorithm import Algorithm
+from exareme2.algorithms.exareme2.helpers import get_transfer_data
 
 
 class MyAlgorithm(Algorithm, algname="iterative"):
     def run(self, data, metadata):
         val = 0
         while True:
-            local_results = self.engine.run_udf_on_local_nodes(
+            local_results = self.engine.run_udf_on_local_workers(
                 local_udf,
                 keyword_args={"val": val},
                 share_to_global=True,
@@ -658,7 +658,7 @@ model to the data, and the second does prediction on new data. Both methods coul
 algorithm, see for example [here](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/linear_regression_cv.py).
 
 ```python
-from exareme2.algorithms.in_database.algorithm import Algorithm
+from exareme2.algorithms.exareme2.algorithm import Algorithm
 
 
 class MyModel:

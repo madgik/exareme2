@@ -4,7 +4,7 @@ from collections import Counter
 from sklearn.naive_bayes import CategoricalNB
 from sklearn.preprocessing import OrdinalEncoder
 
-from exareme2.algorithms.in_database.naive_bayes_categorical_cv import (
+from exareme2.algorithms.exareme2.naive_bayes_categorical_cv import (
     CategoricalNBAlgorithm,
 )
 from tests.testcase_generators.testcase_generator import TestCaseGenerator

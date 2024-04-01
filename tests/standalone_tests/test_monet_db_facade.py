@@ -6,51 +6,53 @@ from pymonetdb import OperationalError
 from pymonetdb import ProgrammingError
 
 from exareme2 import AttrDict
-from exareme2.node.logger import init_logger
-from exareme2.node.monetdb.monetdb_facade import _DBExecutionDTO
-from exareme2.node.monetdb.monetdb_facade import _execute_and_fetchall
-from exareme2.node.monetdb.monetdb_facade import _validate_exception_could_be_recovered
-from exareme2.node.monetdb.monetdb_facade import db_execute_and_fetchall
-from exareme2.node.monetdb.monetdb_facade import db_execute_query
+from exareme2.worker.exareme2.monetdb.monetdb_facade import _DBExecutionDTO
+from exareme2.worker.exareme2.monetdb.monetdb_facade import _execute_and_fetchall
+from exareme2.worker.exareme2.monetdb.monetdb_facade import (
+    _validate_exception_could_be_recovered,
+)
+from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetchall
+from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_query
+from exareme2.worker.utils.logger import init_logger
 from tests.standalone_tests.conftest import COMMON_IP
-from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_NAME
-from tests.standalone_tests.conftest import MONETDB_LOCALNODETMP_PORT
+from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_NAME
+from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_PORT
 from tests.standalone_tests.conftest import remove_monetdb_container
 from tests.standalone_tests.conftest import restart_monetdb_container
 
 
 @pytest.fixture(scope="module", autouse=True)
-def patch_node_logger():
+def patch_worker_logger():
     current_task = AttrDict({"request": {"id": "1234"}})
 
     with patch(
-        "exareme2.node.logger.node_config",
+        "exareme2.worker.utils.logger.worker_config",
         AttrDict(
             {
                 "log_level": "DEBUG",
-                "role": "localnode",
-                "identifier": "localnodetmp",
+                "role": "localworker",
+                "identifier": "localworkertmp",
             },
         ),
     ), patch(
-        "exareme2.node.logger.task_loggers",
+        "exareme2.worker.utils.logger.task_loggers",
         {"1234": init_logger("1234")},
     ), patch(
-        "exareme2.node.logger.current_task",
+        "exareme2.worker.utils.logger.current_task",
         current_task,
     ):
         yield
 
 
 @pytest.fixture(autouse=True, scope="module")
-def patch_node_config():
+def patch_worker_config():
     with patch(
-        "exareme2.node.monetdb.monetdb_facade.node_config",
+        "exareme2.worker.exareme2.monetdb.monetdb_facade.worker_config",
         AttrDict(
             {
                 "monetdb": {
                     "ip": COMMON_IP,
-                    "port": MONETDB_LOCALNODETMP_PORT,
+                    "port": MONETDB_LOCALWORKERTMP_PORT,
                     "database": "db",
                     "local_username": "executor",
                     "local_password": "executor",
@@ -71,7 +73,7 @@ def patch_node_config():
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_execute_and_fetchall_success(
-    monetdb_localnodetmp,
+    monetdb_localworkertmp,
 ):
     db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
     result = _execute_and_fetchall(db_execution_dto=db_execution_dto)
@@ -82,12 +84,12 @@ def test_execute_and_fetchall_success(
 @pytest.mark.very_slow
 def test_broken_pipe_error_properly_handled(
     capfd,
-    monetdb_localnodetmp,
+    monetdb_localworkertmp,
 ):
     db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
     result = _execute_and_fetchall(db_execution_dto=db_execution_dto)
     assert result[0][0] == 1
-    restart_monetdb_container(MONETDB_LOCALNODETMP_NAME)
+    restart_monetdb_container(MONETDB_LOCALWORKERTMP_NAME)
     db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
     result = _execute_and_fetchall(db_execution_dto=db_execution_dto)
     assert result[0][0] == 1
@@ -96,9 +98,9 @@ def test_broken_pipe_error_properly_handled(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_generic_exception_handled(
-    monetdb_localnodetmp,
+    monetdb_localworkertmp,
 ):
-    remove_monetdb_container(MONETDB_LOCALNODETMP_NAME)
+    remove_monetdb_container(MONETDB_LOCALWORKERTMP_NAME)
     db_execution_dto = _DBExecutionDTO(query="select 1;", timeout=1)
     # MonetDB is inaccessible, therefore an OSError is raised.
     with pytest.raises(OSError):
@@ -108,7 +110,7 @@ def test_generic_exception_handled(
 @pytest.mark.slow
 @pytest.mark.very_slow
 # Fix for the task https://team-1617704806227.atlassian.net/browse/MIP-731
-def test_connection_error_while_waiting_for_table_to_be_present(monetdb_localnodetmp):
+def test_connection_error_while_waiting_for_table_to_be_present(monetdb_localworkertmp):
     db_execution_dto = _DBExecutionDTO(
         query="select * from non_existing_table;", timeout=1
     )
@@ -169,7 +171,7 @@ def test_validate_exception_is_recoverable(exception: Exception, expected):
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_db_execute_use_public_user_parameter(
-    monetdb_localnodetmp,
+    monetdb_localworkertmp,
 ):
     table_name = "local_user_table"
 
