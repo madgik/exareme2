@@ -20,7 +20,7 @@ import toml
 from exareme2 import AttrDict
 from exareme2.algorithms.exareme2.udfgen import udfio
 from exareme2.controller.celery.app import CeleryAppFactory
-from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
+from exareme2.controller.celery.tasks_handlers import Exareme2TasksHandler
 from exareme2.controller.logger import init_logger
 from exareme2.worker_communication import TableSchema
 
@@ -976,7 +976,7 @@ def create_worker_tasks_handler_celery(worker_config_filepath):
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
-    return WorkerAlgorithmTasksHandler(
+    return Exareme2TasksHandler(
         request_id=REQUEST_ID,
         worker_id=worker_id,
         worker_queue_addr=queue_address,

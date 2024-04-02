@@ -4,12 +4,12 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
+from exareme2.controller.celery.tasks_handlers import Exareme2TasksHandler
+from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
 from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import WorkerSMPCDTO
-from exareme2.worker_communication import WorkerTableDTO
 from exareme2.worker_communication import WorkerUDFDTO
 from exareme2.worker_communication import WorkerUDFKeyArguments
 from exareme2.worker_communication import WorkerUDFPosArguments
@@ -81,9 +81,9 @@ class _Worker(_IWorker, ABC):
         self,
         request_id: str,
         context_id: str,
-        worker_tasks_handler: IWorkerAlgorithmTasksHandler,
+        worker_tasks_handler: Exareme2TasksHandler,
     ):
-        self._worker_tasks_handler: IWorkerAlgorithmTasksHandler = worker_tasks_handler
+        self._worker_tasks_handler = worker_tasks_handler
         self.worker_id: str = self._worker_tasks_handler.worker_id
         self.request_id: str = request_id
         self.context_id: str = context_id
@@ -144,7 +144,7 @@ class _Worker(_IWorker, ABC):
         return self._worker_tasks_handler.create_remote_table(
             table_name=table_name,
             table_schema=table_schema,
-            original_db_url=monetdb_socket_addr,
+            monetdb_socket_address=monetdb_socket_addr,
         )
 
     # UDFs functionality
@@ -156,7 +156,7 @@ class _Worker(_IWorker, ABC):
         keyword_args: WorkerUDFKeyArguments,
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
-    ) -> AsyncResult:
+    ) -> WorkerTaskResult:
         return self._worker_tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
@@ -186,11 +186,11 @@ class LocalWorker(_Worker):
         self,
         request_id: str,
         context_id: str,
-        worker_tasks_handler: IWorkerAlgorithmTasksHandler,
+        exareme2_tasks_handler: Exareme2TasksHandler,
         data_model: str,
         datasets: List[str],
     ):
-        super().__init__(request_id, context_id, worker_tasks_handler)
+        super().__init__(request_id, context_id, exareme2_tasks_handler)
         self._data_model = data_model
         self._datasets = datasets
 
@@ -217,10 +217,6 @@ class LocalWorker(_Worker):
         ----------
         command_id : str
             The id of the command.
-        data_model : str
-            The data model of the view.
-        datasets : str
-            The datasets that will be included in the view.
         columns_per_view : List[List[str]]
             A list of column names' for each view to be created.
         filters : dict
@@ -246,19 +242,21 @@ class LocalWorker(_Worker):
             check_min_rows=check_min_rows,
         )
 
-    def get_queued_udf_result(self, async_result: AsyncResult) -> List[WorkerUDFDTO]:
-        return self._worker_tasks_handler.get_queued_udf_result(
-            async_result=async_result
-        )
+    def get_queued_udf_result(
+        self, worker_task_result: WorkerTaskResult
+    ) -> List[WorkerUDFDTO]:
+        return self._worker_tasks_handler.get_queued_udf_result(worker_task_result)
 
     def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
         return self._worker_tasks_handler.load_data_to_smpc_client(table_name, jobid)
 
 
 class GlobalWorker(_Worker):
-    def get_queued_udf_result(self, async_result: AsyncResult) -> List[WorkerTableDTO]:
+    def get_queued_udf_result(
+        self, worker_task_result: WorkerTaskResult
+    ) -> List[WorkerUDFDTO]:
         worker_udf_dtos = self._worker_tasks_handler.get_queued_udf_result(
-            async_result=async_result
+            worker_task_result=worker_task_result
         )
         for dto in worker_udf_dtos:
             if isinstance(dto, WorkerSMPCDTO):

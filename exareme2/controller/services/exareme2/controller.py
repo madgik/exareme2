@@ -30,8 +30,7 @@ from exareme2.algorithms.specifications import TransformerName
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
-from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
+from exareme2.controller.celery.tasks_handlers import Exareme2TasksHandler
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
@@ -64,8 +63,8 @@ from exareme2.worker_communication import WorkerInfo
 
 @dataclass(frozen=True)
 class WorkersTasksHandlers:
-    global_worker_tasks_handler: Optional[IWorkerAlgorithmTasksHandler]
-    local_workers_tasks_handlers: List[IWorkerAlgorithmTasksHandler]
+    global_worker_tasks_handler: Optional[Exareme2TasksHandler]
+    local_workers_tasks_handlers: List[Exareme2TasksHandler]
 
 
 class WorkerUnresponsiveException(Exception):
@@ -908,7 +907,7 @@ def _create_worker_tasks_handler(
     tasks_timeout: int,
     run_udf_task_timeout: int,
 ):
-    return WorkerAlgorithmTasksHandler(
+    return Exareme2TasksHandler(
         request_id=request_id,
         worker_id=workerinfo.id,
         worker_queue_addr=str(workerinfo.ip) + ":" + str(workerinfo.port),
@@ -923,7 +922,7 @@ def _create_local_workers(
     context_id: str,
     data_model: str,
     workerids_datasets: Dict[str, List[str]],
-    workers_tasks_handlers: List[IWorkerAlgorithmTasksHandler],
+    workers_tasks_handlers: List[Exareme2TasksHandler],
 ):
     local_workers = []
     for worker_tasks_handler in workers_tasks_handlers:
@@ -933,7 +932,7 @@ def _create_local_workers(
             context_id=context_id,
             data_model=data_model,
             datasets=workerids_datasets[worker_id],
-            worker_tasks_handler=worker_tasks_handler,
+            exareme2_tasks_handler=worker_tasks_handler,
         )
         local_workers.append(worker)
 

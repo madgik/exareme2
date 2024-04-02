@@ -3,7 +3,7 @@ import pytest
 from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.worker_info_tasks_handler import WorkerInfoTasksHandler
+from exareme2.controller.celery.tasks_handlers import WorkerInfoTasksHandler
 from exareme2.worker import config as worker_config
 from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerTableDTO
@@ -60,7 +60,7 @@ def test_worker_info_tasks_have_higher_priority_over_other_tasks(
     )
 
     # Queue an X amount of udfs to fill the rabbitmq.
-    # The queued udfs should be greater than the WORKER workers that consume them.
+    # The queued udfs should be greater than the NODE workers that consume them.
     number_of_udfs_to_schedule = worker_config.celery.worker_concurrency + 10
     udf_async_results = [
         queue_one_second_udf(
@@ -75,13 +75,10 @@ def test_worker_info_tasks_have_higher_priority_over_other_tasks(
     # the actual get_worker_info task to complete.
     worker_info_task_timeout = 3
     worker_info_task_handler = WorkerInfoTasksHandler(
-        RABBITMQ_GLOBALWORKER_ADDR, worker_info_task_timeout
+        RABBITMQ_GLOBALWORKER_ADDR, worker_info_task_timeout, request_id
     )
-    worker_info_ar = worker_info_task_handler.queue_worker_info_task(request_id)
     try:
-        result = worker_info_task_handler.result_worker_info_task(
-            worker_info_ar, request_id
-        )
+        result = worker_info_task_handler.get_worker_info_task()
     except CeleryTaskTimeoutException as exc:
         pytest.fail(
             f"The worker info task should not wait for the other tasks but a timeout occurred."

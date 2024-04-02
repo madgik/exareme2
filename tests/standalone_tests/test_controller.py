@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from typing import List
-from typing import Optional
 from typing import Tuple
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
+from exareme2.controller.celery.tasks_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
     LocalWorkersTable,
 )
@@ -17,20 +16,16 @@ from exareme2.controller.services.exareme2.controller import WorkersFederation
 from exareme2.controller.services.exareme2.execution_engine import Workers
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.worker_communication import InsufficientDataError
-from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import TableType
-from exareme2.worker_communication import WorkerUDFDTO
-from exareme2.worker_communication import WorkerUDFKeyArguments
-from exareme2.worker_communication import WorkerUDFPosArguments
 
 
 def create_dummy_worker(worker_id: str, context_id: str, request_id: str):
     return LocalWorker(
         request_id=request_id,
         context_id=context_id,
-        worker_tasks_handler=DummyWorkerAlgorithmTasksHandler(worker_id),
+        exareme2_tasks_handler=Exareme2TasksHandler("0", worker_id, "0", "0", 10, 10),
         data_model="",
         datasets=[],
     )
@@ -44,7 +39,9 @@ def worker_mocks():
         LocalWorker(
             request_id="0",
             context_id="0",
-            worker_tasks_handler=DummyWorkerAlgorithmTasksHandler(worker_id),
+            exareme2_tasks_handler=Exareme2TasksHandler(
+                "0", worker_id, "0", "0", 10, 10
+            ),
             data_model="",
             datasets=[],
         )
@@ -157,6 +154,22 @@ class TestWorkersFederation:
 
 
 class TestDataModelViews:
+    @pytest.fixture
+    def views_mocks(self, worker_mocks):
+        # table naming convention <table_type>_<worker_id>_<context_id>_<command_id>_<result_id>
+        table_info = TableInfo(
+            name=str(TableType.NORMAL).lower()
+            + "_"
+            + local_worker.worker_id
+            + "_0_"
+            + context_id
+            + "_0",
+            schema_=schema,
+            type_=TableType.NORMAL,
+        )
+        views = [LocalWorkersTable(workers_tables_info={worker_mocks[0], table_info})]
+        return views
+
     def test_get_workers(self):
         class LocalWorkersTable:
             def __init__(self, worker_ids: List[str]):
@@ -396,113 +409,3 @@ class TestDataModelViewsCreator:
 
 class AsyncResult:
     pass
-
-
-class DummyWorkerAlgorithmTasksHandler(IWorkerAlgorithmTasksHandler):
-    def __init__(self, worker_id: str):
-        self._worker_id = worker_id
-
-    @property
-    def worker_id(self) -> str:
-        return self._worker_id
-
-    @property
-    def worker_data_address(self) -> str:
-        pass
-
-    @property
-    def tasks_timeout(self) -> int:
-        pass
-
-    def get_tables(self, context_id: str) -> List[str]:
-        pass
-
-    def get_table_data(self, table_name: str) -> TableData:
-        pass
-
-    def create_table(
-        self, context_id: str, command_id: str, schema: TableSchema
-    ) -> TableInfo:
-        pass
-
-    def get_views(self, context_id: str) -> List[str]:
-        pass
-
-    def create_data_model_views(
-        self,
-        context_id: str,
-        command_id: str,
-        data_model: str,
-        datasets: List[str],
-        columns_per_view: List[List[str]],
-        filters: dict,
-        dropna: bool = True,
-        check_min_rows: bool = True,
-    ) -> List[TableInfo]:
-        pass
-
-    def get_merge_tables(self, context_id: str) -> List[str]:
-        pass
-
-    def create_merge_table(
-        self,
-        context_id: str,
-        command_id: str,
-        table_infos: List[TableInfo],
-    ) -> TableInfo:
-        pass
-
-    def get_remote_tables(self, context_id: str) -> List[str]:
-        pass
-
-    def create_remote_table(
-        self,
-        table_name: str,
-        table_schema: TableSchema,
-        original_db_url: str,
-    ) -> TableInfo:
-        pass
-
-    def queue_run_udf(
-        self,
-        context_id: str,
-        command_id: str,
-        func_name: str,
-        positional_args: WorkerUDFPosArguments,
-        keyword_args: WorkerUDFKeyArguments,
-        use_smpc: bool = False,
-        output_schema: Optional[TableSchema] = None,
-    ) -> AsyncResult:
-        pass
-
-    def get_queued_udf_result(
-        self, async_result: AsyncResult, request_id: str
-    ) -> List[WorkerUDFDTO]:
-        pass
-
-    def queue_cleanup(self, context_id: str):
-        pass
-
-    def wait_queued_cleanup_complete(self, async_result: AsyncResult, request_id: str):
-        pass
-
-    def validate_smpc_templates_match(
-        self,
-        context_id: str,
-        table_name: str,
-    ):
-        pass
-
-    def load_data_to_smpc_client(
-        self, context_id: str, table_name: str, jobid: str
-    ) -> str:
-        pass
-
-    def get_smpc_result(
-        self,
-        jobid: str,
-        context_id: str,
-        command_id: str,
-        command_subid: Optional[str] = "0",
-    ) -> TableInfo:
-        pass
