@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller.celery.tasks_handlers import Exareme2TasksHandler
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
     LocalWorkersTable,
 )
@@ -25,7 +25,7 @@ def create_dummy_worker(worker_id: str, context_id: str, request_id: str):
     return LocalWorker(
         request_id=request_id,
         context_id=context_id,
-        exareme2_tasks_handler=Exareme2TasksHandler("0", worker_id, "0", "0", 10, 10),
+        tasks_handler=Exareme2TasksHandler("0", worker_id, "0", "0", 10, 10),
         data_model="",
         datasets=[],
     )
@@ -39,7 +39,7 @@ def worker_mocks():
         LocalWorker(
             request_id="0",
             context_id="0",
-            exareme2_tasks_handler=Exareme2TasksHandler(
+            tasks_handler=Exareme2TasksHandler(
                 "0", worker_id, "0", "0", 10, 10
             ),
             data_model="",

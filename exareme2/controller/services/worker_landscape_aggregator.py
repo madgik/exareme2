@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from exareme2.controller import DeploymentType
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.tasks_handlers import WorkerInfoTasksHandler
+from exareme2.controller.services.worker_info_tasks_handler import WorkerInfoTasksHandler
 from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added

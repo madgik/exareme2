@@ -12,7 +12,7 @@ from typing import List
 import toml
 from pydantic import BaseModel
 
-from exareme2.controller.celery.tasks_handlers import Exareme2TasksHandler
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )

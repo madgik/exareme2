@@ -291,7 +291,7 @@ class AlgorithmExecutionEngine:
             output_schema=output_schema,
         )
 
-        worker_tables = self._workers.global_worker.get_queued_udf_result(task)
+        worker_tables = self._workers.global_worker.get_udf_result(task)
         global_worker_tables = self._convert_global_udf_results_to_global_worker_data(
             worker_tables
         )
@@ -540,7 +540,7 @@ class AlgorithmExecutionEngine:
     ) -> List[List[Tuple[LocalWorker, WorkerUDFDTO]]]:
         all_workers_results = {}
         for worker, task in tasks.items():
-            worker_results = worker.get_queued_udf_result(task)
+            worker_results = worker.get_udf_result(task)
             for index, worker_result in enumerate(worker_results):
                 if index not in all_workers_results:
                     all_workers_results[index] = []
