@@ -14,13 +14,15 @@ from pydantic import BaseModel
 from exareme2.controller import DeploymentType
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.services.worker_info_tasks_handler import WorkerInfoTasksHandler
 from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added
 from exareme2.controller.federation_info_logs import log_dataset_removed
 from exareme2.controller.federation_info_logs import log_worker_joined_federation
 from exareme2.controller.federation_info_logs import log_worker_left_federation
+from exareme2.controller.services.worker_info_tasks_handler import (
+    WorkerInfoTasksHandler,
+)
 from exareme2.controller.workers_addresses import WorkersAddressesFactory
 from exareme2.utils import AttrDict
 from exareme2.worker_communication import CommonDataElement

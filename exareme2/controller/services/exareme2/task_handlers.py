@@ -1,20 +1,28 @@
-from typing import List, Optional
+from typing import List
+from typing import Optional
 
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.celery.tasks_handlers import WorkerTasksHandler, WorkerTaskResult
-from exareme2.worker_communication import TableData, TableSchema, TableInfo, TableType, WorkerUDFPosArguments, \
-    WorkerUDFKeyArguments, WorkerUDFDTO, WorkerUDFResults
+from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
+from exareme2.controller.celery.tasks_handlers import WorkerTasksHandler
+from exareme2.worker_communication import TableData
+from exareme2.worker_communication import TableInfo
+from exareme2.worker_communication import TableSchema
+from exareme2.worker_communication import TableType
+from exareme2.worker_communication import WorkerUDFDTO
+from exareme2.worker_communication import WorkerUDFKeyArguments
+from exareme2.worker_communication import WorkerUDFPosArguments
+from exareme2.worker_communication import WorkerUDFResults
 
 
 class Exareme2TasksHandler:
     def __init__(
-            self,
-            request_id: str,
-            worker_id: str,
-            worker_queue_addr: str,
-            worker_db_addr: str,
-            tasks_timeout: int,
-            run_udf_task_timeout: int,
+        self,
+        request_id: str,
+        worker_id: str,
+        worker_queue_addr: str,
+        worker_db_addr: str,
+        tasks_timeout: int,
+        run_udf_task_timeout: int,
     ):
         self._request_id = request_id
         self._worker_id = worker_id
@@ -52,7 +60,7 @@ class Exareme2TasksHandler:
         return TableData.parse_raw(result)
 
     def create_table(
-            self, context_id: str, command_id: str, schema: TableSchema
+        self, context_id: str, command_id: str, schema: TableSchema
     ) -> TableInfo:
         result = self._worker_tasks_handler.create_table(
             request_id=self._request_id,
@@ -69,15 +77,15 @@ class Exareme2TasksHandler:
         ).get(self._tasks_timeout)
 
     def create_data_model_views(
-            self,
-            context_id: str,
-            command_id: str,
-            data_model: str,
-            datasets: List[str],
-            columns_per_view: List[List[str]],
-            filters: dict,
-            dropna: bool = True,
-            check_min_rows: bool = True,
+        self,
+        context_id: str,
+        command_id: str,
+        data_model: str,
+        datasets: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
     ) -> List[TableInfo]:
         result_str = self._worker_tasks_handler.create_data_model_views(
             request_id=self._request_id,
@@ -101,10 +109,10 @@ class Exareme2TasksHandler:
         ).get(self._tasks_timeout)
 
     def create_merge_table(
-            self,
-            context_id: str,
-            command_id: str,
-            table_infos: List[TableInfo],
+        self,
+        context_id: str,
+        command_id: str,
+        table_infos: List[TableInfo],
     ) -> TableInfo:
         result = self._worker_tasks_handler.create_merge_table(
             command_id=command_id,
@@ -124,10 +132,10 @@ class Exareme2TasksHandler:
         return result
 
     def create_remote_table(
-            self,
-            table_name: str,
-            table_schema: TableSchema,
-            monetdb_socket_address: str,
+        self,
+        table_name: str,
+        table_schema: TableSchema,
+        monetdb_socket_address: str,
     ) -> TableInfo:
         self._worker_tasks_handler.create_remote_table(
             request_id=self._request_id,
@@ -143,14 +151,14 @@ class Exareme2TasksHandler:
 
     # UDFs functionality
     def queue_run_udf(
-            self,
-            context_id: str,
-            command_id: str,
-            func_name: str,
-            positional_args: WorkerUDFPosArguments,
-            keyword_args: WorkerUDFKeyArguments,
-            use_smpc: bool = False,
-            output_schema: Optional[TableSchema] = None,
+        self,
+        context_id: str,
+        command_id: str,
+        func_name: str,
+        positional_args: WorkerUDFPosArguments,
+        keyword_args: WorkerUDFKeyArguments,
+        use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> WorkerTaskResult:
         return self._worker_tasks_handler.queue_run_udf(
             command_id=command_id,
@@ -164,15 +172,15 @@ class Exareme2TasksHandler:
         )
 
     def get_udf_result(
-            self, worker_task_result: WorkerTaskResult
+        self, worker_task_result: WorkerTaskResult
     ) -> List[WorkerUDFDTO]:
         result = worker_task_result.get(self._tasks_timeout)
         return (WorkerUDFResults.parse_raw(result)).results
 
     # ------------- SMPC functionality ---------------
     def validate_smpc_templates_match(
-            self,
-            table_name: str,
+        self,
+        table_name: str,
     ):
         self._worker_tasks_handler.validate_smpc_templates_match(
             request_id=self._request_id,
@@ -188,11 +196,11 @@ class Exareme2TasksHandler:
         return result
 
     def get_smpc_result(
-            self,
-            jobid: str,
-            context_id: str,
-            command_id: str,
-            command_subid: Optional[str] = "0",
+        self,
+        jobid: str,
+        context_id: str,
+        command_id: str,
+        command_subid: Optional[str] = "0",
     ) -> TableInfo:
         result = self._worker_tasks_handler.get_smpc_result(
             request_id=self._request_id,

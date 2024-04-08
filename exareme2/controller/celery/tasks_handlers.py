@@ -39,7 +39,7 @@ TASK_SIGNATURES: Final = {
 
 class WorkerTaskResult:
     def __init__(
-            self, celery_app: CeleryWrapper, async_result: AsyncResult, logger: Logger
+        self, celery_app: CeleryWrapper, async_result: AsyncResult, logger: Logger
     ):
         self._celery_app = celery_app
         self._async_result = async_result
@@ -89,7 +89,7 @@ class WorkerTasksHandler:
         )
 
     def create_table(
-            self, request_id: str, context_id: str, command_id: str, schema: TableSchema
+        self, request_id: str, context_id: str, command_id: str, schema: TableSchema
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["create_table"],
@@ -107,16 +107,16 @@ class WorkerTasksHandler:
         )
 
     def create_data_model_views(
-            self,
-            request_id: str,
-            context_id: str,
-            command_id: str,
-            data_model: str,
-            datasets: List[str],
-            columns_per_view: List[List[str]],
-            filters: dict,
-            dropna: bool = True,
-            check_min_rows: bool = True,
+        self,
+        request_id: str,
+        context_id: str,
+        command_id: str,
+        data_model: str,
+        datasets: List[str],
+        columns_per_view: List[List[str]],
+        filters: dict,
+        dropna: bool = True,
+        check_min_rows: bool = True,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["create_data_model_views"],
@@ -139,11 +139,11 @@ class WorkerTasksHandler:
         )
 
     def create_merge_table(
-            self,
-            request_id: str,
-            context_id: str,
-            command_id: str,
-            table_infos: List[TableInfo],
+        self,
+        request_id: str,
+        context_id: str,
+        command_id: str,
+        table_infos: List[TableInfo],
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["create_merge_table"],
@@ -161,11 +161,11 @@ class WorkerTasksHandler:
         )
 
     def create_remote_table(
-            self,
-            request_id: str,
-            table_name: str,
-            table_schema: TableSchema,
-            monetdb_socket_address: str,
+        self,
+        request_id: str,
+        table_name: str,
+        table_schema: TableSchema,
+        monetdb_socket_address: str,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["create_remote_table"],
@@ -176,15 +176,15 @@ class WorkerTasksHandler:
         )
 
     def queue_run_udf(
-            self,
-            request_id: str,
-            context_id: str,
-            command_id: str,
-            func_name: str,
-            positional_args: WorkerUDFPosArguments,
-            keyword_args: WorkerUDFKeyArguments,
-            use_smpc: bool = False,
-            output_schema: Optional[TableSchema] = None,
+        self,
+        request_id: str,
+        context_id: str,
+        command_id: str,
+        func_name: str,
+        positional_args: WorkerUDFPosArguments,
+        keyword_args: WorkerUDFKeyArguments,
+        use_smpc: bool = False,
+        output_schema: Optional[TableSchema] = None,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["run_udf"],
@@ -199,9 +199,9 @@ class WorkerTasksHandler:
         )
 
     def validate_smpc_templates_match(
-            self,
-            request_id: str,
-            table_name: str,
+        self,
+        request_id: str,
+        table_name: str,
     ):
         return self._queue_task(
             task_signature=TASK_SIGNATURES["validate_smpc_templates_match"],
@@ -210,7 +210,7 @@ class WorkerTasksHandler:
         )
 
     def load_data_to_smpc_client(
-            self, request_id: str, table_name: str, jobid: str
+        self, request_id: str, table_name: str, jobid: str
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["load_data_to_smpc_client"],
@@ -220,12 +220,12 @@ class WorkerTasksHandler:
         )
 
     def get_smpc_result(
-            self,
-            request_id: str,
-            jobid: str,
-            context_id: str,
-            command_id: str,
-            command_subid: Optional[str] = "0",
+        self,
+        request_id: str,
+        jobid: str,
+        context_id: str,
+        command_id: str,
+        command_subid: Optional[str] = "0",
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["get_smpc_result"],
@@ -252,7 +252,7 @@ class WorkerTasksHandler:
         )
 
     def queue_worker_datasets_per_data_model_task(
-            self, request_id: str
+        self, request_id: str
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["get_worker_datasets_per_data_model"],
@@ -261,7 +261,7 @@ class WorkerTasksHandler:
         )
 
     def queue_data_model_cdes_task(
-            self, request_id: str, data_model: str
+        self, request_id: str, data_model: str
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["get_data_model_cdes"],
@@ -271,7 +271,7 @@ class WorkerTasksHandler:
         )
 
     def queue_data_model_attributes_task(
-            self, request_id: str, data_model: str
+        self, request_id: str, data_model: str
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["get_data_model_attributes"],
@@ -283,7 +283,7 @@ class WorkerTasksHandler:
     # --------------- healthcheck task ---------------
     # NON-BLOCKING
     def queue_healthcheck_task(
-            self, request_id: str, check_db: bool
+        self, request_id: str, check_db: bool
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["healthcheck"],
@@ -291,5 +291,3 @@ class WorkerTasksHandler:
             check_db=check_db,
             priority=CELERY_APP_QUEUE_MAX_PRIORITY,
         )
-
-

@@ -3,7 +3,9 @@ import pytest
 from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.services.worker_info_tasks_handler import WorkerInfoTasksHandler
+from exareme2.controller.services.worker_info_tasks_handler import (
+    WorkerInfoTasksHandler,
+)
 from exareme2.worker import config as worker_config
 from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerTableDTO

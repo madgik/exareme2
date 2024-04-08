@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import pytest
 
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
     LocalWorkersTable,
 )
@@ -14,6 +13,7 @@ from exareme2.controller.services.exareme2.controller import DataModelViews
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
 from exareme2.controller.services.exareme2.controller import WorkersFederation
 from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.worker_communication import InsufficientDataError
 from exareme2.worker_communication import TableInfo
@@ -39,9 +39,7 @@ def worker_mocks():
         LocalWorker(
             request_id="0",
             context_id="0",
-            tasks_handler=Exareme2TasksHandler(
-                "0", worker_id, "0", "0", 10, 10
-            ),
+            tasks_handler=Exareme2TasksHandler("0", worker_id, "0", "0", 10, 10),
             data_model="",
             datasets=[],
         )

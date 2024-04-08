@@ -30,7 +30,6 @@ from exareme2.algorithms.specifications import TransformerName
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
@@ -49,6 +48,7 @@ from exareme2.controller.services.exareme2.execution_engine import (
 )
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations

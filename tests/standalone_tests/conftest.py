@@ -20,8 +20,8 @@ import toml
 from exareme2 import AttrDict
 from exareme2.algorithms.exareme2.udfgen import udfio
 from exareme2.controller.celery.app import CeleryAppFactory
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.logger import init_logger
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.worker_communication import TableSchema
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (

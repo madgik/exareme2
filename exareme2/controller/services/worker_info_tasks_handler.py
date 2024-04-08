@@ -2,7 +2,9 @@ from typing import Dict
 
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handlers import WorkerTasksHandler
-from exareme2.worker_communication import WorkerInfo, CommonDataElements, DataModelAttributes
+from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import WorkerInfo
 
 
 class WorkerInfoTasksHandler:
