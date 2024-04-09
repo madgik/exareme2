@@ -1,6 +1,6 @@
 from typing import Optional
 
-from exareme2.controller.services.worker_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 

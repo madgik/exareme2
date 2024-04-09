@@ -6,7 +6,7 @@ from exareme2.controller.services.exareme2 import set_controller
 from exareme2.controller.services.exareme2.cleaner import Cleaner
 from exareme2.controller.services.exareme2.controller import Controller
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.worker_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams

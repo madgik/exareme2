@@ -51,8 +51,10 @@ from exareme2.controller.services.exareme2.execution_engine import Workers
 from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.controller.services.exareme2.workers import LocalWorker
-from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations
-from exareme2.controller.services.worker_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
+    DatasetsLocations,
+)
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator

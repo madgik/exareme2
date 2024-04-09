@@ -389,12 +389,12 @@ def init_monetdb(c, port):
 
 
 @task
-def update_nla(c):
-    url = "http://localhost:5000/nla"
+def update_wla(c):
+    url = "http://localhost:5000/wla"
     response = requests.post(url)
     if response.status_code != 200:
-        raise Exception("Failed to update the NLA")
-    print("Successfully updated NLA.")
+        raise Exception("Failed to update the wla")
+    print("Successfully updated wla.")
 
 
 @task(iterable=["port"])
