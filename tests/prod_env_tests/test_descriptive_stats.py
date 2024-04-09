@@ -5,7 +5,6 @@ import pytest
 from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
 from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
 from tests.algorithm_validation_tests.exareme2.helpers import parse_response
-from tests.algorithm_validation_tests.test_descriptive_stats import compare_results
 
 algorithm_name = "descriptive_stats"
 

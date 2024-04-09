@@ -2,8 +2,8 @@ import pytest
 
 from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
 from tests.algorithm_validation_tests.exareme2.helpers import parse_response
-from tests.algorithm_validation_tests.test_naive_bayes_gaussian import cv_inputs
-from tests.algorithm_validation_tests.test_naive_bayes_gaussian import get_test_inputs
+from tests.algorithm_validation_tests.exareme2.test_naive_bayes_gaussian import cv_inputs
+from tests.algorithm_validation_tests.exareme2.test_naive_bayes_gaussian import get_test_inputs
 
 
 @pytest.mark.parametrize("test_input", get_test_inputs(cv_inputs))
