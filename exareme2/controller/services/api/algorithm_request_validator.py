@@ -21,7 +21,7 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
 )
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterEnumType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterType
-from exareme2.controller.services.worker_landscape_aggregator import (
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 from exareme2.data_filters import validate_filter

@@ -59,8 +59,8 @@ async def get_algorithms() -> str:
     return algorithm_specifications_dtos.json()
 
 
-@algorithms.route("/nla", methods=["POST"])
-async def update_nla() -> str:
+@algorithms.route("/wla", methods=["POST"])
+async def update_wla() -> str:
     get_worker_landscape_aggregator().update()
     return ""
 
