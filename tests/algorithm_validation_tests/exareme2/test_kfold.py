@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from tests.algorithm_validation_tests.helpers import algorithm_request
-from tests.algorithm_validation_tests.helpers import parse_response
+from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
+from tests.algorithm_validation_tests.exareme2.helpers import parse_response
 
 test_case_file = Path(__file__).parent / "expected" / "test_cases_kfold.json"
 with test_case_file.open() as f:

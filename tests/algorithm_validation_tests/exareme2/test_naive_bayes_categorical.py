@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
 from tests.algorithm_validation_tests.test_naive_bayes_gaussian import get_test_inputs
 
 fit_exp = (

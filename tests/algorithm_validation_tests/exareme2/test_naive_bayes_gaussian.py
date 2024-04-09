@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.algorithm_validation_tests.helpers import get_test_params
+from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
 
 assert_allclose = partial(np.testing.assert_allclose, rtol=1e-2, atol=1e-2)
 fit_exp = Path(__file__).parent / "expected" / "naive_bayes_gauss_fit_expected.json"
