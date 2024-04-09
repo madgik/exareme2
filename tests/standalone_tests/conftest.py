@@ -20,8 +20,8 @@ import toml
 from exareme2 import AttrDict
 from exareme2.algorithms.exareme2.udfgen import udfio
 from exareme2.controller.celery.app import CeleryAppFactory
-from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
 from exareme2.controller.logger import init_logger
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.worker_communication import TableSchema
 
 ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
@@ -965,7 +965,7 @@ def is_localworkertmp_worker_service_ok(worker_process):
     return psutil_proc.status() != "zombie" and psutil_proc.status() != "sleeping"
 
 
-def create_worker_tasks_handler_celery(worker_config_filepath):
+def create_exareme2_tasks_handler_celery(worker_config_filepath):
     with open(worker_config_filepath) as fp:
         tmp = toml.load(fp)
         worker_id = tmp["identifier"]
@@ -976,7 +976,7 @@ def create_worker_tasks_handler_celery(worker_config_filepath):
     queue_address = ":".join([str(queue_domain), str(queue_port)])
     db_address = ":".join([str(db_domain), str(db_port)])
 
-    return WorkerAlgorithmTasksHandler(
+    return Exareme2TasksHandler(
         request_id=REQUEST_ID,
         worker_id=worker_id,
         worker_queue_addr=queue_address,
@@ -989,21 +989,21 @@ def create_worker_tasks_handler_celery(worker_config_filepath):
 @pytest.fixture(scope="session")
 def globalworker_tasks_handler(globalworker_worker_service):
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, GLOBALWORKER_CONFIG_FILE)
-    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
+    tasks_handler = create_exareme2_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
 @pytest.fixture(scope="session")
 def localworker1_tasks_handler(localworker1_worker_service):
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER1_CONFIG_FILE)
-    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
+    tasks_handler = create_exareme2_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
 @pytest.fixture(scope="session")
 def localworker2_tasks_handler(localworker2_worker_service):
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, LOCALWORKER2_CONFIG_FILE)
-    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
+    tasks_handler = create_exareme2_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 
@@ -1012,7 +1012,7 @@ def localworkertmp_tasks_handler(localworkertmp_worker_service):
     worker_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER, LOCALWORKERTMP_CONFIG_FILE
     )
-    tasks_handler = create_worker_tasks_handler_celery(worker_config_filepath)
+    tasks_handler = create_exareme2_tasks_handler_celery(worker_config_filepath)
     return tasks_handler
 
 

@@ -12,7 +12,7 @@ from typing import List
 import toml
 from pydantic import BaseModel
 
-from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -167,10 +167,13 @@ class Cleaner:
                 context_id=entry.context_id,
             )
 
-        for task_handler, async_result in worker_task_handlers_to_async_results.items():
+        for (
+            task_handler,
+            worker_task_result,
+        ) in worker_task_handlers_to_async_results.items():
             try:
                 task_handler.wait_queued_cleanup_complete(
-                    async_result=async_result,
+                    worker_task_result=worker_task_result
                 )
             except Exception as exc:
                 failed_worker_ids.append(task_handler.worker_id)
@@ -279,10 +282,8 @@ class Cleaner:
         self._cleanup_files_processor._delete_all_entries()
 
 
-def _get_worker_task_handler(
-    worker_info: _WorkerInfoDTO,
-) -> WorkerAlgorithmTasksHandler:
-    return WorkerAlgorithmTasksHandler(
+def _get_worker_task_handler(worker_info: _WorkerInfoDTO) -> Exareme2TasksHandler:
+    return Exareme2TasksHandler(
         request_id=CLEANER_REQUEST_ID,
         worker_id=worker_info.worker_id,
         worker_queue_addr=worker_info.queue_address,

@@ -14,13 +14,15 @@ from pydantic import BaseModel
 from exareme2.controller import DeploymentType
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.worker_info_tasks_handler import WorkerInfoTasksHandler
 from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added
 from exareme2.controller.federation_info_logs import log_dataset_removed
 from exareme2.controller.federation_info_logs import log_worker_joined_federation
 from exareme2.controller.federation_info_logs import log_worker_left_federation
+from exareme2.controller.services.worker_info_tasks_handler import (
+    WorkerInfoTasksHandler,
+)
 from exareme2.controller.workers_addresses import WorkersAddressesFactory
 from exareme2.utils import AttrDict
 from exareme2.worker_communication import CommonDataElement
@@ -342,41 +344,32 @@ class WorkerLandscapeAggregator:
     def healthcheck(self):
         worker_info_tasks_handlers = [
             WorkerInfoTasksHandler(
-                worker_queue_addr=worker_socket_addr,
+                worker_queue_addr=worker_queue_addr,
                 tasks_timeout=self._worker_info_tasks_timeout,
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
-            for worker_socket_addr in WorkersAddressesFactory(
+            for worker_queue_addr in WorkersAddressesFactory(
                 self._deployment_type, self._localworkers
             )
             .get_workers_addresses()
             .socket_addresses
         ]
         for task_handler in worker_info_tasks_handlers:
-            async_result = task_handler.queue_healthcheck_task(
-                WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID, False
-            )
-            task_handler.result_healthcheck(
-                async_result, WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID
-            )
+            task_handler.get_healthcheck_task(False)
 
     def _get_workers_info(self, workers_socket_addr: List[str]) -> List[WorkerInfo]:
         worker_info_tasks_handlers = [
             WorkerInfoTasksHandler(
-                worker_queue_addr=worker_socket_addr,
+                worker_queue_addr=worker_queue_addr,
                 tasks_timeout=self._worker_info_tasks_timeout,
+                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
             )
-            for worker_socket_addr in workers_socket_addr
+            for worker_queue_addr in workers_socket_addr
         ]
         workers_info = []
         for tasks_handler in worker_info_tasks_handlers:
             try:
-                async_result = tasks_handler.queue_worker_info_task(
-                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID
-                )
-                result = tasks_handler.result_worker_info_task(
-                    async_result=async_result,
-                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
-                )
+                result = tasks_handler.get_worker_info_task()
                 workers_info.append(result)
             except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
                 # just log the exception do not reraise it
@@ -388,21 +381,16 @@ class WorkerLandscapeAggregator:
 
     def _get_worker_datasets_per_data_model(
         self,
-        worker_socket_addr: str,
+        worker_queue_addr: str,
     ) -> Dict[str, Dict[str, str]]:
         tasks_handler = WorkerInfoTasksHandler(
-            worker_queue_addr=worker_socket_addr,
+            worker_queue_addr=worker_queue_addr,
             tasks_timeout=self._worker_info_tasks_timeout,
+            request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
         )
         try:
-            async_result = tasks_handler.queue_worker_datasets_per_data_model_task(
-                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID
-            )
             datasets_per_data_model = (
-                tasks_handler.result_worker_datasets_per_data_model_task(
-                    async_result=async_result,
-                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
-                )
+                tasks_handler.get_worker_datasets_per_data_model_task()
             )
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
             # just log the exception do not reraise it
@@ -415,19 +403,16 @@ class WorkerLandscapeAggregator:
         return datasets_per_data_model
 
     def _get_worker_cdes(
-        self, worker_socket_addr: str, data_model: str
+        self, worker_queue_addr: str, data_model: str
     ) -> CommonDataElements:
         tasks_handler = WorkerInfoTasksHandler(
-            worker_queue_addr=worker_socket_addr,
+            worker_queue_addr=worker_queue_addr,
             tasks_timeout=self._worker_info_tasks_timeout,
+            request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
         )
         try:
-            async_result = tasks_handler.queue_data_model_cdes_task(
-                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
-            )
-            worker_cdes = tasks_handler.result_data_model_cdes_task(
-                async_result=async_result,
-                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            worker_cdes = tasks_handler.get_data_model_cdes_task(
+                data_model=data_model,
             )
             return worker_cdes
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
@@ -438,19 +423,16 @@ class WorkerLandscapeAggregator:
             self._logger.error(traceback.format_exc())
 
     def _get_data_model_attributes(
-        self, worker_socket_addr: str, data_model: str
+        self, worker_queue_addr: str, data_model: str
     ) -> DataModelAttributes:
         tasks_handler = WorkerInfoTasksHandler(
-            worker_queue_addr=worker_socket_addr,
+            worker_queue_addr=worker_queue_addr,
             tasks_timeout=self._worker_info_tasks_timeout,
+            request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
         )
         try:
-            async_result = tasks_handler.queue_data_model_attributes_task(
-                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID, data_model=data_model
-            )
-            attributes = tasks_handler.result_data_model_attributes_task(
-                async_result=async_result,
-                request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+            attributes = tasks_handler.get_data_model_attributes_task(
+                data_model=data_model
             )
             return attributes
         except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:

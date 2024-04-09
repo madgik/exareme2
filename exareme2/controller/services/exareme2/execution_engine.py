@@ -11,6 +11,7 @@ from typing import Union
 from exareme2 import DType
 from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmRequestSystemFlags,
 )
@@ -290,7 +291,7 @@ class AlgorithmExecutionEngine:
             output_schema=output_schema,
         )
 
-        worker_tables = self._workers.global_worker.get_queued_udf_result(task)
+        worker_tables = self._workers.global_worker.get_udf_result(task)
         global_worker_tables = self._convert_global_udf_results_to_global_worker_data(
             worker_tables
         )
@@ -535,11 +536,11 @@ class AlgorithmExecutionEngine:
                     return True
 
     def _get_local_run_udfs_results(
-        self, tasks: Dict[LocalWorker, AsyncResult]
+        self, tasks: Dict[LocalWorker, WorkerTaskResult]
     ) -> List[List[Tuple[LocalWorker, WorkerUDFDTO]]]:
         all_workers_results = {}
         for worker, task in tasks.items():
-            worker_results = worker.get_queued_udf_result(task)
+            worker_results = worker.get_udf_result(task)
             for index, worker_result in enumerate(worker_results):
                 if index not in all_workers_results:
                     all_workers_results[index] = []
@@ -558,7 +559,7 @@ class AlgorithmExecutionEngine:
                 isinstance(r, type(workers_result[0])) for r in workers_result[1:]
             ):
                 raise TypeError(
-                    f"The WORKERs returned results of different type. Results: {workers_result}"
+                    f"The NODEs returned results of different type. Results: {workers_result}"
                 )
 
         all_workers_results = list(all_workers_results.values())

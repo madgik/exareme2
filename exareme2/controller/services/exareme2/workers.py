@@ -4,12 +4,12 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
+from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import WorkerSMPCDTO
-from exareme2.worker_communication import WorkerTableDTO
 from exareme2.worker_communication import WorkerUDFDTO
 from exareme2.worker_communication import WorkerUDFKeyArguments
 from exareme2.worker_communication import WorkerUDFPosArguments
@@ -68,7 +68,7 @@ class _IWorker(ABC):
         pass
 
     @abstractmethod
-    def get_queued_udf_result(self, async_result: AsyncResult) -> List[WorkerUDFDTO]:
+    def get_udf_result(self, async_result: AsyncResult) -> List[WorkerUDFDTO]:
         pass
 
     @abstractmethod
@@ -81,10 +81,10 @@ class _Worker(_IWorker, ABC):
         self,
         request_id: str,
         context_id: str,
-        worker_tasks_handler: IWorkerAlgorithmTasksHandler,
+        tasks_handler: Exareme2TasksHandler,
     ):
-        self._worker_tasks_handler: IWorkerAlgorithmTasksHandler = worker_tasks_handler
-        self.worker_id: str = self._worker_tasks_handler.worker_id
+        self._tasks_handler = tasks_handler
+        self.worker_id: str = self._tasks_handler.worker_id
         self.request_id: str = request_id
         self.context_id: str = context_id
 
@@ -93,21 +93,21 @@ class _Worker(_IWorker, ABC):
 
     @property
     def worker_address(self) -> str:
-        return self._worker_tasks_handler.worker_data_address
+        return self._tasks_handler.worker_data_address
 
     # TABLES functionality
     def get_tables(self) -> List[str]:
-        return self._worker_tasks_handler.get_tables(
+        return self._tasks_handler.get_tables(
             context_id=self.context_id,
         )
 
     def get_table_data(self, table_name: str) -> TableData:
-        return self._worker_tasks_handler.get_table_data(
+        return self._tasks_handler.get_table_data(
             table_name=table_name,
         )
 
     def create_table(self, command_id: str, schema: TableSchema) -> TableInfo:
-        return self._worker_tasks_handler.create_table(
+        return self._tasks_handler.create_table(
             context_id=self.context_id,
             command_id=command_id,
             schema=schema,
@@ -115,16 +115,16 @@ class _Worker(_IWorker, ABC):
 
     # VIEWS functionality
     def get_views(self) -> List[str]:
-        return self._worker_tasks_handler.get_views(context_id=self.context_id)
+        return self._tasks_handler.get_views(context_id=self.context_id)
 
     # MERGE TABLES functionality
     def get_merge_tables(self) -> List[str]:
-        return self._worker_tasks_handler.get_merge_tables(context_id=self.context_id)
+        return self._tasks_handler.get_merge_tables(context_id=self.context_id)
 
     def create_merge_table(
         self, command_id: str, table_infos: List[TableInfo]
     ) -> TableInfo:
-        return self._worker_tasks_handler.create_merge_table(
+        return self._tasks_handler.create_merge_table(
             context_id=self.context_id,
             command_id=command_id,
             table_infos=table_infos,
@@ -132,7 +132,7 @@ class _Worker(_IWorker, ABC):
 
     # REMOTE TABLES functionality
     def get_remote_tables(self) -> List[str]:
-        return self._worker_tasks_handler.get_remote_tables(context_id=self.context_id)
+        return self._tasks_handler.get_remote_tables(context_id=self.context_id)
 
     def create_remote_table(
         self,
@@ -141,10 +141,10 @@ class _Worker(_IWorker, ABC):
         native_worker: "_Worker",
     ) -> TableInfo:
         monetdb_socket_addr = native_worker.worker_address
-        return self._worker_tasks_handler.create_remote_table(
+        return self._tasks_handler.create_remote_table(
             table_name=table_name,
             table_schema=table_schema,
-            original_db_url=monetdb_socket_addr,
+            monetdb_socket_address=monetdb_socket_addr,
         )
 
     # UDFs functionality
@@ -156,8 +156,8 @@ class _Worker(_IWorker, ABC):
         keyword_args: WorkerUDFKeyArguments,
         use_smpc: bool = False,
         output_schema: Optional[TableSchema] = None,
-    ) -> AsyncResult:
-        return self._worker_tasks_handler.queue_run_udf(
+    ) -> WorkerTaskResult:
+        return self._tasks_handler.queue_run_udf(
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -168,12 +168,12 @@ class _Worker(_IWorker, ABC):
         )
 
     def get_udfs(self, algorithm_name) -> List[str]:
-        return self._worker_tasks_handler.get_udfs(algorithm_name=algorithm_name)
+        return self._tasks_handler.get_udfs(algorithm_name=algorithm_name)
 
     def get_run_udf_query(
         self, command_id: str, func_name: str, positional_args: List[WorkerUDFDTO]
     ) -> Tuple[str, str]:
-        return self._worker_tasks_handler.get_run_udf_query(
+        return self._tasks_handler.get_run_udf_query(
             context_id=self.context_id,
             command_id=command_id,
             func_name=func_name,
@@ -186,11 +186,11 @@ class LocalWorker(_Worker):
         self,
         request_id: str,
         context_id: str,
-        worker_tasks_handler: IWorkerAlgorithmTasksHandler,
+        tasks_handler: Exareme2TasksHandler,
         data_model: str,
         datasets: List[str],
     ):
-        super().__init__(request_id, context_id, worker_tasks_handler)
+        super().__init__(request_id, context_id, tasks_handler)
         self._data_model = data_model
         self._datasets = datasets
 
@@ -217,10 +217,6 @@ class LocalWorker(_Worker):
         ----------
         command_id : str
             The id of the command.
-        data_model : str
-            The data model of the view.
-        datasets : str
-            The datasets that will be included in the view.
         columns_per_view : List[List[str]]
             A list of column names' for each view to be created.
         filters : dict
@@ -235,7 +231,7 @@ class LocalWorker(_Worker):
         List[TableInfo]
             A list of views(TableInfo) created, corresponding to the columns_per_view list.
         """
-        return self._worker_tasks_handler.create_data_model_views(
+        return self._tasks_handler.create_data_model_views(
             context_id=self.context_id,
             command_id=command_id,
             data_model=self._data_model,
@@ -246,19 +242,21 @@ class LocalWorker(_Worker):
             check_min_rows=check_min_rows,
         )
 
-    def get_queued_udf_result(self, async_result: AsyncResult) -> List[WorkerUDFDTO]:
-        return self._worker_tasks_handler.get_queued_udf_result(
-            async_result=async_result
-        )
+    def get_udf_result(
+        self, worker_task_result: WorkerTaskResult
+    ) -> List[WorkerUDFDTO]:
+        return self._tasks_handler.get_udf_result(worker_task_result)
 
     def load_data_to_smpc_client(self, table_name: str, jobid: str) -> str:
-        return self._worker_tasks_handler.load_data_to_smpc_client(table_name, jobid)
+        return self._tasks_handler.load_data_to_smpc_client(table_name, jobid)
 
 
 class GlobalWorker(_Worker):
-    def get_queued_udf_result(self, async_result: AsyncResult) -> List[WorkerTableDTO]:
-        worker_udf_dtos = self._worker_tasks_handler.get_queued_udf_result(
-            async_result=async_result
+    def get_udf_result(
+        self, worker_task_result: WorkerTaskResult
+    ) -> List[WorkerUDFDTO]:
+        worker_udf_dtos = self._tasks_handler.get_udf_result(
+            worker_task_result=worker_task_result
         )
         for dto in worker_udf_dtos:
             if isinstance(dto, WorkerSMPCDTO):
@@ -269,7 +267,7 @@ class GlobalWorker(_Worker):
         self,
         table_name: str,
     ):
-        self._worker_tasks_handler.validate_smpc_templates_match(table_name)
+        self._tasks_handler.validate_smpc_templates_match(table_name)
 
     def get_smpc_result(
         self,
@@ -277,7 +275,7 @@ class GlobalWorker(_Worker):
         command_id: str,
         command_subid: Optional[str] = "0",
     ) -> TableInfo:
-        return self._worker_tasks_handler.get_smpc_result(
+        return self._tasks_handler.get_smpc_result(
             jobid=jobid,
             context_id=self.context_id,
             command_id=str(command_id),

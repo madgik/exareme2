@@ -30,8 +30,6 @@ from exareme2.algorithms.specifications import TransformerName
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
-from exareme2.controller.celery.worker_tasks_handler import IWorkerAlgorithmTasksHandler
-from exareme2.controller.celery.worker_tasks_handler import WorkerAlgorithmTasksHandler
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
@@ -50,6 +48,7 @@ from exareme2.controller.services.exareme2.execution_engine import (
 )
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.controller.services.worker_landscape_aggregator import DatasetsLocations
@@ -64,8 +63,8 @@ from exareme2.worker_communication import WorkerInfo
 
 @dataclass(frozen=True)
 class WorkersTasksHandlers:
-    global_worker_tasks_handler: Optional[IWorkerAlgorithmTasksHandler]
-    local_workers_tasks_handlers: List[IWorkerAlgorithmTasksHandler]
+    global_worker_tasks_handler: Optional[Exareme2TasksHandler]
+    local_workers_tasks_handlers: List[Exareme2TasksHandler]
 
 
 class WorkerUnresponsiveException(Exception):
@@ -438,7 +437,7 @@ class WorkersFederation:
         # Local Workers
         localworkersinfo = self._get_workerinfo_for_requested_datasets()
         tasks_handlers = [
-            _create_worker_tasks_handler(
+            _create_tasks_handler(
                 request_id=self._request_id,
                 workerinfo=workerinfo,
                 tasks_timeout=self._celery_tasks_timeout,
@@ -457,13 +456,13 @@ class WorkersFederation:
             context_id=self._context_id,
             data_model=self._data_model,
             workerids_datasets=workerids_datasets,
-            workers_tasks_handlers=tasks_handlers,
+            exareme2_tasks_handlers=tasks_handlers,
         )
 
         # Global Worker
         globalworkerinfo = self._get_globalworkerinfo()
         if globalworkerinfo:
-            tasks_handler = _create_worker_tasks_handler(
+            tasks_handler = _create_tasks_handler(
                 request_id=self._request_id,
                 workerinfo=globalworkerinfo,
                 tasks_timeout=self._celery_tasks_timeout,
@@ -472,7 +471,7 @@ class WorkersFederation:
             globalworker = _create_global_worker(
                 request_id=self._request_id,
                 context_id=self._context_id,
-                worker_tasks_handler=tasks_handler,
+                tasks_handler=tasks_handler,
             )
             workers = Workers(global_worker=globalworker, local_workers=localworkers)
 
@@ -902,13 +901,13 @@ class Controller:
         )
 
 
-def _create_worker_tasks_handler(
+def _create_tasks_handler(
     request_id: str,
     workerinfo: WorkerInfo,
     tasks_timeout: int,
     run_udf_task_timeout: int,
 ):
-    return WorkerAlgorithmTasksHandler(
+    return Exareme2TasksHandler(
         request_id=request_id,
         worker_id=workerinfo.id,
         worker_queue_addr=str(workerinfo.ip) + ":" + str(workerinfo.port),
@@ -923,28 +922,28 @@ def _create_local_workers(
     context_id: str,
     data_model: str,
     workerids_datasets: Dict[str, List[str]],
-    workers_tasks_handlers: List[IWorkerAlgorithmTasksHandler],
+    exareme2_tasks_handlers: List[Exareme2TasksHandler],
 ):
     local_workers = []
-    for worker_tasks_handler in workers_tasks_handlers:
-        worker_id = worker_tasks_handler.worker_id
+    for tasks_handler in exareme2_tasks_handlers:
+        worker_id = tasks_handler.worker_id
         worker = LocalWorker(
             request_id=request_id,
             context_id=context_id,
             data_model=data_model,
             datasets=workerids_datasets[worker_id],
-            worker_tasks_handler=worker_tasks_handler,
+            tasks_handler=tasks_handler,
         )
         local_workers.append(worker)
 
     return local_workers
 
 
-def _create_global_worker(request_id, context_id, worker_tasks_handler):
+def _create_global_worker(request_id, context_id, tasks_handler):
     global_worker: GlobalWorker = GlobalWorker(
         request_id=request_id,
         context_id=context_id,
-        worker_tasks_handler=worker_tasks_handler,
+        tasks_handler=tasks_handler,
     )
     return global_worker
 
