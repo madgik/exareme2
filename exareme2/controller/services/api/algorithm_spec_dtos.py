@@ -304,7 +304,7 @@ class Specifications:
 
     @staticmethod
     def process_spec_content(
-        self, spec_content, spec_name, all_algorithms, all_transformers
+        spec_content, spec_name, all_algorithms, all_transformers
     ):
         try:
             spec_json = json.loads(spec_content)
