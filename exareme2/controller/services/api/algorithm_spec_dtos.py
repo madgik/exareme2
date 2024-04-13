@@ -303,9 +303,7 @@ class Specifications:
             return specifications_file.read()
 
     @staticmethod
-    def process_spec_content(
-        spec_content, spec_name, all_algorithms, all_transformers
-    ):
+    def process_spec_content(spec_content, spec_name, all_algorithms, all_transformers):
         try:
             spec_json = json.loads(spec_content)
             spec_type = spec_json["type"]
