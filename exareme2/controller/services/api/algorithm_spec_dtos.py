@@ -267,9 +267,6 @@ def _get_algorithm_specifications_dtos(
 
 
 class Specifications:
-    enabled_algorithms: Dict[Tuple[str, str], AlgorithmSpecification]
-    enabled_transformers: Dict[str, TransformerSpecification]
-
     def __init__(self):
         (
             self.enabled_algorithms,
@@ -284,52 +281,50 @@ class Specifications:
 
     @staticmethod
     def get_specs_paths():
-        return [Path(specs_path) for specs_path in ALGORITHM_FOLDERS.split(",")]
+        return [Path(specs_path.strip()) for specs_path in ALGORITHM_FOLDERS.split(",")]
 
     def parse_specifications(self, specs_path, all_algorithms, all_transformers):
         for spec_property_path in specs_path.glob("*.json"):
-            try:
-                with open(spec_property_path, "r") as specifications_file:
-                    spec_content = specifications_file.read()
+            self.process_spec_file(spec_property_path, all_algorithms, all_transformers)
 
-                spec_type = json.loads(spec_content)["type"]
-                if TransformerType.EXAREME2_TRANSFORMER.value in spec_type:
-                    transformer_spec = TransformerSpecification.parse_raw(spec_content)
-                    all_transformers[transformer_spec.name] = transformer_spec
-                else:
-                    algorithm_specification = AlgorithmSpecification.parse_raw(
-                        spec_content
-                    )
-                    all_algorithms[
-                        (algorithm_specification.name, algorithm_specification.type)
-                    ] = algorithm_specification
+    def process_spec_file(self, spec_property_path, all_algorithms, all_transformers):
+        try:
+            spec_content = self.read_spec_file(spec_property_path)
+            self.process_spec_content(
+                spec_content, spec_property_path.name, all_algorithms, all_transformers
+            )
+        except Exception as error:
+            logging.error(f"Error processing {spec_property_path.name}: {error}")
+            raise
 
-            except json.JSONDecodeError as json_err:
-                logging.error(
-                    f"Error decoding JSON from {spec_property_path.name}: {json_err}"
-                )
-                raise
-            except KeyError as key_err:
-                logging.error(f"Missing key {key_err} in {spec_property_path.name}")
-                raise
-            except Exception as e:
-                logging.error(
-                    f"Unexpected error parsing property file: {spec_property_path.name}"
-                )
-                raise e
+    @staticmethod
+    def read_spec_file(spec_property_path):
+        with open(spec_property_path, "r") as specifications_file:
+            return specifications_file.read()
+
+    @staticmethod
+    def process_spec_content(
+        self, spec_content, spec_name, all_algorithms, all_transformers
+    ):
+        try:
+            spec_json = json.loads(spec_content)
+            spec_type = spec_json["type"]
+            if TransformerType.EXAREME2_TRANSFORMER.value in spec_type:
+                transformer_spec = TransformerSpecification.parse_raw(spec_content)
+                all_transformers[transformer_spec.name] = transformer_spec
+            else:
+                algorithm_specification = AlgorithmSpecification.parse_raw(spec_content)
+                all_algorithms[
+                    (algorithm_specification.name, algorithm_specification.type)
+                ] = algorithm_specification
+        except KeyError as e:
+            logging.error(f"Missing key {e} in {spec_name}")
+            raise
 
     @staticmethod
     def filter_enabled_specifications(all_algorithms, all_transformers):
-        enabled_algorithms = {
-            (algorithm.name, algorithm.type): algorithm
-            for algorithm in all_algorithms.values()
-            if algorithm.enabled
-        }
-        enabled_transformers = {
-            transformer.name: transformer
-            for transformer in all_transformers.values()
-            if transformer.enabled
-        }
+        enabled_algorithms = {k: v for k, v in all_algorithms.items() if v.enabled}
+        enabled_transformers = {k: v for k, v in all_transformers.items() if v.enabled}
         return enabled_algorithms, enabled_transformers
 
 
