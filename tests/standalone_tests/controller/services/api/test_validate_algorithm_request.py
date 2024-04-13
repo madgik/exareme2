@@ -1,6 +1,6 @@
 import pytest
 
-from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import AlgorithmSpecification, AlgorithmType, TransformerType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -15,8 +15,6 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
-from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
-from exareme2.controller.services.api.algorithm_request_dtos import TransformerType
 from exareme2.controller.services.api.algorithm_request_validator import BadRequest
 from exareme2.controller.services.api.algorithm_request_validator import (
     validate_algorithm_request,

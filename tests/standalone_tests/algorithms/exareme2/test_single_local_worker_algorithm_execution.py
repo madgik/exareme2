@@ -14,7 +14,7 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
-from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
+from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.controller.services.exareme2.controller import Controller
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
 from exareme2.controller.services.exareme2.controller import WorkersFederation

@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, unique
 from enum import unique
 from typing import Any
 from typing import Dict
@@ -8,8 +8,16 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import root_validator
 
-from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
-from exareme2.controller.services.api.algorithm_request_dtos import TransformerType
+
+@unique
+class AlgorithmType(Enum):
+    EXAREME2 = "exareme2"
+    FLOWER = "flower"
+
+
+@unique
+class TransformerType(Enum):
+    EXAREME2_TRANSFORMER = "exareme2_transformer"
 
 
 @unique

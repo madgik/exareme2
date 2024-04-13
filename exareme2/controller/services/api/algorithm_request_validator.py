@@ -5,7 +5,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import AlgorithmSpecification, AlgorithmType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -20,7 +20,6 @@ from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmReq
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmRequestSystemFlags,
 )
-from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterEnumType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterType
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (

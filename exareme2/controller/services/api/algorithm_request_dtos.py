@@ -8,16 +8,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-
-@unique
-class AlgorithmType(Enum):
-    EXAREME2 = "exareme2"
-    FLOWER = "flower"
-
-
-@unique
-class TransformerType(Enum):
-    EXAREME2_TRANSFORMER = "exareme2_transformer"
+from exareme2.algorithms.specifications import AlgorithmType
 
 
 @unique
