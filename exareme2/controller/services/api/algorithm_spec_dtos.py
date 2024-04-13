@@ -11,7 +11,11 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from exareme2 import ALGORITHM_FOLDERS
-from exareme2.algorithms.specifications import AlgorithmSpecification, AlgorithmType, TransformerType
+from exareme2.algorithms.specifications import (
+    AlgorithmSpecification,
+    AlgorithmType,
+    TransformerType,
+)
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
