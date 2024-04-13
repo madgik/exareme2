@@ -3,6 +3,7 @@
     "desc": "Computes the principal components of a set of correlated variables. The principal components can then be used to represent the original data with reduced dimensions.",
     "label": "Principal Component Analysis (PCA)",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "Variables",

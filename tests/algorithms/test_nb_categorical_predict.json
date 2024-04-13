@@ -1,5 +1,5 @@
 {
-    "name": "naive_bayes_categorical_cv",
+    "name": "test_nb_categorical_predict",
     "desc": "Uses Bayes' theorem to calculate the probability of each class given a set of nominal features assuming independence between features. It then classifies data points based on the class with the highest probability.",
     "label": "Categorical Naive Bayes classifier with cross-validation",
     "enabled": true,
@@ -32,18 +32,5 @@
             "multiple": true
         }
     },
-    "parameters": {
-        "n_splits": {
-            "label": "Number of splits",
-            "desc": "Number of splits for cross-validation.",
-            "types": [
-                "int"
-            ],
-            "notblank": true,
-            "multiple": false,
-            "default": 5,
-            "min": 2,
-            "max": 20
-        }
-    }
+    "parameters": {}
 }

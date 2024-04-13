@@ -3,6 +3,7 @@
     "desc": "Measure the linear relationship between two continuous variables. It calculates the correlation coefficient (range: -1 to 1). The correlation matrix will be computed between all possible pairs of variables and covariates. Leaving covariates empty is equivalent to having covariates = variables.",
     "label": "Pearson Correlation Matrix",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "Variables",

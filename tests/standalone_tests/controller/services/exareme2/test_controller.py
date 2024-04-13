@@ -13,7 +13,7 @@ from exareme2.controller.services.exareme2.controller import DataModelViews
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
 from exareme2.controller.services.exareme2.controller import WorkersFederation
 from exareme2.controller.services.exareme2.execution_engine import Workers
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
+from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.worker_communication import InsufficientDataError
 from exareme2.worker_communication import TableInfo

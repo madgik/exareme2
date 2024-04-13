@@ -3,6 +3,7 @@
     "desc": "Statistical method that models the relationship between a dependent variable and one or more independent variables by fitting a linear model to the observed data by ordinary least squares (OLS).",
     "label": "Linear Regression",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "Variable (dependent)",

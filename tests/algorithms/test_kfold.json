@@ -1,0 +1,48 @@
+{
+    "name":"test_kfold",
+    "desc":"",
+    "label":"",
+    "enabled":true,
+    "type": "exareme2",
+    "inputdata":
+    {
+        "x":{
+            "name":"x",
+            "label":"",
+            "desc":"",
+            "types":["real", "int", "text"],
+            "stattypes":["numerical", "nominal"],
+            "notblank":true,
+            "multiple":true
+        },
+        "y": {
+            "name": "y",
+            "label": "",
+            "desc": "",
+            "types": [
+                "real",
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "numerical",
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters":{
+        "n_splits":{
+            "name": "n_splits",
+            "label":"Number of splits",
+            "desc":"Number of splits for cross-validation.",
+            "types":["int"],
+            "notblank":true,
+            "multiple":false,
+            "default":5,
+            "min":2,
+            "max":20
+        }
+    }
+}

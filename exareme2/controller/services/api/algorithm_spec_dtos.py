@@ -1,11 +1,16 @@
+import json
+import logging
 from abc import ABC
+from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from pydantic import BaseModel
 
+from exareme2 import ALGORITHM_FOLDERS
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
@@ -16,11 +21,11 @@ from exareme2.algorithms.specifications import ParameterEnumType
 from exareme2.algorithms.specifications import ParameterSpecification
 from exareme2.algorithms.specifications import ParameterType
 from exareme2.algorithms.specifications import TransformerSpecification
-from exareme2.controller import algorithms_specifications
-from exareme2.controller import transformers_specifications
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmRequestSystemFlags,
 )
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
+from exareme2.controller.services.api.algorithm_request_dtos import TransformerType
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -80,6 +85,7 @@ class AlgorithmSpecificationDTO(ImmutableBaseModel):
     parameters: Optional[Dict[str, ParameterSpecificationDTO]]
     preprocessing: Optional[List[TransformerSpecificationDTO]]
     flags: Optional[List[str]]
+    type: AlgorithmType
 
 
 class AlgorithmSpecificationsDTO(ImmutableBaseModel):
@@ -244,6 +250,7 @@ def _convert_algorithm_specification_to_dto(
             for spec in _get_algorithm_compatible_transformers(spec.name, transformers)
         ],
         flags=[AlgorithmRequestSystemFlags.SMPC],
+        type=spec.type,
     )
 
 
@@ -259,6 +266,77 @@ def _get_algorithm_specifications_dtos(
     )
 
 
+class Specifications:
+    enabled_algorithms: Dict[Tuple[str, str], AlgorithmSpecification]
+    enabled_transformers: Dict[str, TransformerSpecification]
+
+    def __init__(self):
+        (
+            self.enabled_algorithms,
+            self.enabled_transformers,
+        ) = self.load_and_parse_specifications()
+
+    def load_and_parse_specifications(self):
+        all_algorithms, all_transformers = {}, {}
+        for specs_path in self.get_specs_paths():
+            self.parse_specifications(specs_path, all_algorithms, all_transformers)
+        return self.filter_enabled_specifications(all_algorithms, all_transformers)
+
+    @staticmethod
+    def get_specs_paths():
+        return [Path(specs_path) for specs_path in ALGORITHM_FOLDERS.split(",")]
+
+    def parse_specifications(self, specs_path, all_algorithms, all_transformers):
+        for spec_property_path in specs_path.glob("*.json"):
+            try:
+                with open(spec_property_path, "r") as specifications_file:
+                    spec_content = specifications_file.read()
+
+                spec_type = json.loads(spec_content)["type"]
+                if TransformerType.EXAREME2_TRANSFORMER.value in spec_type:
+                    transformer_spec = TransformerSpecification.parse_raw(spec_content)
+                    all_transformers[transformer_spec.name] = transformer_spec
+                else:
+                    algorithm_specification = AlgorithmSpecification.parse_raw(
+                        spec_content
+                    )
+                    all_algorithms[
+                        (algorithm_specification.name, algorithm_specification.type)
+                    ] = algorithm_specification
+
+            except json.JSONDecodeError as json_err:
+                logging.error(
+                    f"Error decoding JSON from {spec_property_path.name}: {json_err}"
+                )
+                raise
+            except KeyError as key_err:
+                logging.error(f"Missing key {key_err} in {spec_property_path.name}")
+                raise
+            except Exception as e:
+                logging.error(
+                    f"Unexpected error parsing property file: {spec_property_path.name}"
+                )
+                raise e
+
+    @staticmethod
+    def filter_enabled_specifications(all_algorithms, all_transformers):
+        enabled_algorithms = {
+            (algorithm.name, algorithm.type): algorithm
+            for algorithm in all_algorithms.values()
+            if algorithm.enabled
+        }
+        enabled_transformers = {
+            transformer.name: transformer
+            for transformer in all_transformers.values()
+            if transformer.enabled
+        }
+        return enabled_algorithms, enabled_transformers
+
+
+specifications = Specifications()
+
+
 algorithm_specifications_dtos = _get_algorithm_specifications_dtos(
-    algorithms_specifications.values(), transformers_specifications.values()
+    list(specifications.enabled_algorithms.values()),
+    list(specifications.enabled_transformers.values()),
 )

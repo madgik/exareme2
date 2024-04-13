@@ -12,9 +12,6 @@ from exareme2.algorithms.exareme2.logistic_regression_cv import ConfusionMatrix
 from exareme2.algorithms.exareme2.logistic_regression_cv import (
     CVLogisticRegressionResult,
 )
-from exareme2.algorithms.exareme2.logistic_regression_cv import (
-    LogisticRegressionCVAlgorithm,
-)
 from exareme2.algorithms.exareme2.logistic_regression_cv import ROCCurve
 from exareme2.algorithms.exareme2.logistic_regression_cv import (
     make_classification_metrics_summary,
@@ -28,7 +25,6 @@ from exareme2.algorithms.exareme2.udfgen import relation
 from exareme2.algorithms.exareme2.udfgen import secure_transfer
 from exareme2.algorithms.exareme2.udfgen import udf
 from exareme2.algorithms.specifications import AlgorithmName
-from exareme2.algorithms.specifications import AlgorithmSpecification
 
 ALGORITHM_NAME = AlgorithmName.LOGISTIC_REGRESSION_CV_FEDAVERAGE
 
@@ -39,20 +35,6 @@ class LogRegCVFedAverageDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
 
 
 class LogRegCVFedAverageAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        # Use the LR with CV specification but change the name
-        LR_with_cv_specification = LogisticRegressionCVAlgorithm.get_specification()
-        LR_with_cv_fedavg = AlgorithmSpecification(
-            name=ALGORITHM_NAME,
-            desc=LR_with_cv_specification.desc,
-            label=LR_with_cv_specification.label,
-            enabled=LR_with_cv_specification.enabled,
-            inputdata=LR_with_cv_specification.inputdata,
-            parameters=LR_with_cv_specification.parameters,
-        )
-        return LR_with_cv_fedavg
-
     def run(self, data, metadata):
         X, y = data
 

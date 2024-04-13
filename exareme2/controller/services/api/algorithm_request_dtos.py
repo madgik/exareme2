@@ -10,6 +10,17 @@ from pydantic import BaseModel
 
 
 @unique
+class AlgorithmType(Enum):
+    EXAREME2 = "exareme2"
+    FLOWER = "flower"
+
+
+@unique
+class TransformerType(Enum):
+    EXAREME2_TRANSFORMER = "exareme2_transformer"
+
+
+@unique
 class AlgorithmRequestSystemFlags(str, Enum):
     SMPC = "smpc"
 
@@ -36,3 +47,4 @@ class AlgorithmRequestDTO(BaseModel):
     parameters: Optional[PARAMETERS_TYPE]
     flags: Optional[Dict[str, Any]]
     preprocessing: Optional[Dict[str, PARAMETERS_TYPE]]
+    type: AlgorithmType

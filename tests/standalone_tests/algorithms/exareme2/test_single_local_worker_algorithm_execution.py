@@ -14,6 +14,7 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
 from exareme2.controller.services.exareme2.controller import Controller
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
 from exareme2.controller.services.exareme2.controller import WorkersFederation
@@ -156,6 +157,7 @@ def algorithm_request_case_1(datasets):
             ],
         ),
         parameters={},
+        type=AlgorithmType.EXAREME2,
     )
 
     return (algorithm_name, algorithm_request_dto)
@@ -209,6 +211,7 @@ def algorithm_request_case_2(datasets):
             y=["alzheimerbroadcategory"],
         ),
         parameters={"positive_class": "AD"},
+        type=AlgorithmType.EXAREME2,
     )
     return (algorithm_name, algo_request_dto)
 

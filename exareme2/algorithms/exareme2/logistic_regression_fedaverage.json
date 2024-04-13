@@ -1,7 +1,7 @@
 {
-    "name": "logistic_regression",
-    "desc": "Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
-    "label": "Logistic Regression",
+    "name": "logistic_regression_cv_fedaverage",
+    "desc": "Method used to evaluate the performance of a logistic regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
+    "label": "Logistic Regression Cross-validation",
     "enabled": true,
     "type": "exareme2",
     "inputdata": {
@@ -50,6 +50,18 @@
                     "y"
                 ]
             }
+        },
+        "n_splits": {
+            "label": "Number of splits",
+            "desc": "Number of splits for cross-validation.",
+            "types": [
+                "int"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 5,
+            "min": 2,
+            "max": 20
         }
     }
 }

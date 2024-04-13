@@ -8,6 +8,9 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic import root_validator
 
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
+from exareme2.controller.services.api.algorithm_request_dtos import TransformerType
+
 
 @unique
 class InputDataType(Enum):
@@ -236,6 +239,7 @@ class AlgorithmSpecification(WorkflowStepSpecification):
     enabled: bool
     inputdata: InputDataSpecifications
     parameters: Optional[Dict[str, ParameterSpecification]]
+    type: AlgorithmType
 
 
 class TransformerSpecification(WorkflowStepSpecification):
@@ -245,3 +249,4 @@ class TransformerSpecification(WorkflowStepSpecification):
     enabled: bool
     parameters: Optional[Dict[str, ParameterSpecification]]
     compatible_algorithms: Optional[List[str]]
+    type: TransformerType

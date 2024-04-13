@@ -53,7 +53,7 @@ def build_filter_clause(rules):
         value = _format_value_if_string(rules["type"], rules["value"])
         return op(column_name, value)
 
-    raise FilterError(f"Filters did not contain the keys: 'condition' or 'id'.")
+    raise FilterError("Filters did not contain the keys: 'condition' or 'id'.")
 
 
 def validate_filter(data_model: str, rules: dict, cdes: Dict[str, CommonDataElement]):
@@ -84,7 +84,7 @@ def validate_filter(data_model: str, rules: dict, cdes: Dict[str, CommonDataElem
         _check_value_type(column_name, val, cdes)
     else:
         raise FilterError(
-            f"Invalid filters format. Filters did not contain the keys: 'condition' or 'id'."
+            "Invalid filters format. Filters did not contain the keys: 'condition' or 'id'."
         )
 
 

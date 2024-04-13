@@ -6,10 +6,6 @@ from pydantic import BaseModel
 from exareme2.algorithms.exareme2.algorithm import Algorithm
 from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 from exareme2.algorithms.exareme2.naive_bayes_categorical_cv import CategoricalNB
-from exareme2.algorithms.exareme2.naive_bayes_categorical_cv import (
-    CategoricalNBAlgorithm,
-)
-from exareme2.algorithms.specifications import AlgorithmSpecification
 
 ALGNAME_FIT = "test_nb_categorical_fit"
 
@@ -23,21 +19,6 @@ class CategoricalNBTesting_Fit(Algorithm, algname=ALGNAME_FIT):
     class Result(BaseModel):
         category_count: t.List[t.List[t.List[int]]]
         class_count: t.List[int]
-
-    @classmethod
-    def get_specification(cls):
-        # Use the Categorical Naive Bayes with CV specification
-        # but remove the "n_splits" parameter since this is a CV specific parameter
-        categoricalNB_with_cv_specification = CategoricalNBAlgorithm.get_specification()
-        categoricalNB_fit_specification = AlgorithmSpecification(
-            name=ALGNAME_FIT,
-            desc=categoricalNB_with_cv_specification.desc,
-            label=categoricalNB_with_cv_specification.label,
-            enabled=categoricalNB_with_cv_specification.enabled,
-            inputdata=categoricalNB_with_cv_specification.inputdata,
-            parameters=None,  # Parameters are not passed
-        )
-        return categoricalNB_fit_specification
 
     def run(self, data, metadata):
         engine = self.engine
@@ -63,21 +44,6 @@ class CategoricalNBDataLoaderTesting_predict(AlgorithmDataLoader, algname=ALGNAM
 class CategoricalNBTesting_predict(Algorithm, algname=ALGNAME_PRED):
     class Result(BaseModel):
         predictions: t.Dict[str, int]
-
-    @classmethod
-    def get_specification(cls):
-        # Use the Categorical Naive Bayes with CV specification
-        # but remove the "n_splits" parameter since this is a CV specific parameter
-        categoricalNB_with_cv_specification = CategoricalNBAlgorithm.get_specification()
-        categoricalNB_predict_specification = AlgorithmSpecification(
-            name=ALGNAME_PRED,
-            desc=categoricalNB_with_cv_specification.desc,
-            label=categoricalNB_with_cv_specification.label,
-            enabled=categoricalNB_with_cv_specification.enabled,
-            inputdata=categoricalNB_with_cv_specification.inputdata,
-            parameters=None,  # Parameters are not passed
-        )
-        return categoricalNB_predict_specification
 
     def run(self, data, metadata):
         engine = self.engine

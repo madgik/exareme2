@@ -3,6 +3,7 @@
     "desc": "Method used to evaluate the performance of a logistic regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
     "label": "Logistic Regression Cross-validation",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "Variable (dependent)",

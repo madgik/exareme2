@@ -3,6 +3,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Tuple
 
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import InputDataSpecification
@@ -19,6 +20,7 @@ from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmReq
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmRequestSystemFlags,
 )
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterEnumType
 from exareme2.controller.services.api.algorithm_spec_dtos import ParameterType
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -39,13 +41,15 @@ class BadRequest(Exception):
 def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
-    algorithms_specs: Dict[str, AlgorithmSpecification],
+    algorithms_specs: Dict[Tuple[str, AlgorithmType], AlgorithmSpecification],
     transformers_specs: Dict[str, TransformerSpecification],
     worker_landscape_aggregator: WorkerLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
-    algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
+    algorithm_specs = _get_algorithm_specs(
+        algorithm_name, algorithm_request_dto.type, algorithms_specs
+    )
 
     available_datasets_per_data_model = (
         worker_landscape_aggregator.get_all_available_datasets_per_data_model()
@@ -72,14 +76,13 @@ def validate_algorithm_request(
 
 
 def _get_algorithm_specs(
-    algorithm_name: str, algorithms_specs: Dict[str, AlgorithmSpecification]
+    algorithm_name: str,
+    algorithm_type: AlgorithmType,
+    algorithms_specs: Dict[Tuple[str, AlgorithmType], AlgorithmSpecification],
 ):
-    if (
-        algorithm_name not in algorithms_specs.keys()
-        or not algorithms_specs[algorithm_name].enabled
-    ):
+    if (algorithm_name, algorithm_type) not in algorithms_specs.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    return algorithms_specs[algorithm_name]
+    return algorithms_specs[(algorithm_name, algorithm_type)]
 
 
 def _validate_algorithm_request_body(
@@ -575,10 +578,7 @@ def _validate_algorithm_preprocessing(
         return
 
     for name, params in algorithm_request_dto.preprocessing.items():
-        if (
-            name not in transformers_specs.keys()
-            or not transformers_specs[name].enabled
-        ):
+        if name not in transformers_specs.keys():
             raise BadUserInput(f"Transformer '{name}' does not exist.")
 
         compatible_algos = transformers_specs[name].compatible_algorithms

@@ -122,6 +122,7 @@ def test_healthcheck_success(
         pytest.fail(f"Healthcheck failed with exception: {exc}")
 
 
+@pytest.mark.slow
 def test_healthcheck_fail(
     patch_workers_addresses,
     worker_landscape_aggregator,

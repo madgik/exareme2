@@ -9,11 +9,6 @@ from exareme2.algorithms.exareme2.udfgen import state
 from exareme2.algorithms.exareme2.udfgen import tensor
 from exareme2.algorithms.exareme2.udfgen import transfer
 from exareme2.algorithms.exareme2.udfgen import udf
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import InputDataStatType
-from exareme2.algorithms.specifications import InputDataType
 from exareme2.worker_communication import ColumnDataFloat
 from exareme2.worker_communication import ColumnDataStr
 from exareme2.worker_communication import TabularDataResult
@@ -27,25 +22,6 @@ class StandartDeviationDataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):
 
 
 class StandartDeviationIntOnlySMPC(Algorithm, algname=ALGORITHM_NAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="Standard Deviation of a column, transferring only integers, using SMPC",
-            label="SMPC Standard Deviation",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                y=InputDataSpecification(
-                    label="column",
-                    desc="Column",
-                    types=[InputDataType.REAL, InputDataType.INT],
-                    stattypes=[InputDataStatType.NUMERICAL],
-                    notblank=True,
-                    multiple=False,
-                )
-            ),
-        )
-
     def run(self, data, metadata):
         local_run = self.engine.run_udf_on_local_workers
         global_run = self.engine.run_udf_on_global_worker

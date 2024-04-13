@@ -68,6 +68,7 @@ def get_parametrization_list_success_cases():
                 "valid": True,
             },
         },
+        "type": "exareme2",
     }
     expected_response = {
         "title": "Standard Deviation",
@@ -149,6 +150,7 @@ def get_parametrization_list_success_cases():
         "flags": {
             "smpc": True,
         },
+        "type": "exareme2",
     }
     expected_response = {
         "title": "Standard Deviation",
@@ -171,6 +173,15 @@ def get_parametrization_list_success_cases():
 
     # ~~~~~~~~~~success case 3~~~~~~~~~~
     algorithm_name = "smpc_standard_deviation"
+    expected_response = {
+        "title": "Standard Deviation",
+        "columns": [
+            {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
+            {"name": "std_deviation", "data": [0.36345069556304765], "type": "FLOAT"},
+            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
+            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
+        ],
+    }
     request_dict = {
         "inputdata": {
             "data_model": "dementia:0.1",
@@ -227,15 +238,7 @@ def get_parametrization_list_success_cases():
                 "valid": True,
             },
         },
-    }
-    expected_response = {
-        "title": "Standard Deviation",
-        "columns": [
-            {"name": "variable", "data": ["lefthippocampus"], "type": "STR"},
-            {"name": "std_deviation", "data": [0.36345069556304765], "type": "FLOAT"},
-            {"name": "min_value", "data": [1.3047], "type": "FLOAT"},
-            {"name": "max_value", "data": [4.4519], "type": "FLOAT"},
-        ],
+        "type": "exareme2",
     }
     parametrization_list.append(
         pytest.param(
@@ -308,6 +311,7 @@ def get_parametrization_list_success_cases():
         "flags": {
             "smpc": True,
         },
+        "type": "exareme2",
     }
     expected_response = {
         "title": "Standard Deviation",
@@ -424,6 +428,7 @@ def get_parametrization_list_exception_cases():
         "flags": {
             "smpc": False,
         },
+        "type": "exareme2",
     }
 
     expected_response = (

@@ -5,13 +5,6 @@ from pydantic import BaseModel
 from exareme2.algorithms.exareme2.algorithm import Algorithm
 from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 from exareme2.algorithms.exareme2.crossvalidation import KFold
-from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import InputDataSpecification
-from exareme2.algorithms.specifications import InputDataSpecifications
-from exareme2.algorithms.specifications import InputDataStatType
-from exareme2.algorithms.specifications import InputDataType
-from exareme2.algorithms.specifications import ParameterSpecification
-from exareme2.algorithms.specifications import ParameterType
 
 ALGNAME = "test_kfold"
 
@@ -31,45 +24,6 @@ class KFoldTestDataLoader(AlgorithmDataLoader, algname=ALGNAME):
 
 
 class KFoldTestAlgorithm(Algorithm, algname=ALGNAME):
-    @classmethod
-    def get_specification(cls):
-        return AlgorithmSpecification(
-            name=cls.algname,
-            desc="",
-            label="",
-            enabled=True,
-            inputdata=InputDataSpecifications(
-                x=InputDataSpecification(
-                    label="",
-                    desc="",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=True,
-                ),
-                y=InputDataSpecification(
-                    label="",
-                    desc="",
-                    types=[InputDataType.REAL, InputDataType.INT, InputDataType.TEXT],
-                    stattypes=[InputDataStatType.NUMERICAL, InputDataStatType.NOMINAL],
-                    notblank=True,
-                    multiple=False,
-                ),
-            ),
-            parameters={
-                "n_splits": ParameterSpecification(
-                    label="Number of splits",
-                    desc="Number of splits for cross-validation.",
-                    types=[ParameterType.INT],
-                    notblank=True,
-                    multiple=False,
-                    default=5,
-                    min=2,
-                    max=20,
-                ),
-            },
-        )
-
     def run(self, data, metadata):
         X, y = data
         n_splits = self.algorithm_parameters["n_splits"]

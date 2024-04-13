@@ -48,7 +48,7 @@ from exareme2.controller.services.exareme2.execution_engine import (
 )
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.exareme2.execution_engine import Workers
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
+from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (

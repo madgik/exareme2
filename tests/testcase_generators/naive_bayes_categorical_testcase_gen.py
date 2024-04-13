@@ -63,10 +63,11 @@ def get_enums(code, metadata):
 
 
 if __name__ == "__main__":
-    specs = CategoricalNBAlgorithm.get_specification()
-    specs = json.loads(specs.json(exclude_none=True))
-
-    gen = CategoricalNBFitTestCaseGenerator(specs)
+    with open(
+        "exareme2/algorithms/exareme2/naive_bayes_categorical_cv.json"
+    ) as specifications_file:
+        specs = json.loads(specifications_file.read())
+    gen = CategoricalNBFitTestCaseGenerator(specifications_file.read())
     fname = "tests/algorithm_validation_tests/expected/naive_bayes_categorical_fit_expected.json"
     with open(fname, "w") as output_file:
         gen.write_test_cases(output_file, num_test_cases=50)

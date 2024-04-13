@@ -1,6 +1,5 @@
 from abc import ABC
 from abc import abstractmethod
-from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
 from typing import Dict
@@ -8,8 +7,6 @@ from typing import List
 from typing import Optional
 
 from pydantic import BaseModel
-
-from exareme2.algorithms.specifications import AlgorithmSpecification
 
 if TYPE_CHECKING:
     from exareme2.controller.services.exareme2 import AlgorithmExecutionEngine
@@ -161,18 +158,6 @@ class Algorithm(ABC):
     @property
     def datasets(self) -> List[str]:
         return self._initialization_params.datasets
-
-    @classmethod
-    def get_specification(cls) -> AlgorithmSpecification:
-        """Returns the algorithm specs object
-
-        Algorithm specs are read from a json file placed in the same folder as
-        the algorithm implementation file, i.e. the file where `Algorithm` is
-        subclassed. The json file contents must map to the
-        `AlgorithmSpecification` structure.
-        """
-        file = Path(__file__).parent / f"{cls.algname}.json"
-        return AlgorithmSpecification.parse_file(file)
 
     @abstractmethod
     def run(self, data: "LocalWorkersTable", metadata: dict):

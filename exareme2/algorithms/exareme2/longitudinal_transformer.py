@@ -9,13 +9,7 @@ from typing import Optional
 from exareme2 import DType
 from exareme2.algorithms.exareme2.udfgen import AdhocUdfGenerator
 from exareme2.algorithms.exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
-from exareme2.algorithms.specifications import AlgorithmName
-from exareme2.algorithms.specifications import ParameterEnumSpecification
-from exareme2.algorithms.specifications import ParameterEnumType
-from exareme2.algorithms.specifications import ParameterSpecification
-from exareme2.algorithms.specifications import ParameterType
 from exareme2.algorithms.specifications import TransformerName
-from exareme2.algorithms.specifications import TransformerSpecification
 from exareme2.worker_communication import BadUserInput
 
 if TYPE_CHECKING:
@@ -72,60 +66,6 @@ class LongitudinalTransformerRunner:
     @classmethod
     def get_transformer_name(cls):
         return TRANSFORMER_NAME
-
-    @classmethod
-    def get_specification(cls):
-        return TransformerSpecification(
-            name=cls.get_transformer_name(),
-            desc="longitudinal_transform",
-            label="Longitudinal Transformer",
-            enabled=True,
-            parameters={
-                "visit1": ParameterSpecification(
-                    label="1st Visit",
-                    desc="The data of a certain subject's measurements during a specific visit on a specific date.",
-                    types=[ParameterType.TEXT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
-                    ),
-                ),
-                "visit2": ParameterSpecification(
-                    label="2nd Visit",
-                    desc="The data of the same subject's measurements during a specific visit on a specific but different, later date.",
-                    types=[ParameterType.TEXT],
-                    notblank=True,
-                    multiple=False,
-                    enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.FIXED_VAR_CDE_ENUMS, source=["visitid"]
-                    ),
-                ),
-                "strategies": ParameterSpecification(
-                    label="Strategies",
-                    desc="Select a strategy for each variable.",
-                    types=[ParameterType.DICT],
-                    notblank=True,
-                    multiple=False,
-                    dict_keys_enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.INPUT_VAR_NAMES, source=["x", "y"]
-                    ),
-                    dict_values_enums=ParameterEnumSpecification(
-                        type=ParameterEnumType.LIST, source=["diff", "first", "second"]
-                    ),
-                ),
-            },
-            compatible_algorithms=[
-                AlgorithmName.ANOVA,
-                AlgorithmName.ANOVA_ONEWAY,
-                AlgorithmName.LINEAR_REGRESSION,
-                AlgorithmName.LINEAR_REGRESSION_CV,
-                AlgorithmName.LOGISTIC_REGRESSION,
-                AlgorithmName.LOGISTIC_REGRESSION_CV,
-                AlgorithmName.NAIVE_BAYES_GAUSSIAN_CV,
-                AlgorithmName.NAIVE_BAYES_CATEGORICAL_CV,
-            ],
-        )
 
     def run(self, data, metadata):
         X, y = data

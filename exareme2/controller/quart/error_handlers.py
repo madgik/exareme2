@@ -1,5 +1,4 @@
 import enum
-import traceback
 
 from quart import Blueprint
 

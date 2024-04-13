@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.app import CeleryAppFactory
-from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
-from exareme2.controller.celery.tasks_handlers import WorkerTasksHandler
+from exareme2.controller.celery.tasks_handler import WorkerTaskResult
+from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
 
 
 class TestWorkerTasksHandlerRefactored(unittest.TestCase):
