@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import Enum
 from enum import unique
 from typing import Any
 from typing import Dict

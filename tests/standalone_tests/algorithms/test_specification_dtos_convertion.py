@@ -1,8 +1,5 @@
-from exareme2.algorithms.specifications import (
-    AlgorithmSpecification,
-    AlgorithmType,
-    TransformerType,
-)
+from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -12,6 +9,7 @@ from exareme2.algorithms.specifications import ParameterEnumType
 from exareme2.algorithms.specifications import ParameterSpecification
 from exareme2.algorithms.specifications import ParameterType
 from exareme2.algorithms.specifications import TransformerSpecification
+from exareme2.algorithms.specifications import TransformerType
 from exareme2.controller.services.api.algorithm_spec_dtos import (
     AlgorithmSpecificationDTO,
 )
