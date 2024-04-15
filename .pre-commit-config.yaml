@@ -14,14 +14,14 @@ repos:
     rev: 22.3.0
     hooks:
     -   id: black
-#
-#-   repo: https://github.com/executablebooks/mdformat
-#    rev: 0.6.4
-#    hooks:
-#    -   id: mdformat
-#
-#-   repo: https://github.com/pycqa/isort
-#    rev: 5.10.1
-#    hooks:
-#    -   id: isort
-#        args: ["--profile", "black", "--force-single-line-imports"]
+
+-   repo: https://github.com/executablebooks/mdformat
+    rev: 0.6.4
+    hooks:
+    -   id: mdformat
+
+-   repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+    -   id: isort
+        args: ["--profile", "black", "--force-single-line-imports"]
