@@ -688,6 +688,7 @@ def test_bad_filters_exception(controller_service_with_localworker1):
             ],
             "filters": {"whateveeeeeer": "!!!"},
         },
+        "type": "exareme2",
     }
 
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name

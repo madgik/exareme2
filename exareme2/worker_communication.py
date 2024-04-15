@@ -87,7 +87,7 @@ class RequestIDNotFound(Exception):
     """
 
     def __init__(self):
-        self.message = f"Request id is missing from task's arguments."
+        self.message = "Request id is missing from task's arguments."
         super().__init__(self.message)
 
 

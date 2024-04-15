@@ -3,6 +3,7 @@
     "desc": "K-Means",
     "label": "K-Means",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "y",

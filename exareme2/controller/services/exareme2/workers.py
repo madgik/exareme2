@@ -4,8 +4,8 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
+from exareme2.controller.celery.tasks_handler import WorkerTaskResult
+from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema

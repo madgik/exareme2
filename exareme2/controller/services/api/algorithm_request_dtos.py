@@ -8,6 +8,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from exareme2.algorithms.specifications import AlgorithmType
+
 
 @unique
 class AlgorithmRequestSystemFlags(str, Enum):
@@ -36,3 +38,4 @@ class AlgorithmRequestDTO(BaseModel):
     parameters: Optional[PARAMETERS_TYPE]
     flags: Optional[Dict[str, Any]]
     preprocessing: Optional[Dict[str, PARAMETERS_TYPE]]
+    type: AlgorithmType

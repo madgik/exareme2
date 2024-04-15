@@ -1,4 +1,5 @@
 from exareme2.algorithms.specifications import AlgorithmSpecification
+from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -8,6 +9,7 @@ from exareme2.algorithms.specifications import ParameterEnumType
 from exareme2.algorithms.specifications import ParameterSpecification
 from exareme2.algorithms.specifications import ParameterType
 from exareme2.algorithms.specifications import TransformerSpecification
+from exareme2.algorithms.specifications import TransformerType
 from exareme2.controller.services.api.algorithm_spec_dtos import (
     AlgorithmSpecificationDTO,
 )
@@ -43,6 +45,7 @@ def test_convert_algorithm_specification_to_dto():
         desc="sample_algorithm",
         label="sample_algorithm",
         enabled=True,
+        type=AlgorithmType.EXAREME2,
         inputdata=InputDataSpecifications(
             y=InputDataSpecification(
                 label="y",
@@ -80,6 +83,7 @@ def test_convert_algorithm_specification_to_dto():
         name="sample_algorithm",
         desc="sample_algorithm",
         label="sample_algorithm",
+        type=AlgorithmType.EXAREME2,
         inputdata=InputDataSpecificationsDTO(
             data_model=InputDataSpecificationDTO(
                 label="Data model of the data.",
@@ -148,6 +152,7 @@ def test_convert_transformer_specification_to_dto():
         name="sample_transformer",
         desc="sample_transformer",
         label="sample_transformer",
+        type=TransformerType.EXAREME2_TRANSFORMER,
         enabled=True,
         parameters={
             "sample_param": ParameterSpecification(
@@ -167,6 +172,7 @@ def test_convert_transformer_specification_to_dto():
     expected_dto = TransformerSpecificationDTO(
         name="sample_transformer",
         desc="sample_transformer",
+        type=TransformerType.EXAREME2_TRANSFORMER,
         label="sample_transformer",
         parameters={
             "sample_param": ParameterSpecificationDTO(
@@ -196,6 +202,7 @@ def test_get_algorithm_specifications_dtos_compatible_algorithms():
             desc="sample_algorithm",
             label="sample_algorithm",
             enabled=True,
+            type=AlgorithmType.EXAREME2,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="y",
@@ -214,6 +221,7 @@ def test_get_algorithm_specifications_dtos_compatible_algorithms():
             name="sample_transformer",
             desc="sample_transformer",
             label="sample_transformer",
+            type=TransformerType.EXAREME2_TRANSFORMER,
             enabled=True,
             parameters={
                 "sample_param": ParameterSpecification(
@@ -250,6 +258,7 @@ def test_get_algorithm_specifications_dtos_empty_compatible_algorithms():
             desc="sample_algorithm",
             label="sample_algorithm",
             enabled=True,
+            type=AlgorithmType.EXAREME2,
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="y",
@@ -269,6 +278,7 @@ def test_get_algorithm_specifications_dtos_empty_compatible_algorithms():
             desc="sample_transformer",
             label="sample_transformer",
             enabled=True,
+            type=TransformerType.EXAREME2_TRANSFORMER,
             parameters={
                 "sample_param": ParameterSpecification(
                     label="sample_param",

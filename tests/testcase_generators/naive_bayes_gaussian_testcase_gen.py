@@ -39,7 +39,10 @@ class GaussianNBPredictTestCaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    specs = json.loads(GaussianNBAlgorithm.get_specification().json(exclude_none=True))
+    with open(
+        "exareme2/algorithms/exareme2/naive_bayes_gaussian_cv.json"
+    ) as specifications_file:
+        specs = json.loads(specifications_file.read())
 
     gen = GaussianNBFitTestCaseGenerator(specs)
     with open("tmp.json", "w") as expected_file:

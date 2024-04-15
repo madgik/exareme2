@@ -3,6 +3,7 @@
     "desc": "Test the difference in the means of the dependent variable between two or more groups, when there is a single independent covariate.",
     "label": "One-way ANOVA",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "Variable (dependent)",

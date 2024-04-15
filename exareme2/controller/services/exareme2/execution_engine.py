@@ -11,7 +11,7 @@ from typing import Union
 from exareme2 import DType
 from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.celery.tasks_handlers import WorkerTaskResult
+from exareme2.controller.celery.tasks_handler import WorkerTaskResult
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmRequestSystemFlags,
 )
@@ -559,7 +559,7 @@ class AlgorithmExecutionEngine:
                 isinstance(r, type(workers_result[0])) for r in workers_result[1:]
             ):
                 raise TypeError(
-                    f"The NODEs returned results of different type. Results: {workers_result}"
+                    f"The WORKERs returned results of different type. Results: {workers_result}"
                 )
 
         all_workers_results = list(all_workers_results.values())

@@ -12,7 +12,7 @@ from typing import List
 import toml
 from pydantic import BaseModel
 
-from exareme2.controller.services.exareme2.task_handlers import Exareme2TasksHandler
+from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -148,7 +148,7 @@ class Cleaner:
     def _exec_cleanup(self, entry: _CleanupEntry) -> bool:
         # returns True if cleanup task was succesful for all workers of the context_id
         failed_worker_ids = []
-        worker_task_handlers_to_async_results = {}
+        worker_task_results = {}
         for worker_id in entry.worker_ids:
             try:
                 worker_info = self._get_worker_info_by_id(worker_id)
@@ -161,16 +161,14 @@ class Cleaner:
                 continue
             task_handler = _get_worker_task_handler(worker_info)
 
-            worker_task_handlers_to_async_results[
-                task_handler
-            ] = task_handler.queue_cleanup(
+            worker_task_results[task_handler] = task_handler.queue_cleanup(
                 context_id=entry.context_id,
             )
 
         for (
             task_handler,
             worker_task_result,
-        ) in worker_task_handlers_to_async_results.items():
+        ) in worker_task_results.items():
             try:
                 task_handler.wait_queued_cleanup_complete(
                     worker_task_result=worker_task_result

@@ -28,6 +28,7 @@ def get_parametrization_list_success_cases():
                 ],
             },
         },
+        "type": "exareme2",
     }
 
     parametrization_list = []

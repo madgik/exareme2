@@ -10,6 +10,17 @@ from pydantic import root_validator
 
 
 @unique
+class AlgorithmType(Enum):
+    EXAREME2 = "exareme2"
+    FLOWER = "flower"
+
+
+@unique
+class TransformerType(Enum):
+    EXAREME2_TRANSFORMER = "exareme2_transformer"
+
+
+@unique
 class InputDataType(Enum):
     REAL = "real"
     INT = "int"
@@ -236,6 +247,7 @@ class AlgorithmSpecification(WorkflowStepSpecification):
     enabled: bool
     inputdata: InputDataSpecifications
     parameters: Optional[Dict[str, ParameterSpecification]]
+    type: AlgorithmType
 
 
 class TransformerSpecification(WorkflowStepSpecification):
@@ -245,3 +257,4 @@ class TransformerSpecification(WorkflowStepSpecification):
     enabled: bool
     parameters: Optional[Dict[str, ParameterSpecification]]
     compatible_algorithms: Optional[List[str]]
+    type: TransformerType

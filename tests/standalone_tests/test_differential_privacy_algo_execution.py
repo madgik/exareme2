@@ -26,6 +26,7 @@ def algorithm_request():
             ],
             "y": ["leftamygdala", "lefthippocampus"],
         },
+        "type": "exareme2",
     }
     return (algorithm_name, request_dict)
 

@@ -3,6 +3,7 @@
     "desc": "Descriptive statistics",
     "label": "Descriptive statistics",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "y",

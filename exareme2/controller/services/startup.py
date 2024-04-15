@@ -1,14 +1,16 @@
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services import WorkerLandscapeAggregator
 from exareme2.controller.services import set_worker_landscape_aggregator
 from exareme2.controller.services.exareme2 import set_cleaner
-from exareme2.controller.services.exareme2 import set_controller
-from exareme2.controller.services.exareme2.cleaner import Cleaner
-from exareme2.controller.services.exareme2.controller import Controller
-from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
-    WorkerLandscapeAggregator,
+from exareme2.controller.services.exareme2 import (
+    set_controller as set_exareme2_controller,
 )
+from exareme2.controller.services.exareme2.cleaner import Cleaner
+from exareme2.controller.services.exareme2.controller import (
+    Controller as Exareme2Controller,
+)
+from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
@@ -35,7 +37,7 @@ def start_background_services():
     )
     set_cleaner(cleaner)
 
-    controller = Controller(
+    controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=cleaner,
         logger=ctrl_logger.get_background_service_logger(),
@@ -53,4 +55,4 @@ def start_background_services():
         ),
     )
     controller.start_cleanup_loop()
-    set_controller(controller)
+    set_exareme2_controller(controller)

@@ -3,6 +3,7 @@
     "desc": "Test the difference in means between two related groups. It is commonly used when the same subjects are measured twice, such as before and after a treatment.",
     "label": "T-Test paired",
     "enabled": true,
+    "type": "exareme2",
     "inputdata": {
         "y": {
             "label": "Variable of interest.",
