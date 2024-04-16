@@ -135,7 +135,9 @@ def _check_value_type(column: str, value, cdes):
 def _check_value_column_same_type(column, value, cdes):
     column_sql_type = cdes[column].sql_type
     dtype = DType.from_cde(column_sql_type)
-    if type(value) is not dtype.to_py():
+    try:
+        value = dtype.to_py()(value)
+    except ValueError:
         raise FilterError(
             f"{column}'s type: {column_sql_type} was different from the type of the given value:{type(value)}"
         )
