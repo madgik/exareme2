@@ -13,7 +13,7 @@ from tqdm import tqdm
 TESTING_DATAMODEL = "dementia:0.1"
 DATAMODEL_BASEPATH = Path("tests/test_data/dementia_v_0_1/")
 DATAMODEL_CDESPATH = DATAMODEL_BASEPATH / "CDEsMetadata.json"
-
+TRANSFORMATIONS = ["log", "exp", "center", "standardize"]
 
 random.seed(0)
 
@@ -252,6 +252,44 @@ class EnumFromCDE(AlgorithmParameter):
     def draw(self):
         return random.choice(self.enums)
 
+    import random
+
+
+class DataTransformationParam(AlgorithmParameter):
+    db = DB()
+
+    def __init__(self, var_names):
+        self.var_names = var_names
+
+    def draw(self):
+        # Shuffle var_names to randomize their selection
+        var_names_copy = self.var_names[:]
+        random.shuffle(var_names_copy)
+
+        # Select a random number of transformations to use
+        num_transformations = random.randint(1, len(TRANSFORMATIONS))
+        chosen_transformations = random.sample(TRANSFORMATIONS, num_transformations)
+
+        result = {}
+        MAX_VARS_PER_TRANSFORMATION = 4
+
+        # Randomly distribute var_names across the chosen transformations
+        for transformation in chosen_transformations:
+            num_vars = min(
+                random.randint(1, MAX_VARS_PER_TRANSFORMATION), len(var_names_copy)
+            )
+            selected_vars = random.sample(var_names_copy, num_vars)
+            result[transformation] = selected_vars
+
+            # Remove used var_names to prevent repetition
+            var_names_copy = [var for var in var_names_copy if var not in selected_vars]
+
+            # Stop if no more var_names are left
+            if not var_names_copy:
+                break
+
+        return result
+
 
 def make_parameters(properties, variable_groups):
     if "enums" in properties and properties["enums"]["type"] == "list":
@@ -266,6 +304,11 @@ def make_parameters(properties, variable_groups):
         return FloatParameter(min=properties["min"], max=properties["max"])
     if "int" in properties["types"]:
         return IntegerParameter(min=properties["min"], max=properties["max"])
+    if "dict" in properties["types"] and "transformation_method" in properties:
+        var_names = list(variable_groups["y"]) + (
+            list(variable_groups["x"] if variable_groups["x"] else [])
+        )
+        return DataTransformationParam(var_names=var_names)
 
     raise TypeError(f"Unknown parameter type: {properties['types']}.")
 
@@ -280,6 +323,7 @@ class InputGenerator:
         self.datasets_gen = DatasetsGenerator()
         self.filters_gen = FiltersGenerator()
         self._seen = set()
+        self._counter = 0
 
     def init_variable_gens(self):
         numerical_vars = self.db.get_numerical_variables()
@@ -287,7 +331,11 @@ class InputGenerator:
 
         numerical_pool = list(random_permutation(numerical_vars))
         nominal_pool = list(random_permutation(nominal_vars))
-        # if specs contain only y variable, pass entire pools to variable generator
+        self._counter += 1
+        print(self._counter)
+        if self._counter == 1:
+            with open(self.specs.name, "r") as f2:
+                self.specs = json.loads(f2.read())
         if len(self.specs["inputdata"]) == 1:
             assert "y" in self.specs["inputdata"], "There should be a 'y' in inputdata"
             self.inputdata_gens = {
@@ -363,7 +411,13 @@ class InputGenerator:
             }
 
             input_ = {"inputdata": inputdata, "parameters": parameters}
-            input_key = (*inputdata.values(), *parameters.values())
+            data_transformation = parameters.get("data_transformation", None)
+            param_without_data_transformation = parameters.copy()
+            param_without_data_transformation.pop("data_transformation")
+            input_key = (
+                *inputdata.values(),
+                *param_without_data_transformation.values(),
+            )
             if input_key not in self._seen:
                 self._seen.add(input_key)
                 return input_
