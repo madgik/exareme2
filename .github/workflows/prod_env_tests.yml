@@ -162,7 +162,6 @@ jobs:
           kubectl label node master master=true
           kubectl label node localworker1 worker=true
           kubectl label node localworker2 worker=true
-          kubectl label node localworker3 worker=true
 
       - name: Get container disk space
         run: df -h
@@ -201,98 +200,86 @@ jobs:
       - name: Deploy Helm
         run: helm install exareme2 kubernetes/ --debug
 
-      - name: Wait for MONETDB container to start
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '60s'
+      - name: Wait for pods to get healthy
+        run: timeout 300 bash -c 'while true; do if kubectl get pods --no-headers | awk '\''{if ($2 != "1/1" && $2 != "2/2" && $2 != "3/3" && $2 != "4/4") exit 1;}'\''; then echo "All pods are ready!"; break; else kubectl get pods -o wide; sleep 20; fi done'
 
       - name: Initialize MONETDB from mipdb container
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb init --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb init --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb init --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb init'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb init'
 
       - name: Load dementia data model into localworkers
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json'
 
-      - name: Load dementia dataset csvs with suffix '0' into localworker 1
+      - name: Load dementia dataset csvs with suffix even numbers into localworker 1
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd0.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi0.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata0.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd0.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi0.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata0.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd2.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi2.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata2.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd4.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi4.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata4.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd6.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi6.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata6.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd8.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi8.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata8.csv -d dementia -v 0.1'
 
-      - name: Load dementia dataset csvs with suffix '1,3,5,7,9' into localworker 2
+      - name: Load dementia dataset csvs with suffix odd numbers into localworker 2
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd1.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd3.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd5.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd7.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd9.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi1.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi3.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi5.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi7.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi9.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata1.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata3.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata5.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata7.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata9.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-
-      - name: Load dementia datasets csvs with suffix '2,4,6,8' into localworker 3
-        run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd2.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd4.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd6.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd8.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi2.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi4.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi6.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi8.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata2.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata4.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata6.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata8.csv -d dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd1.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi1.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata1.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd3.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi3.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata3.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd5.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi5.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata5.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd7.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi7.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata7.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/edsd9.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/ppmi9.csv -d dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/dementia_v_0_1/desd-synthdata9.csv -d dementia -v 0.1'
 
       - name: Load tbi data model into localworkers
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json'
 
-      - name: Load tbi dataset csvs with suffix '0' into localworker 1
+      - name: Load tbi dataset csvs with suffix of even numbers into localworker 1
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi0.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi0.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi2.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi4.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi6.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi8.csv -d tbi -v 0.1'
 
-      - name: Load tbi dataset csvs with suffix '1,3,5,7,9' into localworker 2
+      - name: Load tbi dataset csvs with suffix of odd numbers into localworker 2
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi1.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi3.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi5.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi7.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi9.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-
-      - name: Load tbi datasets csvs with suffix '2,4,6,8' into localworker 3
-        run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi2.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi4.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi6.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi8.csv -d tbi -v 0.1 --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi1.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi3.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi5.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi7.csv -d tbi -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi9.csv -d tbi -v 0.1'
 
       - name: Load longitudinal dementia data model into localworkers
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json'
 
       - name: Load longitudinal dementia datasets csvs into localworkers
         run: |
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia0.csv -d longitudinal_dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia1.csv -d longitudinal_dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
-          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[2].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia2.csv -d longitudinal_dementia -v 0.1 --ip $DB_IP --port $DB_PORT'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[0].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia0.csv -d longitudinal_dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia1.csv -d longitudinal_dementia -v 0.1'
+          kubectl exec $(kubectl get pods -l=nodeType=localworker -o json | jq -r '.items[1].metadata.name') -c db-importer -- sh -c 'mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia2.csv -d longitudinal_dementia -v 0.1'
 
       - name: Controller logs
         run: kubectl logs -l app=exareme2-controller --tail -1
@@ -318,10 +305,8 @@ jobs:
         with:
           run: kubectl logs -l nodeType=localworker -c worker --tail -1
 
-      - name: Wait for CONTROLLER container to become ready
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '60s'
+      - name: Run Worker Landscape Aggregator update
+        run: curl -X POST "http://172.17.0.1:5000/wla"
 
       - name: Run Healthcheck
         run: curl "http://172.17.0.1:5000/healthcheck"

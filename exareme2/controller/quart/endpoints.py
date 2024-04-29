@@ -1,6 +1,7 @@
 from logging.config import dictConfig
 
 import pydantic
+from celery.utils.serialization import jsonify
 from quart import Blueprint
 from quart import request
 
@@ -12,6 +13,7 @@ from exareme2.controller.services.api.algorithm_request_validator import BadRequ
 from exareme2.controller.services.api.algorithm_spec_dtos import (
     algorithm_specifications_dtos,
 )
+from exareme2.controller.services.flower import get_flower_experiment_watcher
 from exareme2.controller.services.startup import start_background_services
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
@@ -87,6 +89,19 @@ async def run_algorithm(algorithm_name: str) -> str:
     result = await execute_algorithm(algorithm_name, algorithm_request_dto)
 
     return result
+
+
+@algorithms.route("/flower/input", methods=["GET"])
+async def get_flower_input() -> dict:
+    return get_flower_experiment_watcher().get_inputdata().dict()
+
+
+@algorithms.route("/flower/result", methods=["POST"])
+async def set_flower_result():
+    request_body = await request.json
+    await get_flower_experiment_watcher().set_result(result=request_body)
+
+    return jsonify({"message": "Result set successfully"}), 200
 
 
 def configure_loggers():

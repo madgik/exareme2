@@ -1,6 +1,5 @@
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.services import WorkerLandscapeAggregator
 from exareme2.controller.services import set_worker_landscape_aggregator
 from exareme2.controller.services.exareme2 import set_cleaner
 from exareme2.controller.services.exareme2 import (
@@ -11,10 +10,26 @@ from exareme2.controller.services.exareme2.controller import (
     Controller as Exareme2Controller,
 )
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
+from exareme2.controller.services.flower import set_controller as set_flower_controller
+from exareme2.controller.services.flower import set_flower_experiment_watcher
+from exareme2.controller.services.flower.controller import (
+    Controller as FlowerController,
+)
+from exareme2.controller.services.flower.flower_execution_info import (
+    FlowerExecutionInfo,
+)
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
+    WorkerLandscapeAggregator,
+)
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 def start_background_services():
+    flower_execition_info = FlowerExecutionInfo(
+        ctrl_logger.get_background_service_logger()
+    )
+    set_flower_experiment_watcher(flower_execition_info)
+
     worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
         update_interval=ctrl_config.worker_landscape_aggregator_update_interval,
@@ -56,3 +71,11 @@ def start_background_services():
     )
     controller.start_cleanup_loop()
     set_exareme2_controller(controller)
+
+    controller = FlowerController(
+        flower_execition_info=flower_execition_info,
+        worker_landscape_aggregator=worker_landscape_aggregator,
+        logger=ctrl_logger.get_background_service_logger(),
+        task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
+    )
+    set_flower_controller(controller)
