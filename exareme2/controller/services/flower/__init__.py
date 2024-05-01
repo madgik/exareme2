@@ -1,11 +1,9 @@
 from typing import Optional
 
 from exareme2.controller.services.flower.controller import Controller
-from exareme2.controller.services.flower.flower_execution_info import (
-    FlowerExecutionInfo,
-)
+from exareme2.controller.services.flower.flower_io_registry import FlowerIORegistry
 
-_flower_experiment_watcher: Optional[FlowerExecutionInfo] = None
+_flower_execution_info: Optional[FlowerIORegistry] = None
 _controller: Optional[Controller] = None
 
 
@@ -21,11 +19,11 @@ def get_controller() -> Controller:
     return _controller
 
 
-def set_flower_experiment_watcher(flower_experiment_watcher: FlowerExecutionInfo):
-    global _flower_experiment_watcher
-    _flower_experiment_watcher = flower_experiment_watcher
+def set_flower_execution_info(flower_execution_info: FlowerIORegistry):
+    global _flower_execution_info
+    _flower_execution_info = flower_execution_info
 
 
-def get_flower_experiment_watcher() -> FlowerExecutionInfo:
-    global _flower_experiment_watcher
-    return _flower_experiment_watcher
+def get_flower_execution_info() -> FlowerIORegistry:
+    global _flower_execution_info
+    return _flower_execution_info

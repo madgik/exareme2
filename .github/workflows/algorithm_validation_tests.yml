@@ -121,7 +121,7 @@ jobs:
           run: cat /tmp/exareme2/localworker1.out
 
       - name: Run Flower algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/flower/ --verbosity=4 --reruns 6 --reruns-delay 5
+        run: poetry run pytest tests/algorithm_validation_tests/flower/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
 
       - name: Run Exareme2 algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests/exareme2 --verbosity=4 -n 16 --reruns 3 --reruns-delay 5
@@ -246,7 +246,7 @@ jobs:
           run: cat /tmp/exareme2/localworker1.out
 
       - name: Run Flower algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/flower/test_logistic_regression.py --verbosity=4 --reruns 6 --reruns-delay 5
+        run: poetry run pytest tests/algorithm_validation_tests/flower/test_logistic_regression.py  -n 2 --verbosity=4 --reruns 6 --reruns-delay 5
 
       - name: Run Exareme2 algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/exareme2/ --verbosity=4  -k "input1 and not input1-" # run tests 10-19
+        run: poetry run pytest tests/algorithm_validation_tests/exareme2/ --verbosity=4  -n 16  -k "input1 and not input1-" # run tests 10-19

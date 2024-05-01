@@ -5,8 +5,8 @@ from unittest.mock import Mock
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
-from exareme2.controller.services.flower import FlowerExecutionInfo
-from exareme2.controller.services.flower.flower_execution_info import Status
+from exareme2.controller.services.flower import FlowerIORegistry
+from exareme2.controller.services.flower.flower_io_registry import Status
 
 
 class TestFlowerExecutionInfo(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestFlowerExecutionInfo(unittest.TestCase):
         )  # Set the newly created event loop as the current event loop
 
         self.logger = Mock()
-        self.info = FlowerExecutionInfo(self.logger)
+        self.info = FlowerIORegistry(self.logger)
 
     def tearDown(self):
         self.loop.close()  # Close the loop at the end of the test
@@ -56,7 +56,7 @@ class TestFlowerExecutionInfo(unittest.TestCase):
 class TestFlowerExecutionInfoAsync(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.logger = Mock()
-        self.info = FlowerExecutionInfo(self.logger)
+        self.info = FlowerIORegistry(self.logger)
 
     async def test_event_set_on_result(self):
         """Test that the event is set when the result is set."""

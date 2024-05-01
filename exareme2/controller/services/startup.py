@@ -11,13 +11,11 @@ from exareme2.controller.services.exareme2.controller import (
 )
 from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.flower import set_controller as set_flower_controller
-from exareme2.controller.services.flower import set_flower_experiment_watcher
+from exareme2.controller.services.flower import set_flower_execution_info
 from exareme2.controller.services.flower.controller import (
     Controller as FlowerController,
 )
-from exareme2.controller.services.flower.flower_execution_info import (
-    FlowerExecutionInfo,
-)
+from exareme2.controller.services.flower.flower_io_registry import FlowerIORegistry
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -25,10 +23,10 @@ from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 def start_background_services():
-    flower_execition_info = FlowerExecutionInfo(
+    flower_execution_info = FlowerIORegistry(
         ctrl_logger.get_background_service_logger()
     )
-    set_flower_experiment_watcher(flower_execition_info)
+    set_flower_execution_info(flower_execution_info)
 
     worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
@@ -73,9 +71,8 @@ def start_background_services():
     set_exareme2_controller(controller)
 
     controller = FlowerController(
-        flower_execition_info=flower_execition_info,
+        flower_execution_info=flower_execution_info,
         worker_landscape_aggregator=worker_landscape_aggregator,
-        logger=ctrl_logger.get_background_service_logger(),
         task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
     )
     set_flower_controller(controller)
