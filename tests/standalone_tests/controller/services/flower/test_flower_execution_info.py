@@ -23,7 +23,7 @@ class TestFlowerExecutionInfo(unittest.TestCase):
         self.loop.close()  # Close the loop at the end of the test
 
     def test_reset_sync_initial_state(self):
-        self.info.reset_sync()
+        self.info._reset_sync()
         self.assertEqual(self.info.get_status(), Status.RUNNING)
         self.assertFalse(self.info.result_ready.is_set())
 
