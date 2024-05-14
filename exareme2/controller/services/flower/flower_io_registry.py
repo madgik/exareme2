@@ -29,7 +29,6 @@ class Result:
 class FlowerIORegistry:
     def __init__(self, logger):
         self._inputdata: Optional[AlgorithmInputDataDTO] = None
-        self._status: Optional[Status] = None
         self._result: Optional[Result] = None
         self.result_ready: Optional[asyncio.Event] = None
         self._logger = logger
@@ -39,7 +38,6 @@ class FlowerIORegistry:
         """Synchronously resets the algorithm execution info to initial state."""
         self._inputdata = AlgorithmInputDataDTO(data_model="", datasets=[])
         self._result = Result(content={}, status=Status.RUNNING)
-        self._status = Status.RUNNING
         self.result_ready = asyncio.Event()
         self._logger.debug("Algorithm reset: input data cleared, status set to RUNNING")
 
@@ -52,7 +50,6 @@ class FlowerIORegistry:
         """Sets the execution result and updates the status based on the presence of an error."""
         status = Status.FAILURE if "error" in result else Status.SUCCESS
         self._result = Result(content=result, status=status)
-        self._status = status
         self._logger.debug(f"Result set with status: {status}, content: {result}")
         self.result_ready.set()
 
@@ -73,14 +70,15 @@ class FlowerIORegistry:
 
     def get_status(self) -> Status:
         """Returns the current status of the execution."""
-        self._logger.debug(f"Status retrieved: {self._status}")
-        return self._status
+        status = self._result.status if self._result else Status.RUNNING
+        self._logger.debug(f"Status retrieved: {status}")
+        return status
 
     def set_inputdata(self, inputdata: AlgorithmInputDataDTO):
         """Sets new input data for the algorithm and resets status and result."""
         self._inputdata = inputdata
-        self._status = Status.RUNNING
         self._result = Result(content={}, status=Status.RUNNING)
+        self.result_ready.clear()
         self._logger.debug(f"Input data updated: {inputdata}, status reset to RUNNING")
 
     def get_inputdata(self) -> AlgorithmInputDataDTO:
