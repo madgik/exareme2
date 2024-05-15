@@ -53,6 +53,7 @@
    algorithm_folders = "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
 
    worker_landscape_aggregator_update_interval = 30
+   flower_execution_timeout = 30
    celery_tasks_timeout = 20
    celery_cleanup_task_timeout=2
    celery_run_udf_task_timeout = 120

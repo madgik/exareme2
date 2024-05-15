@@ -1,3 +1,4 @@
+from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.controller import config as ctrl_config
 from exareme2.controller.services import get_worker_landscape_aggregator
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
@@ -8,6 +9,7 @@ from exareme2.controller.services.api.algorithm_spec_dtos import specifications
 from exareme2.controller.services.exareme2 import (
     get_controller as get_exareme2_controller,
 )
+from exareme2.controller.services.flower import get_controller as get_flower_controller
 from exareme2.controller.uid_generator import UIDGenerator
 
 
@@ -24,7 +26,12 @@ async def execute_algorithm(algo_name: str, request_dto: AlgorithmRequestDTO):
         smpc_enabled=ctrl_config.smpc.enabled,
         smpc_optional=ctrl_config.smpc.optional,
     )
-    algorithm_result = await get_exareme2_controller().exec_algorithm(
+    controller = (
+        get_flower_controller()
+        if request_dto.type == AlgorithmType.FLOWER
+        else get_exareme2_controller()
+    )
+    algorithm_result = await controller.exec_algorithm(
         algorithm_name=algo_name,
         algorithm_request_dto=request_dto,
     )

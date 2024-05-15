@@ -516,7 +516,7 @@ class WorkersFederation:
 class ExecutionStrategy(ABC):
     """
     ExecutionStrategy is an interface, that implements a Strategy pattern, allowing to
-    add arbitrary functionalilty before executing the final "Algorithm" logic, without
+    add arbitrary functionality before executing the final "Algorithm" logic, without
     having to alter the Controller.exec_algorithm method. Subclassing and implementing
     the abstract method run defines the desired functionality.
     """
