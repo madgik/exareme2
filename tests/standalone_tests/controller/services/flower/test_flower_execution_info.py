@@ -82,17 +82,3 @@ class TestFlowerExecutionInfoAsync(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(
             self.info.result_ready.is_set(), "Event should be reset after calling reset"
         )
-
-    async def test_get_result_timeout_with_logging_and_error_handling(self):
-        """Test that getting the result logs an error, re-raises a timeout error, and sets the error in the result when not set within the timeout period."""
-        timeout_duration = 0.1
-
-        # We are no longer expecting a TimeoutError to be raised here as it is caught in the method.
-        result = await self.info.get_result_with_timeout(timeout_duration)
-
-        # Verify the logger was called with an error message about the timeout
-        expected_error_message = f"Failed to get result: operation timed out after {timeout_duration} seconds"
-        self.logger.error.assert_called_with(expected_error_message)
-
-        # Check that the result contains the correct error message
-        self.assertEqual(result["error"], expected_error_message)

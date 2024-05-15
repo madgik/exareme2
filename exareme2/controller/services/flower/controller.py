@@ -88,9 +88,7 @@ class Controller:
                     algorithm_request_dto.parameters,
                     [info.id for info in workers_info],
                 )
-                result = await self.flower_execution_info.get_result_with_timeout(
-                    self.task_timeout
-                )
+                result = await self.flower_execution_info.get_result_with_timeout()
 
                 logger.info(f"Finished execution -> {algorithm_name} with {request_id}")
                 return result
