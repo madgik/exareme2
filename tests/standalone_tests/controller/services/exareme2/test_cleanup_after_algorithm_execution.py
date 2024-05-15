@@ -59,6 +59,7 @@ def controller_config():
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
         "worker_landscape_aggregator_update_interval": 30,
+        "flower_execution_timeout": 30,
         "cleanup": {
             "contextids_cleanup_folder": "/tmp/test_cleanup_entries",
             "workers_cleanup_interval": 2,

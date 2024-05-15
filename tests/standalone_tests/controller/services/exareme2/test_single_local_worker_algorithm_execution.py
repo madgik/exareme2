@@ -56,6 +56,7 @@ def controller_config():
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
         "worker_landscape_aggregator_update_interval": 30,
+        "flower_execution_timeout": 30,
         "localworkers": {
             "config_file": path.join(
                 TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALWORKER1_ADDRESSES_FILE

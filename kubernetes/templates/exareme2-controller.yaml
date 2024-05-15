@@ -37,6 +37,8 @@ spec:
           value: "KUBERNETES"
         - name: WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
           value: {{ quote .Values.controller.worker_landscape_aggregator_update_interval }}
+        - name: FLOWER_EXECUTION_TIMEOUT
+          value: { { quote .Values.controller.flower_execution_timeout } }
         - name: WORKERS_CLEANUP_INTERVAL
           value: {{ quote .Values.controller.workers_cleanup_interval }}
         - name: WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT

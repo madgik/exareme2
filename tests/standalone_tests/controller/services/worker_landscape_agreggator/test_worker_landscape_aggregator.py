@@ -43,6 +43,7 @@ def controller_config():
     controller_config = {
         "deployment_type": "LOCAL",
         "worker_landscape_aggregator_update_interval": 30,
+        "flower_execution_timeout": 30,
         "rabbitmq": {
             "celery_tasks_timeout": 5,
             "celery_run_udf_task_timeout": 10,

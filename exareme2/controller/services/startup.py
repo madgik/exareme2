@@ -23,11 +23,6 @@ from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 def start_background_services():
-    flower_execution_info = FlowerIORegistry(
-        ctrl_logger.get_background_service_logger()
-    )
-    set_flower_execution_info(flower_execution_info)
-
     worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
         update_interval=ctrl_config.worker_landscape_aggregator_update_interval,
@@ -69,6 +64,12 @@ def start_background_services():
     )
     controller.start_cleanup_loop()
     set_exareme2_controller(controller)
+
+    flower_execution_info = FlowerIORegistry(
+        ctrl_config.flower_execution_timeout,
+        ctrl_logger.get_background_service_logger(),
+    )
+    set_flower_execution_info(flower_execution_info)
 
     controller = FlowerController(
         flower_execution_info=flower_execution_info,

@@ -27,12 +27,13 @@ class Result:
 
 
 class FlowerIORegistry:
-    def __init__(self, logger):
+    def __init__(self, timeout, logger):
         self._inputdata: Optional[AlgorithmInputDataDTO] = None
         self._result: Optional[Result] = None
         self.result_ready: Optional[asyncio.Event] = None
         self._logger = logger
         self._reset_sync()
+        self._timeout = timeout
 
     def _reset_sync(self):
         """Synchronously resets the algorithm execution info to initial state."""
@@ -58,11 +59,11 @@ class FlowerIORegistry:
         self._logger.debug(f"Result retrieved: {self._result}")
         return self._result.content
 
-    async def get_result_with_timeout(self, timeout: float) -> Dict[str, Any]:
+    async def get_result_with_timeout(self) -> Dict[str, Any]:
         try:
-            await asyncio.wait_for(self.get_result(), timeout)
+            await asyncio.wait_for(self.get_result(), self._timeout)
         except asyncio.TimeoutError:
-            error = f"Failed to get result: operation timed out after {timeout} seconds"
+            error = f"Failed to get result: operation timed out after {self._timeout} seconds"
             self._logger.error(error)
             self._result = Result(content={"error": error}, status=Status.FAILURE)
         self._logger.debug(f"Result with timeout: {self._result}")

@@ -22,37 +22,40 @@ class Inputdata(BaseModel):
     y: Optional[List[str]]
     x: Optional[List[str]]
 
-    def fetch_data(self, from_db=False) -> pd.DataFrame:
-        return self._fetch_from_db() if from_db else self._load_from_csv()
 
-    def _fetch_from_db(self) -> pd.DataFrame:
-        query = f'SELECT * FROM "{self.data_model}"."primary_data"'
-        with pymonetdb.connect(
-            {
-                "hostname": os.getenv("MONETDB_IP"),
-                "port": int(os.getenv("MONETDB_PORT")),
-                "username": os.getenv("MONETDB_USERNAME"),
-                "password": os.getenv("MONETDB_PASSWORD"),
-                "database": os.getenv("MONETDB_DB"),
-            }
-        ) as conn:
-            df = pd.read_sql(query, conn)
-        df = df[df["dataset"].isin(self.datasets)]
-        return df
+def fetch_data(data_model, datasets, from_db=False) -> pd.DataFrame:
+    return (
+        _fetch_data_from_db(data_model, datasets)
+        if from_db
+        else _fetch_data_from_csv(data_model, datasets)
+    )
 
-    def _load_from_csv(self) -> pd.DataFrame:
-        data_folder = (
-            PROJECT_ROOT
-            / "tests"
-            / "test_data"
-            / f"{self.data_model.split(':')[0]}_v_0_1"
-        )
-        dataframes = [
-            pd.read_csv(data_folder / f"{dataset}.csv")
-            for dataset in self.datasets
-            if (data_folder / f"{dataset}.csv").exists()
-        ]
-        return pd.concat(dataframes, ignore_index=True)
+
+def _fetch_data_from_db(data_model, datasets) -> pd.DataFrame:
+    query = f'SELECT * FROM "{data_model}"."primary_data"'
+    conn = pymonetdb.connect(
+        hostname=os.getenv("MONETDB_IP"),
+        port=int(os.getenv("MONETDB_PORT")),
+        username=os.getenv("MONETDB_USERNAME"),
+        password=os.getenv("MONETDB_PASSWORD"),
+        database=os.getenv("MONETDB_DB"),
+    )
+    df = pd.read_sql(query, conn)
+    conn.close()
+    df = df[df["dataset"].isin(datasets)]
+    return df
+
+
+def _fetch_data_from_csv(data_model, datasets) -> pd.DataFrame:
+    data_folder = (
+        PROJECT_ROOT / "tests" / "test_data" / f"{data_model.split(':')[0]}_v_0_1"
+    )
+    dataframes = [
+        pd.read_csv(data_folder / f"{dataset}.csv")
+        for dataset in datasets
+        if (data_folder / f"{dataset}.csv").exists()
+    ]
+    return pd.concat(dataframes, ignore_index=True)
 
 
 def preprocess_data(inputdata, full_data):
