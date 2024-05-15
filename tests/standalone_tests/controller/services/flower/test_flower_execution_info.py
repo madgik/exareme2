@@ -17,7 +17,7 @@ class TestFlowerExecutionInfo(unittest.TestCase):
         )  # Set the newly created event loop as the current event loop
 
         self.logger = Mock()
-        self.info = FlowerIORegistry(self.logger)
+        self.info = FlowerIORegistry(20, self.logger)
 
     def tearDown(self):
         self.loop.close()  # Close the loop at the end of the test
@@ -56,7 +56,7 @@ class TestFlowerExecutionInfo(unittest.TestCase):
 class TestFlowerExecutionInfoAsync(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.logger = Mock()
-        self.info = FlowerIORegistry(self.logger)
+        self.info = FlowerIORegistry(20, self.logger)
 
     async def test_event_set_on_result(self):
         """Test that the event is set when the result is set."""
