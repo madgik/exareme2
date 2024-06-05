@@ -18,7 +18,7 @@ from exareme2.algorithms.exareme2.udfgen import transfer
 from exareme2.algorithms.exareme2.udfgen import udf
 from exareme2.worker_communication import BadUserInput
 
-ALGORITHM_NAME = "pca"
+ALGORITHM_NAME = "pca_with_transformation"
 
 
 class PCADataLoader(AlgorithmDataLoader, algname=ALGORITHM_NAME):

@@ -8,15 +8,9 @@ from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
 from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
 from tests.algorithm_validation_tests.exareme2.helpers import parse_response
 
-algorithm_name = "pca"
+algorithm_name = "pca_with_transformation"
 
-expected_file = (
-    Path(__file__).parent
-    / "expected"
-    / f"{algorithm_name}_with_transformation_expected.json"
-)
-
-COUNT = 0
+expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
@@ -40,8 +34,6 @@ def test_pca_algorithm(test_input, expected):
         )
         for u, v in zip(result["eigenvectors"], expected["eigen_vecs"]):
             assert_vectors_are_collinear(u, v)
-
-        print(test_input["test_case_num"])
 
 
 def assert_vectors_are_collinear(u, v):
