@@ -7,7 +7,6 @@ from tests.standalone_tests.conftest import ALGORITHMS_URL
 
 
 @pytest.mark.slow
-# @pytest.mark.skip
 def test_pos_and_kw_args_in_algorithm_flow(
     localworker1_worker_service,
     load_data_localworker1,

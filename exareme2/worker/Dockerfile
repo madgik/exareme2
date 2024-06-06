@@ -23,9 +23,15 @@ ENV PYTHONUNBUFFERED=1 \
     MONETDB_LOCAL_PASSWORD="executor" \
     MONETDB_PUBLIC_USERNAME="guest" \
     MONETDB_PUBLIC_PASSWORD="guest" \
+    DATA_PATH="/opt/data" \
     CODE_PATH="/opt/code"
 ENV PATH="$POETRY_HOME/bin:$CODE_PATH:$PATH"
 WORKDIR $CODE_PATH
+
+ENV PYTHONPATH=$CODE_PATH
+RUN mkdir $DATA_PATH
+VOLUME $DATA_PATH
+
 
 #######################################################
 # Installing poetry and dependencies

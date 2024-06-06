@@ -297,24 +297,24 @@ class WorkerTasksHandler:
         )
 
     def start_flower_client(
-        self, request_id, algorithm_name, worker_id
+        self, request_id, algorithm_name, server_address
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["start_flower_client"],
             request_id=request_id,
             algorithm_name=algorithm_name,
-            worker_id=worker_id,
+            server_address=server_address,
         )
 
     def start_flower_server(
-        self, request_id, algorithm_name, number_of_clients, worker_id
+        self, request_id, algorithm_name, number_of_clients, server_address
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["start_flower_server"],
             request_id=request_id,
             algorithm_name=algorithm_name,
             number_of_clients=number_of_clients,
-            worker_id=worker_id,
+            server_address=server_address,
         )
 
     def stop_flower_server(

@@ -4,6 +4,10 @@ framework_log_level = "INFO"
 role = "LOCALWORKER"
 monetdb_nclients = 64
 
+[controller]
+ip = "172.17.0.1"
+port = 4500
+
 [privacy]
 minimum_row_count = 10
 protect_local_data = true
