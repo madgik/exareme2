@@ -50,3 +50,8 @@ class FlowerTasksHandler:
         self._worker_tasks_handler.stop_flower_client(
             self._request_id, pid, algorithm_name
         ).get(timeout=self._tasks_timeout)
+
+    def garbage_collect(self):
+        self._worker_tasks_handler.garbage_collect(self._request_id).get(
+            timeout=self._tasks_timeout
+        )

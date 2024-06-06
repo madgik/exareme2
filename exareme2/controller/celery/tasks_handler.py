@@ -38,6 +38,7 @@ TASK_SIGNATURES: Final = {
     "start_flower_server": "exareme2.worker.flower.starter.flower_api.start_flower_server",
     "stop_flower_server": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_server",
     "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
+    "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
 }
 
 
@@ -335,4 +336,10 @@ class WorkerTasksHandler:
             request_id=request_id,
             pid=pid,
             algorithm_name=algorithm_name,
+        )
+
+    def garbage_collect(self, request_id) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["garbage_collect"],
+            request_id=request_id,
         )
