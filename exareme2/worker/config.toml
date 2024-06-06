@@ -1,8 +1,13 @@
 identifier = "$WORKER_IDENTIFIER"
 role = "$WORKER_ROLE"
+data_path = "$DATA_PATH"
 
 log_level = "$LOG_LEVEL"
 framework_log_level = "$FRAMEWORK_LOG_LEVEL"
+
+[controller]
+ip = "$CONTROLLER_IP"
+port = "$CONTROLLER_PORT"
 
 [privacy]
 minimum_row_count = 10

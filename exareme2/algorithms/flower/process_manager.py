@@ -70,6 +70,31 @@ def terminate_process(proc, logger, max_attempts=3, wait_time=10):
     logger.error(f"Failed to terminate PID {proc.pid} after {max_attempts} attempts.")
 
 
+def should_terminate_process(cmdline):
+    """Check if the process should be terminated based on its command line."""
+    return cmdline and (
+        cmdline[-1].endswith("client.py") or cmdline[-1].endswith("server.py")
+    )
+
+
+def process_garbage_collect(proc, logger):
+    """Terminate a process and handle errors."""
+    try:
+        pid = proc.pid
+        cmdline = proc.cmdline()
+        if should_terminate_process(cmdline):
+            logger.info(f"PID: {pid} - Name: {proc.name()} - Cmdline: {cmdline}")
+            terminate_process(proc, logger)
+    except psutil.NoSuchProcess:
+        logger.warn(
+            f"No process found with PID {proc.pid}. It may have already exited."
+        )
+    except psutil.AccessDenied:
+        logger.error(f"Access denied when attempting to terminate PID {proc.pid}.")
+    except Exception as e:
+        logger.error(f"An error occurred while managing PID {proc.pid}: {e}")
+
+
 class FlowerProcess:
     def __init__(self, file, parameters=None, env_vars=None, stdout=None, stderr=None):
         self.file = file
@@ -107,3 +132,9 @@ class FlowerProcess:
             logger.error(f"Access denied when attempting to terminate PID {pid}.")
         except Exception as e:
             logger.error(f"An error occurred while managing PID {pid}: {e}")
+
+    @classmethod
+    def garbage_collect(cls, logger):
+        """Garbage collect processes matching specific criteria."""
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            process_garbage_collect(proc, logger)

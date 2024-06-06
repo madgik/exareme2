@@ -7,8 +7,9 @@ from exareme2.controller.services.flower.tasks_handler import FlowerTasksHandler
 from exareme2.controller.uid_generator import UIDGenerator
 from exareme2.worker_communication import WorkerInfo
 
+FLOWER_SERVER_PORT = "8080"
 
-# Base Exception class for Worker-related exceptions
+
 class WorkerException(Exception):
     pass
 
@@ -59,23 +60,30 @@ class Controller:
                 self._create_worker_tasks_handler(request_id, worker)
                 for worker in workers_info
             ]
-            server_task_handler = (
-                task_handlers[0]
-                if len(task_handlers) == 1
-                else self._create_global_handler(request_id)
-            )
+
+            server_task_handler, server_ip = task_handlers[0], workers_info[0].ip
+            if len(task_handlers) > 1:
+                global_worker = self.worker_landscape_aggregator.get_global_worker()
+                server_task_handler = self._create_worker_tasks_handler(
+                    request_id, global_worker
+                )
+                server_ip = global_worker.ip
+
             self.flower_execution_info.set_inputdata(
                 inputdata=algorithm_request_dto.inputdata
             )
             server_pid = None
             clients_pids = {}
+            server_address = f"{server_ip}:{FLOWER_SERVER_PORT}"
 
             try:
                 server_pid = server_task_handler.start_flower_server(
-                    algorithm_name, len(task_handlers)
+                    algorithm_name, len(task_handlers), str(server_address)
                 )
                 clients_pids = {
-                    handler.start_flower_client(algorithm_name): handler
+                    handler.start_flower_client(
+                        algorithm_name, str(server_address)
+                    ): handler
                     for handler in task_handlers
                 }
 
@@ -102,7 +110,10 @@ class Controller:
 
     def _create_global_handler(self, request_id):
         global_worker = self.worker_landscape_aggregator.get_global_worker()
-        return self._create_worker_tasks_handler(request_id, global_worker)
+        return (
+            self._create_worker_tasks_handler(request_id, global_worker),
+            global_worker.ip,
+        )
 
     async def _cleanup(
         self, algorithm_name, server_task_handler, server_pid, clients_pids

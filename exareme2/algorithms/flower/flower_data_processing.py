@@ -12,6 +12,12 @@ from sklearn import preprocessing
 from sklearn.impute import SimpleImputer
 
 # Constants for project directories and environment configurations
+CONTROLLER_IP = os.getenv("CONTROLLER_IP", "127.0.0.1")
+CONTROLLER_PORT = os.getenv("CONTROLLER_PORT", 5000)
+RESULT_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/flower/result"
+INPUT_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/flower/input"
+CDES_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/cdes_metadata"
+HEADERS = {"Content-type": "application/json", "Accept": "text/plain"}
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 

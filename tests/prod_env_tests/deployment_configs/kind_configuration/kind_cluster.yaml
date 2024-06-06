@@ -9,7 +9,7 @@ nodes:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/master/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/exareme2/data
+    containerPath: /opt/exareme2/csvs
 
 - role: worker
   extraMounts:

@@ -58,6 +58,9 @@
    celery_cleanup_task_timeout=2
    celery_run_udf_task_timeout = 120
 
+   [controller]
+   port = 5000
+
    [privacy]
    minimum_row_count = 10
    protect_local_data = false

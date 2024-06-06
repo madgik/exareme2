@@ -62,12 +62,13 @@ class FlowerIORegistry:
     async def get_result_with_timeout(self) -> Dict[str, Any]:
         try:
             await asyncio.wait_for(self.get_result(), self._timeout)
+            self._logger.debug(f"Result with timeout: {self._result}")
+            return self._result.content
         except asyncio.TimeoutError:
             error = f"Failed to get result: operation timed out after {self._timeout} seconds"
             self._logger.error(error)
             self._result = Result(content={"error": error}, status=Status.FAILURE)
-        self._logger.debug(f"Result with timeout: {self._result}")
-        return self._result.content
+            raise TimeoutError(error)
 
     def get_status(self) -> Status:
         """Returns the current status of the execution."""
