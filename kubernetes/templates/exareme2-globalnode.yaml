@@ -113,12 +113,9 @@ spec:
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
         - name: CONTROLLER_IP
-          value: exareme2-controller-service
+          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_HOST)
         - name: CONTROLLER_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: exareme2-controller-service
-              key: EXAREME2_CONTROLLER_SERVICE_SERVICE_PORT
+          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_PORT)
         - name: PROTECT_LOCAL_DATA
           value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
         - name: CELERY_TASKS_TIMEOUT
