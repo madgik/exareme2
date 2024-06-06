@@ -20,6 +20,11 @@ signature_mapping = {
     "validate_smpc_templates_match": "exareme2.worker.exareme2.smpc.smpc_api.validate_smpc_templates_match",
     "load_data_to_smpc_client": "exareme2.worker.exareme2.smpc.smpc_api.load_data_to_smpc_client",
     "get_smpc_result": "exareme2.worker.exareme2.smpc.smpc_api.get_smpc_result",
+    "start_flower_client": "exareme2.worker.flower.starter.flower_api.start_flower_client",
+    "start_flower_server": "exareme2.worker.flower.starter.flower_api.start_flower_server",
+    "stop_flower_server": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_server",
+    "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
+    "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
 }
 
 

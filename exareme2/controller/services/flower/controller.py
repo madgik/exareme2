@@ -69,6 +69,11 @@ class Controller:
                 )
                 server_ip = global_worker.ip
 
+            # Garbage Collect
+            server_task_handler.garbage_collect()
+            for handler in task_handlers:
+                handler.garbage_collect()
+
             self.flower_execution_info.set_inputdata(
                 inputdata=algorithm_request_dto.inputdata
             )

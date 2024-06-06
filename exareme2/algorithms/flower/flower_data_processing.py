@@ -18,7 +18,6 @@ RESULT_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/flower/result"
 INPUT_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/flower/input"
 CDES_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/cdes_metadata"
 HEADERS = {"Content-type": "application/json", "Accept": "text/plain"}
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Inputdata(BaseModel):
@@ -53,9 +52,8 @@ def _fetch_data_from_db(data_model, datasets) -> pd.DataFrame:
 
 
 def _fetch_data_from_csv(data_model, datasets) -> pd.DataFrame:
-    data_folder = (
-        PROJECT_ROOT / "tests" / "test_data" / f"{data_model.split(':')[0]}_v_0_1"
-    )
+    data_folder = Path(f"{os.getenv('DATA_PATH')}/{data_model.split(':')[0]}_v_0_1")
+    print(f"Loading data from folder: {data_folder}")
     dataframes = [
         pd.read_csv(data_folder / f"{dataset}.csv")
         for dataset in datasets
@@ -85,19 +83,51 @@ def preprocess_data(inputdata, full_data):
     return features_imputed, y_train
 
 
+def error_handling(error):
+    error_msg = {"error": str(error)}
+    print(
+        f"Error will try to save error message: {error_msg}! Running: {RESULT_URL}..."
+    )
+    requests.post(RESULT_URL, data=json.dumps(error_msg), headers=HEADERS)
+
+
 def post_result(result: dict) -> None:
-    url = "http://127.0.0.1:5000/flower/result"
-    headers = {"Content-type": "application/json", "Accept": "text/plain"}
-    requests.post(url, data=json.dumps(result), headers=headers)
+    print(f"Running: {RESULT_URL}...")
+    response = requests.post(RESULT_URL, data=json.dumps(result), headers=HEADERS)
+    if response.status_code != 200:
+        error_handling(response.text)
 
 
 def get_input() -> Inputdata:
-    response = requests.get("http://127.0.0.1:5000/flower/input")
-    return Inputdata.parse_raw(response.text)
+    print(f"Running: {INPUT_URL}...")
+    response = requests.get(INPUT_URL)
+    if response.status_code != 200:
+        error_handling(response.text)
+    input_data = Inputdata.parse_raw(response.text)
+    return input_data
 
 
-def get_enumerations(data_model, variable_name):
-    response = requests.get("http://127.0.0.1:5000/cdes_metadata")
-    cdes_metadata = json.loads(response.text)
-    enumerations = cdes_metadata[data_model][variable_name]["enumerations"]
-    return [code for code, label in enumerations.items()]
+def get_enumerations(data_model: str, variable_name: str) -> list:
+    try:
+        print(f"Running: {CDES_URL}...")
+        response = requests.get(CDES_URL)
+        if response.status_code != 200:
+            error_handling(response.text)
+        cdes_metadata = response.json()
+        if data_model not in cdes_metadata:
+            raise KeyError(f"'{data_model}' key not found in cdes_metadata")
+
+        if variable_name not in cdes_metadata[data_model]:
+            raise KeyError(f"'{variable_name}' key not found in {data_model}")
+
+        enumerations = cdes_metadata[data_model][variable_name].get("enumerations")
+        if enumerations is not None:
+            return [code for code, label in enumerations.items()]
+        else:
+            raise KeyError(f"'enumerations' key not found in {variable_name}")
+    except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
+        error_msg = {"error": str(e)}
+        print(
+            f"Error will try to save error message: {error_msg}! Running: {RESULT_URL}..."
+        )
+        requests.post(RESULT_URL, data=json.dumps(error_msg), headers=HEADERS)
