@@ -32,7 +32,7 @@ async def get_datasets() -> dict:
 
 @algorithms.route("/datasets_locations", methods=["GET"])
 async def get_datasets_locations() -> dict:
-    return get_worker_landscape_aggregator().get_datasets_locations().datasets_locations
+    return get_worker_landscape_aggregator().get_datasets_locations()
 
 
 @algorithms.route("/cdes_metadata", methods=["GET"])

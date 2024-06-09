@@ -17,7 +17,7 @@ def test_get_data_model_metadata_and_dataset_locations(
     localworker1_celery_app,
     load_data_localworker1,
 ):
-    request_id = "test_attributes_" + uuid.uuid4().hex + "_request"
+    request_id = "test_metadata_" + uuid.uuid4().hex + "_request"
 
     task_signature = get_celery_task_signature(
         "get_worker_data_model_metadata_and_datasets"
