@@ -503,12 +503,30 @@ class WorkerLandscapeAggregator:
         duplicated_datasets: Dict[str, Dict[str, List[str]]],
     ):
         for data_model, datasets in duplicated_datasets.items():
-            for dataset, worker_ids in datasets.items():
-                _log_duplicated_dataset(worker_ids, data_model, dataset, self._logger)
-                if data_model in datasets_locations:
-                    datasets_locations[data_model].pop(dataset, None)
-                    if not datasets_locations[data_model]:
-                        del datasets_locations[data_model]
+            self._log_and_cleanup_datasets_for_model(
+                data_model, datasets, datasets_locations
+            )
+
+    def _log_and_cleanup_datasets_for_model(
+        self,
+        data_model: str,
+        datasets: Dict[str, List[str]],
+        datasets_locations: Dict[str, Dict[str, str]],
+    ):
+        for dataset, worker_ids in datasets.items():
+            _log_duplicated_dataset(worker_ids, data_model, dataset, self._logger)
+            self._cleanup_dataset_location(data_model, dataset, datasets_locations)
+
+    def _cleanup_dataset_location(
+        self,
+        data_model: str,
+        dataset: str,
+        datasets_locations: Dict[str, Dict[str, str]],
+    ):
+        if data_model in datasets_locations:
+            datasets_locations[data_model].pop(dataset, None)
+            if not datasets_locations[data_model]:
+                del datasets_locations[data_model]
 
 
 def _log_worker_changes(
