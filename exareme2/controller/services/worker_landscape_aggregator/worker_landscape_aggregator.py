@@ -393,28 +393,46 @@ class WorkerLandscapeAggregator:
         incompatible_data_models: Dict[str, List[DataModelConfict]],
         worker_id: str,
     ):
-        if data_models_metadata:
-            for data_model, metadata in data_models_metadata.items():
-                if data_model in incompatible_data_models:
-                    continue
-                if data_model not in aggregate_data_models_metadata:
-                    aggregate_data_models_metadata[data_model] = metadata
-                elif (
-                    aggregate_data_models_metadata[data_model].to_dict()
-                    != metadata.to_dict()
-                ):
-                    if data_model not in incompatible_data_models:
-                        incompatible_data_models[data_model] = []
-                    incompatible_data_models[data_model].append(
-                        DataModelConfict(worker_id=worker_id, metadata=metadata)
-                    )
-                    incompatible_data_models[data_model].append(
-                        DataModelConfict(
-                            worker_id=worker_id,
-                            metadata=aggregate_data_models_metadata[data_model],
-                        )
-                    )
-                    aggregate_data_models_metadata.pop(data_model, None)
+        if not data_models_metadata:
+            return
+
+        for data_model, metadata in data_models_metadata.items():
+            if data_model in incompatible_data_models:
+                continue
+            if data_model not in aggregate_data_models_metadata:
+                aggregate_data_models_metadata[data_model] = metadata
+            elif (
+                aggregate_data_models_metadata[data_model].to_dict()
+                != metadata.to_dict()
+            ):
+                self._add_to_incompatible_data_models(
+                    data_model,
+                    metadata,
+                    aggregate_data_models_metadata,
+                    incompatible_data_models,
+                    worker_id,
+                )
+
+    def _add_to_incompatible_data_models(
+        self,
+        data_model: str,
+        metadata: DataModelMetadata,
+        aggregate_data_models_metadata: Dict[str, DataModelMetadata],
+        incompatible_data_models: Dict[str, List[DataModelConfict]],
+        worker_id: str,
+    ):
+        if data_model not in incompatible_data_models:
+            incompatible_data_models[data_model] = []
+        incompatible_data_models[data_model].append(
+            DataModelConfict(worker_id=worker_id, metadata=metadata)
+        )
+        incompatible_data_models[data_model].append(
+            DataModelConfict(
+                worker_id=worker_id,
+                metadata=aggregate_data_models_metadata[data_model],
+            )
+        )
+        aggregate_data_models_metadata.pop(data_model, None)
 
     def _process_datasets_location(
         self,
@@ -423,19 +441,44 @@ class WorkerLandscapeAggregator:
         duplicated_datasets: Dict[str, Dict[str, List[str]]],
         worker_id: str,
     ):
-        if datasets_per_data_model:
-            for data_model, datasets in datasets_per_data_model.items():
-                if data_model not in datasets_locations:
-                    datasets_locations[data_model] = {}
-                for dataset in datasets:
-                    if dataset in datasets_locations[data_model]:
-                        if data_model not in duplicated_datasets:
-                            duplicated_datasets[data_model] = {}
-                        if dataset not in duplicated_datasets[data_model]:
-                            duplicated_datasets[data_model][dataset] = []
-                        duplicated_datasets[data_model][dataset].append(worker_id)
-                    else:
-                        datasets_locations[data_model][dataset] = worker_id
+        if not datasets_per_data_model:
+            return
+
+        for data_model, datasets in datasets_per_data_model.items():
+            if data_model not in datasets_locations:
+                datasets_locations[data_model] = {}
+            self._update_datasets_locations(
+                data_model, datasets, datasets_locations, duplicated_datasets, worker_id
+            )
+
+    def _update_datasets_locations(
+        self,
+        data_model: str,
+        datasets: List[str],
+        datasets_locations: Dict[str, Dict[str, str]],
+        duplicated_datasets: Dict[str, Dict[str, List[str]]],
+        worker_id: str,
+    ):
+        for dataset in datasets:
+            if dataset in datasets_locations[data_model]:
+                self._add_to_duplicated_datasets(
+                    data_model, dataset, duplicated_datasets, worker_id
+                )
+            else:
+                datasets_locations[data_model][dataset] = worker_id
+
+    def _add_to_duplicated_datasets(
+        self,
+        data_model: str,
+        dataset: str,
+        duplicated_datasets: Dict[str, Dict[str, List[str]]],
+        worker_id: str,
+    ):
+        if data_model not in duplicated_datasets:
+            duplicated_datasets[data_model] = {}
+        if dataset not in duplicated_datasets[data_model]:
+            duplicated_datasets[data_model][dataset] = []
+        duplicated_datasets[data_model][dataset].append(worker_id)
 
     def _cleanup_incompatible_data_models(
         self,
