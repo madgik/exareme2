@@ -122,11 +122,9 @@ def test_update_loop_data_properly_added(
     worker_landscape_aggregator.update()
 
     assert (
-        worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
-        and "tbi:0.1"
-        in worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
-        and "dementia:0.1"
-        in worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes
+        worker_landscape_aggregator.get_cdes_per_data_model()
+        and "tbi:0.1" in worker_landscape_aggregator.get_cdes_per_data_model()
+        and "dementia:0.1" in worker_landscape_aggregator.get_cdes_per_data_model()
     )
 
 
