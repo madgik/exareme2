@@ -52,9 +52,6 @@ from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHan
 from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
-    DatasetsLocations,
-)
-from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
@@ -875,7 +872,7 @@ class Controller:
         }
         return datasets_per_local_worker
 
-    def get_datasets_locations(self) -> DatasetsLocations:
+    def get_datasets_locations(self) -> Dict[str, Dict[str, str]]:
         return self._worker_landscape_aggregator.get_datasets_locations()
 
     def get_cdes_per_data_model(self) -> dict:
@@ -883,19 +880,17 @@ class Controller:
             data_model: {
                 column: metadata.dict() for column, metadata in cdes.values.items()
             }
-            for data_model, cdes in self._worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.items()
+            for data_model, cdes in self._worker_landscape_aggregator.get_cdes_per_data_model().items()
         }
 
-    def get_data_models_attributes(self) -> Dict[str, Dict]:
+    def get_data_models_metadata(self) -> Dict[str, Dict]:
         return {
             data_model: data_model_metadata.dict()
-            for data_model, data_model_metadata in self._worker_landscape_aggregator.get_data_models_attributes().items()
+            for data_model, data_model_metadata in self._worker_landscape_aggregator.get_data_models_metadata().items()
         }
 
     def get_all_available_data_models(self) -> List[str]:
-        return list(
-            self._worker_landscape_aggregator.get_cdes_per_data_model().data_models_cdes.keys()
-        )
+        return list(self._worker_landscape_aggregator.get_cdes_per_data_model().keys())
 
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (

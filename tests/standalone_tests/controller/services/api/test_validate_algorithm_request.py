@@ -25,12 +25,6 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
     DataModelRegistry,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
-    DataModelsCDES,
-)
-from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
-    DatasetsLocations,
-)
-from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -38,7 +32,7 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
 )
 from exareme2.worker_communication import BadUserInput
 from exareme2.worker_communication import CommonDataElement
-from exareme2.worker_communication import CommonDataElements
+from exareme2.worker_communication import DataModelMetadata
 
 
 @pytest.fixture
@@ -52,35 +46,38 @@ def worker_landscape_aggregator():
         localworkers={},
     )
 
-    data_models = {
-        "data_model_with_all_cde_types:0.1": CommonDataElements(
-            values={
-                "int_cde": CommonDataElement(
+    data_models_metadata = {
+        "data_model_with_all_cde_types:0.1": DataModelMetadata(
+            code="data_model_with_all_cde_types",
+            version="0.1",
+            label="data_model_with_all_cde_types",
+            variables=[
+                CommonDataElement(
                     code="int_cde",
                     label="int_cde",
                     sql_type="int",
                     is_categorical=False,
                 ),
-                "real_cde": CommonDataElement(
+                CommonDataElement(
                     code="real_cde",
                     label="real_cde",
                     sql_type="real",
                     is_categorical=False,
                 ),
-                "text_cde_categ": CommonDataElement(
+                CommonDataElement(
                     code="text_cde_categ",
                     label="text_cde_categ",
                     sql_type="text",
                     is_categorical=True,
                     enumerations={"male": "male", "female": "female"},
                 ),
-                "text_cde_non_categ": CommonDataElement(
+                CommonDataElement(
                     code="text_cde_non_categ",
                     label="text_cde_non_categ",
                     sql_type="text",
                     is_categorical=False,
                 ),
-                "int_cde_categ": CommonDataElement(
+                CommonDataElement(
                     code="int_cde_categ",
                     label="int_cde_categ",
                     sql_type="int",
@@ -90,37 +87,42 @@ def worker_landscape_aggregator():
                         "2": "2",
                     },
                 ),
-                "text_cde_3_enums": CommonDataElement(
+                CommonDataElement(
                     code="text_cde_3_enums",
                     label="text_cde_3_enums",
                     sql_type="text",
                     is_categorical=True,
                     enumerations={"male": "male", "female": "female", "Other": "Other"},
                 ),
-            }
+            ],
+            groups=[],
+            longitudinal=False,
         ),
-        "sample_data_model:0.1": CommonDataElements(
-            values={
-                "sample_cde": CommonDataElement(
+        "sample_data_model:0.1": DataModelMetadata(
+            code="data_model_with_all_cde_types",
+            version="0.1",
+            label="data_model_with_all_cde_types",
+            variables=[
+                CommonDataElement(
                     code="sample_cde",
                     label="sample_cde",
                     sql_type="int",
                     is_categorical=False,
-                ),
-            }
+                )
+            ],
+            groups=[],
+            longitudinal=False,
         ),
     }
     _data_model_registry = DataModelRegistry(
-        data_models_cdes=DataModelsCDES(data_models_cdes=data_models),
-        datasets_locations=DatasetsLocations(
-            datasets_locations={
-                "data_model_with_all_cde_types:0.1": {
-                    "sample_dataset1": "sample_worker",
-                    "sample_dataset2": "sample_worker",
-                },
-                "sample_data_model:0.1": {"sample_dataset": "sample_worker"},
-            }
-        ),
+        data_models_metadata=data_models_metadata,
+        datasets_locations={
+            "data_model_with_all_cde_types:0.1": {
+                "sample_dataset1": "sample_worker",
+                "sample_dataset2": "sample_worker",
+            },
+            "sample_data_model:0.1": {"sample_dataset": "sample_worker"},
+        },
     )
     worker_landscape_aggregator._registries = _wlaRegistries(
         data_model_registry=_data_model_registry

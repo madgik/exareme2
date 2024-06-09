@@ -253,19 +253,14 @@ class TableInfo(ImmutableBaseModel):
         )
 
 
-class DataModelAttributes(ImmutableBaseModel):
-    tags: List
-    properties: Dict
-
-
 class CommonDataElement(ImmutableBaseModel):
-    code: str
-    label: str
-    sql_type: str
     is_categorical: bool
-    enumerations: Optional[Dict[str, str]] = None
+    code: str
+    sql_type: str
+    label: str
     min: Optional[float] = None
     max: Optional[float] = None
+    enumerations: Optional[Dict[str, str]] = None
 
     def __eq__(self, other):
         return (
@@ -279,45 +274,110 @@ class CommonDataElement(ImmutableBaseModel):
             and self.min == other.min
         )
 
+    def to_dict(self):
+        return {
+            "isCategorical": self.is_categorical,
+            "code": self.code,
+            "sql_type": self.sql_type,
+            "label": self.label,
+            "minValue": self.min,
+            "maxValue": self.max,
+            "enumerations": self.enumerations,
+        }
 
-class CommonDataElements(BaseModel):
-    values: Dict[str, CommonDataElement]
 
-    class Config:
-        allow_mutation = False
-        arbitrary_types_allowed = True
+class Group(ImmutableBaseModel):
+    code: str
+    label: str
+    variables: List[CommonDataElement]
+    groups: Optional[List["Group"]] = None
 
-    def __eq__(self, other):
-        """
-        We are overriding the equals function to check that the two cdes have identical fields except one edge case.
-        The edge case is that the two comparing cdes can only contain a difference in the field of enumerations in
-        the cde with code 'dataset' and still be considered compatible.
-        """
-        if set(self.values.keys()) != set(other.values.keys()):
-            return False
-        for cde_code in self.values.keys():
-            cde1 = self.values[cde_code]
-            cde2 = other.values[cde_code]
-            if not cde1 == cde2 and not self._are_equal_dataset_cdes(cde1, cde2):
-                return False
-        return True
+    def to_dict(self) -> Dict[str, Union[str, List[Dict]]]:
+        return {
+            "code": self.code,
+            "label": self.label,
+            "variables": [variable.to_dict() for variable in self.variables],
+            "groups": [group.to_dict() for group in self.groups] if self.groups else [],
+        }
 
-    def _are_equal_dataset_cdes(
-        self, cde1: CommonDataElement, cde2: CommonDataElement
-    ) -> bool:
-        if cde1.code != "dataset" or cde2.code != "dataset":
-            return False
 
-        if (
-            cde1.label != cde2.label
-            or cde1.sql_type != cde2.sql_type
-            or cde1.is_categorical != cde2.is_categorical
-            or cde1.max != cde2.max
-            or cde1.min != cde2.min
-        ):
-            return False
+class DataModelMetadata(ImmutableBaseModel):
+    code: str
+    version: str
+    label: str
+    variables: List[CommonDataElement]
+    groups: List[Group]
+    longitudinal: bool
 
-        return True
+    def flatten_variables(self) -> Dict[str, CommonDataElement]:
+        flattened_vars = {
+            var.code: var for var in self.variables
+        }  # Start with the top-level variables
+
+        def extract_variables(group: Group) -> Dict[str, CommonDataElement]:
+            vars = {var.code: var for var in group.variables}
+            if group.groups:
+                for subgroup in group.groups:
+                    vars.update(extract_variables(subgroup))
+            return vars
+
+        for group in self.groups:
+            flattened_vars.update(extract_variables(group))
+
+        return flattened_vars
+
+    def find_conflicting_fields(self, other: "DataModelMetadata") -> List[str]:
+        self_vars = self.flatten_variables()
+        other_vars = other.flatten_variables()
+
+        all_keys = set(self_vars.keys()).union(set(other_vars.keys()))
+        return [key for key in all_keys if self_vars.get(key) != other_vars.get(key)]
+
+    def to_dict(self) -> Dict[str, Union[str, List[Dict]]]:
+        return {
+            "code": self.code,
+            "version": self.version,
+            "label": self.label,
+            "variables": [variable.to_dict() for variable in self.variables],
+            "groups": [group.to_dict() for group in self.groups],
+            "longitudinal": self.longitudinal,
+        }
+
+
+def parse_cde(data: dict) -> CommonDataElement:
+    enumerations = {
+        enum["code"]: enum["label"] for enum in data.get("enumerations", [])
+    }
+    return CommonDataElement(
+        is_categorical=data["isCategorical"],
+        code=data["code"],
+        sql_type=data["sql_type"],
+        label=data["label"],
+        min=data.get("minValue"),
+        max=data.get("maxValue"),
+        enumerations=enumerations,
+    )
+
+
+def parse_group(data: dict) -> Group:
+    variables = [parse_cde(v) for v in data.get("variables", [])]
+    subgroups = [parse_group(g) for g in data.get("groups", [])]
+    return Group(
+        code=data["code"], label=data["label"], variables=variables, groups=subgroups
+    )
+
+
+def parse_data_model_metadata(data: dict) -> DataModelMetadata:
+    variables = [parse_cde(v) for v in data["variables"]]
+    groups = [parse_group(g) for g in data["groups"]]
+    return DataModelMetadata(
+        code=data["code"],
+        version=data["version"],
+        label=data["label"],
+        variables=variables,
+        groups=groups,
+        longitudinal=data["longitudinal"] if "longitudinal" in data else False,
+    )
 
 
 # ~~~~~~~~~~~~~~~~~~~ Table Data DTOs ~~~~~~~~~~~~~~~~~~~~~~ #

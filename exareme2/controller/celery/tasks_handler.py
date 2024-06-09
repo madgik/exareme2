@@ -30,9 +30,7 @@ TASK_SIGNATURES: Final = {
     "load_data_to_smpc_client": "exareme2.worker.exareme2.smpc.smpc_api.load_data_to_smpc_client",
     "get_smpc_result": "exareme2.worker.exareme2.smpc.smpc_api.get_smpc_result",
     "get_worker_info": "exareme2.worker.worker_info.worker_info_api.get_worker_info",
-    "get_worker_datasets_per_data_model": "exareme2.worker.worker_info.worker_info_api.get_worker_datasets_per_data_model",
-    "get_data_model_cdes": "exareme2.worker.worker_info.worker_info_api.get_data_model_cdes",
-    "get_data_model_attributes": "exareme2.worker.worker_info.worker_info_api.get_data_model_attributes",
+    "get_worker_data_model_metadata_and_datasets": "exareme2.worker.worker_info.worker_info_api.get_worker_data_model_metadata_and_datasets",
     "healthcheck": "exareme2.worker.worker_info.worker_info_api.healthcheck",
     "start_flower_client": "exareme2.worker.flower.starter.flower_api.start_flower_client",
     "start_flower_server": "exareme2.worker.flower.starter.flower_api.start_flower_server",
@@ -256,32 +254,14 @@ class WorkerTasksHandler:
             priority=CELERY_APP_QUEUE_MAX_PRIORITY,
         )
 
-    def queue_worker_datasets_per_data_model_task(
+    def queue_worker_data_model_metadata_and_dataset_locations(
         self, request_id: str
     ) -> WorkerTaskResult:
         return self._queue_task(
-            task_signature=TASK_SIGNATURES["get_worker_datasets_per_data_model"],
+            task_signature=TASK_SIGNATURES[
+                "get_worker_data_model_metadata_and_datasets"
+            ],
             request_id=request_id,
-            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
-        )
-
-    def queue_data_model_cdes_task(
-        self, request_id: str, data_model: str
-    ) -> WorkerTaskResult:
-        return self._queue_task(
-            task_signature=TASK_SIGNATURES["get_data_model_cdes"],
-            request_id=request_id,
-            data_model=data_model,
-            priority=CELERY_APP_QUEUE_MAX_PRIORITY,
-        )
-
-    def queue_data_model_attributes_task(
-        self, request_id: str, data_model: str
-    ) -> WorkerTaskResult:
-        return self._queue_task(
-            task_signature=TASK_SIGNATURES["get_data_model_attributes"],
-            request_id=request_id,
-            data_model=data_model,
             priority=CELERY_APP_QUEUE_MAX_PRIORITY,
         )
 

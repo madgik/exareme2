@@ -40,19 +40,17 @@ async def get_cdes_metadata() -> dict:
     cdes_per_data_model = get_worker_landscape_aggregator().get_cdes_per_data_model()
 
     return {
-        data_model: {
-            column: metadata.dict() for column, metadata in cdes.values.items()
-        }
-        for data_model, cdes in cdes_per_data_model.data_models_cdes.items()
+        data_model: {column: metadata.dict() for column, metadata in cdes.items()}
+        for data_model, cdes in cdes_per_data_model.items()
     }
 
 
-@algorithms.route("/data_models_attributes", methods=["GET"])
-async def get_data_models_attributes() -> dict:
-    data_model_attrs = get_worker_landscape_aggregator().get_data_models_attributes()
+@algorithms.route("/data_models_metadata", methods=["GET"])
+async def get_data_models_metadata() -> dict:
+    data_models_metadata = get_worker_landscape_aggregator().get_data_models_metadata()
     return {
-        data_model: data_model_metadata.dict()
-        for data_model, data_model_metadata in data_model_attrs.items()
+        data_model: data_model_metadata.to_dict()
+        for data_model, data_model_metadata in data_models_metadata.items()
     }
 
 

@@ -1,8 +1,6 @@
 signature_mapping = {
     "get_worker_info": "exareme2.worker.worker_info.worker_info_api.get_worker_info",
-    "get_data_model_cdes": "exareme2.worker.worker_info.worker_info_api.get_data_model_cdes",
-    "get_worker_datasets_per_data_model": "exareme2.worker.worker_info.worker_info_api.get_worker_datasets_per_data_model",
-    "get_data_model_attributes": "exareme2.worker.worker_info.worker_info_api.get_data_model_attributes",
+    "get_worker_data_model_metadata_and_datasets": "exareme2.worker.worker_info.worker_info_api.get_worker_data_model_metadata_and_datasets",
     "healthcheck": "exareme2.worker.worker_info.worker_info_api.healthcheck",
     "get_views": "exareme2.worker.exareme2.views.views_api.get_views",
     "create_view": "exareme2.worker.exareme2.views.views_api.create_view",
