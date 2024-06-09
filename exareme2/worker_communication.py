@@ -276,12 +276,12 @@ class CommonDataElement(ImmutableBaseModel):
 
     def to_dict(self):
         return {
-            "isCategorical": self.is_categorical,
+            "is_categorical": self.is_categorical,
             "code": self.code,
             "sql_type": self.sql_type,
             "label": self.label,
-            "minValue": self.min,
-            "maxValue": self.max,
+            "min": self.min,
+            "max": self.max,
             "enumerations": self.enumerations,
         }
 
