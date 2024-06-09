@@ -11,6 +11,4 @@ def test_get_data_models_metadata():
 
     for data_model, metadata in response.items():
         assert data_model in ["dementia:0.1", "tbi:0.1", "longitudinal_dementia:0.1"]
-        assert all([elem in metadata for elem in ["tags", "properties"]])
-        assert "cdes" in metadata["properties"]
-        assert len(metadata["properties"]["cdes"]) > 0
+        assert all([elem in metadata for elem in ["code", "label"]])
