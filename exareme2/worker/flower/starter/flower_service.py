@@ -5,18 +5,16 @@ from exareme2.worker.utils.logger import initialise_logger
 
 
 @initialise_logger
-def start_flower_client(request_id: str, algorithm_name, server_address) -> int:
+def start_flower_client(
+    request_id: str, algorithm_name, server_address, csv_paths
+) -> int:
     env_vars = {
-        "MONETDB_IP": worker_config.monetdb.ip,
-        "MONETDB_PORT": worker_config.monetdb.port,
-        "MONETDB_USERNAME": worker_config.monetdb.local_username,
-        "MONETDB_PASSWORD": worker_config.monetdb.local_password,
-        "MONETDB_DB": worker_config.monetdb.database,
         "SERVER_ADDRESS": server_address,
         "NUMBER_OF_CLIENTS": worker_config.monetdb.database,
         "CONTROLLER_IP": worker_config.controller.ip,
         "CONTROLLER_PORT": worker_config.controller.port,
         "DATA_PATH": worker_config.data_path,
+        "CSV_PATHS": ",".join(csv_paths),
     }
     process = FlowerProcess(f"{algorithm_name}/client.py", env_vars=env_vars)
     logger = get_logger()

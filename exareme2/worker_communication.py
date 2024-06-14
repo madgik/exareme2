@@ -258,6 +258,15 @@ class DataModelAttributes(ImmutableBaseModel):
     properties: Dict
 
 
+class DatasetInfo(ImmutableBaseModel):
+    label: str
+    csv_path: str
+
+
+class DatasetsInfoPerDataModel(ImmutableBaseModel):
+    datasets_info_per_data_model: Dict[str, Dict[str, DatasetInfo]]
+
+
 class CommonDataElement(ImmutableBaseModel):
     code: str
     label: str
