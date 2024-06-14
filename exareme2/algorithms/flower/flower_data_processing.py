@@ -8,7 +8,8 @@ import pandas as pd
 import requests
 from pydantic import BaseModel
 from sklearn import preprocessing
-from sklearn.impute import SimpleImputer
+
+from exareme2.algorithms.flower.df_filter import apply_filter
 
 # Constants for project directories and environment configurations
 CONTROLLER_IP = os.getenv("CONTROLLER_IP", "127.0.0.1")
@@ -27,14 +28,23 @@ class Inputdata(BaseModel):
     x: Optional[List[str]]
 
 
+def apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
+    if inputdata.filters:
+        df = apply_filter(df, inputdata.filters)
+    df = df[df["dataset"].isin(inputdata.datasets)]
+    columns = inputdata.x + inputdata.y
+    df = df[columns]
+    df = df.dropna(subset=columns)
+    return df
+
+
 def fetch_client_data(inputdata) -> pd.DataFrame:
     dataframes = [
         pd.read_csv(f"{os.getenv('DATA_PATH')}{csv_path}")
         for csv_path in os.getenv("CSV_PATHS").split(",")
     ]
     df = pd.concat(dataframes, ignore_index=True)
-    df = df[df["dataset"].isin(inputdata.datasets)]
-    return df[inputdata.x + inputdata.y]
+    return apply_inputdata(df, inputdata)
 
 
 def fetch_server_data(inputdata) -> pd.DataFrame:
@@ -48,8 +58,7 @@ def fetch_server_data(inputdata) -> pd.DataFrame:
         if (data_folder / f"{dataset}.csv").exists()
     ]
     df = pd.concat(dataframes, ignore_index=True)
-    df = df[df["dataset"].isin(inputdata.datasets)]
-    return df[inputdata.x + inputdata.y]
+    return apply_inputdata(df, inputdata)
 
 
 def preprocess_data(inputdata, full_data):
@@ -61,16 +70,12 @@ def preprocess_data(inputdata, full_data):
     features = full_data[inputdata.x]  # This should be a DataFrame
     target = full_data[inputdata.y].values.ravel()  # Flatten the array if it's 2D
 
-    # Impute missing values for features
-    imputer = SimpleImputer(strategy="most_frequent")
-    features_imputed = imputer.fit_transform(features)
-
     # Encode target variable
     label_encoder = preprocessing.LabelEncoder()
     label_encoder.fit(get_enumerations(inputdata.data_model, inputdata.y[0]))
     y_train = label_encoder.transform(target)
 
-    return features_imputed, y_train
+    return features, y_train
 
 
 def error_handling(error):
