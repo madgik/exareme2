@@ -6,9 +6,7 @@ from exareme2.worker.exareme2.tables.tables_db import create_table_name
 from exareme2.worker.exareme2.views import views_db
 from exareme2.worker.utils.logger import initialise_logger
 from exareme2.worker.worker_info.worker_info_db import get_data_models
-from exareme2.worker.worker_info.worker_info_db import (
-    get_dataset_code_per_dataset_label,
-)
+from exareme2.worker.worker_info.worker_info_db import get_dataset_per_dataset_info
 from exareme2.worker_communication import DataModelUnavailable
 from exareme2.worker_communication import DatasetUnavailable
 from exareme2.worker_communication import TableInfo
@@ -184,7 +182,7 @@ def _validate_data_model_and_datasets_exist(data_model: str, datasets: List[str]
     if data_model not in get_data_models():
         raise DataModelUnavailable(worker_config.identifier, data_model)
 
-    available_datasets = get_dataset_code_per_dataset_label(data_model)
+    available_datasets = get_dataset_per_dataset_info(data_model)
     for dataset in datasets:
         if dataset not in available_datasets:
             raise DatasetUnavailable(worker_config.identifier, dataset)

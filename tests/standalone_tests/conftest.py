@@ -367,8 +367,15 @@ def _init_database_monetdb_container(db_port):
 
     print(f"\nInitializing database ({monetdb_configs.ip}:{monetdb_configs.port})")
     cmd = f"mipdb init {monetdb_configs.convert_to_mipdb_format()}"
+    env = os.environ.copy()
+    env["DATA_PATH"] = TEST_DATA_FOLDER
     subprocess.run(
-        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd,
+        env=env,
+        shell=True,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     print(f"\nDatabase ({monetdb_configs.ip}:{monetdb_configs.port}) initialized.")
 
@@ -378,8 +385,15 @@ def _load_data_monetdb_container(db_port, dataset_suffixes):
 
     # Check if the database is already loaded
     cmd = f"mipdb list-datasets {monetdb_configs.convert_to_mipdb_format()}"
+    env = os.environ.copy()
+    env["DATA_PATH"] = TEST_DATA_FOLDER
     res = subprocess.run(
-        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd,
+        env=env,
+        shell=True,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
     if "There are no datasets" not in str(res.stdout):
         print(
@@ -404,8 +418,16 @@ def _load_data_monetdb_container(db_port, dataset_suffixes):
             f"\nLoading data model '{data_model_code}:{data_model_version}' metadata to database ({monetdb_configs.ip}:{monetdb_configs.port})"
         )
         cmd = f"mipdb add-data-model {cdes_file} {monetdb_configs.convert_to_mipdb_format()}"
+        env = os.environ.copy()
+        env["DATA_PATH"] = TEST_DATA_FOLDER
+
         subprocess.run(
-            cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            cmd,
+            env=env,
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
 
         csvs = sorted(
@@ -419,8 +441,12 @@ def _load_data_monetdb_container(db_port, dataset_suffixes):
 
         for csv in csvs:
             cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} {monetdb_configs.convert_to_mipdb_format()}"
+            env = os.environ.copy()
+            env["DATA_PATH"] = TEST_DATA_FOLDER
+
             subprocess.run(
                 cmd,
+                env=env,
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
@@ -439,8 +465,15 @@ def _load_data_monetdb_container(db_port, dataset_suffixes):
 def _remove_data_model_from_localworkertmp_monetdb(data_model_code, data_model_version):
     # Remove data_model
     cmd = f"mipdb delete-data-model {data_model_code} -v {data_model_version} -f  --ip {COMMON_IP} --port {MONETDB_LOCALWORKERTMP_PORT} "
+    env = os.environ.copy()
+    env["DATA_PATH"] = TEST_DATA_FOLDER
     subprocess.run(
-        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd,
+        env=env,
+        shell=True,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
 
 

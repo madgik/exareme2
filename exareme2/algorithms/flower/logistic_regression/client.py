@@ -1,4 +1,5 @@
 import os
+import time
 import warnings
 
 import flwr as fl
@@ -8,7 +9,7 @@ from utils import get_model_parameters
 from utils import set_initial_params
 from utils import set_model_params
 
-from exareme2.algorithms.flower.flower_data_processing import fetch_data
+from exareme2.algorithms.flower.flower_data_processing import fetch_client_data
 from exareme2.algorithms.flower.flower_data_processing import get_input
 from exareme2.algorithms.flower.flower_data_processing import preprocess_data
 
@@ -39,11 +40,23 @@ class LogisticRegressionClient(fl.client.NumPyClient):
 if __name__ == "__main__":
     model = LogisticRegression(penalty="l2", max_iter=1, warm_start=True)
     inputdata = get_input()
-    full_data = fetch_data(inputdata.data_model, inputdata.datasets, from_db=True)
+    full_data = fetch_client_data(inputdata)
     X_train, y_train = preprocess_data(inputdata, full_data)
     set_initial_params(model, X_train, full_data, inputdata)
 
     client = LogisticRegressionClient(model, X_train, y_train)
-    fl.client.start_client(
-        server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
-    )
+    max_retries = 6
+    for attempt in range(max_retries):
+        try:
+            fl.client.start_client(
+                server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
+            )
+            print("Connection successful on attempt", attempt + 1)
+            break
+        except Exception as e:
+            print(f"Connection attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1)
+            else:
+                print("Max retries reached. Exiting.")
+                raise

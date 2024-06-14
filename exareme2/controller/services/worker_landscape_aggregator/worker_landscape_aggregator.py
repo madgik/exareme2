@@ -28,6 +28,8 @@ from exareme2.utils import AttrDict
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import DatasetInfo
+from exareme2.worker_communication import DatasetsInfoPerDataModel
 from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerRole
 
@@ -68,6 +70,11 @@ class DataModelsAttributes(ImmutableBaseModel):
     data_models_attributes: Optional[Dict[str, DataModelAttributes]] = {}
 
 
+class DatasetLocation(ImmutableBaseModel):
+    worker_id: str
+    csv_path: str
+
+
 class DatasetsLocations(ImmutableBaseModel):
     """
     A dictionary representation of the locations of each dataset in the federation.
@@ -75,7 +82,7 @@ class DatasetsLocations(ImmutableBaseModel):
     Values are Dictionaries of datasets and their locations.
     """
 
-    datasets_locations: Optional[Dict[str, Dict[str, str]]] = {}
+    datasets_locations: Optional[Dict[str, Dict[str, DatasetLocation]]] = {}
 
 
 class DataModelRegistry(ImmutableBaseModel):
@@ -122,6 +129,28 @@ class DataModelRegistry(ImmutableBaseModel):
             and dataset in self.datasets_locations.datasets_locations[data_model]
         )
 
+    def get_csv_paths_per_worker_id(
+        self, data_model: str, datasets: List[str]
+    ) -> Dict[str, List[str]]:
+        if not self.data_model_exists(data_model):
+            return {}
+        csv_paths_per_worker_id = {}
+        datasets_info = [
+            dataset_info
+            for dataset, dataset_info in self.datasets_locations.datasets_locations[
+                data_model
+            ].items()
+            if dataset in datasets
+        ]
+        for dataset_info in datasets_info:
+            if dataset_info.worker_id not in csv_paths_per_worker_id:
+                csv_paths_per_worker_id[dataset_info.worker_id] = []
+            csv_paths_per_worker_id[dataset_info.worker_id].append(
+                dataset_info.csv_path
+            )
+
+        return csv_paths_per_worker_id
+
     def get_worker_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
@@ -129,7 +158,7 @@ class DataModelRegistry(ImmutableBaseModel):
             return []
 
         local_workers_with_datasets = [
-            self.datasets_locations.datasets_locations[data_model][dataset]
+            self.datasets_locations.datasets_locations[data_model][dataset].worker_id
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in datasets
         ]
@@ -161,7 +190,7 @@ class DataModelRegistry(ImmutableBaseModel):
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in wanted_datasets
             and worker_id
-            == self.datasets_locations.datasets_locations[data_model][dataset]
+            == self.datasets_locations.datasets_locations[data_model][dataset].worker_id
         ]
         return datasets_in_worker
 
@@ -219,6 +248,16 @@ class DatasetsLabels(ImmutableBaseModel):
     datasets_labels: Dict[str, str]
 
 
+class DatasetsInfo(ImmutableBaseModel):
+    """
+    A dictionary representation of a dataset's information.
+    Key values are the names of the datasets.
+    Values are the info (label and csv_path) of the datasets.
+    """
+
+    datasets_info: Dict[str, DatasetInfo]
+
+
 class DatasetsLabelsPerDataModel(ImmutableBaseModel):
     """
     Key values are the names of the data_models.
@@ -233,7 +272,7 @@ class DataModelMetadata(ImmutableBaseModel):
     A representation of a data model's Metadata datasets info, cdes and attributes for a specific data model
     """
 
-    datasets_labels: DatasetsLabels
+    datasets_info: DatasetsInfo
     cdes: Optional[CommonDataElements]
     attributes: Optional[DataModelAttributes]
 
@@ -382,7 +421,7 @@ class WorkerLandscapeAggregator:
     def _get_worker_datasets_per_data_model(
         self,
         worker_queue_addr: str,
-    ) -> Dict[str, Dict[str, str]]:
+    ) -> DatasetsInfoPerDataModel:
         tasks_handler = WorkerInfoTasksHandler(
             worker_queue_addr=worker_queue_addr,
             tasks_timeout=self._worker_info_tasks_timeout,
@@ -507,6 +546,11 @@ class WorkerLandscapeAggregator:
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
         return self._registries.data_model_registry.dataset_exists(data_model, dataset)
 
+    def get_csv_paths_per_worker_id(self, data_model: str, datasets: List[str]):
+        return self._registries.data_model_registry.get_csv_paths_per_worker_id(
+            data_model, datasets
+        )
+
     def get_worker_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
@@ -561,7 +605,10 @@ class WorkerLandscapeAggregator:
             )
             if datasets_per_data_model:
                 worker_socket_addr = _get_worker_socket_addr(worker_info)
-                for data_model, datasets in datasets_per_data_model.items():
+                for (
+                    data_model,
+                    datasets_info,
+                ) in datasets_per_data_model.datasets_info_per_data_model.items():
                     cdes = self._get_worker_cdes(worker_socket_addr, data_model)
                     attributes = self._get_data_model_attributes(
                         worker_socket_addr, data_model
@@ -569,7 +616,7 @@ class WorkerLandscapeAggregator:
                     cdes = cdes if cdes else None
                     attributes = attributes if attributes else None
                     data_models_metadata[data_model] = DataModelMetadata(
-                        datasets_labels=DatasetsLabels(datasets_labels=datasets),
+                        datasets_info=DatasetsInfo(datasets_info=datasets_info),
                         cdes=cdes,
                         attributes=attributes,
                     )
@@ -625,57 +672,94 @@ def _aggregate_datasets_locations_and_labels(
          1. DatasetsLocations
          2. DatasetsLabelsPerDataModel
     """
-    datasets_locations = {}
+    datasets_location_per_data_model = {}
     datasets_labels = {}
+
     for (
         worker_id,
         data_models_metadata,
     ) in data_models_metadata_per_worker.data_models_metadata_per_worker.items():
-        for (
-            data_model,
-            data_model_metadata,
-        ) in data_models_metadata.data_models_metadata.items():
-            current_labels = (
-                datasets_labels[data_model].datasets_labels
-                if data_model in datasets_labels
-                else {}
-            )
-            current_datasets = (
-                datasets_locations[data_model]
-                if data_model in datasets_locations
-                else {}
-            )
+        _process_worker_data_models(
+            worker_id,
+            data_models_metadata,
+            datasets_location_per_data_model,
+            datasets_labels,
+        )
 
-            for (
-                dataset_name,
-                dataset_label,
-            ) in data_model_metadata.datasets_labels.datasets_labels.items():
-                current_labels[dataset_name] = dataset_label
-
-                if dataset_name in current_datasets:
-                    current_datasets[dataset_name].append(worker_id)
-                else:
-                    current_datasets[dataset_name] = [worker_id]
-
-            datasets_labels[data_model] = DatasetsLabels(datasets_labels=current_labels)
-            datasets_locations[data_model] = current_datasets
-
-    datasets_locations_without_duplicates = {}
-    for data_model, dataset_locations in datasets_locations.items():
-        datasets_locations_without_duplicates[data_model] = {}
-
-        for dataset, worker_ids in dataset_locations.items():
-            if len(worker_ids) == 1:
-                datasets_locations_without_duplicates[data_model][dataset] = worker_ids[
-                    0
-                ]
-            else:
-                del datasets_labels[data_model].datasets_labels[dataset]
-                _log_duplicated_dataset(worker_ids, data_model, dataset, logger)
+    datasets_location_per_data_model_without_duplicates = _remove_duplicates_and_log(
+        datasets_location_per_data_model, datasets_labels, logger
+    )
 
     return DatasetsLocations(
-        datasets_locations=datasets_locations_without_duplicates
+        datasets_locations=datasets_location_per_data_model_without_duplicates
     ), DatasetsLabelsPerDataModel(datasets_labels_per_data_model=datasets_labels)
+
+
+def _process_worker_data_models(
+    worker_id: str,
+    data_models_metadata,
+    datasets_location_per_data_model: Dict[str, Dict[str, List[DatasetLocation]]],
+    datasets_labels: Dict[str, DatasetsLabels],
+):
+    for (
+        data_model,
+        data_model_metadata,
+    ) in data_models_metadata.data_models_metadata.items():
+        current_labels = (
+            datasets_labels[data_model].datasets_labels
+            if data_model in datasets_labels
+            else {}
+        )
+        current_datasets = (
+            datasets_location_per_data_model[data_model]
+            if data_model in datasets_location_per_data_model
+            else {}
+        )
+
+        for (
+            dataset_name,
+            dataset_info,
+        ) in data_model_metadata.datasets_info.datasets_info.items():
+            current_labels[dataset_name] = dataset_info.label
+            dataset_location = DatasetLocation(
+                worker_id=worker_id, csv_path=dataset_info.csv_path
+            )
+            if dataset_name in current_datasets:
+                current_datasets[dataset_name].append(dataset_location)
+            else:
+                current_datasets[dataset_name] = [dataset_location]
+
+        datasets_labels[data_model] = DatasetsLabels(datasets_labels=current_labels)
+        datasets_location_per_data_model[data_model] = current_datasets
+
+
+def _remove_duplicates_and_log(
+    datasets_location_per_data_model: Dict[str, Dict[str, List[DatasetLocation]]],
+    datasets_labels: Dict[str, DatasetsLabels],
+    logger,
+) -> Dict[str, Dict[str, DatasetLocation]]:
+    datasets_location_per_data_model_without_duplicates = {}
+    for data_model, dataset_locations in datasets_location_per_data_model.items():
+        datasets_location_per_data_model_without_duplicates[data_model] = {}
+
+        for dataset, datasets_locations in dataset_locations.items():
+            if len(datasets_locations) == 1:
+                datasets_location_per_data_model_without_duplicates[data_model][
+                    dataset
+                ] = datasets_locations[0]
+            else:
+                del datasets_labels[data_model].datasets_labels[dataset]
+                _log_duplicated_dataset(
+                    [
+                        dataset_location.worker_id
+                        for dataset_location in datasets_locations
+                    ],
+                    data_model,
+                    dataset,
+                    logger,
+                )
+
+    return datasets_location_per_data_model_without_duplicates
 
 
 def _aggregate_data_models_cdes(
@@ -873,7 +957,7 @@ def _log_datasets_added(old_datasets_locations, new_datasets_locations, logger):
                 data_model,
                 dataset,
                 logger,
-                new_datasets_locations[data_model][dataset],
+                new_datasets_locations[data_model][dataset].worker_id,
             )
 
 
@@ -887,7 +971,7 @@ def _log_datasets_removed(old_datasets_locations, new_datasets_locations, logger
                 data_model,
                 dataset,
                 logger,
-                old_datasets_locations[data_model][dataset],
+                old_datasets_locations[data_model][dataset].worker_id,
             )
 
 

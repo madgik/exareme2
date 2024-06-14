@@ -1,4 +1,5 @@
 import asyncio
+from typing import Dict
 from typing import List
 
 from exareme2.controller import logger as ctrl_logger
@@ -52,10 +53,17 @@ class Controller:
             request_id = algorithm_request_dto.request_id
             context_id = UIDGenerator().get_a_uid()
             logger = ctrl_logger.get_request_logger(request_id)
-            workers_info = self._get_workers_info_by_dataset(
+            csv_paths_per_worker_id: Dict[
+                str, List[str]
+            ] = self.worker_landscape_aggregator.get_csv_paths_per_worker_id(
                 algorithm_request_dto.inputdata.data_model,
                 algorithm_request_dto.inputdata.datasets,
             )
+
+            workers_info = [
+                self.worker_landscape_aggregator.get_worker_info(worker_id)
+                for worker_id in csv_paths_per_worker_id
+            ]
             task_handlers = [
                 self._create_worker_tasks_handler(request_id, worker)
                 for worker in workers_info
@@ -80,14 +88,15 @@ class Controller:
             server_pid = None
             clients_pids = {}
             server_address = f"{server_ip}:{FLOWER_SERVER_PORT}"
-
             try:
                 server_pid = server_task_handler.start_flower_server(
                     algorithm_name, len(task_handlers), str(server_address)
                 )
                 clients_pids = {
                     handler.start_flower_client(
-                        algorithm_name, str(server_address)
+                        algorithm_name,
+                        str(server_address),
+                        csv_paths_per_worker_id[handler.worker_id],
                     ): handler
                     for handler in task_handlers
                 }
@@ -130,12 +139,3 @@ class Controller:
 
     def _get_workers_info_by_dataset(self, data_model, datasets) -> List[WorkerInfo]:
         """Retrieves worker information for those handling the specified datasets."""
-        worker_ids = (
-            self.worker_landscape_aggregator.get_worker_ids_with_any_of_datasets(
-                data_model, datasets
-            )
-        )
-        return [
-            self.worker_landscape_aggregator.get_worker_info(worker_id)
-            for worker_id in worker_ids
-        ]

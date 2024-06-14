@@ -8,6 +8,7 @@ from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetch
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import DatasetInfo
 
 HEALTHCHECK_VALIDATION_STRING = "HEALTHCHECK"
 
@@ -35,7 +36,7 @@ def get_data_models() -> List[str]:
 
 
 @sql_injection_guard(data_model=is_datamodel)
-def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
+def get_dataset_per_dataset_info(data_model: str) -> Dict[str, DatasetInfo]:
     """
     Retrieves the enabled key-value pair of code and label, for a specific data_model.
 
@@ -48,7 +49,7 @@ def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
 
     datasets_rows = db_execute_and_fetchall(
         f"""
-        SELECT code, label
+        SELECT code, label, csv_path
         FROM "mipdb_metadata"."datasets"
         WHERE data_model_id =
         (
@@ -60,7 +61,10 @@ def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
         AND status = 'ENABLED'
         """
     )
-    datasets = {code: label for code, label in datasets_rows}
+    datasets = {
+        code: DatasetInfo(label=label, csv_path=csv_path)
+        for code, label, csv_path in datasets_rows
+    }
     return datasets
 
 

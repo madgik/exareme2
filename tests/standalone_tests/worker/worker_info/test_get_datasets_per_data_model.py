@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 
+from exareme2.worker_communication import DatasetsInfoPerDataModel
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.controller.workers_communication_helper import (
     get_celery_task_signature,
@@ -22,7 +23,7 @@ def setup_data_table_in_db(datasets_per_data_model, cursor):
         cursor.execute(sql_query)
         for dataset_name in datasets_per_data_model[data_model]:
             dataset_id += 1
-            sql_query = f"""INSERT INTO "mipdb_metadata"."datasets" VALUES ({dataset_id}, {data_model_id}, '{dataset_name}', '{label_identifier}', 'ENABLED', null);"""
+            sql_query = f"""INSERT INTO "mipdb_metadata"."datasets" VALUES ({dataset_id}, {data_model_id}, '{dataset_name}', '{label_identifier}', 'ENABLED', '/opt/data/{dataset_name}.csv', null);"""
             cursor.execute(sql_query)
 
 
@@ -94,12 +95,14 @@ def test_get_worker_datasets_per_data_model(
         request_id=request_id,
     )
 
-    datasets_per_data_model = globalworker_celery_app.get_result(
-        async_result=async_result,
-        logger=StdOutputLogger(),
-        timeout=TASKS_TIMEOUT,
+    datasets_info_per_data_model = DatasetsInfoPerDataModel.parse_raw(
+        globalworker_celery_app.get_result(
+            async_result=async_result,
+            logger=StdOutputLogger(),
+            timeout=TASKS_TIMEOUT,
+        )
     )
-
+    datasets_per_data_model = datasets_info_per_data_model.datasets_info_per_data_model
     assert set(datasets_per_data_model.keys()) == set(
         expected_datasets_per_data_model.keys()
     )
