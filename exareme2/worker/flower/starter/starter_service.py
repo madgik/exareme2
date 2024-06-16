@@ -12,6 +12,9 @@ def start_flower_client(request_id: str, algorithm_name, server_address) -> int:
         "MONETDB_USERNAME": worker_config.monetdb.local_username,
         "MONETDB_PASSWORD": worker_config.monetdb.local_password,
         "MONETDB_DB": worker_config.monetdb.database,
+        "REQUEST_ID": request_id,
+        "WORKER_ROLE": worker_config.role,
+        "WORKER_IDENTIFIER": worker_config.identifier,
         "SERVER_ADDRESS": server_address,
         "NUMBER_OF_CLIENTS": worker_config.monetdb.database,
         "CONTROLLER_IP": worker_config.controller.ip,
@@ -32,6 +35,9 @@ def start_flower_server(
     request_id: str, algorithm_name: str, number_of_clients: int, server_address
 ) -> int:
     env_vars = {
+        "REQUEST_ID": request_id,
+        "WORKER_ROLE": worker_config.role,
+        "WORKER_IDENTIFIER": worker_config.identifier,
         "SERVER_ADDRESS": server_address,
         "NUMBER_OF_CLIENTS": number_of_clients,
         "CONTROLLER_IP": worker_config.controller.ip,

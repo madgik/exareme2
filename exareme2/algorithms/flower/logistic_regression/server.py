@@ -27,7 +27,6 @@ def get_evaluate_fn(model, X_test, y_test):
         accuracy = model.score(X_test, y_test)
         if server_round == NUM_OF_ROUNDS:
             post_result({"accuracy": accuracy})
-            print({"accuracy": accuracy})
         return loss, {"accuracy": accuracy}
 
     return evaluate
