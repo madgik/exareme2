@@ -29,7 +29,7 @@ app = Celery(
         "exareme2.worker.exareme2.udfs.udfs_api",
         "exareme2.worker.exareme2.smpc.smpc_api",
         "exareme2.worker.exareme2.cleanup.cleanup_api",
-        "exareme2.worker.flower.starter.flower_api",
+        "exareme2.worker.flower.starter.starter_api",
         "exareme2.worker.flower.cleanup.cleanup_api",
     ],
 )
