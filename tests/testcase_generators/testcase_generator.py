@@ -273,10 +273,13 @@ class DataTransformationParam(AlgorithmParameter):
         result = {}
         MAX_VARS_PER_TRANSFORMATION = 4
 
-        # Randomly distribute var_names across the chosen transformations
         for transformation in chosen_transformations:
-            num_vars = min(
-                random.randint(1, MAX_VARS_PER_TRANSFORMATION), len(var_names_copy)
+            # Ensure num_vars is not larger than the remaining items in var_names_copy
+            num_vars = max(
+                1,
+                min(
+                    random.randint(1, MAX_VARS_PER_TRANSFORMATION), len(var_names_copy)
+                ),
             )
             selected_vars = random.sample(var_names_copy, num_vars)
             result[transformation] = selected_vars

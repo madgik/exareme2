@@ -45,28 +45,67 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             output_schema += [(colname, DType.FLOAT) for colname in X_relation.columns]
 
             data_transformation = self.algorithm_parameters["data_transformation"]
+            # Handle log and exp transformations
             try:
-                local_step_for_data_processing = local_run(
-                    func=local_data_processing,
-                    keyword_args={
-                        "data": X_relation,
-                        "data_transformation_dict": data_transformation,
-                    },
-                    output_schema=output_schema,
-                    share_to_global=[False],
-                )
+                if any(trans in data_transformation for trans in ["log", "exp"]):
+                    local_step_for_data_processing = local_run(
+                        func=local_data_processing,
+                        keyword_args={
+                            "data": X_relation,
+                            "data_transformation_dict": {
+                                k: v
+                                for k, v in data_transformation.items()
+                                if k in ["log", "exp"]
+                            },
+                        },
+                        output_schema=output_schema,
+                        share_to_global=[False],
+                    )
+                    X_relation = local_step_for_data_processing
             except Exception as ex:
-                # TODO https://team-1617704806227.atlassian.net/browse/MIP-682
-                if (
-                    "Log transformation cannot be applied to non-positive values in column."
-                    in str(ex)
-                    or "Unknown transformation" in str(ex)
-                    or "Standardization cannot be applied to column" in str(ex)
+                if "Log transformation cannot be applied to non-positive values in column." in str(
+                    ex
+                ) or "Unknown transformation" in str(
+                    ex
                 ):
                     raise BadUserInput(str(ex))
                 raise ex
 
-            X_relation = local_step_for_data_processing
+            # Handle standardize and center transformations
+            try:
+                if any(
+                    trans in data_transformation for trans in ["standardize", "center"]
+                ):
+                    if "log" in data_transformation or "exp" in data_transformation:
+                        # Use the already transformed data
+                        local_step_for_data_processing = X_relation
+
+                    local_transfers_stats = local_run(
+                        func=local_stats,
+                        keyword_args={"x": X_relation},
+                        share_to_global=[True],
+                    )
+                    self.global_stats_state, global_stats_transfer = global_run(
+                        func=global_stats,
+                        keyword_args=dict(local_transfers=local_transfers_stats),
+                        share_to_locals=[True, True],
+                    )
+                    transformed_data = local_run(
+                        func=local_transform,
+                        keyword_args=dict(
+                            x=X_relation, global_transfer=global_stats_transfer
+                        ),
+                        output_schema=output_schema,
+                        share_to_global=[False],
+                    )
+
+                    X_relation = transformed_data
+            except Exception as ex:
+                if "Unknown transformation" in str(
+                    ex
+                ) or "Standardization cannot be applied to column" in str(ex):
+                    raise BadUserInput(str(ex))
+                raise ex
 
         local_transfers = local_run(
             func=local1,
@@ -119,6 +158,8 @@ def local1(x):
 
 @udf(local_transfers=secure_transfer(sum_op=True), return_type=[state(), transfer()])
 def global1(local_transfers):
+    import numpy as np
+
     n_obs = local_transfers["n_obs"]
     sx = numpy.array(local_transfers["sx"])
     sxx = numpy.array(local_transfers["sxx"])
@@ -211,23 +252,68 @@ def local_data_processing(data, data_transformation_dict):
         elif transformation == "exp":
             for variable in variables:
                 data[variable] = np.exp(data[variable])
-        elif transformation == "center":
-            for variable in variables:
-                mean = np.mean(data[variable])
-                data[variable] = data[variable] - mean
-        elif transformation == "standardize":
-            for variable in variables:
-                mean = np.mean(data[variable])
-                std = np.std(data[variable])
-                # Check if standard deviation is zero
-                if std == 0:
-                    raise ValueError(
-                        f"Standardization cannot be applied to column '{variable}' because the standard deviation is zero."
-                    )
-                data[variable] = (data[variable] - mean) / std
         else:
             raise ValueError(f"Unknown transformation: {transformation}")
 
     data_res = pd.DataFrame(data=data, index=data.index, columns=data.columns)
 
     return data_res
+
+
+@udf(x=relation(schema=S), return_type=[secure_transfer(sum_op=True)])
+def local_stats(x):
+    n_obs = len(x)
+    sx = numpy.einsum("ij->j", x)
+    sxx = numpy.einsum("ij,ij->j", x, x)
+
+    transfer_ = {}
+    transfer_["n_obs"] = {"data": n_obs, "operation": "sum", "type": "int"}
+    transfer_["sx"] = {"data": sx.tolist(), "operation": "sum", "type": "float"}
+    transfer_["sxx"] = {"data": sxx.tolist(), "operation": "sum", "type": "float"}
+    return transfer_
+
+
+@udf(local_transfers=secure_transfer(sum_op=True), return_type=[state(), transfer()])
+def global_stats(local_transfers):
+    import numpy as np
+
+    n_obs = local_transfers["n_obs"]
+    sx = numpy.array(local_transfers["sx"])
+    sxx = numpy.array(local_transfers["sxx"])
+
+    means = sx / n_obs
+    sigmas = ((sxx - n_obs * means**2) / (n_obs - 1)) ** 0.5
+
+    state_ = dict(n_obs=n_obs)
+    transfer_ = dict(means=means.tolist(), sigmas=sigmas.tolist())
+    return state_, transfer_
+
+
+@udf(
+    x=relation(schema=S),
+    global_transfer=transfer(),
+    return_type=relation(schema=DEFERRED),
+)
+def local_transform(x, global_transfer):
+    import numpy as np
+    import pandas as pd
+
+    # Extract means and sigmas from global_transfer
+    means = np.array(global_transfer.get("means", []))
+    sigmas = np.array(global_transfer.get("sigmas", []))
+
+    # Convert input relation x to a Pandas DataFrame if it's not already
+    if not isinstance(x, pd.DataFrame):
+        x = pd.DataFrame(x)
+
+    # Apply centering and standardization
+    if len(means) > 0 and len(sigmas) > 0:
+        for col_name in x.columns:
+            if col_name in global_transfer.get("center", []):
+                x[col_name] -= means[x.columns.get_loc(col_name)]
+            if col_name in global_transfer.get("standardize", []):
+                x[col_name] = (
+                    x[col_name] - means[x.columns.get_loc(col_name)]
+                ) / sigmas[x.columns.get_loc(col_name)]
+
+    return x
