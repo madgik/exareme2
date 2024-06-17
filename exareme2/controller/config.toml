@@ -4,6 +4,7 @@ framework_log_level = "$FRAMEWORK_LOG_LEVEL"
 deployment_type="$DEPLOYMENT_TYPE"
 
 worker_landscape_aggregator_update_interval="$WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL"
+flower_execution_timeout="$FLOWER_EXECUTION_TIMEOUT"
 
 [cleanup]
 contextids_cleanup_folder="$CLEANUP_FOLDER"

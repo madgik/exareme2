@@ -23,6 +23,9 @@ spec:
       - name: db-data
         hostPath:
           path: {{ .Values.db.storage_location }}
+      - name: csv-data
+        hostPath:
+          path: {{ .Values.db.csvs_location }}
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
@@ -97,6 +100,9 @@ spec:
 
       - name: worker
         image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
+        volumeMounts:
+        - mountPath: /opt/data
+          name: csv-data
         env:
         - name: WORKER_IDENTIFIER
           value: "globalworker"
@@ -106,6 +112,10 @@ spec:
           value: {{ .Values.log_level }}
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
+        - name: CONTROLLER_IP
+          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_HOST)
+        - name: CONTROLLER_PORT
+          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_PORT)
         - name: PROTECT_LOCAL_DATA
           value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
         - name: CELERY_TASKS_TIMEOUT

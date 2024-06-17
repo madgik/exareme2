@@ -22,6 +22,9 @@ log_level = "INFO"
 framework_log_level ="INFO"
 monetdb_image = "madgik/exareme2_db:dev1.3"
 
+[controller]
+port = 5000
+
 [[workers]]
 id = "globalworker"
 monetdb_port=50000
@@ -135,6 +138,8 @@ def create_configs(c):
         worker_config["role"] = worker["role"]
         worker_config["log_level"] = deployment_config["log_level"]
         worker_config["framework_log_level"] = deployment_config["framework_log_level"]
+        worker_config["controller"]["ip"] = deployment_config["ip"]
+        worker_config["controller"]["port"] = deployment_config["controller"]["port"]
 
         worker_config["monetdb"]["ip"] = deployment_config["ip"]
         worker_config["monetdb"]["port"] = worker["monetdb_port"]
@@ -201,6 +206,9 @@ def create_configs(c):
     controller_config[
         "worker_landscape_aggregator_update_interval"
     ] = deployment_config["worker_landscape_aggregator_update_interval"]
+    controller_config["flower_execution_timeout"] = deployment_config[
+        "flower_execution_timeout"
+    ]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]

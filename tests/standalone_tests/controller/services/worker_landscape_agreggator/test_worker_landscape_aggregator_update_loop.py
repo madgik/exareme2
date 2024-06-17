@@ -26,6 +26,7 @@ def controller_config():
     controller_config = {
         "deployment_type": "LOCAL",
         "worker_landscape_aggregator_update_interval": 30,
+        "flower_execution_timeout": 30,
         "localworkers": {
             "config_file": "./tests/standalone_tests/testing_env_configs/test_globalworker_localworker1_localworker2_localworkertmp_addresses.json"
         },

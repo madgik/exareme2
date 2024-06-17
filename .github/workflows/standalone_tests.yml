@@ -15,7 +15,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Set up python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.8
@@ -96,6 +96,7 @@ jobs:
         id: non_smpc_tests
         run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
         env:
+          PYTHONPATH: ${{ github.workspace }}/exareme2:${{ github.workspace }}
           PULL_DOCKER_IMAGES: false
 
       - name: Run SMPC specific standalone tests after releasing previous test resources

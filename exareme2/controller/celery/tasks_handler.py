@@ -34,6 +34,11 @@ TASK_SIGNATURES: Final = {
     "get_data_model_cdes": "exareme2.worker.worker_info.worker_info_api.get_data_model_cdes",
     "get_data_model_attributes": "exareme2.worker.worker_info.worker_info_api.get_data_model_attributes",
     "healthcheck": "exareme2.worker.worker_info.worker_info_api.healthcheck",
+    "start_flower_client": "exareme2.worker.flower.starter.flower_api.start_flower_client",
+    "start_flower_server": "exareme2.worker.flower.starter.flower_api.start_flower_server",
+    "stop_flower_server": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_server",
+    "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
+    "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
 }
 
 
@@ -290,4 +295,51 @@ class WorkerTasksHandler:
             request_id=request_id,
             check_db=check_db,
             priority=CELERY_APP_QUEUE_MAX_PRIORITY,
+        )
+
+    def start_flower_client(
+        self, request_id, algorithm_name, server_address
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["start_flower_client"],
+            request_id=request_id,
+            algorithm_name=algorithm_name,
+            server_address=server_address,
+        )
+
+    def start_flower_server(
+        self, request_id, algorithm_name, number_of_clients, server_address
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["start_flower_server"],
+            request_id=request_id,
+            algorithm_name=algorithm_name,
+            number_of_clients=number_of_clients,
+            server_address=server_address,
+        )
+
+    def stop_flower_server(
+        self, request_id, pid: int, algorithm_name: str
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["stop_flower_server"],
+            request_id=request_id,
+            pid=pid,
+            algorithm_name=algorithm_name,
+        )
+
+    def stop_flower_client(
+        self, request_id, pid: int, algorithm_name: str
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["stop_flower_client"],
+            request_id=request_id,
+            pid=pid,
+            algorithm_name=algorithm_name,
+        )
+
+    def garbage_collect(self, request_id) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["garbage_collect"],
+            request_id=request_id,
         )
