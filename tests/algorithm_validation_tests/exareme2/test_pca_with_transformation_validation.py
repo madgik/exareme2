@@ -15,14 +15,12 @@ expected_file = Path(__file__).parent / "expected" / f"{algorithm_name}_expected
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_pca_algorithm(test_input, expected):
-
     response = algorithm_request(algorithm_name, test_input)
 
     if "errors" in expected:
-        assert (
-            "Log transformation cannot be applied to non-positive values."
-            or "Standardization cannot be applied to column" in str(response.content)
-        )
+        assert "Log transformation cannot be applied to non-positive values." in str(
+            response.content
+        ) or "Standardization cannot be applied to column" in str(response.content)
     else:
         result = parse_response(response)
         assert int(result["n_obs"]) == int(expected["n_obs"])
