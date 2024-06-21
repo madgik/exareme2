@@ -275,14 +275,6 @@ def local_data_processing(data, data_transformation_dict):
     import numpy as np
     import pandas as pd
 
-    def apply_transformation(data, transformation, variables):
-        if transformation == "log":
-            return apply_log_transformation(data, variables)
-        elif transformation == "exp":
-            return apply_exp_transformation(data, variables)
-        else:
-            raise ValueError(f"Unknown transformation: {transformation}")
-
     def apply_log_transformation(data, variables):
         for variable in variables:
             if (data[variable] <= 0).any():
@@ -297,8 +289,15 @@ def local_data_processing(data, data_transformation_dict):
             data[variable] = np.exp(data[variable])
         return data
 
+    transformation_functions = {
+        "log": apply_log_transformation,
+        "exp": apply_exp_transformation,
+    }
+
     for transformation, variables in data_transformation_dict.items():
-        data = apply_transformation(data, transformation, variables)
+        if transformation not in transformation_functions:
+            raise ValueError(f"Unknown transformation: {transformation}")
+        data = transformation_functions[transformation](data, variables)
 
     result = pd.DataFrame(data=data, index=data.index, columns=data.columns)
     return result
