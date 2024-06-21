@@ -41,71 +41,106 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         [X_relation] = data
 
         if "data_transformation" in self.algorithm_parameters:
-            output_schema = [("row_id", DType.INT)]
-            output_schema += [(colname, DType.FLOAT) for colname in X_relation.columns]
+            if any(
+                trans in self.algorithm_parameters["data_transformation"]
+                for trans in ["log", "exp"]
+            ):
+                X_relation = self.handle_data_transformation(X_relation)
 
-            data_transformation = self.algorithm_parameters["data_transformation"]
-            # Handle log and exp transformations
-            try:
-                if any(trans in data_transformation for trans in ["log", "exp"]):
-                    local_step_for_data_processing = local_run(
-                        func=local_data_processing,
-                        keyword_args={
-                            "data": X_relation,
-                            "data_transformation_dict": {
-                                k: v
-                                for k, v in data_transformation.items()
-                                if k in ["log", "exp"]
-                            },
+            if any(
+                trans in self.algorithm_parameters["data_transformation"]
+                for trans in ["standardize", "center"]
+            ):
+                X_relation = self.handle_standardize_and_center(X_relation)
+
+        return self.perform_pca(X_relation)
+
+    def handle_data_transformation(self, X_relation):
+        local_run = self.engine.run_udf_on_local_workers
+
+        data_transformation = self.algorithm_parameters["data_transformation"]
+        output_schema = [("row_id", DType.INT)]
+        output_schema += [(colname, DType.FLOAT) for colname in X_relation.columns]
+
+        try:
+            if any(trans in data_transformation for trans in ["log", "exp"]):
+                X_relation = local_run(
+                    func=local_data_processing,
+                    keyword_args={
+                        "data": X_relation,
+                        "data_transformation_dict": {
+                            k: v
+                            for k, v in data_transformation.items()
+                            if k in ["log", "exp"]
                         },
-                        output_schema=output_schema,
-                        share_to_global=[False],
-                    )
-                    X_relation = local_step_for_data_processing
-            except Exception as ex:
-                if "Log transformation cannot be applied to non-positive values in column." in str(
-                    ex
-                ) or "Unknown transformation" in str(
-                    ex
-                ):
-                    raise BadUserInput(str(ex))
-                raise ex
+                    },
+                    output_schema=output_schema,
+                    share_to_global=[False],
+                )
+        except Exception as ex:
+            self.handle_data_transformation_exceptions(ex)
 
-            # Handle standardize and center transformations
-            try:
-                if any(
-                    trans in data_transformation for trans in ["standardize", "center"]
-                ):
-                    if "log" in data_transformation or "exp" in data_transformation:
-                        # Use the already transformed data
-                        local_step_for_data_processing = X_relation
+        return X_relation
 
-                    local_transfers_stats = local_run(
-                        func=local_stats,
-                        keyword_args={"x": X_relation},
-                        share_to_global=[True],
-                    )
-                    self.global_stats_state, global_stats_transfer = global_run(
-                        func=global_stats,
-                        keyword_args=dict(local_transfers=local_transfers_stats),
-                        share_to_locals=[True, True],
-                    )
-                    transformed_data = local_run(
-                        func=local_transform,
-                        keyword_args=dict(
-                            x=X_relation, global_transfer=global_stats_transfer
-                        ),
-                        output_schema=output_schema,
-                        share_to_global=[False],
-                    )
+    def handle_data_transformation_exceptions(self, ex):
+        if (
+            "Log transformation cannot be applied to non-positive values in column."
+            in str(ex)
+            or "Unknown transformation" in str(ex)
+        ):
+            raise BadUserInput(str(ex))
+        raise ex
 
-                    X_relation = transformed_data
-            except Exception as ex:
-                if "Unknown transformation" in str(
-                    ex
-                ) or "Standardization cannot be applied to column" in str(ex):
-                    raise BadUserInput(str(ex))
-                raise ex
+    def handle_standardize_and_center(self, X_relation):
+        local_run = self.engine.run_udf_on_local_workers
+        global_run = self.engine.run_udf_on_global_worker
+
+        data_transformation = self.algorithm_parameters.get("data_transformation", {})
+
+        try:
+            if any(trans in data_transformation for trans in ["standardize", "center"]):
+                local_transfers_stats = local_run(
+                    func=local_stats,
+                    keyword_args={
+                        "x": X_relation,
+                    },
+                    share_to_global=[True],
+                )
+                self.global_stats_state, global_stats_transfer = global_run(
+                    func=global_stats,
+                    keyword_args={"local_transfers": local_transfers_stats},
+                    share_to_locals=[True, True],
+                )
+                X_relation = local_run(
+                    func=local_transform,
+                    keyword_args={
+                        "x": X_relation,
+                        "global_transfer": global_stats_transfer,
+                        "data_transformation_dict": {
+                            k: v
+                            for k, v in data_transformation.items()
+                            if k in ["center", "standardize"]
+                        },
+                    },
+                    output_schema=[("row_id", DType.INT)]
+                    + [(colname, DType.FLOAT) for colname in X_relation.columns],
+                    share_to_global=[False],
+                )
+        except Exception as ex:
+            self.handle_standardize_and_center_exceptions(ex)
+
+        return X_relation
+
+    def handle_standardize_and_center_exceptions(self, ex):
+        if "Unknown transformation" in str(
+            ex
+        ) or "Standardization cannot be applied to column" in str(ex):
+            raise BadUserInput(str(ex))
+        raise ex
+
+    def perform_pca(self, X_relation):
+        local_run = self.engine.run_udf_on_local_workers
+        global_run = self.engine.run_udf_on_global_worker
 
         local_transfers = local_run(
             func=local1,
@@ -131,13 +166,12 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         eigenvalues = result["eigenvalues"]
         eigenvectors = result["eigenvectors"]
 
-        result = PCAResult(
+        return PCAResult(
             title="Eigenvalues and Eigenvectors",
             n_obs=n_obs,
             eigenvalues=eigenvalues,
             eigenvectors=eigenvectors,
         )
-        return result
 
 
 S = TypeVar("S")
@@ -241,23 +275,33 @@ def local_data_processing(data, data_transformation_dict):
     import numpy as np
     import pandas as pd
 
-    for transformation, variables in data_transformation_dict.items():
+    def apply_transformation(data, transformation, variables):
         if transformation == "log":
-            for variable in variables:
-                if (data[variable] <= 0).any():
-                    raise ValueError(
-                        f"Log transformation cannot be applied to non-positive values in column '{variable}'."
-                    )
-                data[variable] = np.log(data[variable])
+            return apply_log_transformation(data, variables)
         elif transformation == "exp":
-            for variable in variables:
-                data[variable] = np.exp(data[variable])
+            return apply_exp_transformation(data, variables)
         else:
             raise ValueError(f"Unknown transformation: {transformation}")
 
-    data_res = pd.DataFrame(data=data, index=data.index, columns=data.columns)
+    def apply_log_transformation(data, variables):
+        for variable in variables:
+            if (data[variable] <= 0).any():
+                raise ValueError(
+                    f"Log transformation cannot be applied to non-positive values in column '{variable}'."
+                )
+            data[variable] = np.log(data[variable])
+        return data
 
-    return data_res
+    def apply_exp_transformation(data, variables):
+        for variable in variables:
+            data[variable] = np.exp(data[variable])
+        return data
+
+    for transformation, variables in data_transformation_dict.items():
+        data = apply_transformation(data, transformation, variables)
+
+    result = pd.DataFrame(data=data, index=data.index, columns=data.columns)
+    return result
 
 
 @udf(x=relation(schema=S), return_type=[secure_transfer(sum_op=True)])
@@ -292,9 +336,10 @@ def global_stats(local_transfers):
 @udf(
     x=relation(schema=S),
     global_transfer=transfer(),
+    data_transformation_dict=literal(),
     return_type=relation(schema=DEFERRED),
 )
-def local_transform(x, global_transfer):
+def local_transform(x, global_transfer, data_transformation_dict):
     import numpy as np
     import pandas as pd
 
@@ -306,14 +351,24 @@ def local_transform(x, global_transfer):
     if not isinstance(x, pd.DataFrame):
         x = pd.DataFrame(x)
 
+    # Helper function to apply centering
+    def apply_centering(x, col_name, means):
+        x[col_name] -= means[x.columns.get_loc(col_name)]
+
+    # Helper function to apply standardization
+    def apply_standardization(x, col_name, means, sigmas):
+        x[col_name] = (x[col_name] - means[x.columns.get_loc(col_name)]) / sigmas[
+            x.columns.get_loc(col_name)
+        ]
+
     # Apply centering and standardization
-    if len(means) > 0 and len(sigmas) > 0:
-        for col_name in x.columns:
-            if col_name in global_transfer.get("center", []):
-                x[col_name] -= means[x.columns.get_loc(col_name)]
-            if col_name in global_transfer.get("standardize", []):
-                x[col_name] = (
-                    x[col_name] - means[x.columns.get_loc(col_name)]
-                ) / sigmas[x.columns.get_loc(col_name)]
+    center_cols = data_transformation_dict.get("center", [])
+    standardize_cols = data_transformation_dict.get("standardize", [])
+
+    for col_name in x.columns:
+        if col_name in center_cols:
+            apply_centering(x, col_name, means)
+        if col_name in standardize_cols:
+            apply_standardization(x, col_name, means, sigmas)
 
     return x
