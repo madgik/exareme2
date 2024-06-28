@@ -337,8 +337,9 @@ class InputGenerator:
         self._counter += 1
         print(self._counter)
         if self._counter == 1:
-            with open(self.specs.name, "r") as f2:
-                self.specs = json.loads(f2.read())
+            if not isinstance(self.specs, dict):
+                with open(self.specs.name, "r") as f2:
+                    self.specs = json.loads(f2.read())
         if len(self.specs["inputdata"]) == 1:
             assert "y" in self.specs["inputdata"], "There should be a 'y' in inputdata"
             self.inputdata_gens = {
@@ -416,7 +417,8 @@ class InputGenerator:
             input_ = {"inputdata": inputdata, "parameters": parameters}
             data_transformation = parameters.get("data_transformation", None)
             param_without_data_transformation = parameters.copy()
-            param_without_data_transformation.pop("data_transformation")
+            if "data_transformation" in param_without_data_transformation:
+                param_without_data_transformation.pop("data_transformation")
             input_key = (
                 *inputdata.values(),
                 *param_without_data_transformation.values(),
