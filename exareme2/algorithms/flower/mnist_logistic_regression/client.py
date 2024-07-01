@@ -3,6 +3,7 @@ import warnings
 
 import flwr as fl
 import numpy as np
+from flwr.common.logger import FLOWER_LOGGER
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 
@@ -49,14 +50,13 @@ if __name__ == "__main__":
                 ]
                 return_data = (params, len(X_train), {"accuracy": accuracy})
             except Exception as e:
-                print(f"Error during model fitting: {e}")
+                FLOWER_LOGGER.error(f"Error during model fitting: {e}")
                 # On error, default to zero-initialized parameters, no training examples, and zero accuracy
                 zero_params = [
                     np.zeros_like(param) for param in utils.get_model_parameters(model)
                 ]
                 return_data = (zero_params, 0, {"accuracy": 0.0})
 
-            print(f"Returning from fit: {return_data}")
             return return_data
 
         def evaluate(self, parameters, config):

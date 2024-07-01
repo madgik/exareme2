@@ -7,6 +7,7 @@ from typing import Optional
 import pandas as pd
 import pymonetdb
 import requests
+from flwr.common.logger import FLOWER_LOGGER
 from pydantic import BaseModel
 from sklearn import preprocessing
 from sklearn.impute import SimpleImputer
@@ -53,7 +54,6 @@ def _fetch_data_from_db(data_model, datasets) -> pd.DataFrame:
 
 def _fetch_data_from_csv(data_model, datasets) -> pd.DataFrame:
     data_folder = Path(f"{os.getenv('DATA_PATH')}/{data_model.split(':')[0]}_v_0_1")
-    print(f"Loading data from folder: {data_folder}")
     dataframes = [
         pd.read_csv(data_folder / f"{dataset}.csv")
         for dataset in datasets
@@ -85,21 +85,21 @@ def preprocess_data(inputdata, full_data):
 
 def error_handling(error):
     error_msg = {"error": str(error)}
-    print(
+    FLOWER_LOGGER.error(
         f"Error will try to save error message: {error_msg}! Running: {RESULT_URL}..."
     )
     requests.post(RESULT_URL, data=json.dumps(error_msg), headers=HEADERS)
 
 
 def post_result(result: dict) -> None:
-    print(f"Running: {RESULT_URL}...")
+    FLOWER_LOGGER.debug(f"Posting result at: {RESULT_URL} ...")
     response = requests.post(RESULT_URL, data=json.dumps(result), headers=HEADERS)
     if response.status_code != 200:
         error_handling(response.text)
 
 
 def get_input() -> Inputdata:
-    print(f"Running: {INPUT_URL}...")
+    FLOWER_LOGGER.debug(f"Getting inputdata from: {INPUT_URL} ...")
     response = requests.get(INPUT_URL)
     if response.status_code != 200:
         error_handling(response.text)
@@ -109,7 +109,7 @@ def get_input() -> Inputdata:
 
 def get_enumerations(data_model: str, variable_name: str) -> list:
     try:
-        print(f"Running: {CDES_URL}...")
+        FLOWER_LOGGER.debug(f"Getting enumerations from: {CDES_URL} ...")
         response = requests.get(CDES_URL)
         if response.status_code != 200:
             error_handling(response.text)
@@ -126,8 +126,4 @@ def get_enumerations(data_model: str, variable_name: str) -> list:
         else:
             raise KeyError(f"'enumerations' key not found in {variable_name}")
     except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
-        error_msg = {"error": str(e)}
-        print(
-            f"Error will try to save error message: {error_msg}! Running: {RESULT_URL}..."
-        )
-        requests.post(RESULT_URL, data=json.dumps(error_msg), headers=HEADERS)
+        error_handling(str(e))
