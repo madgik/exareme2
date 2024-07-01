@@ -52,6 +52,7 @@ Paths are subject to change so in the following documentation the global variabl
 import copy
 import itertools
 import json
+import os
 import pathlib
 import shutil
 import sys
@@ -141,11 +142,13 @@ def create_configs(c):
         worker_config["controller"]["ip"] = deployment_config["ip"]
         worker_config["controller"]["port"] = deployment_config["controller"]["port"]
 
+        worker_config["sqlite"]["db_name"] = worker["id"]
         worker_config["monetdb"]["ip"] = deployment_config["ip"]
         worker_config["monetdb"]["port"] = worker["monetdb_port"]
         worker_config["monetdb"]["local_username"] = worker["local_monetdb_username"]
         worker_config["monetdb"]["local_password"] = worker["local_monetdb_password"]
         worker_config["monetdb"]["public_username"] = worker["public_monetdb_username"]
+        worker_config["monetdb"]["public_password"] = worker["public_monetdb_password"]
         worker_config["monetdb"]["public_password"] = worker["public_monetdb_password"]
 
         worker_config["rabbitmq"]["ip"] = deployment_config["ip"]
@@ -392,7 +395,7 @@ def init_monetdb(c, port):
             f"Initializing MonetDB with mipdb in port: {port}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init --ip 127.0.0.1 {get_monetdb_configs_in_mipdb_format(port)}"""
+        cmd = f"""poetry run mipdb init {get_sqlite_path(port)}"""
         run(c, cmd)
 
 
@@ -437,7 +440,7 @@ def load_data(c, use_sockets=False, port=None):
 
     if len(local_worker_ports) == 1:
         port = local_worker_ports[0]
-        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
+        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
         message(
             f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_worker_ports[0]}...",
             Level.HEADER,
@@ -445,30 +448,28 @@ def load_data(c, use_sockets=False, port=None):
         run(c, cmd)
         return
 
-    # Load the test data folder into the dbs
-    data_model_folders = [
-        TEST_DATA_FOLDER / folder for folder in listdir(TEST_DATA_FOLDER)
-    ]
-    for data_model_folder in data_model_folders:
+    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+        if "CDEsMetadata.json" not in filenames:
+            continue
+        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
         # Load all data models in each db
-        with open(data_model_folder / "CDEsMetadata.json") as data_model_metadata_file:
+        with open(cdes_file) as data_model_metadata_file:
             data_model_metadata = json.load(data_model_metadata_file)
             data_model_code = data_model_metadata["code"]
             data_model_version = data_model_metadata["version"]
-        cdes_file = data_model_folder / "CDEsMetadata.json"
         for port in local_worker_ports:
             message(
                 f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)}"
+            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
             run(c, cmd)
 
         # Load only the 1st csv of each dataset "with 0 suffix" in the 1st worker
         first_worker_csvs = sorted(
             [
-                data_model_folder / file
-                for file in listdir(data_model_folder)
+                f"{dirpath}/{file}"
+                for file in filenames
                 if file.endswith("0.csv") and not file.endswith("10.csv")
             ]
         )
@@ -478,14 +479,14 @@ def load_data(c, use_sockets=False, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
             run(c, cmd)
 
         # Load the data model's remaining csvs in the rest of the workers with round-robin fashion
         remaining_csvs = sorted(
             [
-                data_model_folder / file
-                for file in listdir(data_model_folder)
+                f"{dirpath}/{file}"
+                for file in filenames
                 if file.endswith(".csv") and not file.endswith("0.csv")
             ]
         )
@@ -499,8 +500,24 @@ def load_data(c, use_sockets=False, port=None):
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)}"
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
             run(c, cmd)
+
+
+def get_sqlite_path(port):
+    config_files = [WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)]
+    for worker_config_file in config_files:
+        with open(worker_config_file) as fp:
+            worker_config = toml.load(fp)
+
+        if worker_config["role"] == "LOCALWORKER" and str(
+            worker_config["monetdb"]["port"]
+        ) == str(port):
+            return (
+                f"--sqlite_db_path {TEST_DATA_FOLDER}/{worker_config['identifier']}.db"
+            )
+    else:
+        raise ValueError(f"There is no database with port:{port}")
 
 
 def get_monetdb_configs_in_mipdb_format(port):

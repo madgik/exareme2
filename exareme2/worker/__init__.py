@@ -13,7 +13,9 @@ TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 if config_file := os.getenv("EXAREME2_WORKER_CONFIG_FILE"):
     with open(config_file) as fp:
         config = AttrDict(envtoml.load(fp))
+        config.sqlite = AttrDict({})
         config.data_path = TEST_DATA_FOLDER
+        config.sqlite.db_name = config.identifier
 else:
     with open_text(worker, "config.toml") as fp:
         config = AttrDict(envtoml.load(fp))

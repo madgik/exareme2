@@ -7,12 +7,11 @@ import pymonetdb
 
 from exareme2 import DType
 from exareme2.worker import config as worker_config
+from exareme2.worker.exareme2.monetdb import monetdb_facade
 from exareme2.worker.exareme2.monetdb.guard import is_list_of_identifiers
 from exareme2.worker.exareme2.monetdb.guard import is_socket_address
 from exareme2.worker.exareme2.monetdb.guard import is_valid_table_schema
 from exareme2.worker.exareme2.monetdb.guard import sql_injection_guard
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetchall
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_query
 from exareme2.worker_communication import ColumnData
 from exareme2.worker_communication import ColumnDataBinary
 from exareme2.worker_communication import ColumnDataFloat
@@ -71,7 +70,7 @@ def get_table_names(table_type: TableType, context_id: str) -> List[str]:
     List[str]
         A list of table names.
     """
-    table_names = db_execute_and_fetchall(
+    table_names = monetdb_facade.execute_and_fetchall(
         f"""
         SELECT name FROM tables
         WHERE
@@ -110,7 +109,7 @@ def get_table_schema(table_name: str) -> TableSchema:
     TableSchema
         A schema which is TableSchema object.
     """
-    schema = db_execute_and_fetchall(
+    schema = monetdb_facade.execute_and_fetchall(
         f"""
         SELECT columns.name, columns.type
         FROM columns
@@ -150,7 +149,7 @@ def get_table_type(table_name: str) -> TableType:
         The type of the table.
     """
 
-    monetdb_table_type_result = db_execute_and_fetchall(
+    monetdb_table_type_result = monetdb_facade.execute_and_fetchall(
         f"""
         SELECT type
         FROM
@@ -168,7 +167,7 @@ def get_table_type(table_name: str) -> TableType:
 @sql_injection_guard(table_name=str.isidentifier, table_schema=is_valid_table_schema)
 def create_table(table_name: str, table_schema: TableSchema):
     columns_schema = convert_schema_to_sql_query_format(table_schema)
-    db_execute_query(f"CREATE TABLE {table_name} ( {columns_schema} )")
+    monetdb_facade.execute_query(f"CREATE TABLE {table_name} ( {columns_schema} )")
 
 
 @sql_injection_guard(
@@ -191,7 +190,7 @@ def create_merge_table(
         merge_table_query += f"ALTER TABLE {table_name} ADD TABLE {name.lower()}; "
 
     try:
-        db_execute_query(merge_table_query)
+        monetdb_facade.execute_query(merge_table_query)
     except (
         pymonetdb.exceptions.ProgrammingError or pymonetdb.exceptions.OperationalError
     ) as exc:
@@ -220,7 +219,7 @@ def create_remote_table(
     public_password: str,
 ):
     columns_schema = convert_schema_to_sql_query_format(schema)
-    db_execute_query(
+    monetdb_facade.execute_query(
         f"""
         CREATE REMOTE TABLE {table_name}
         ( {columns_schema}) ON 'mapi:monetdb://{monetdb_socket_address}/db/{table_creator_username}/{table_name}'
@@ -256,7 +255,7 @@ def get_table_data(table_name: str, use_public_user: bool = True) -> List[Column
         worker_config.monetdb.local_username
     )  # The db local user, on whose namespace the tables are on.
 
-    row_stored_data = db_execute_and_fetchall(
+    row_stored_data = monetdb_facade.execute_and_fetchall(
         f"SELECT * FROM {db_local_username}.{table_name}",
         use_public_user=use_public_user,
     )
@@ -292,7 +291,7 @@ def insert_data_to_table(
     query = f"INSERT INTO {table_name} VALUES {placeholders}"
 
     # Execute the query with the parameters
-    db_execute_query(query, parameters)
+    monetdb_facade.execute_query(query, parameters)
 
 
 def _convert_column_stored_data_to_column_data_objects(
@@ -393,7 +392,7 @@ def get_tables_by_type(context_id: str) -> Dict[TableType, List[str]]:
     context_id : str
         The id of the experiment
     """
-    table_names_and_types = db_execute_and_fetchall(
+    table_names_and_types = monetdb_facade.execute_and_fetchall(
         f"""
         SELECT name, type FROM tables
         WHERE name LIKE '%{context_id.lower()}%'

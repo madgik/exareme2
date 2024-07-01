@@ -1,9 +1,8 @@
 from typing import Dict
 from typing import List
 
+from exareme2.worker.exareme2.monetdb import monetdb_facade
 from exareme2.worker.exareme2.monetdb.guard import sql_injection_guard
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetchall
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_query
 from exareme2.worker.exareme2.tables.tables_db import get_tables_by_type
 from exareme2.worker_communication import TableType
 
@@ -24,7 +23,7 @@ def drop_db_artifacts_by_context_id(context_id: str):
     udfs_deletion_query = _get_drop_udfs_query(function_names)
     table_names_by_type = get_tables_by_type(context_id)
     tables_deletion_query = _get_drop_tables_query(table_names_by_type)
-    db_execute_query(udfs_deletion_query + tables_deletion_query)
+    monetdb_facade.execute_query(udfs_deletion_query + tables_deletion_query)
 
 
 @sql_injection_guard(context_id=str.isalnum)
@@ -37,7 +36,7 @@ def _get_function_names_query_by_context_id(context_id: str) -> List[str]:
     context_id : str
         The id of the experiment
     """
-    result = db_execute_and_fetchall(
+    result = monetdb_facade.execute_and_fetchall(
         f"""
         SELECT name FROM functions
         WHERE name LIKE '%{context_id.lower()}%'

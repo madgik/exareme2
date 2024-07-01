@@ -25,6 +25,7 @@ less  than  MIN_ROW_COUNT  then  no data is returned for this record. Thus, this
 particular variable/dataset pair doesn't contribute to the global computation.
 """
 import math
+import warnings
 from collections import Counter
 from functools import reduce
 from typing import Dict

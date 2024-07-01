@@ -18,34 +18,10 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
 )
 from exareme2.worker_communication import WorkerInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_PORT
+from tests.standalone_tests.conftest import TEST_DATA_FOLDER
 from tests.standalone_tests.conftest import MonetDBConfigurations
 
 LOGFILE_NAME = "test_show_controller_audit_entries.out"
-
-
-@pytest.mark.slow
-@pytest.mark.very_slow
-def test_show_worker_db_actions(monetdb_localworkertmp, load_data_localworkertmp):
-    """
-    Load data into the db and then remove datamodel and datasets.
-    Assert that the logs produced with federation_info.py contain these changes.
-    """
-    monet_db_confs = MonetDBConfigurations(port=MONETDB_LOCALWORKERTMP_PORT)
-    cmd = f'mipdb delete-data-model dementia -v "0.1" {monet_db_confs.convert_to_mipdb_format()} --force'
-    res = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    assert res.returncode == 0
-
-    cmd = f"python3 federation_info.py show-worker-db-actions --port {MONETDB_LOCALWORKERTMP_PORT}"
-    res = subprocess.run(
-        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    output = str(res.stdout)
-    assert re.match(r".*\\n.* - .* - ADD DATA MODEL - .* - .*\\n.*", output)
-    assert re.match(r".*\\n.* - .* - DELETE DATA MODEL - .* - .*\\n.*", output)
-    assert re.match(r".*\\n.* - .* - ADD DATASET - .* - .* - .* - .*\\n.*", output)
-    assert re.match(r".*\\n.* - .* - DELETE DATASET - .* - .* - .* - .*\\n.*", output)
 
 
 @pytest.fixture(scope="session")

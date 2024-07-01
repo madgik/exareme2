@@ -25,6 +25,9 @@ user = "user"
 password = "password"
 vhost = "user_vhost"
 
+[sqlite]
+db_name = "$SQLITE_DB_NAME"
+
 [monetdb]
 ip = "$MONETDB_IP"
 port = "$MONETDB_PORT"

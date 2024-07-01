@@ -17,7 +17,8 @@ ENV PYTHONUNBUFFERED=1 \
     DATA_PATH="/opt/data" \
     DB_IP="172.17.0.1" \
     DB_PORT=50000 \
-    DB_NAME="db"
+    DB_NAME="db" \
+    SQLITE_DB_NAME="sqlite"
 
 #######################################################
 # Creating the data folder
@@ -29,14 +30,9 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==2.4.7 # Must be updated together with pyproject.toml
+RUN pip install mipdb==3.0.0 # Must be updated together with pyproject.toml
 RUN pip install click==8.1.2
 RUN pip install pymonetdb==1.6.3 # Must be updated together with pyproject.toml
-
-#######################################################
-# COPY log aggregator inside
-#######################################################
-COPY federation_info.py /home/federation_info.py
 
 #######################################################
 # Initializing the default users passwords

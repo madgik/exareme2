@@ -30,7 +30,7 @@ class _DBExecutionDTO(BaseModel):
         allow_mutation = False
 
 
-def db_execute_and_fetchall(
+def execute_and_fetchall(
     query: str, parameters=None, use_public_user: bool = False
 ) -> List:
     query_execution_timeout = worker_config.celery.tasks_timeout
@@ -43,7 +43,7 @@ def db_execute_and_fetchall(
     return _execute_and_fetchall(db_execution_dto=db_execution_dto)
 
 
-def db_execute_query(query: str, parameters=None, use_public_user: bool = False):
+def execute_query(query: str, parameters=None, use_public_user: bool = False):
     query_execution_timeout = worker_config.celery.tasks_timeout
     query = convert_to_idempotent(query)
     db_execution_dto = _DBExecutionDTO(
@@ -55,7 +55,7 @@ def db_execute_query(query: str, parameters=None, use_public_user: bool = False)
     _execute(db_execution_dto=db_execution_dto, lock=query_execution_lock)
 
 
-def db_execute_udf(query: str, parameters=None):
+def execute_udf(query: str, parameters=None):
     # Check if there is only one query
     split_queries = [query for query in query.strip().split(";") if query]
     if len(split_queries) > 1:

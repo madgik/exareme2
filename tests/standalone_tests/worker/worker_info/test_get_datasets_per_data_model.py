@@ -18,24 +18,20 @@ def setup_data_table_in_db(datasets_per_data_model, cursor):
         data_model_id += 1
         dataset_id += 1
         data_model_code, data_model_version = data_model.split(":")
-        sql_query = f"""INSERT INTO "mipdb_metadata"."data_models" VALUES ({data_model_id}, '{data_model_code}', '{data_model_version}', '{label_identifier}', 'ENABLED', null);"""
+        sql_query = f"""INSERT INTO "data_models" (code, version, label, status, properties) VALUES ('{data_model_code}', '{data_model_version}', '{label_identifier}', 'ENABLED', null);"""
         cursor.execute(sql_query)
         for dataset_name in datasets_per_data_model[data_model]:
             dataset_id += 1
-            sql_query = f"""INSERT INTO "mipdb_metadata"."datasets" VALUES ({dataset_id}, {data_model_id}, '{dataset_name}', '{label_identifier}', 'ENABLED', null);"""
+            sql_query = f"""INSERT INTO "datasets" (data_model_id, code, label, csv_path, status, properties) VALUES ({data_model_id}, '{dataset_name}', '{label_identifier}', 'csv_path', 'ENABLED', null);"""
             cursor.execute(sql_query)
 
 
 # The cleanup task cannot be used because it requires specific table name convention
 # that doesn't fit with the initial data table names
 def teardown_data_tables_in_db(cursor):
-    sql_query = (
-        f"DELETE FROM mipdb_metadata.datasets WHERE label = '{label_identifier}';"
-    )
+    sql_query = f"DELETE FROM datasets WHERE label = '{label_identifier}';"
     cursor.execute(sql_query)
-    sql_query = (
-        f"DELETE FROM mipdb_metadata.data_models WHERE label = '{label_identifier}';"
-    )
+    sql_query = f"DELETE FROM data_models WHERE label = '{label_identifier}';"
     cursor.execute(sql_query)
 
 
@@ -80,12 +76,12 @@ def test_get_worker_datasets_per_data_model(
     globalworker_worker_service,
     globalworker_celery_app,
     use_globalworker_database,
-    globalworker_db_cursor_with_user_admin,
+    globalworker_sqlite_db_cursor,
     init_data_globalworker,
 ):
     request_id = "test_worker_info_" + uuid.uuid4().hex + "_request"
     setup_data_table_in_db(
-        expected_datasets_per_data_model, globalworker_db_cursor_with_user_admin
+        expected_datasets_per_data_model, globalworker_sqlite_db_cursor
     )
     task_signature = get_celery_task_signature("get_worker_datasets_per_data_model")
     async_result = globalworker_celery_app.queue_task(
@@ -108,4 +104,4 @@ def test_get_worker_datasets_per_data_model(
             expected_datasets_per_data_model[data_model]
         )
 
-    teardown_data_tables_in_db(globalworker_db_cursor_with_user_admin)
+    teardown_data_tables_in_db(globalworker_sqlite_db_cursor)
