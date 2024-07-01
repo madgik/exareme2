@@ -9,12 +9,6 @@ import pymonetdb
 DB_USERNAME = "admin"
 DB_PASSWORD = "executor"
 DB_FARM = "db"
-DB_METADATA_SCHEMA = "mipdb_metadata"
-ACTIONS_TABLE = "actions"
-ADD_DATA_MODEL_ACTION_CODE = "ADD DATA MODEL"
-DELETE_DATA_MODEL_ACTION_CODE = "DELETE DATA MODEL"
-ADD_DATASET_ACTION_CODE = "ADD DATASET"
-DELETE_DATASET_ACTION_CODE = "DELETE DATASET"
 
 
 @contextmanager
@@ -41,31 +35,6 @@ def cli():
     to show information for all the federation workers.
     """
     pass
-
-
-@cli.command()
-@click.option("--ip", default="127.0.0.1", help="The ip of the database.")
-@click.option("--port", default=50000, type=int, help="The port of the database.")
-def show_worker_db_actions(ip, port):
-    with db_cursor(ip, port) as cur:
-        cur.execute(f"select * from {DB_METADATA_SCHEMA}.{ACTIONS_TABLE};")
-        results = cur.fetchall()
-        for _, action_str in results:
-            action = json.loads(action_str)
-            if (
-                action["action"] == ADD_DATA_MODEL_ACTION_CODE
-                or action["action"] == DELETE_DATA_MODEL_ACTION_CODE
-            ):
-                print(
-                    f"{action['date']} - {action['user']} - {action['action']} - {action['data_model_code']}:{action['data_model_version']} - {action['data_model_label']}"
-                )
-            elif (
-                action["action"] == ADD_DATASET_ACTION_CODE
-                or action["action"] == DELETE_DATASET_ACTION_CODE
-            ):
-                print(
-                    f"{action['date']} - {action['user']} - {action['action']} - {action['dataset_code']} - {action['dataset_label']} - {action['data_model_code']}:{action['data_model_version']} - {action['data_model_label']}"
-                )
 
 
 LOG_FILE_CHUNK_SIZE = 1024  # Will read the logfile in chunks

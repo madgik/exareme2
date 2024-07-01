@@ -2,12 +2,11 @@ from typing import List
 from typing import Optional
 
 from exareme2.data_filters import build_filter_clause
+from exareme2.worker.exareme2.monetdb import monetdb_facade
 from exareme2.worker.exareme2.monetdb.guard import is_list_of_identifiers
 from exareme2.worker.exareme2.monetdb.guard import is_primary_data_table
 from exareme2.worker.exareme2.monetdb.guard import is_valid_filter
 from exareme2.worker.exareme2.monetdb.guard import sql_injection_guard
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetchall
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_query
 from exareme2.worker.exareme2.tables.tables_db import get_table_names
 from exareme2.worker.exareme2.tables.tables_db import get_table_schema
 from exareme2.worker_communication import ColumnInfo
@@ -49,9 +48,9 @@ def create_view(
         {filter_clause}
         """
 
-    db_execute_query(view_creation_query)
+    monetdb_facade.execute_query(view_creation_query)
 
-    view_rows_query_result = db_execute_and_fetchall(
+    view_rows_query_result = monetdb_facade.execute_and_fetchall(
         f"""
         SELECT COUNT(*)
         FROM {view_name}
@@ -61,7 +60,7 @@ def create_view(
     view_rows_count = view_rows_result_row[0]
 
     if view_rows_count < 1 or (check_min_rows and view_rows_count < minimum_row_count):
-        db_execute_query(f"""DROP VIEW {view_name}""")
+        monetdb_facade.execute_query(f"""DROP VIEW {view_name}""")
         raise InsufficientDataError(
             f"Query: {view_creation_query} creates an "
             f"insufficient data view. ({view_name=} has been dropped)"

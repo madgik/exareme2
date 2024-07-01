@@ -54,7 +54,7 @@ hypothesis = "~6.81"
 pytest-rerunfailures = "~12.0"
 
 [tool.poetry.group.dev.dependencies]
-mipdb = "2.4.7" # Must be updated together with mipdb Dockerfile
+mipdb = "3.0.0" # Must be updated together with mipdb Dockerfile
 
 [tool.pytest.ini_options]
 markers = [

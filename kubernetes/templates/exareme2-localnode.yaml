@@ -90,6 +90,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: SQLITE_DB_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: DB_PORT
           value: "50000"
         volumeMounts:
@@ -175,6 +179,10 @@ spec:
           value: "guest"
         - name: MONETDB_PUBLIC_PASSWORD
           value: "guest"
+        - name: SQLITE_DB_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{ if .Values.smpc.enabled }}

@@ -6,13 +6,12 @@ from pymonetdb import OperationalError
 from pymonetdb import ProgrammingError
 
 from exareme2 import AttrDict
+from exareme2.worker.exareme2.monetdb import monetdb_facade
 from exareme2.worker.exareme2.monetdb.monetdb_facade import _DBExecutionDTO
 from exareme2.worker.exareme2.monetdb.monetdb_facade import _execute_and_fetchall
 from exareme2.worker.exareme2.monetdb.monetdb_facade import (
     _validate_exception_could_be_recovered,
 )
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetchall
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_query
 from exareme2.worker.utils.logger import init_logger
 from tests.standalone_tests.conftest import COMMON_IP
 from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_NAME
@@ -175,9 +174,9 @@ def test_db_execute_use_public_user_parameter(
 ):
     table_name = "local_user_table"
 
-    db_execute_query(query=f"create table {table_name} (col1 int);")
+    monetdb_facade.execute_query(query=f"create table {table_name} (col1 int);")
 
     with pytest.raises(OperationalError, match=r"no such table"):
-        db_execute_and_fetchall(
+        monetdb_facade.execute_and_fetchall(
             query=f"select * from {table_name};", use_public_user=True
         )

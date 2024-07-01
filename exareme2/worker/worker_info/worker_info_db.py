@@ -4,7 +4,7 @@ from typing import List
 
 from exareme2.worker.exareme2.monetdb.guard import is_datamodel
 from exareme2.worker.exareme2.monetdb.guard import sql_injection_guard
-from exareme2.worker.exareme2.monetdb.monetdb_facade import db_execute_and_fetchall
+from exareme2.worker.worker_info import sqlite
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
@@ -22,9 +22,9 @@ def get_data_models() -> List[str]:
         The data_models.
     """
 
-    data_models_code_and_version = db_execute_and_fetchall(
+    data_models_code_and_version = sqlite.execute_and_fetchall(
         f"""SELECT code, version
-            FROM "mipdb_metadata"."data_models"
+            FROM data_models
             WHERE status = 'ENABLED'
         """
     )
@@ -46,14 +46,14 @@ def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
     """
     data_model_code, data_model_version = data_model.split(":")
 
-    datasets_rows = db_execute_and_fetchall(
+    datasets_rows = sqlite.execute_and_fetchall(
         f"""
         SELECT code, label
-        FROM "mipdb_metadata"."datasets"
+        FROM datasets
         WHERE data_model_id =
         (
             SELECT data_model_id
-            FROM "mipdb_metadata"."data_models"
+            FROM data_models
             WHERE code = '{data_model_code}'
             AND version = '{data_model_version}'
         )
@@ -76,9 +76,9 @@ def get_data_model_cdes(data_model: str) -> CommonDataElements:
     """
     data_model_code, data_model_version = data_model.split(":")
 
-    cdes_rows = db_execute_and_fetchall(
+    cdes_rows = sqlite.execute_and_fetchall(
         f"""
-        SELECT code, metadata FROM "{data_model_code}:{data_model_version}"."variables_metadata"
+        SELECT code, metadata FROM "{data_model_code}:{data_model_version}_variables_metadata"
         """
     )
 
@@ -102,10 +102,10 @@ def get_data_model_attributes(data_model: str) -> DataModelAttributes:
     """
     data_model_code, data_model_version = data_model.split(":")
 
-    attributes = db_execute_and_fetchall(
+    attributes = sqlite.execute_and_fetchall(
         f"""
         SELECT properties
-        FROM "mipdb_metadata"."data_models"
+        FROM data_models
         WHERE code = '{data_model_code}'
         AND version = '{data_model_version}'
         """
@@ -121,5 +121,5 @@ def check_database_connection():
     """
     Check that the connection with the database is working.
     """
-    result = db_execute_and_fetchall(f"SELECT '{HEALTHCHECK_VALIDATION_STRING}'")
+    result = sqlite.execute_and_fetchall(f"SELECT '{HEALTHCHECK_VALIDATION_STRING}'")
     assert result[0][0] == HEALTHCHECK_VALIDATION_STRING
