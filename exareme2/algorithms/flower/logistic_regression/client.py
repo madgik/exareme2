@@ -59,7 +59,7 @@ if __name__ == "__main__":
             break
         except Exception as e:
             FLOWER_LOGGER.warning(
-                f"Connection with the server failed. Attempt {attempts} failed: {e}"
+                f"Connection with the server failed. Attempt {attempts + 1} failed: {e}"
             )
             time.sleep(pow(2, attempts))
             attempts += 1
