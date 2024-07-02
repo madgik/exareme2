@@ -4,9 +4,11 @@ from exareme2.worker.flower.starter import starter_service
 
 
 @shared_task
-def start_flower_client(request_id: str, algorithm_name, server_address) -> int:
+def start_flower_client(
+    request_id: str, algorithm_name, server_address, execution_timeout
+) -> int:
     return starter_service.start_flower_client(
-        request_id, algorithm_name, server_address
+        request_id, algorithm_name, server_address, execution_timeout
     )
 
 

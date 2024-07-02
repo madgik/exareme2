@@ -1,6 +1,7 @@
 import asyncio
 from typing import List
 
+from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.flower.tasks_handler import FlowerTasksHandler
@@ -87,7 +88,9 @@ class Controller:
                 )
                 clients_pids = {
                     handler.start_flower_client(
-                        algorithm_name, str(server_address)
+                        algorithm_name,
+                        str(server_address),
+                        ctrl_config.flower_execution_timeout,
                     ): handler
                     for handler in task_handlers
                 }

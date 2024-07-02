@@ -1,7 +1,10 @@
 import os
+import time
 import warnings
+from math import log2
 
 import flwr as fl
+from flwr.common.logger import FLOWER_LOGGER
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 from utils import get_model_parameters
@@ -44,6 +47,22 @@ if __name__ == "__main__":
     set_initial_params(model, X_train, full_data, inputdata)
 
     client = LogisticRegressionClient(model, X_train, y_train)
-    fl.client.start_client(
-        server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
-    )
+
+    attempts = 0
+    max_attempts = int(log2(int(os.environ["TIMEOUT"])))
+    while True:
+        try:
+            fl.client.start_client(
+                server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
+            )
+            FLOWER_LOGGER.debug("Connection successful on attempt", attempts + 1)
+            break
+        except Exception as e:
+            FLOWER_LOGGER.warning(
+                f"Connection with the server failed. Attempt {attempts} failed: {e}"
+            )
+            time.sleep(pow(2, attempts))
+            attempts += 1
+            if attempts >= max_attempts:
+                FLOWER_LOGGER.error("Could not establish connection to the server.")
+                raise e

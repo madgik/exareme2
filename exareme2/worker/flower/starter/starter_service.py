@@ -5,7 +5,9 @@ from exareme2.worker.utils.logger import initialise_logger
 
 
 @initialise_logger
-def start_flower_client(request_id: str, algorithm_name, server_address) -> int:
+def start_flower_client(
+    request_id: str, algorithm_name, server_address, execution_timeout
+) -> int:
     env_vars = {
         "MONETDB_IP": worker_config.monetdb.ip,
         "MONETDB_PORT": worker_config.monetdb.port,
@@ -20,6 +22,7 @@ def start_flower_client(request_id: str, algorithm_name, server_address) -> int:
         "CONTROLLER_IP": worker_config.controller.ip,
         "CONTROLLER_PORT": worker_config.controller.port,
         "DATA_PATH": worker_config.data_path,
+        "TIMEOUT": execution_timeout,
     }
     process = FlowerProcess(f"{algorithm_name}/client.py", env_vars=env_vars)
     logger = get_logger()
