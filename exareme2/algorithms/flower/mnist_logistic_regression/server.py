@@ -5,7 +5,7 @@ import flwr as fl
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 
-from exareme2.algorithms.flower.flower_data_processing import post_result
+from exareme2.algorithms.flower.inputdata_preprocessing import post_result
 from exareme2.algorithms.flower.mnist_logistic_regression import utils
 
 NUM_OF_ROUNDS = 5

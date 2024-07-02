@@ -50,6 +50,7 @@ Paths are subject to change so in the following documentation the global variabl
 
 """
 import copy
+import glob
 import itertools
 import json
 import os
@@ -864,6 +865,7 @@ def cleanup(c):
     kill_controller(c)
     kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
+    clean_sqlite()
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -876,6 +878,20 @@ def cleanup(c):
             cleanup_file.unlink()
         CLEANUP_DIR.rmdir()
         message("Ok", level=Level.SUCCESS)
+
+
+def clean_sqlite():
+    # Create a pattern for .db files
+    pattern = os.path.join(TEST_DATA_FOLDER, "*.db")
+
+    # Delete each .db file
+    for db_file in glob.glob(pattern):
+        try:
+            message(f"Removing {db_file}...", level=Level.HEADER)
+            os.remove(db_file)
+            message("Ok", level=Level.SUCCESS)
+        except Exception as e:
+            print(f"Error deleting {db_file}: {e}")
 
 
 @task
