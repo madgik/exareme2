@@ -8,6 +8,9 @@ from exareme2 import AttrDict
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.logger import init_logger
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
+    DatasetLocation,
+)
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     _log_data_model_changes,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -73,8 +76,20 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
         logger=logger,
     )
     _log_dataset_changes(
-        old_datasets_locations={"dementia:0.1": {"edsd": "localworker1"}},
-        new_datasets_locations={"tbi:0.1": {"dummy_tbi": "localworker2"}},
+        old_datasets_locations={
+            "dementia:0.1": {
+                "edsd": DatasetLocation(
+                    worker_id="localworker1", csv_path="/opt/data/edsd.csv"
+                )
+            }
+        },
+        new_datasets_locations={
+            "tbi:0.1": {
+                "dummy_tbi": DatasetLocation(
+                    worker_id="localworker2", csv_path="/opt/data/dummy_tbi.csv"
+                )
+            }
+        },
         logger=logger,
     )
     log_experiment_execution(

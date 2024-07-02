@@ -8,6 +8,7 @@ from exareme2.worker.worker_info import sqlite
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import DatasetInfo
 
 HEALTHCHECK_VALIDATION_STRING = "HEALTHCHECK"
 
@@ -35,9 +36,9 @@ def get_data_models() -> List[str]:
 
 
 @sql_injection_guard(data_model=is_datamodel)
-def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
+def get_dataset_infos(data_model: str) -> List[DatasetInfo]:
     """
-    Retrieves the enabled key-value pair of code and label, for a specific data_model.
+    Retrieves the enabled dataset, for a specific data_model.
 
     Returns
     ------
@@ -48,7 +49,7 @@ def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
 
     datasets_rows = sqlite.execute_and_fetchall(
         f"""
-        SELECT code, label
+        SELECT code, label, csv_path
         FROM datasets
         WHERE data_model_id =
         (
@@ -60,8 +61,9 @@ def get_dataset_code_per_dataset_label(data_model: str) -> Dict[str, str]:
         AND status = 'ENABLED'
         """
     )
-    datasets = {code: label for code, label in datasets_rows}
-    return datasets
+    return [
+        DatasetInfo(code=row[0], label=row[1], csv_path=row[2]) for row in datasets_rows
+    ]
 
 
 @sql_injection_guard(data_model=is_datamodel)

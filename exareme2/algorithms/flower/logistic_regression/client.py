@@ -1,16 +1,19 @@
 import os
+import time
 import warnings
+from math import log2
 
 import flwr as fl
+from flwr.common.logger import FLOWER_LOGGER
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 from utils import get_model_parameters
 from utils import set_initial_params
 from utils import set_model_params
 
-from exareme2.algorithms.flower.flower_data_processing import fetch_data
-from exareme2.algorithms.flower.flower_data_processing import get_input
-from exareme2.algorithms.flower.flower_data_processing import preprocess_data
+from exareme2.algorithms.flower.inputdata_preprocessing import fetch_client_data
+from exareme2.algorithms.flower.inputdata_preprocessing import get_input
+from exareme2.algorithms.flower.inputdata_preprocessing import preprocess_data
 
 
 class LogisticRegressionClient(fl.client.NumPyClient):
@@ -39,11 +42,27 @@ class LogisticRegressionClient(fl.client.NumPyClient):
 if __name__ == "__main__":
     model = LogisticRegression(penalty="l2", max_iter=1, warm_start=True)
     inputdata = get_input()
-    full_data = fetch_data(inputdata.data_model, inputdata.datasets, from_db=True)
+    full_data = fetch_client_data(inputdata)
     X_train, y_train = preprocess_data(inputdata, full_data)
     set_initial_params(model, X_train, full_data, inputdata)
 
     client = LogisticRegressionClient(model, X_train, y_train)
-    fl.client.start_client(
-        server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
-    )
+
+    attempts = 0
+    max_attempts = int(log2(int(os.environ["TIMEOUT"])))
+    while True:
+        try:
+            fl.client.start_client(
+                server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
+            )
+            FLOWER_LOGGER.debug("Connection successful on attempt", attempts + 1)
+            break
+        except Exception as e:
+            FLOWER_LOGGER.warning(
+                f"Connection with the server failed. Attempt {attempts + 1} failed: {e}"
+            )
+            time.sleep(pow(2, attempts))
+            attempts += 1
+            if attempts >= max_attempts:
+                FLOWER_LOGGER.error("Could not establish connection to the server.")
+                raise e

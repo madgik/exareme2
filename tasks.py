@@ -50,6 +50,7 @@ Paths are subject to change so in the following documentation the global variabl
 
 """
 import copy
+import glob
 import itertools
 import json
 import os
@@ -445,7 +446,7 @@ def load_data(c, use_sockets=False, port=None):
             f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_worker_ports[0]}...",
             Level.HEADER,
         )
-        run(c, cmd)
+        run(c, cmd, env={"DATA_PATH": TEST_DATA_FOLDER})
         return
 
     for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
@@ -480,7 +481,7 @@ def load_data(c, use_sockets=False, port=None):
                 Level.HEADER,
             )
             cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
-            run(c, cmd)
+            run(c, cmd, env={"DATA_PATH": TEST_DATA_FOLDER})
 
         # Load the data model's remaining csvs in the rest of the workers with round-robin fashion
         remaining_csvs = sorted(
@@ -501,7 +502,7 @@ def load_data(c, use_sockets=False, port=None):
                 Level.HEADER,
             )
             cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
-            run(c, cmd)
+            run(c, cmd, env={"DATA_PATH": TEST_DATA_FOLDER})
 
 
 def get_sqlite_path(port):
@@ -864,6 +865,7 @@ def cleanup(c):
     kill_controller(c)
     kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
+    clean_sqlite()
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -876,6 +878,20 @@ def cleanup(c):
             cleanup_file.unlink()
         CLEANUP_DIR.rmdir()
         message("Ok", level=Level.SUCCESS)
+
+
+def clean_sqlite():
+    # Create a pattern for .db files
+    pattern = os.path.join(TEST_DATA_FOLDER, "*.db")
+
+    # Delete each .db file
+    for db_file in glob.glob(pattern):
+        try:
+            message(f"Removing {db_file}...", level=Level.HEADER)
+            os.remove(db_file)
+            message("Ok", level=Level.SUCCESS)
+        except Exception as e:
+            print(f"Error deleting {db_file}: {e}")
 
 
 @task
@@ -1159,14 +1175,23 @@ SELECT reload_udfio();
         run(c, command)
 
 
-def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
+def run(
+    c,
+    cmd,
+    attach_=False,
+    wait=True,
+    warn=False,
+    raise_error=False,
+    show_ok=True,
+    env=None,
+):
     if attach_:
-        c.run(cmd, pty=True)
+        c.run(cmd, pty=True, env=env)
         return
 
     if not wait:
         # TODO disown=True will make c.run(..) return immediately
-        c.run(cmd, disown=True)
+        c.run(cmd, disown=True, env=env)
         # TODO wait is False to get in here
         # nevertheless, it will wait (sleep) for 4 seconds here, why??
         spin_wheel(time=4)
@@ -1175,7 +1200,7 @@ def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok
         return
 
     # TODO this is supposed to run when wait=True, yet asynchronous=True
-    promise = c.run(cmd, asynchronous=True, warn=warn)
+    promise = c.run(cmd, asynchronous=True, warn=warn, env=env)
     # TODO and then it blocks here, what is the point of asynchronous=True?
     spin_wheel(promise=promise)
     stderr = promise.runner.stderr

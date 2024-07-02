@@ -1,15 +1,12 @@
-from typing import Dict
-
 from exareme2.worker import config as worker_config
 from exareme2.worker.utils.logger import initialise_logger
 from exareme2.worker.worker_info import worker_info_db
 from exareme2.worker.worker_info.worker_info_db import check_database_connection
 from exareme2.worker.worker_info.worker_info_db import get_data_models
-from exareme2.worker.worker_info.worker_info_db import (
-    get_dataset_code_per_dataset_label,
-)
+from exareme2.worker.worker_info.worker_info_db import get_dataset_infos
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import DatasetsInfoPerDataModel
 from exareme2.worker_communication import WorkerInfo
 
 
@@ -33,7 +30,7 @@ def get_worker_info(request_id: str) -> WorkerInfo:
 
 
 @initialise_logger
-def get_worker_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, str]]:
+def get_worker_datasets_per_data_model(request_id: str) -> DatasetsInfoPerDataModel:
     """
     Parameters
     ----------
@@ -41,13 +38,15 @@ def get_worker_datasets_per_data_model(request_id: str) -> Dict[str, Dict[str, s
         The identifier for the logging
     Returns
     ------
-    Dict[str, Dict[str, str]]
-        A dictionary with key data model and value a list of pairs (dataset code and dataset label)
+    DatasetsInfoPerDataModel
+        A dictionary with key data model and value  a dictionary with keys dataset and value each corresponding Info (label, csv_path)
     """
-    return {
-        data_model: get_dataset_code_per_dataset_label(data_model)
-        for data_model in get_data_models()
-    }
+    return DatasetsInfoPerDataModel(
+        datasets_info_per_data_model={
+            data_model: get_dataset_infos(data_model)
+            for data_model in get_data_models()
+        }
+    )
 
 
 @initialise_logger
