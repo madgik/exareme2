@@ -424,12 +424,15 @@ def _load_data_monetdb_container(db_port, dataset_suffixes, worker_id):
 
         for csv in csvs:
             cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} {monetdb_configs.convert_to_mipdb_format()} --sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
+            _env = os.environ.copy()
+            _env["DATA_PATH"] = str(TEST_DATA_FOLDER)
             subprocess.run(
                 cmd,
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=_env,
             )
             print(
                 f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({monetdb_configs.ip}:{monetdb_configs.port})"
