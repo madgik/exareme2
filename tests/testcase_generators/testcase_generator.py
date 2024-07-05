@@ -335,7 +335,6 @@ class InputGenerator:
         numerical_pool = list(random_permutation(numerical_vars))
         nominal_pool = list(random_permutation(nominal_vars))
         self._counter += 1
-        print(self._counter)
         if self._counter == 1:
             if not isinstance(self.specs, dict):
                 with open(self.specs.name, "r") as f2:
