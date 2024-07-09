@@ -5,12 +5,12 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from exareme2.algorithms.flower.flower_data_processing import HEADERS
-from exareme2.algorithms.flower.flower_data_processing import RESULT_URL
-from exareme2.algorithms.flower.flower_data_processing import error_handling
-from exareme2.algorithms.flower.flower_data_processing import get_enumerations
-from exareme2.algorithms.flower.flower_data_processing import get_input
-from exareme2.algorithms.flower.flower_data_processing import post_result
+from exareme2.algorithms.flower.inputdata_preprocessing import HEADERS
+from exareme2.algorithms.flower.inputdata_preprocessing import RESULT_URL
+from exareme2.algorithms.flower.inputdata_preprocessing import error_handling
+from exareme2.algorithms.flower.inputdata_preprocessing import get_enumerations
+from exareme2.algorithms.flower.inputdata_preprocessing import get_input
+from exareme2.algorithms.flower.inputdata_preprocessing import post_result
 
 
 class TestAPIMethods(unittest.TestCase):

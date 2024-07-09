@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 
+from exareme2.worker_communication import DatasetsInfoPerDataModel
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.controller.workers_communication_helper import (
     get_celery_task_signature,
@@ -95,12 +96,19 @@ def test_get_worker_datasets_per_data_model(
         logger=StdOutputLogger(),
         timeout=TASKS_TIMEOUT,
     )
-
-    assert set(datasets_per_data_model.keys()) == set(
+    dataset_infos_per_data_model = DatasetsInfoPerDataModel.parse_raw(
+        datasets_per_data_model
+    )
+    assert set(dataset_infos_per_data_model.datasets_info_per_data_model.keys()) == set(
         expected_datasets_per_data_model.keys()
     )
-    for data_model in expected_datasets_per_data_model.keys():
-        assert set(datasets_per_data_model[data_model]) == set(
+    for (
+        data_model,
+        dataset_infos,
+    ) in dataset_infos_per_data_model.datasets_info_per_data_model.items():
+        print(set([dataset_info.code for dataset_info in dataset_infos]))
+        print(set(expected_datasets_per_data_model[data_model]))
+        assert set([dataset_info.code for dataset_info in dataset_infos]) == set(
             expected_datasets_per_data_model[data_model]
         )
 

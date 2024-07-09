@@ -131,6 +131,13 @@ class InsufficientDataError(Exception):
         self.message = message
 
 
+class DatasetMissingCsvPathError(Exception):
+    def __init__(self):
+        message = "Datasets are missing csv_paths, this occurs when the data have been loaded from the socket."
+        super().__init__(message)
+        self.message = message
+
+
 class BadUserInput(Exception):
     def __init__(self, message):
         super().__init__(message)
@@ -256,6 +263,16 @@ class TableInfo(ImmutableBaseModel):
 class DataModelAttributes(ImmutableBaseModel):
     tags: List
     properties: Dict
+
+
+class DatasetInfo(ImmutableBaseModel):
+    code: str
+    label: str
+    csv_path: Optional[str]
+
+
+class DatasetsInfoPerDataModel(ImmutableBaseModel):
+    datasets_info_per_data_model: Dict[str, List[DatasetInfo]]
 
 
 class CommonDataElement(ImmutableBaseModel):

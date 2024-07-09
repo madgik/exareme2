@@ -4,6 +4,7 @@ from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
+from exareme2.worker_communication import DatasetsInfoPerDataModel
 from exareme2.worker_communication import WorkerInfo
 
 
@@ -23,10 +24,11 @@ class WorkerInfoTasksHandler:
         ).get(self._tasks_timeout)
         return WorkerInfo.parse_raw(result)
 
-    def get_worker_datasets_per_data_model_task(self) -> Dict[str, Dict[str, str]]:
-        return self._worker_tasks_handler.queue_worker_datasets_per_data_model_task(
+    def get_worker_datasets_per_data_model_task(self) -> DatasetsInfoPerDataModel:
+        result = self._worker_tasks_handler.queue_worker_datasets_per_data_model_task(
             self._request_id
         ).get(self._tasks_timeout)
+        return DatasetsInfoPerDataModel.parse_raw(result)
 
     def get_data_model_cdes_task(self, data_model: str) -> CommonDataElements:
         result = self._worker_tasks_handler.queue_data_model_cdes_task(

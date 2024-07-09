@@ -50,6 +50,7 @@ Paths are subject to change so in the following documentation the global variabl
 
 """
 import copy
+import glob
 import itertools
 import json
 import os
@@ -806,6 +807,7 @@ def deploy(
             worker_config = toml.load(fp)
         worker_ids.append(worker_config["identifier"])
         if worker_config["role"] == "LOCALWORKER":
+            clean_sqlite(f"{TEST_DATA_FOLDER}/{worker_config['identifier']}.db")
             local_workers_monetdb_ports.append(worker_config["monetdb"]["port"])
 
     worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
@@ -864,6 +866,13 @@ def cleanup(c):
     kill_controller(c)
     kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
+
+    # Create a pattern for .db files
+    pattern = os.path.join(TEST_DATA_FOLDER, "*.db")
+
+    # Delete each .db file
+    for db_file in glob.glob(pattern):
+        clean_sqlite(db_file)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -876,6 +885,15 @@ def cleanup(c):
             cleanup_file.unlink()
         CLEANUP_DIR.rmdir()
         message("Ok", level=Level.SUCCESS)
+
+
+def clean_sqlite(db_file):
+    try:
+        message(f"Removing {db_file}...", level=Level.HEADER)
+        os.remove(db_file)
+        message("Ok", level=Level.SUCCESS)
+    except Exception as e:
+        print(f"Error deleting {db_file}: {e}")
 
 
 @task
@@ -1159,14 +1177,23 @@ SELECT reload_udfio();
         run(c, command)
 
 
-def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok=True):
+def run(
+    c,
+    cmd,
+    attach_=False,
+    wait=True,
+    warn=False,
+    raise_error=False,
+    show_ok=True,
+    env=None,
+):
     if attach_:
-        c.run(cmd, pty=True)
+        c.run(cmd, pty=True, env=env)
         return
 
     if not wait:
         # TODO disown=True will make c.run(..) return immediately
-        c.run(cmd, disown=True)
+        c.run(cmd, disown=True, env=env)
         # TODO wait is False to get in here
         # nevertheless, it will wait (sleep) for 4 seconds here, why??
         spin_wheel(time=4)
@@ -1175,7 +1202,7 @@ def run(c, cmd, attach_=False, wait=True, warn=False, raise_error=False, show_ok
         return
 
     # TODO this is supposed to run when wait=True, yet asynchronous=True
-    promise = c.run(cmd, asynchronous=True, warn=warn)
+    promise = c.run(cmd, asynchronous=True, warn=warn, env=env)
     # TODO and then it blocks here, what is the point of asynchronous=True?
     spin_wheel(promise=promise)
     stderr = promise.runner.stderr
