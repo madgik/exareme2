@@ -5,7 +5,6 @@ from typing import List
 from typing import Optional
 
 import pandas as pd
-import pymonetdb
 import requests
 from flwr.common.logger import FLOWER_LOGGER
 from pydantic import BaseModel
@@ -29,37 +28,30 @@ class Inputdata(BaseModel):
     x: Optional[List[str]]
 
 
-def fetch_data(data_model, datasets, from_db=False) -> pd.DataFrame:
-    return (
-        _fetch_data_from_db(data_model, datasets)
-        if from_db
-        else _fetch_data_from_csv(data_model, datasets)
+def fetch_client_data(inputdata) -> pd.DataFrame:
+    FLOWER_LOGGER.error(f"BROOO {os.getenv('CSV_PATHS')}")
+    dataframes = [
+        pd.read_csv(f"{os.getenv('DATA_PATH')}{csv_path}")
+        for csv_path in os.getenv("CSV_PATHS").split(",")
+    ]
+    df = pd.concat(dataframes, ignore_index=True)
+    df = df[df["dataset"].isin(inputdata.datasets)]
+    return df[inputdata.x + inputdata.y]
+
+
+def fetch_server_data(inputdata) -> pd.DataFrame:
+    data_folder = Path(
+        f"{os.getenv('DATA_PATH')}/{inputdata.data_model.split(':')[0]}_v_0_1"
     )
-
-
-def _fetch_data_from_db(data_model, datasets) -> pd.DataFrame:
-    query = f'SELECT * FROM "{data_model}"."primary_data"'
-    conn = pymonetdb.connect(
-        hostname=os.getenv("MONETDB_IP"),
-        port=int(os.getenv("MONETDB_PORT")),
-        username=os.getenv("MONETDB_USERNAME"),
-        password=os.getenv("MONETDB_PASSWORD"),
-        database=os.getenv("MONETDB_DB"),
-    )
-    df = pd.read_sql(query, conn)
-    conn.close()
-    df = df[df["dataset"].isin(datasets)]
-    return df
-
-
-def _fetch_data_from_csv(data_model, datasets) -> pd.DataFrame:
-    data_folder = Path(f"{os.getenv('DATA_PATH')}/{data_model.split(':')[0]}_v_0_1")
+    print(f"Loading data from folder: {data_folder}")
     dataframes = [
         pd.read_csv(data_folder / f"{dataset}.csv")
-        for dataset in datasets
+        for dataset in inputdata.datasets
         if (data_folder / f"{dataset}.csv").exists()
     ]
-    return pd.concat(dataframes, ignore_index=True)
+    df = pd.concat(dataframes, ignore_index=True)
+    df = df[df["dataset"].isin(inputdata.datasets)]
+    return df[inputdata.x + inputdata.y]
 
 
 def preprocess_data(inputdata, full_data):

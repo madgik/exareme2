@@ -11,9 +11,9 @@ from utils import get_model_parameters
 from utils import set_initial_params
 from utils import set_model_params
 
-from exareme2.algorithms.flower.flower_data_processing import fetch_data
-from exareme2.algorithms.flower.flower_data_processing import get_input
-from exareme2.algorithms.flower.flower_data_processing import preprocess_data
+from exareme2.algorithms.flower.inputdata_preprocessing import fetch_client_data
+from exareme2.algorithms.flower.inputdata_preprocessing import get_input
+from exareme2.algorithms.flower.inputdata_preprocessing import preprocess_data
 
 
 class LogisticRegressionClient(fl.client.NumPyClient):
@@ -42,7 +42,7 @@ class LogisticRegressionClient(fl.client.NumPyClient):
 if __name__ == "__main__":
     model = LogisticRegression(penalty="l2", max_iter=1, warm_start=True)
     inputdata = get_input()
-    full_data = fetch_data(inputdata.data_model, inputdata.datasets, from_db=True)
+    full_data = fetch_client_data(inputdata)
     X_train, y_train = preprocess_data(inputdata, full_data)
     set_initial_params(model, X_train, full_data, inputdata)
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
             break
         except Exception as e:
             FLOWER_LOGGER.warning(
-                f"Connection with the server failed. Attempt {attempts} failed: {e}"
+                f"Connection with the server failed. Attempt {attempts + 1} failed: {e}"
             )
             time.sleep(pow(2, attempts))
             attempts += 1

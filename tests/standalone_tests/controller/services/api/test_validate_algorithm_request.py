@@ -28,6 +28,9 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
     DataModelsCDES,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
+    DatasetLocation,
+)
+from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     DatasetsLocations,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -115,10 +118,21 @@ def worker_landscape_aggregator():
         datasets_locations=DatasetsLocations(
             datasets_locations={
                 "data_model_with_all_cde_types:0.1": {
-                    "sample_dataset1": "sample_worker",
-                    "sample_dataset2": "sample_worker",
+                    "sample_dataset1": DatasetLocation(
+                        worker_id="sample_worker",
+                        csv_path="/opt/data/sample_dataset1.csv",
+                    ),
+                    "sample_dataset2": DatasetLocation(
+                        worker_id="sample_worker",
+                        csv_path="/opt/data/sample_dataset2.csv",
+                    ),
                 },
-                "sample_data_model:0.1": {"sample_dataset": "sample_worker"},
+                "sample_data_model:0.1": {
+                    "sample_dataset": DatasetLocation(
+                        worker_id="sample_worker",
+                        csv_path="/opt/data/sample_dataset.csv",
+                    )
+                },
             }
         ),
     )
