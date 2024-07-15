@@ -15,6 +15,7 @@ def test_mnist_logistic_regression(get_algorithm_result):
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
+                "ppmi_test",
             ],
             "filters": None,
         },

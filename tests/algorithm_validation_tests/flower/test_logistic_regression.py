@@ -15,6 +15,7 @@ def test_logistic_regression(get_algorithm_result):
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
+                "ppmi_test",
             ],
             "filters": None,
         },
@@ -23,7 +24,8 @@ def test_logistic_regression(get_algorithm_result):
     }
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("logistic_regression", input)
-    assert algorithm_result == {"accuracy": 0.6180758017492711} or algorithm_result == {
+    print(algorithm_result)
+    assert algorithm_result == {"accuracy": 0.63} or algorithm_result == {
         "accuracy": 0.3819241982507289
     }
 
@@ -45,6 +47,7 @@ def test_logistic_regression_with_filters(get_algorithm_result):
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
+                "ppmi_test",
             ],
             "filters": {
                 "condition": "AND",
@@ -67,6 +70,6 @@ def test_logistic_regression_with_filters(get_algorithm_result):
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("logistic_regression", input)
     print(algorithm_result)
-    assert algorithm_result == {"accuracy": 0.7755681818181818} or algorithm_result == {
+    assert algorithm_result == {"accuracy": 0.7884615384615384} or algorithm_result == {
         "accuracy": 0.22443181818181818
     }

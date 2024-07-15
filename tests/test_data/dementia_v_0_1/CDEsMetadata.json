@@ -47,6 +47,10 @@
           "label": "PPMI_9"
         },
         {
+          "code": "ppmi_test",
+          "label": "PPMI_TEST"
+        },
+        {
           "code": "edsd0",
           "label": "EDSD_0"
         },
@@ -87,6 +91,10 @@
           "label": "EDSD_9"
         },
         {
+          "code": "edsd_test",
+          "label": "EDSD_TEST"
+        },
+        {
           "code": "desd-synthdata0",
           "label": "DESD-synthdata_0"
         },
@@ -125,6 +133,10 @@
         {
           "code": "desd-synthdata9",
           "label": "DESD-synthdata_9"
+        },
+        {
+          "code": "desd-synthdata_test",
+          "label": "DESD-synthdata_TEST"
         }
       ],
       "label": "Dataset",
