@@ -14,8 +14,12 @@ def start_flower_client(
 
 @shared_task
 def start_flower_server(
-    request_id: str, algorithm_name: str, number_of_clients: int, server_address
+    request_id: str,
+    algorithm_name: str,
+    number_of_clients: int,
+    server_address,
+    csv_paths,
 ) -> int:
     return starter_service.start_flower_server(
-        request_id, algorithm_name, number_of_clients, server_address
+        request_id, algorithm_name, number_of_clients, server_address, csv_paths
     )

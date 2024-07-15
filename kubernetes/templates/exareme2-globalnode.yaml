@@ -67,6 +67,25 @@ spec:
             - "select 1;"
           periodSeconds: 30
 
+      - name: db-importer
+        image: {{ .Values.exareme2_images.repository }}/exareme2_mipdb:{{ .Values.exareme2_images.version }}
+        env:
+        - name: DB_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: SQLITE_DB_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: DB_PORT
+          value: "50000"
+        volumeMounts:
+        - mountPath: /opt/data
+          name: csv-data
+        - mountPath: /opt/credentials
+          name: credentials
+
       - name: rabbitmq
         image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
         env:

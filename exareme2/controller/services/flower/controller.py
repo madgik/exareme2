@@ -70,14 +70,18 @@ class Controller:
                 for worker in workers_info
             ]
 
-            server_task_handler, server_ip = task_handlers[0], workers_info[0].ip
+            server_task_handler, server_ip, server_id = (
+                task_handlers[0],
+                workers_info[0].ip,
+                workers_info[0].id,
+            )
             if len(task_handlers) > 1:
                 global_worker = self.worker_landscape_aggregator.get_global_worker()
                 server_task_handler = self._create_worker_tasks_handler(
                     request_id, global_worker
                 )
                 server_ip = global_worker.ip
-
+                server_id = global_worker.id
             # Garbage Collect
             server_task_handler.garbage_collect()
             for handler in task_handlers:
@@ -92,7 +96,10 @@ class Controller:
 
             try:
                 server_pid = server_task_handler.start_flower_server(
-                    algorithm_name, len(task_handlers), str(server_address)
+                    algorithm_name,
+                    len(task_handlers),
+                    str(server_address),
+                    csv_paths_per_worker_id[server_id],
                 )
                 clients_pids = {
                     handler.start_flower_client(

@@ -36,7 +36,11 @@ def start_flower_client(
 
 @initialise_logger
 def start_flower_server(
-    request_id: str, algorithm_name: str, number_of_clients: int, server_address
+    request_id: str,
+    algorithm_name: str,
+    number_of_clients: int,
+    server_address,
+    csv_paths,
 ) -> int:
     env_vars = {
         "REQUEST_ID": request_id,
@@ -47,6 +51,7 @@ def start_flower_server(
         "CONTROLLER_IP": worker_config.controller.ip,
         "CONTROLLER_PORT": worker_config.controller.port,
         "DATA_PATH": worker_config.data_path,
+        "CSV_PATHS": ",".join(csv_paths),
     }
     process = FlowerProcess(f"{algorithm_name}/server.py", env_vars=env_vars)
     logger = get_logger()

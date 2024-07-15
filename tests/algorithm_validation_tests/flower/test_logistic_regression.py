@@ -66,6 +66,7 @@ def test_logistic_regression_with_filters(get_algorithm_result):
     }
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("logistic_regression", input)
+    print(algorithm_result)
     assert algorithm_result == {"accuracy": 0.7755681818181818} or algorithm_result == {
         "accuracy": 0.22443181818181818
     }

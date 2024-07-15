@@ -557,13 +557,8 @@ class WorkerLandscapeAggregator:
             .socket_addresses
         )
         workers_info = self._get_workers_info(workers_addresses)
-        local_workers = [
-            worker_info
-            for worker_info in workers_info
-            if worker_info.role == WorkerRole.LOCALWORKER
-        ]
         data_models_metadata_per_worker = self._get_data_models_metadata_per_worker(
-            local_workers
+            workers_info
         )
         return workers_info, data_models_metadata_per_worker
 
