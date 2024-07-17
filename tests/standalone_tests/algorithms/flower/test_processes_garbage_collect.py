@@ -14,8 +14,10 @@ from tests.standalone_tests.std_output_logger import StdOutputLogger
 
 @pytest.mark.slow
 def test_processes_garbage_collect(
+    globalworker_worker_service,
     localworker1_worker_service,
     load_data_localworker1,
+    load_test_data_globalworker,
     controller_service_with_localworker1,
     localworker1_celery_app,
 ):
@@ -29,6 +31,7 @@ def test_processes_garbage_collect(
         algorithm_name="logistic_regression",
         number_of_clients=1,
         server_address=f"{COMMON_IP}:8080",
+        csv_paths="dataset1.csv,dataset2.csv",
     )
     localworker1_celery_app.get_result(
         async_result=async_result,
@@ -46,6 +49,7 @@ def test_processes_garbage_collect(
                 "ppmi1",
                 "ppmi2",
                 "ppmi3",
+                "ppmi_test",
             ],
             "filters": None,
         },

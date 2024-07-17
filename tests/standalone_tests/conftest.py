@@ -56,7 +56,6 @@ SMPC_ALGORITHMS_URL = f"http://{COMMON_IP}:4501/algorithms"
 
 HEALTHCHECK_URL = f"http://{COMMON_IP}:4500/healthcheck"
 
-
 RABBITMQ_GLOBALWORKER_NAME = "rabbitmq_test_globalworker"
 RABBITMQ_LOCALWORKER1_NAME = "rabbitmq_test_localworker1"
 RABBITMQ_LOCALWORKER2_NAME = "rabbitmq_test_localworker2"
@@ -80,7 +79,6 @@ RABBITMQ_SMPC_LOCALWORKER1_PORT = 60005
 RABBITMQ_SMPC_LOCALWORKER1_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALWORKER1_PORT)}"
 RABBITMQ_SMPC_LOCALWORKER2_PORT = 60006
 RABBITMQ_SMPC_LOCALWORKER2_ADDR = f"{COMMON_IP}:{str(RABBITMQ_SMPC_LOCALWORKER2_PORT)}"
-
 
 DATASET_SUFFIXES_LOCALWORKER1 = [0, 1, 2, 3]
 DATASET_SUFFIXES_LOCALWORKER2 = [4, 5, 6]
@@ -176,6 +174,8 @@ SMPC_PLAYER3_PORT2 = 7002
 SMPC_PLAYER3_PORT3 = 14002
 SMPC_CLIENT1_PORT = 9005
 SMPC_CLIENT2_PORT = 9006
+
+
 #####################################
 
 
@@ -380,6 +380,62 @@ def _init_database_monetdb_container(db_port, worker_id):
     print(f"\nDatabase ({monetdb_configs.ip}:{monetdb_configs.port}) initialized.")
 
 
+def _load_test_data_monetdb_container(db_port, worker_id):
+    monetdb_configs = MonetDBConfigurations(db_port)
+    # Check if the database is already loaded
+    cmd = f"mipdb list-datasets {monetdb_configs.convert_to_mipdb_format()} --sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
+    res = subprocess.run(
+        cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    if "There are no datasets" not in str(res.stdout):
+        print(
+            f"\nDatabase ({monetdb_configs.ip}:{monetdb_configs.port}) already loaded, continuing."
+        )
+        return
+
+    datasets_per_data_model = {}
+    # Load the test data folder into the dbs
+    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+        if "CDEsMetadata.json" not in filenames:
+            continue
+        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
+        with open(cdes_file) as data_model_metadata_file:
+            data_model_metadata = json.load(data_model_metadata_file)
+            data_model_code = data_model_metadata["code"]
+            data_model_version = data_model_metadata["version"]
+            data_model = f"{data_model_code}:{data_model_version}"
+
+        print(
+            f"\nLoading data model '{data_model_code}:{data_model_version}' metadata to database ({monetdb_configs.ip}:{monetdb_configs.port})"
+        )
+        cmd = f"mipdb add-data-model {cdes_file} {monetdb_configs.convert_to_mipdb_format()} --sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
+        subprocess.run(
+            cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        csvs = sorted(
+            [f"{dirpath}/{file}" for file in filenames if file.endswith("test.csv")]
+        )
+
+        for csv in csvs:
+            cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} {monetdb_configs.convert_to_mipdb_format()} --sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
+            subprocess.run(
+                cmd,
+                shell=True,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            print(
+                f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({monetdb_configs.ip}:{monetdb_configs.port})"
+            )
+            datasets_per_data_model[data_model] = pathlib.PurePath(csv).name
+
+    print(f"\nData loaded to database ({monetdb_configs.ip}:{monetdb_configs.port})")
+    time.sleep(2)  # Needed to avoid db crash while loading
+    return datasets_per_data_model
+
+
 def _load_data_monetdb_container(db_port, dataset_suffixes, worker_id):
     monetdb_configs = MonetDBConfigurations(db_port)
     # Check if the database is already loaded
@@ -424,15 +480,12 @@ def _load_data_monetdb_container(db_port, dataset_suffixes, worker_id):
 
         for csv in csvs:
             cmd = f"mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} {monetdb_configs.convert_to_mipdb_format()} --sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
-            _env = os.environ.copy()
-            _env["DATA_PATH"] = str(TEST_DATA_FOLDER)
             subprocess.run(
                 cmd,
                 shell=True,
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                env=_env,
             )
             print(
                 f"\nLoading dataset {pathlib.PurePath(csv).name} to database ({monetdb_configs.ip}:{monetdb_configs.port})"
@@ -456,7 +509,7 @@ def init_data_globalworker(monetdb_globalworker):
 def load_data_localworker1(monetdb_localworker1):
     worker_config_file = LOCALWORKER1_CONFIG_FILE
     worker_id = get_worker_id(worker_config_file)
-    _init_database_monetdb_container(MONETDB_GLOBALWORKER_PORT, worker_id)
+    _init_database_monetdb_container(LOCALWORKER1_CONFIG_FILE, worker_id)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
         MONETDB_LOCALWORKER1_PORT, DATASET_SUFFIXES_LOCALWORKER1, worker_id
     )
@@ -470,6 +523,17 @@ def load_data_localworker2(monetdb_localworker2):
     _init_database_monetdb_container(MONETDB_LOCALWORKER2_PORT, worker_id)
     loaded_datasets_per_data_model = _load_data_monetdb_container(
         MONETDB_LOCALWORKER2_PORT, DATASET_SUFFIXES_LOCALWORKER2, worker_id
+    )
+    yield loaded_datasets_per_data_model
+
+
+@pytest.fixture(scope="session")
+def load_test_data_globalworker(monetdb_globalworker):
+    worker_config_file = GLOBALWORKER_CONFIG_FILE
+    worker_id = get_worker_id(worker_config_file)
+    _init_database_monetdb_container(MONETDB_GLOBALWORKER_PORT, worker_id)
+    loaded_datasets_per_data_model = _load_test_data_monetdb_container(
+        MONETDB_GLOBALWORKER_PORT, worker_id
     )
     yield loaded_datasets_per_data_model
 

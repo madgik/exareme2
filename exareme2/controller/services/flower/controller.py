@@ -70,18 +70,12 @@ class Controller:
                 for worker in workers_info
             ]
 
-            server_task_handler, server_ip, server_id = (
-                task_handlers[0],
-                workers_info[0].ip,
-                workers_info[0].id,
+            global_worker = self.worker_landscape_aggregator.get_global_worker()
+            server_task_handler = self._create_worker_tasks_handler(
+                request_id, global_worker
             )
-            if len(task_handlers) > 1:
-                global_worker = self.worker_landscape_aggregator.get_global_worker()
-                server_task_handler = self._create_worker_tasks_handler(
-                    request_id, global_worker
-                )
-                server_ip = global_worker.ip
-                server_id = global_worker.id
+            server_ip = global_worker.ip
+            server_id = global_worker.id
             # Garbage Collect
             server_task_handler.garbage_collect()
             for handler in task_handlers:

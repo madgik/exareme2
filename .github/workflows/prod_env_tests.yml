@@ -203,82 +203,45 @@ jobs:
       - name: Wait for pods to get healthy
         run: timeout 300 bash -c 'while true; do if kubectl get pods --no-headers | awk '\''{if ($2 != "1/1" && $2 != "2/2" && $2 != "3/3" && $2 != "4/4") exit 1;}'\''; then echo "All pods are ready!"; break; else kubectl get pods -o wide; sleep 20; fi done'
 
-      - name: Initialize MONETDB from mipdb container
+      - name: Load data models into localworkers and globalworker
         run: |
-          for i in 0 1; do
-            POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[$i].metadata.name")
-            kubectl exec $POD_NAME -c db-importer -- sh -c 'mipdb init'
-          done
-          GLOBAL_POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-          kubectl exec $GLOBAL_POD_NAME -c db-importer -- sh -c 'mipdb init'
+          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name')
+          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name')
+          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r ".items[0].metadata.name")
 
-      - name: Load dementia data model into localworkers and globalworker
-        run: |
-          for i in 0 1; do
-            POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[$i].metadata.name")
-            kubectl exec $POD_NAME -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json'
-          done
-          GLOBAL_POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-          kubectl exec $GLOBAL_POD_NAME -c db-importer -- sh -c 'mipdb add-data-model /opt/data/dementia_v_0_1/CDEsMetadata.json'
-
-      - name: Load dementia dataset csvs into localworkers and globalworker
-        run: |
-          for suffix in {0..9}; do
-            if [ $suffix -eq 0 ] || [ $suffix -eq 3 ] || [ $suffix -eq 6 ]; then
-              POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[0].metadata.name")
-            elif [ $suffix -eq 1 ] || [ $suffix -eq 4 ] || [ $suffix -eq 7 ]; then
-              POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[1].metadata.name")
-            else
-              POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-            fi
-            for dataset in edsd ppmi desd-synthdata; do
-              kubectl exec $POD_NAME -c db-importer -- sh -c "mipdb add-dataset /opt/data/dementia_v_0_1/${dataset}${suffix}.csv -d dementia -v 0.1"
+          for POD in $LOCALWORKER1 $LOCALWORKER2 $GLOBALWORKER; do
+            kubectl exec $POD -c db-importer -- sh -c 'mipdb init'
+            for model in dementia_v_0_1 tbi_v_0_1 longitudinal_dementia_v_0_1; do
+              kubectl exec $POD -c db-importer -- sh -c "mipdb add-data-model /opt/data/${model}/CDEsMetadata.json"
             done
           done
 
-      - name: Load tbi data model into localworkers and globalworker
+      - name: Load Dataset CSVs into Localworkers and Globalworker
         run: |
-          for i in 0 1; do
-            POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[$i].metadata.name")
-            kubectl exec $POD_NAME -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json'
-          done
-          GLOBAL_POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-          kubectl exec $GLOBAL_POD_NAME -c db-importer -- sh -c 'mipdb add-data-model /opt/data/tbi_v_0_1/CDEsMetadata.json'
+          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name')
+          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name')
+          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r ".items[0].metadata.name")
 
-      - name: Load tbi dataset csvs into localworkers and globalworker
-        run: |
-          for suffix in {0..9}; do
-            if [ $suffix -eq 0 ] || [ $suffix -eq 3 ] || [ $suffix -eq 6 ]; then
-              POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[0].metadata.name")
-            elif [ $suffix -eq 1 ] || [ $suffix -eq 4 ] || [ $suffix -eq 7 ]; then
-              POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[1].metadata.name")
-            else
-              POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-            fi
-            kubectl exec $POD_NAME -c db-importer -- sh -c "mipdb add-dataset /opt/data/tbi_v_0_1/dummy_tbi${suffix}.csv -d tbi -v 0.1"
+          for model in dementia_v_0_1 tbi_v_0_1 longitudinal_dementia_v_0_1; do
+            for filepath in $(kubectl exec $GLOBALWORKER -c db-importer -- ls /opt/data/${model}); do
+              filepath=/opt/data/${model}/${filepath}
+              if [[ $filepath == *test.csv ]]; then
+                echo "Loading file: $filepath at $GLOBALWORKER"
+                kubectl exec $GLOBALWORKER -c db-importer -- mipdb add-dataset $filepath -d ${model%_v_*} -v 0.1
+              elif [[ $filepath == *.csv ]]; then
+                filename=$(basename $filepath)
+                suffix=$(echo $filename | grep -o '[0-9]*' | tail -1)
+                if (( suffix % 2 == 0 )); then
+                  POD_NAME=$LOCALWORKER2
+                else
+                  POD_NAME=$LOCALWORKER1
+                fi
+                echo "Loading file: $filepath at $POD_NAME"
+                kubectl exec $POD_NAME -c db-importer -- mipdb add-dataset $filepath -d ${model%_v_*} -v 0.1
+              fi
+            done
           done
 
-      - name: Load longitudinal dementia data model into localworkers and globalworker
-        run: |
-          for i in 0 1; do
-            POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[$i].metadata.name")
-            kubectl exec $POD_NAME -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json'
-          done
-          GLOBAL_POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-          kubectl exec $GLOBAL_POD_NAME -c db-importer -- sh -c 'mipdb add-data-model /opt/data/longitudinal_dementia_v_0_1/CDEsMetadata.json'
-
-      - name: Load longitudinal dementia datasets into localworkers and globalworker
-        run: |
-          for suffix in {0..2}; do
-            if [ $suffix -eq 0 ]; then
-              POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[0].metadata.name")
-            elif [ $suffix -eq 1 ]; then
-              POD_NAME=$(kubectl get pods -l=nodeType=localworker -o json | jq -r ".items[1].metadata.name")
-            else
-              POD_NAME=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
-            fi
-            kubectl exec $POD_NAME -c db-importer -- sh -c "mipdb add-dataset /opt/data/longitudinal_dementia_v_0_1/longitudinal_dementia${suffix}.csv -d longitudinal_dementia -v 0.1"
-          done
 
       - name: Controller logs
         run: kubectl logs -l app=exareme2-controller --tail -1

@@ -33,6 +33,7 @@ def get_test_cases_get_data_model_cdes():
                             "ppmi7": "PPMI_7",
                             "ppmi8": "PPMI_8",
                             "ppmi9": "PPMI_9",
+                            "ppmi_test": "PPMI_TEST",
                             "edsd0": "EDSD_0",
                             "edsd1": "EDSD_1",
                             "edsd2": "EDSD_2",
@@ -43,6 +44,7 @@ def get_test_cases_get_data_model_cdes():
                             "edsd7": "EDSD_7",
                             "edsd8": "EDSD_8",
                             "edsd9": "EDSD_9",
+                            "edsd_test": "EDSD_TEST",
                             "desd-synthdata0": "DESD-synthdata_0",
                             "desd-synthdata1": "DESD-synthdata_1",
                             "desd-synthdata2": "DESD-synthdata_2",
@@ -53,6 +55,7 @@ def get_test_cases_get_data_model_cdes():
                             "desd-synthdata7": "DESD-synthdata_7",
                             "desd-synthdata8": "DESD-synthdata_8",
                             "desd-synthdata9": "DESD-synthdata_9",
+                            "desd-synthdata_test": "DESD-synthdata_TEST",
                         },
                     ),
                     "alzheimerbroadcategory": CommonDataElement(
@@ -98,6 +101,7 @@ def get_test_cases_get_data_model_cdes():
                             "dummy_tbi7": "Dummy TBI_7",
                             "dummy_tbi8": "Dummy TBI_8",
                             "dummy_tbi9": "Dummy TBI_9",
+                            "dummy_tbi_test": "Dummy TBI test",
                         },
                     ),
                     "gender_type": CommonDataElement(

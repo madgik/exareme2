@@ -24,10 +24,7 @@ def test_logistic_regression(get_algorithm_result):
     }
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("logistic_regression", input)
-    print(algorithm_result)
-    assert algorithm_result == {"accuracy": 0.63} or algorithm_result == {
-        "accuracy": 0.3819241982507289
-    }
+    assert algorithm_result == {"accuracy": 0.63}
 
 
 def test_logistic_regression_with_filters(get_algorithm_result):
@@ -69,7 +66,4 @@ def test_logistic_regression_with_filters(get_algorithm_result):
     }
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("logistic_regression", input)
-    print(algorithm_result)
-    assert algorithm_result == {"accuracy": 0.7884615384615384} or algorithm_result == {
-        "accuracy": 0.22443181818181818
-    }
+    assert algorithm_result == {"accuracy": 0.7884615384615384}

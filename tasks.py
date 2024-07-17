@@ -503,6 +503,19 @@ def load_data(c, use_sockets=False, worker=None):
         :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
         :param use_sockets: Flag to determine if data will be loaded via sockets.
         """
+        if len(worker_id_and_ports) == 1:
+            worker_id, port = worker_id_and_ports[0]
+            for file in filenames:
+                if file.endswith(".csv") and not file.endswith("test.csv"):
+                    csv = os.path.join(dirpath, file)
+                    message(
+                        f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                        Level.HEADER,
+                    )
+                    cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+                    run(c, cmd)
+            return
+
         # Load the first set of CSVs into the first worker
         first_worker_csvs = sorted(
             [
@@ -580,17 +593,6 @@ def load_data(c, use_sockets=False, worker=None):
 
     if not local_worker_id_and_ports:
         raise Exception("Local worker config files cannot be loaded.")
-
-    # If only one local worker is specified, load the entire folder to that worker
-    if len(local_worker_id_and_ports) == 1:
-        worker_id, port = local_worker_id_and_ports[0]
-        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-        message(
-            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {port}...",
-            Level.HEADER,
-        )
-        run(c, cmd)
-        return
 
     # Process each dataset in the TEST_DATA_FOLDER for local workers
     for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
