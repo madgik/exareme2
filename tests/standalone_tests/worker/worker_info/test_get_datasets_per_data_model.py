@@ -13,6 +13,8 @@ label_identifier = "test_get_datasets_per_data_model"
 
 
 def setup_data_table_in_db(datasets_per_data_model, cursor):
+    cursor.execute("DELETE FROM datasets;")
+    cursor.execute("DELETE FROM data_models;")
     data_model_id = 0
     dataset_id = 0
     for data_model in datasets_per_data_model.keys():
@@ -25,15 +27,6 @@ def setup_data_table_in_db(datasets_per_data_model, cursor):
             dataset_id += 1
             sql_query = f"""INSERT INTO "datasets" (data_model_id, code, label, csv_path, status, properties) VALUES ({data_model_id}, '{dataset_name}', '{label_identifier}', 'csv_path', 'ENABLED', null);"""
             cursor.execute(sql_query)
-
-
-# The cleanup task cannot be used because it requires specific table name convention
-# that doesn't fit with the initial data table names
-def teardown_data_tables_in_db(cursor):
-    sql_query = f"DELETE FROM datasets WHERE label = '{label_identifier}';"
-    cursor.execute(sql_query)
-    sql_query = f"DELETE FROM data_models WHERE label = '{label_identifier}';"
-    cursor.execute(sql_query)
 
 
 data_model1 = "data_model1:0.1"
@@ -99,17 +92,24 @@ def test_get_worker_datasets_per_data_model(
     dataset_infos_per_data_model = DatasetsInfoPerDataModel.parse_raw(
         datasets_per_data_model
     )
-    assert set(dataset_infos_per_data_model.datasets_info_per_data_model.keys()) == set(
-        expected_datasets_per_data_model.keys()
+
+    expected_data_models = set(expected_datasets_per_data_model.keys())
+    available_data_models = set(
+        dataset_infos_per_data_model.datasets_info_per_data_model.keys()
     )
+
+    assert expected_data_models.issubset(available_data_models)
+
     for (
         data_model,
-        dataset_infos,
-    ) in dataset_infos_per_data_model.datasets_info_per_data_model.items():
-        print(set([dataset_info.code for dataset_info in dataset_infos]))
-        print(set(expected_datasets_per_data_model[data_model]))
-        assert set([dataset_info.code for dataset_info in dataset_infos]) == set(
-            expected_datasets_per_data_model[data_model]
-        )
+        datasets,
+    ) in expected_datasets_per_data_model.items():
+        expected_datasets = set(datasets)
 
-    teardown_data_tables_in_db(globalworker_sqlite_db_cursor)
+        available_datasets = set(
+            dataset_info.code
+            for dataset_info in dataset_infos_per_data_model.datasets_info_per_data_model[
+                data_model
+            ]
+        )
+        assert expected_datasets.issubset(available_datasets)

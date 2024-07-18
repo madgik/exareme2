@@ -21,6 +21,7 @@ def test_logisticregression_algorithm():
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
+                "ppmi_test",
             ],
             "filters": None,
         },

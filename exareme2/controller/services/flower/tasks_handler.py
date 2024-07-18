@@ -41,10 +41,14 @@ class FlowerTasksHandler:
         ).get(timeout=self._tasks_timeout)
 
     def start_flower_server(
-        self, algorithm_name: str, number_of_clients: int, server_address
+        self, algorithm_name: str, number_of_clients: int, server_address, csv_paths
     ) -> int:
         return self._worker_tasks_handler.start_flower_server(
-            self._request_id, algorithm_name, number_of_clients, server_address
+            self._request_id,
+            algorithm_name,
+            number_of_clients,
+            server_address,
+            csv_paths,
         ).get(timeout=self._tasks_timeout)
 
     def stop_flower_server(self, pid: int, algorithm_name: str):

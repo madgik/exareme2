@@ -167,6 +167,8 @@ class DataModelRegistry(ImmutableBaseModel):
             self.datasets_locations.datasets_locations[data_model][dataset].worker_id
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in datasets
+            if self.datasets_locations.datasets_locations[data_model][dataset].worker_id
+            != "globalworker"
         ]
         return list(set(local_workers_with_datasets))
 
@@ -547,7 +549,7 @@ class WorkerLandscapeAggregator:
 
     def _fetch_workers_metadata(
         self,
-    ) -> Tuple[List[WorkerInfo], DataModelsMetadataPerWorker,]:
+    ) -> Tuple[List[WorkerInfo], DataModelsMetadataPerWorker]:
         """
         Returns a list of all the workers in the federation and their metadata (data_models, datasets, cdes).
         """
@@ -557,13 +559,8 @@ class WorkerLandscapeAggregator:
             .socket_addresses
         )
         workers_info = self._get_workers_info(workers_addresses)
-        local_workers = [
-            worker_info
-            for worker_info in workers_info
-            if worker_info.role == WorkerRole.LOCALWORKER
-        ]
         data_models_metadata_per_worker = self._get_data_models_metadata_per_worker(
-            local_workers
+            workers_info
         )
         return workers_info, data_models_metadata_per_worker
 

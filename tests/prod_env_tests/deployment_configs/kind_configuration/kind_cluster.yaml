@@ -10,6 +10,8 @@ nodes:
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/csvs
+  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/master/monetdb_password.sh
+    containerPath: /opt/exareme2/credentials/monetdb_password.sh
 
 - role: worker
   extraMounts:

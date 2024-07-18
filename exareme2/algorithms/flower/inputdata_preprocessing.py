@@ -39,25 +39,10 @@ def apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
     return df
 
 
-def fetch_client_data(inputdata) -> pd.DataFrame:
-    FLOWER_LOGGER.error(f"BROOO {os.getenv('CSV_PATHS')}")
+def fetch_data(inputdata) -> pd.DataFrame:
     dataframes = [
         pd.read_csv(f"{os.getenv('DATA_PATH')}{csv_path}")
         for csv_path in os.getenv("CSV_PATHS").split(",")
-    ]
-    df = pd.concat(dataframes, ignore_index=True)
-    return apply_inputdata(df, inputdata)
-
-
-def fetch_server_data(inputdata) -> pd.DataFrame:
-    data_folder = Path(
-        f"{os.getenv('DATA_PATH')}/{inputdata.data_model.split(':')[0]}_v_0_1"
-    )
-    print(f"Loading data from folder: {data_folder}")
-    dataframes = [
-        pd.read_csv(data_folder / f"{dataset}.csv")
-        for dataset in inputdata.datasets
-        if (data_folder / f"{dataset}.csv").exists()
     ]
     df = pd.concat(dataframes, ignore_index=True)
     return apply_inputdata(df, inputdata)

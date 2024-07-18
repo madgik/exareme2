@@ -20,6 +20,7 @@ def expected_datasets_per_data_model():
             "edsd7",
             "edsd8",
             "edsd9",
+            "edsd_test",
             "ppmi0",
             "ppmi1",
             "ppmi2",
@@ -30,6 +31,7 @@ def expected_datasets_per_data_model():
             "ppmi7",
             "ppmi8",
             "ppmi9",
+            "ppmi_test",
             "desd-synthdata0",
             "desd-synthdata1",
             "desd-synthdata2",
@@ -40,6 +42,7 @@ def expected_datasets_per_data_model():
             "desd-synthdata7",
             "desd-synthdata8",
             "desd-synthdata9",
+            "desd-synthdata_test",
         },
         "tbi:0.1": {
             "dummy_tbi0",
@@ -52,11 +55,13 @@ def expected_datasets_per_data_model():
             "dummy_tbi7",
             "dummy_tbi8",
             "dummy_tbi9",
+            "dummy_tbi_test",
         },
         "longitudinal_dementia:0.1": {
             "longitudinal_dementia0",
             "longitudinal_dementia1",
             "longitudinal_dementia2",
+            "longitudinal_dementia_test",
         },
     }
 

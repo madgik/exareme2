@@ -9,6 +9,8 @@ framework_log_level: ERROR
 
 max_concurrent_experiments: 32
 
+globalworker_identifier: globalworker
+
 db:
   credentials_location: /opt/exareme2/credentials
   storage_location: /opt/exareme2/db

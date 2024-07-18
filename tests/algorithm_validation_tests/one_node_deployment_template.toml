@@ -33,10 +33,20 @@ optional=false
 enabled = false
 
 [[workers]]
-id = "localworker1"
-role="LOCALWORKER"
+id = "globalworker"
+role="GLOBALWORKER"
 rabbitmq_port=5670
 monetdb_port=50000
+local_monetdb_username="executor"
+local_monetdb_password="executor"
+public_monetdb_username="guest"
+public_monetdb_password="guest"
+
+[[workers]]
+id = "localworker1"
+role="LOCALWORKER"
+rabbitmq_port=5671
+monetdb_port=50001
 local_monetdb_username="executor"
 local_monetdb_password="executor"
 public_monetdb_username="guest"

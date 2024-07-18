@@ -6,7 +6,7 @@ from sklearn.metrics import log_loss
 from utils import set_initial_params
 from utils import set_model_params
 
-from exareme2.algorithms.flower.inputdata_preprocessing import fetch_server_data
+from exareme2.algorithms.flower.inputdata_preprocessing import fetch_data
 from exareme2.algorithms.flower.inputdata_preprocessing import get_input
 from exareme2.algorithms.flower.inputdata_preprocessing import post_result
 from exareme2.algorithms.flower.inputdata_preprocessing import preprocess_data
@@ -35,7 +35,7 @@ def get_evaluate_fn(model, X_test, y_test):
 if __name__ == "__main__":
     model = LogisticRegression()
     inputdata = get_input()
-    full_data = fetch_server_data(inputdata)
+    full_data = fetch_data(inputdata)
     X_train, y_train = preprocess_data(inputdata, full_data)
     set_initial_params(model, X_train, full_data, inputdata)
     strategy = fl.server.strategy.FedAvg(

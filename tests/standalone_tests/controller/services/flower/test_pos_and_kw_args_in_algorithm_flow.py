@@ -8,8 +8,10 @@ from tests.standalone_tests.conftest import ALGORITHMS_URL
 
 @pytest.mark.slow
 def test_pos_and_kw_args_in_algorithm_flow(
+    globalworker_worker_service,
     localworker1_worker_service,
     load_data_localworker1,
+    load_test_data_globalworker,
     controller_service_with_localworker1,
 ):
     algorithm_name = "logistic_regression"
@@ -23,6 +25,7 @@ def test_pos_and_kw_args_in_algorithm_flow(
                 "ppmi1",
                 "ppmi2",
                 "ppmi3",
+                "ppmi_test",
             ],
             "filters": None,
         },

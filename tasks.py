@@ -383,20 +383,22 @@ def create_monetdb(
         run(c, cmd)
 
 
-@task(iterable=["port"])
-def init_monetdb(c, port):
+@task(iterable=["worker"])
+def init_system_tables(c, worker):
     """
-    Initialize MonetDB container(s) with mipdb.
+    Initialize Sqlite with the system tables using mipdb.
 
-    :param port: A list of container ports that will be initialized.
+    :param worker: A list of workers that will be initialized.
     """
-    ports = port
-    for port in ports:
+    workers = worker
+    for worker in workers:
+        sqlite_path = f"{TEST_DATA_FOLDER}/{worker}.db"
+        clean_sqlite(sqlite_path)
         message(
-            f"Initializing MonetDB with mipdb in port: {port}...",
+            f"Initializing system tables on sqlite with mipdb on worker: {worker}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init {get_sqlite_path(port)}"""
+        cmd = f"""poetry run mipdb init {get_sqlite_path(worker)}"""
         run(c, cmd)
 
 
@@ -410,16 +412,20 @@ def update_wla(c):
 
 
 @task(iterable=["port"])
-def load_data(c, use_sockets=False, port=None):
+def load_data(c, use_sockets=False, worker=None):
     """
     Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `WORKERS_CONFIG_DIR` files.
-    :param use_sockets: Flag that determine if the data will be loaded via sockets or not.
+    :param use_sockets: Flag that determines if the data will be loaded via sockets or not.
     """
 
-    local_worker_ports = port
-    if not local_worker_ports:
+    def get_worker_configs():
+        """
+        Retrieve the configuration files of all workers.
+
+        :return: A list of worker configurations.
+        """
         config_files = [
             WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)
         ]
@@ -430,43 +436,87 @@ def load_data(c, use_sockets=False, port=None):
             )
             sys.exit(1)
 
-        local_worker_ports = []
+        worker_configs = []
         for worker_config_file in config_files:
             with open(worker_config_file) as fp:
                 worker_config = toml.load(fp)
-            if worker_config["role"] == "LOCALWORKER":
-                local_worker_ports.append(worker_config["monetdb"]["port"])
+                worker_configs.append(worker_config)
+        return worker_configs
 
-    local_worker_ports = sorted(local_worker_ports)
+    def filter_worker_configs(worker_configs, worker, node_type):
+        """
+        Filter worker configurations based on a specific worker identifier and node type.
 
-    if len(local_worker_ports) == 1:
-        port = local_worker_ports[0]
-        cmd = f"poetry run mipdb load-folder {TEST_DATA_FOLDER} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
-        message(
-            f"Loading the folder '{TEST_DATA_FOLDER}' in MonetDB at port {local_worker_ports[0]}...",
-            Level.HEADER,
-        )
-        run(c, cmd)
-        return
+        :param worker_configs: A list of all worker configurations.
+        :param worker: The identifier of the worker to filter for.
+        :param node_type: The type of node to filter for (default is "localworker").
+        :return: A list of tuples containing worker identifiers and ports.
+        """
+        return [
+            (config["identifier"], config["monetdb"]["port"])
+            for config in worker_configs
+            if (not worker or config["identifier"] == worker)
+            and config["role"] == node_type
+        ]
 
-    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
-        if "CDEsMetadata.json" not in filenames:
-            continue
-        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
-        # Load all data models in each db
+    def load_data_model_metadata(c, cdes_file, worker_id_and_ports):
+        """
+        Load the data model metadata into MonetDB for each worker.
+
+        :param c: The context object.
+        :param cdes_file: Path to the CDEsMetadata.json file.
+        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
+        :return: The data model code and version.
+        """
         with open(cdes_file) as data_model_metadata_file:
             data_model_metadata = json.load(data_model_metadata_file)
-            data_model_code = data_model_metadata["code"]
-            data_model_version = data_model_metadata["version"]
-        for port in local_worker_ports:
+        data_model_code = data_model_metadata["code"]
+        data_model_version = data_model_metadata["version"]
+
+        for worker_id, port in worker_id_and_ports:
             message(
                 f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
+            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
             run(c, cmd)
 
-        # Load only the 1st csv of each dataset "with 0 suffix" in the 1st worker
+        return data_model_code, data_model_version
+
+    def load_datasets(
+        c,
+        dirpath,
+        filenames,
+        data_model_code,
+        data_model_version,
+        worker_id_and_ports,
+        use_sockets,
+    ):
+        """
+        Load datasets into MonetDB for each worker in a round-robin fashion.
+
+        :param c: The context object.
+        :param dirpath: Directory path of the current dataset.
+        :param filenames: List of filenames in the current directory.
+        :param data_model_code: The data model code.
+        :param data_model_version: The data model version.
+        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
+        :param use_sockets: Flag to determine if data will be loaded via sockets.
+        """
+        if len(worker_id_and_ports) == 1:
+            worker_id, port = worker_id_and_ports[0]
+            for file in filenames:
+                if file.endswith(".csv") and not file.endswith("test.csv"):
+                    csv = os.path.join(dirpath, file)
+                    message(
+                        f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                        Level.HEADER,
+                    )
+                    cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+                    run(c, cmd)
+            return
+
+        # Load the first set of CSVs into the first worker
         first_worker_csvs = sorted(
             [
                 f"{dirpath}/{file}"
@@ -475,50 +525,128 @@ def load_data(c, use_sockets=False, port=None):
             ]
         )
         for csv in first_worker_csvs:
-            port = local_worker_ports[0]
+            worker_id, port = worker_id_and_ports[0]
             message(
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
             run(c, cmd)
 
-        # Load the data model's remaining csvs in the rest of the workers with round-robin fashion
+        # Load the remaining CSVs into the remaining workers in a round-robin fashion
         remaining_csvs = sorted(
             [
                 f"{dirpath}/{file}"
                 for file in filenames
-                if file.endswith(".csv") and not file.endswith("0.csv")
+                if file.endswith(".csv")
+                and not file.endswith("0.csv")
+                and not file.endswith("test.csv")
             ]
         )
-        if len(local_worker_ports) > 1:
-            local_worker_ports_cycle = itertools.cycle(local_worker_ports[1:])
-        else:
-            local_worker_ports_cycle = itertools.cycle(local_worker_ports)
+        worker_id_and_ports_cycle = itertools.cycle(worker_id_and_ports[1:])
         for csv in remaining_csvs:
-            port = next(local_worker_ports_cycle)
+            worker_id, port = next(worker_id_and_ports_cycle)
             message(
                 f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(port)}"
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
             run(c, cmd)
 
+    def load_test_datasets(
+        c,
+        dirpath,
+        filenames,
+        data_model_code,
+        data_model_version,
+        worker_id_and_ports,
+        use_sockets,
+    ):
+        """
+        Load datasets ending with 'test' into the global worker.
 
-def get_sqlite_path(port):
-    config_files = [WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)]
-    for worker_config_file in config_files:
-        with open(worker_config_file) as fp:
-            worker_config = toml.load(fp)
-
-        if worker_config["role"] == "LOCALWORKER" and str(
-            worker_config["monetdb"]["port"]
-        ) == str(port):
-            return (
-                f"--sqlite_db_path {TEST_DATA_FOLDER}/{worker_config['identifier']}.db"
+        :param c: The context object.
+        :param dirpath: Directory path of the current dataset.
+        :param filenames: List of filenames in the current directory.
+        :param data_model_code: The data model code.
+        :param data_model_version: The data model version.
+        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
+        :param use_sockets: Flag to determine if data will be loaded via sockets.
+        """
+        test_csvs = sorted(
+            [f"{dirpath}/{file}" for file in filenames if file.endswith("test.csv")]
+        )
+        for csv in test_csvs:
+            worker_id, port = worker_id_and_ports[0]
+            message(
+                f"Loading test dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                Level.HEADER,
             )
-    else:
-        raise ValueError(f"There is no database with port:{port}")
+            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+            run(c, cmd)
+
+    # Retrieve and filter worker configurations for local workers
+    worker_configs = get_worker_configs()
+    local_worker_id_and_ports = filter_worker_configs(
+        worker_configs, worker, "LOCALWORKER"
+    )
+
+    if not local_worker_id_and_ports:
+        raise Exception("Local worker config files cannot be loaded.")
+
+    # Process each dataset in the TEST_DATA_FOLDER for local workers
+    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+        if "CDEsMetadata.json" not in filenames:
+            continue
+        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
+
+        # Load data model metadata
+        data_model_code, data_model_version = load_data_model_metadata(
+            c, cdes_file, local_worker_id_and_ports
+        )
+
+        # Load datasets
+        load_datasets(
+            c,
+            dirpath,
+            filenames,
+            data_model_code,
+            data_model_version,
+            local_worker_id_and_ports,
+            use_sockets,
+        )
+
+    # Retrieve and filter worker configurations for global worker
+    global_worker_id_and_ports = filter_worker_configs(
+        worker_configs, worker, "GLOBALWORKER"
+    )
+
+    if not global_worker_id_and_ports:
+        raise Exception("Global worker config files cannot be loaded.")
+
+    # Process each dataset in the TEST_DATA_FOLDER for global worker
+    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+        if "CDEsMetadata.json" not in filenames:
+            continue
+        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
+
+        # Load data model metadata
+        data_model_code, data_model_version = load_data_model_metadata(
+            c, cdes_file, global_worker_id_and_ports
+        )
+        load_test_datasets(
+            c,
+            dirpath,
+            filenames,
+            data_model_code,
+            data_model_version,
+            global_worker_id_and_ports,
+            use_sockets,
+        )
+
+
+def get_sqlite_path(worker_id):
+    return f"--sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
 
 
 def get_monetdb_configs_in_mipdb_format(port):
@@ -801,14 +929,10 @@ def deploy(
         sys.exit(1)
 
     worker_ids = []
-    local_workers_monetdb_ports = []
     for worker_config_file in config_files:
         with open(worker_config_file) as fp:
             worker_config = toml.load(fp)
         worker_ids.append(worker_config["identifier"])
-        if worker_config["role"] == "LOCALWORKER":
-            clean_sqlite(f"{TEST_DATA_FOLDER}/{worker_config['identifier']}.db")
-            local_workers_monetdb_ports.append(worker_config["monetdb"]["port"])
 
     worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
 
@@ -819,8 +943,8 @@ def deploy(
         log_level=log_level,
         nclients=monetdb_nclients,
     )
+    init_system_tables(c, worker=worker_ids)
     create_rabbitmq(c, worker=worker_ids)
-    init_monetdb(c, port=local_workers_monetdb_ports)
 
     if start_workers or start_all:
         start_worker(
@@ -871,8 +995,8 @@ def cleanup(c):
     pattern = os.path.join(TEST_DATA_FOLDER, "*.db")
 
     # Delete each .db file
-    for db_file in glob.glob(pattern):
-        clean_sqlite(db_file)
+    for sqlite_path in glob.glob(pattern):
+        clean_sqlite(sqlite_path)
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
@@ -887,13 +1011,14 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 
-def clean_sqlite(db_file):
+def clean_sqlite(sqlite_path):
     try:
-        message(f"Removing {db_file}...", level=Level.HEADER)
-        os.remove(db_file)
-        message("Ok", level=Level.SUCCESS)
+        if os.path.exists(sqlite_path):
+            message(f"Removing {sqlite_path}...", level=Level.HEADER)
+            os.remove(sqlite_path)
+            message("Ok", level=Level.SUCCESS)
     except Exception as e:
-        print(f"Error deleting {db_file}: {e}")
+        print(f"Error deleting {sqlite_path}: {e}")
 
 
 @task

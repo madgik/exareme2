@@ -1,5 +1,4 @@
 import json
-import warnings
 from typing import Dict
 from typing import List
 
@@ -38,7 +37,6 @@ def get_data_models() -> List[str]:
 
 
 def convert_absolute_dataset_path_to_relative(dataset_path: str) -> str:
-    warnings.warn(str(dataset_path))
     return dataset_path.split(str(worker_config.data_path))[-1]
 
 
