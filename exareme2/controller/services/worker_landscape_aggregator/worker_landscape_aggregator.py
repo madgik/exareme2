@@ -26,6 +26,7 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_info_tasks_
 )
 from exareme2.controller.workers_addresses import WorkersAddressesFactory
 from exareme2.utils import AttrDict
+from exareme2.worker_communication import BadUserInput
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
@@ -145,6 +146,7 @@ class DataModelRegistry(ImmutableBaseModel):
             ].items()
             if dataset in datasets
         ]
+
         for dataset_info in dataset_infos:
             if not dataset_info.csv_path:
                 raise DatasetMissingCsvPathError()
@@ -514,6 +516,37 @@ class WorkerLandscapeAggregator:
     def get_datasets_locations(self) -> DatasetsLocations:
         return self._registries.data_model_registry.datasets_locations
 
+    def get_train_and_validation_datasets(
+        self, data_model: str
+    ) -> Tuple[List[str], List[str]]:
+        """
+        Retrieves all available training and validation datasets for a specific data model.
+
+        Parameters:
+            data_model (str): The data model for which to retrieve datasets.
+
+        Returns:
+            Tuple[List[str], List[str]]: A tuple containing two lists:
+                - The first list contains training datasets.
+                - The second list contains validation datasets.
+        """
+        training_datasets = []
+        validation_datasets = []
+
+        if data_model not in self.get_datasets_locations().datasets_locations.keys():
+            raise BadUserInput(f"Data model '{data_model}' does not exist.")
+        datasets_locations = self.get_datasets_locations().datasets_locations[
+            data_model
+        ]
+
+        for dataset, dataset_location in datasets_locations.items():
+            if dataset_location.worker_id == self.get_global_worker().id:
+                validation_datasets.append(dataset)
+            else:
+                training_datasets.append(dataset)
+
+        return training_datasets, validation_datasets
+
     def get_all_available_datasets_per_data_model(self) -> Dict[str, List[str]]:
         return (
             self._registries.data_model_registry.get_all_available_datasets_per_data_model()
@@ -815,8 +848,8 @@ def _remove_incompatible_data_models_from_data_models_metadata_per_worker(
         data_models_metadata_per_worker: DataModelsMetadataPerWorker
     Returns
     ----------
-        List[str]
-            The incompatible data models
+        DataModelsMetadataPerWorker
+            The data_models_metadata_per_worker but with removed the incompatible data models
     """
     validation_dictionary = {}
 

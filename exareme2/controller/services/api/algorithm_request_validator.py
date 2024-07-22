@@ -51,24 +51,21 @@ def validate_algorithm_request(
         algorithm_name, algorithm_request_dto.type, algorithms_specs
     )
 
-    available_datasets_per_data_model = (
-        worker_landscape_aggregator.get_all_available_datasets_per_data_model()
+    (
+        training_datasets,
+        validation_datasets,
+    ) = worker_landscape_aggregator.get_train_and_validation_datasets(
+        algorithm_request_dto.inputdata.data_model
     )
-
-    _validate_data_model(
-        requested_data_model=algorithm_request_dto.inputdata.data_model,
-        available_datasets_per_data_model=available_datasets_per_data_model,
-    )
-
     data_model_cdes = worker_landscape_aggregator.get_cdes(
         algorithm_request_dto.inputdata.data_model
     )
-
     _validate_algorithm_request_body(
         algorithm_request_dto=algorithm_request_dto,
         algorithm_specs=algorithm_specs,
         transformers_specs=transformers_specs,
-        available_datasets_per_data_model=available_datasets_per_data_model,
+        training_datasets=training_datasets,
+        validation_datasets=validation_datasets,
         data_model_cdes=data_model_cdes,
         smpc_enabled=smpc_enabled,
         smpc_optional=smpc_optional,
@@ -89,15 +86,21 @@ def _validate_algorithm_request_body(
     algorithm_request_dto: AlgorithmRequestDTO,
     algorithm_specs: AlgorithmSpecification,
     transformers_specs: Dict[str, TransformerSpecification],
-    available_datasets_per_data_model: Dict[str, List[str]],
+    training_datasets: List[str],
+    validation_datasets: List[str],
     data_model_cdes: Dict[str, CommonDataElement],
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
+    _ensure_validation_criteria(
+        algorithm_request_dto.inputdata.validation_datasets,
+        algorithm_specs.inputdata.validation,
+    )
     _validate_inputdata(
         inputdata=algorithm_request_dto.inputdata,
         inputdata_specs=algorithm_specs.inputdata,
-        available_datasets_per_data_model=available_datasets_per_data_model,
+        training_datasets=training_datasets,
+        validation_datasets=validation_datasets,
         data_model_cdes=data_model_cdes,
     )
 
@@ -122,42 +125,84 @@ def _validate_algorithm_request_body(
     )
 
 
-def _validate_data_model(requested_data_model: str, available_datasets_per_data_model):
-    if requested_data_model not in available_datasets_per_data_model.keys():
-        raise BadUserInput(f"Data model '{requested_data_model}' does not exist.")
+def _ensure_validation_criteria(validation_datasets: List[str], validation: bool):
+    """
+    Validates the input based on the provided validation flag and datasets.
+
+    Parameters:
+        validation_datasets (List[str]): List of validation datasets.
+        validation (bool): Flag indicating if validation is required.
+
+    Raises:
+        BadUserInput: If the input conditions are not met.
+    """
+    if not validation and validation_datasets:
+        raise BadUserInput(
+            "Validation is false, but validation datasets were provided."
+        )
+    elif validation and not validation_datasets:
+        raise BadUserInput(
+            "Validation is true, but no validation datasets were provided."
+        )
 
 
 def _validate_inputdata(
     inputdata: AlgorithmInputDataDTO,
     inputdata_specs: InputDataSpecifications,
-    available_datasets_per_data_model: Dict[str, List[str]],
+    training_datasets: List[str],
+    validation_datasets: List[str],
     data_model_cdes: Dict[str, CommonDataElement],
 ):
-    _validate_inputdata_dataset(
+    _validate_inputdata_training_datasets(
         requested_data_model=inputdata.data_model,
         requested_datasets=inputdata.datasets,
-        available_datasets_per_data_model=available_datasets_per_data_model,
+        training_datasets=training_datasets,
+    )
+    _validate_inputdata_validation_datasets(
+        requested_data_model=inputdata.data_model,
+        requested_validation_datasets=inputdata.validation_datasets,
+        validation_datasets=validation_datasets,
     )
     _validate_inputdata_filter(inputdata.data_model, inputdata.filters, data_model_cdes)
     _validate_algorithm_inputdatas(inputdata, inputdata_specs, data_model_cdes)
 
 
-def _validate_inputdata_dataset(
+def _validate_inputdata_training_datasets(
     requested_data_model: str,
     requested_datasets: List[str],
-    available_datasets_per_data_model: Dict[str, List[str]],
+    training_datasets: List[str],
 ):
     """
-    Validates that the dataset values exist and that the datasets belong in the data_model.
+    Validates that the dataset values exist and that the datasets.
     """
     non_existing_datasets = [
-        dataset
-        for dataset in requested_datasets
-        if dataset not in available_datasets_per_data_model[requested_data_model]
+        dataset for dataset in requested_datasets if dataset not in training_datasets
     ]
     if non_existing_datasets:
         raise BadUserInput(
             f"Datasets:'{non_existing_datasets}' could not be found for data_model:{requested_data_model}"
+        )
+
+
+def _validate_inputdata_validation_datasets(
+    requested_data_model: str,
+    requested_validation_datasets: List[str],
+    validation_datasets: List[str],
+):
+    """
+    Validates that the validation dataset values exist and that the validation_datasets.
+    """
+    if not requested_validation_datasets:
+        return
+
+    non_existing_datasets = [
+        dataset
+        for dataset in requested_validation_datasets
+        if dataset not in validation_datasets
+    ]
+    if non_existing_datasets:
+        raise BadUserInput(
+            f"Validation Datasets:'{non_existing_datasets}' could not be found for data_model:{requested_data_model}"
         )
 
 

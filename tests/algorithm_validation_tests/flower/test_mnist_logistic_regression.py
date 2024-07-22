@@ -15,7 +15,6 @@ def test_mnist_logistic_regression(get_algorithm_result):
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
-                "ppmi_test",
             ],
             "filters": None,
         },
@@ -24,5 +23,4 @@ def test_mnist_logistic_regression(get_algorithm_result):
     }
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("mnist_logistic_regression", input)
-    assert "accuracy" in algorithm_result
     assert {"accuracy": 0.8486} == algorithm_result

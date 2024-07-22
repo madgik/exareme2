@@ -57,6 +57,7 @@ class TestAPIMethods(unittest.TestCase):
             {
                 "data_model": "model",
                 "datasets": ["dataset1"],
+                "validation_datasets": ["validation_dataset1"],
                 "filters": None,
                 "y": ["target"],
                 "x": ["feature1"],

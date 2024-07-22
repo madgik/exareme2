@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from exareme2.algorithms.specifications import AlgorithmSpecification
@@ -126,6 +128,10 @@ def worker_landscape_aggregator():
                         worker_id="sample_worker",
                         csv_path="/opt/data/sample_dataset2.csv",
                     ),
+                    "sample_dataset3": DatasetLocation(
+                        worker_id="globalworker",
+                        csv_path="/opt/data/sample_dataset3.csv",
+                    ),
                 },
                 "sample_data_model:0.1": {
                     "sample_dataset": DatasetLocation(
@@ -161,6 +167,27 @@ def algorithms_specs():
                     notblank=True,
                     multiple=False,
                 ),
+            ),
+        ),
+        (
+            "algorithm_with_y_int_and_validation",
+            AlgorithmType.EXAREME2,
+        ): AlgorithmSpecification(
+            name="algorithm_with_y_int_and_validation",
+            desc="algorithm_with_y_int_and_validation",
+            label="algorithm_with_y_int_and_validation",
+            enabled=True,
+            type=AlgorithmType.EXAREME2,
+            inputdata=InputDataSpecifications(
+                y=InputDataSpecification(
+                    label="features",
+                    desc="Features",
+                    types=[InputDataType.REAL],
+                    stattypes=[InputDataStatType.NUMERICAL],
+                    notblank=True,
+                    multiple=False,
+                ),
+                validation=True,
             ),
         ),
         (
@@ -543,6 +570,19 @@ def get_parametrization_list_success_cases():
             id="multiple datasets",
         ),
         pytest.param(
+            "algorithm_with_y_int_and_validation",
+            AlgorithmRequestDTO(
+                type=AlgorithmType.EXAREME2,
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1", "sample_dataset2"],
+                    validation_datasets=["sample_dataset3"],
+                    y=["int_cde"],
+                ),
+            ),
+            id="multiple datasets and validation dataset",
+        ),
+        pytest.param(
             "algorithm_with_x_int_and_y_text",
             AlgorithmRequestDTO(
                 type=AlgorithmType.EXAREME2,
@@ -772,6 +812,16 @@ def get_parametrization_list_success_cases():
     return parametrization_list
 
 
+class WorkerInfo:
+    def __init__(self, id):
+        self.id = id
+
+
+mocked_worker_info = WorkerInfo(
+    id="globalworker",
+)
+
+
 @pytest.mark.parametrize(
     "algorithm_name, request_dto", get_parametrization_list_success_cases()
 )
@@ -782,15 +832,20 @@ def test_validate_algorithm_success(
     algorithms_specs,
     transformers_specs,
 ):
-    validate_algorithm_request(
-        algorithm_name=algorithm_name,
-        algorithm_request_dto=request_dto,
-        algorithms_specs=algorithms_specs,
-        transformers_specs=transformers_specs,
-        worker_landscape_aggregator=worker_landscape_aggregator,
-        smpc_enabled=False,
-        smpc_optional=False,
-    )
+    with patch.object(
+        worker_landscape_aggregator,
+        "get_global_worker",
+        return_value=mocked_worker_info,
+    ):
+        validate_algorithm_request(
+            algorithm_name=algorithm_name,
+            algorithm_request_dto=request_dto,
+            algorithms_specs=algorithms_specs,
+            transformers_specs=transformers_specs,
+            worker_landscape_aggregator=worker_landscape_aggregator,
+            smpc_enabled=False,
+            smpc_optional=False,
+        )
 
 
 def get_parametrization_list_exception_cases():
@@ -822,6 +877,23 @@ def get_parametrization_list_exception_cases():
                 "Datasets:.* could not be found for data_model:.*",
             ),
             id="Dataset does not exist.",
+        ),
+        pytest.param(
+            "algorithm_with_y_int_and_validation",
+            AlgorithmRequestDTO(
+                type=AlgorithmType.EXAREME2,
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1"],
+                    validation_datasets=["non_existing_dataset"],
+                    y=["int_cde"],
+                ),
+            ),
+            (
+                BadUserInput,
+                "Validation Datasets:.* could not be found for data_model:.*",
+            ),
+            id="validation dataset does not exist.",
         ),
         pytest.param(
             "algorithm_with_y_int",
@@ -1327,6 +1399,39 @@ def get_parametrization_list_exception_cases():
             ),
             id="flag does not have boolean value",
         ),
+        pytest.param(
+            "algorithm_with_y_int",
+            AlgorithmRequestDTO(
+                type=AlgorithmType.EXAREME2,
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1", "sample_dataset2"],
+                    validation_datasets=["sample_dataset3"],
+                    y=["int_cde"],
+                ),
+            ),
+            (
+                BadUserInput,
+                "Validation is false, but validation datasets were provided.",
+            ),
+            id="Validation datasets on algorithm without validation",
+        ),
+        pytest.param(
+            "algorithm_with_y_int_and_validation",
+            AlgorithmRequestDTO(
+                type=AlgorithmType.EXAREME2,
+                inputdata=AlgorithmInputDataDTO(
+                    data_model="data_model_with_all_cde_types:0.1",
+                    datasets=["sample_dataset1", "sample_dataset2"],
+                    y=["int_cde"],
+                ),
+            ),
+            (
+                BadUserInput,
+                "Validation is true, but no validation datasets were provided.",
+            ),
+            id="Missing validation datasets on algorithm validation",
+        ),
     ]
     return parametrization_list
 
@@ -1344,12 +1449,17 @@ def test_validate_algorithm_exceptions(
 ):
     exception_type, exception_message = exception
     with pytest.raises(exception_type, match=exception_message):
-        validate_algorithm_request(
-            algorithm_name=algorithm_name,
-            algorithm_request_dto=request_dto,
-            algorithms_specs=algorithms_specs,
-            transformers_specs=transformers_specs,
-            worker_landscape_aggregator=worker_landscape_aggregator,
-            smpc_enabled=False,
-            smpc_optional=False,
-        )
+        with patch.object(
+            worker_landscape_aggregator,
+            "get_global_worker",
+            return_value=mocked_worker_info,
+        ):
+            validate_algorithm_request(
+                algorithm_name=algorithm_name,
+                algorithm_request_dto=request_dto,
+                algorithms_specs=algorithms_specs,
+                transformers_specs=transformers_specs,
+                worker_landscape_aggregator=worker_landscape_aggregator,
+                smpc_enabled=False,
+                smpc_optional=False,
+            )
