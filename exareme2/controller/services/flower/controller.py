@@ -1,5 +1,4 @@
 import asyncio
-import warnings
 from typing import Dict
 from typing import List
 
@@ -51,16 +50,21 @@ class Controller:
         )
 
     async def exec_algorithm(self, algorithm_name, algorithm_request_dto):
-        async with self.lock:
+        async with (self.lock):
             request_id = algorithm_request_dto.request_id
             context_id = UIDGenerator().get_a_uid()
             logger = ctrl_logger.get_request_logger(request_id)
+            datasets = algorithm_request_dto.inputdata.datasets + (
+                algorithm_request_dto.inputdata.validation_datasets
+                if algorithm_request_dto.inputdata.validation_datasets
+                else []
+            )
             csv_paths_per_worker_id: Dict[
                 str, List[str]
             ] = self.worker_landscape_aggregator.get_csv_paths_per_worker_id(
-                algorithm_request_dto.inputdata.data_model,
-                algorithm_request_dto.inputdata.datasets,
+                algorithm_request_dto.inputdata.data_model, datasets
             )
+
             workers_info = [
                 self.worker_landscape_aggregator.get_worker_info(worker_id)
                 for worker_id in csv_paths_per_worker_id
@@ -93,7 +97,9 @@ class Controller:
                     algorithm_name,
                     len(task_handlers),
                     str(server_address),
-                    csv_paths_per_worker_id[server_id],
+                    csv_paths_per_worker_id[server_id]
+                    if algorithm_request_dto.inputdata.validation_datasets
+                    else [],
                 )
                 clients_pids = {
                     handler.start_flower_client(

@@ -24,6 +24,7 @@ HEADERS = {"Content-type": "application/json", "Accept": "text/plain"}
 class Inputdata(BaseModel):
     data_model: str
     datasets: List[str]
+    validation_datasets: List[str]
     filters: Optional[dict]
     y: Optional[List[str]]
     x: Optional[List[str]]
@@ -32,7 +33,7 @@ class Inputdata(BaseModel):
 def apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
     if inputdata.filters:
         df = apply_filter(df, inputdata.filters)
-    df = df[df["dataset"].isin(inputdata.datasets)]
+    df = df[df["dataset"].isin(inputdata.datasets + inputdata.validation_datasets)]
     columns = inputdata.x + inputdata.y
     df = df[columns]
     df = df.dropna(subset=columns)

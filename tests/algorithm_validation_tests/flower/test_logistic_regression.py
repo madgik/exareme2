@@ -15,8 +15,8 @@ def test_logistic_regression(get_algorithm_result):
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
-                "ppmi_test",
             ],
+            "validation_datasets": ["ppmi_test"],
             "filters": None,
         },
         "parameters": None,
@@ -44,8 +44,8 @@ def test_logistic_regression_with_filters(get_algorithm_result):
                 "ppmi7",
                 "ppmi8",
                 "ppmi9",
-                "ppmi_test",
             ],
+            "validation_datasets": ["ppmi_test"],
             "filters": {
                 "condition": "AND",
                 "rules": [

@@ -24,6 +24,7 @@ class ImmutableBaseModel(BaseModel, ABC):
 class AlgorithmInputDataDTO(ImmutableBaseModel):
     data_model: str
     datasets: List[str]
+    validation_datasets: Optional[List[str]]
     filters: Optional[dict]
     y: Optional[List[str]]
     x: Optional[List[str]]

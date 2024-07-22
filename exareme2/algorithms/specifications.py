@@ -102,6 +102,7 @@ class InputDataSpecification(ImmutableBaseModel):
 class InputDataSpecifications(ImmutableBaseModel):
     y: InputDataSpecification
     x: Optional[InputDataSpecification]
+    validation: Optional[bool]
 
 
 class ParameterEnumSpecification(ImmutableBaseModel):
