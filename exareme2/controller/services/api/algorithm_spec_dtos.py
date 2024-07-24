@@ -122,7 +122,7 @@ def _get_data_model_input_data_specification_dto():
     )
 
 
-def _get_valiadtion_datasets_input_data_specification_dto():
+def _get_validation_datasets_input_data_specification_dto():
     return InputDataSpecificationDTO(
         label="Set of data to validate.",
         desc="The set of data to validate the algorithm model on.",
@@ -163,15 +163,15 @@ def _convert_inputdata_specifications_to_dto(spec: InputDataSpecifications):
     # These parameters are not added by the algorithm developer.
     y = _convert_inputdata_specification_to_dto(spec.y)
     x = _convert_inputdata_specification_to_dto(spec.x) if spec.x else None
-    validation_datasets = (
-        _get_valiadtion_datasets_input_data_specification_dto()
+    validation_datasets_dto = (
+        _get_validation_datasets_input_data_specification_dto()
         if spec.validation
         else None
     )
     return InputDataSpecificationsDTO(
         y=y,
         x=x,
-        validation_datasets=validation_datasets,
+        validation_datasets=validation_datasets_dto,
         data_model=_get_data_model_input_data_specification_dto(),
         datasets=_get_datasets_input_data_specification_dto(),
         filter=_get_filters_input_data_specification_dto(),

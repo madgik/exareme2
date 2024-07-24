@@ -1412,7 +1412,7 @@ def get_parametrization_list_exception_cases():
             ),
             (
                 BadUserInput,
-                "Validation is false, but validation datasets were provided.",
+                "The algorithm does not have a validation flow, but 'validation_datasets' were provided in the 'inputdata'.",
             ),
             id="Validation datasets on algorithm without validation",
         ),
@@ -1428,7 +1428,7 @@ def get_parametrization_list_exception_cases():
             ),
             (
                 BadUserInput,
-                "Validation is true, but no validation datasets were provided.",
+                "The algorithm requires 'validation_datasets', in the 'inputdata', but none were provided.",
             ),
             id="Missing validation datasets on algorithm validation",
         ),

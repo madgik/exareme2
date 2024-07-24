@@ -516,7 +516,7 @@ class WorkerLandscapeAggregator:
     def get_datasets_locations(self) -> DatasetsLocations:
         return self._registries.data_model_registry.datasets_locations
 
-    def get_train_and_validation_datasets(
+    def get_training_and_validation_datasets(
         self, data_model: str
     ) -> Tuple[List[str], List[str]]:
         """
@@ -527,8 +527,8 @@ class WorkerLandscapeAggregator:
 
         Returns:
             Tuple[List[str], List[str]]: A tuple containing two lists:
-                - The first list contains training datasets.
-                - The second list contains validation datasets.
+                - The first list contains training datasets (Data loaded inside the localworkers).
+                - The second list contains validation datasets (Data loaded inside the globalworker).
         """
         training_datasets = []
         validation_datasets = []
