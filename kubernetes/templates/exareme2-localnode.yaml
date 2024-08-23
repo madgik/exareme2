@@ -17,7 +17,7 @@ spec:
         nodeType: localworker
     spec:
       nodeSelector:
-        worker: "true"
+        mip-worker: "true"
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -30,14 +30,14 @@ spec:
             topologyKey: "kubernetes.io/hostname"
       volumes:
       - name: db-data
-        hostPath:
-          path: {{ .Values.db.storage_location }}
+        persistentVolumeClaim:
+          claimName: db-data-pvc
       - name: csv-data
-        hostPath:
-          path: {{ .Values.db.csvs_location }}
+        persistentVolumeClaim:
+          claimName: csv-data-pvc
       - name: credentials
-        hostPath:
-          path: {{ .Values.db.credentials_location }}
+        persistentVolumeClaim:
+          claimName: credentials-pvc
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
