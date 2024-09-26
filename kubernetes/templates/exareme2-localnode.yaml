@@ -1,12 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: exareme2-localworker-deployment
+  name: exareme2-localworker
   labels:
     app: exareme2-worker
-    nodeType: localworker
 spec:
-  replicas: {{ .Values.localnodes }}
+  replicas: {{ .Values.localnodes }}  # Number of replicas
+  serviceName: "exareme2-worker"  # A headless service to manage pod DNS
   selector:
     matchLabels:
       app: exareme2-worker
@@ -28,34 +28,20 @@ spec:
                 values:
                 - exareme2-worker
             topologyKey: "kubernetes.io/hostname"
-      volumes:
-      - name: db-data
-        persistentVolumeClaim:
-          claimName: db-data-pvc
-      - name: csv-data
-        persistentVolumeClaim:
-          claimName: csv-data-pvc
-      - name: credentials
-        persistentVolumeClaim:
-          claimName: credentials-pvc
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
-        # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
-        # resources:
-        #  limits:
-        #    memory: "{{ .Values.db.max_memory }}Mi"
         env:
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
         - name: MONETDB_NCLIENTS
           value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
-        - name: MAX_MEMORY   # Value in bytes
-          value: {{ mul .Values.db.max_memory 1048576 | quote }} # Conversion to bytes
-        - name: SOFT_RESTART_MEMORY_LIMIT   # Value in megabytes
-          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
-        - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
-          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
+        - name: MAX_MEMORY
+          value: {{ mul .Values.db.max_memory 1048576 | quote }}
+        - name: SOFT_RESTART_MEMORY_LIMIT
+          value: {{ div (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
+        - name: HARD_RESTART_MEMORY_LIMIT
+          value: {{ div (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
         ports:
           - containerPort: 50000
         volumeMounts:
@@ -247,6 +233,32 @@ spec:
         - name: PLAYER_REPO_2
           value: "http://$(PLAYER_IP_2):7002"
       {{ end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 4Gi
+        storageClassName: ceph-corbo-cephfs
+    - metadata:
+        name: csv-data
+      spec:
+        accessModes: [ "ReadWriteMany" ]
+        resources:
+          requests:
+            storage: 4Gi
+        storageClassName: ceph-corbo-cephfs
+    - metadata:
+        name: credentials
+      spec:
+        accessModes: [ "ReadWriteMany" ]
+        resources:
+          requests:
+            storage: 100Mi
+        storageClassName: ceph-corbo-cephfs
+
 
 #---  # Used for SMPC cluster debugging
 #
