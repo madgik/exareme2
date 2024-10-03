@@ -1,7 +1,6 @@
 import os
 import time
 import warnings
-from logging import INFO
 from math import log2
 
 import flwr as fl
@@ -16,7 +15,6 @@ from flwr.common import GetParametersRes
 from flwr.common import Parameters
 from flwr.common import Status
 from flwr.common.logger import FLOWER_LOGGER
-from flwr.common.logger import log
 
 from exareme2.algorithms.flower.inputdata_preprocessing import fetch_data
 from exareme2.algorithms.flower.inputdata_preprocessing import get_input
@@ -143,7 +141,7 @@ if __name__ == "__main__":
     X_valid, y_valid = X_train, y_train
 
     # Reformat data to DMatrix for xgboost
-    log(INFO, "Reformatting data...")
+    FLOWER_LOGGER.info("Reformatting data...")
     train_dmatrix = transform_dataset_to_dmatrix(X_train, y=y_train)
     valid_dmatrix = transform_dataset_to_dmatrix(X_valid, y=y_valid)
 

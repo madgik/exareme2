@@ -1,6 +1,15 @@
 import os
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 import flwr as fl
+from flwr.common import EvaluateRes
+from flwr.common import Scalar
+from flwr.common.logger import FLOWER_LOGGER
+from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy import FedXgbBagging
 
 from exareme2.algorithms.flower.inputdata_preprocessing import post_result
@@ -16,9 +25,9 @@ class Custom_fed_xgboost(FedXgbBagging):
     def aggregate_evaluate(
         self,
         server_round: int,
-        results: list[tuple[ClientProxy, EvaluateRes]],
-        failures: list[Union[tuple[ClientProxy, EvaluateRes], BaseException]],
-    ) -> tuple[Optional[float], dict[str, Scalar]]:
+        results: List[Tuple[ClientProxy, EvaluateRes]],
+        failures: List[Union[Tuple[ClientProxy, EvaluateRes], BaseException]],
+    ) -> Tuple[Optional[float], Dict[str, Scalar]]:
         """Aggregate evaluation metrics using average."""
         if not results:
             return None, {}
@@ -34,7 +43,7 @@ class Custom_fed_xgboost(FedXgbBagging):
                 server_round, eval_metrics
             )
         elif server_round == 1:  # Only log this warning once
-            log(WARNING, "No evaluate_metrics_aggregation_fn provided")
+            FLOWER_LOGGER.warn("No evaluate_metrics_aggregation_fn provided")
 
         return 0, metrics_aggregated
 
