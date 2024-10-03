@@ -55,7 +55,7 @@ if __name__ == "__main__":
             fl.client.start_client(
                 server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
             )
-            FLOWER_LOGGER.debug("Connection successful on attempt", attempts + 1)
+            FLOWER_LOGGER.debug(f"Connection successful on attempt: {attempts + 1}")
             break
         except Exception as e:
             FLOWER_LOGGER.warning(
