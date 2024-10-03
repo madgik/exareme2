@@ -1,5 +1,9 @@
+import os
+
 import flwr as fl
 from flwr.server.strategy import FedXgbBagging
+
+from exareme2.algorithms.flower.inputdata_preprocessing import post_result
 
 # FL experimental settings
 pool_size = 2
@@ -10,12 +14,18 @@ num_evaluate_clients = 2
 
 def evaluate_metrics_aggregation(eval_metrics):
     """Return an aggregated metric (AUC) for evaluation."""
-    total_num = sum([num for num, _ in eval_metrics])
-    auc_aggregated = (
-        sum([metrics["AUC"] * num for num, metrics in eval_metrics]) / total_num
-    )
-    metrics_aggregated = {"AUC": auc_aggregated}
-    return metrics_aggregated
+
+    def evaluate(server_round, parameters, config):
+        total_num = sum([num for num, _ in eval_metrics])
+        auc_aggregated = (
+            sum([metrics["AUC"] * num for num, metrics in eval_metrics]) / total_num
+        )
+        metrics_aggregated = {"AUC": auc_aggregated}
+        if server_round == NUM_OF_ROUNDS:
+            post_result({"metrics_aggregated": metrics_aggregated})
+        return metrics_aggregated
+
+    return evaluate
 
 
 if __name__ == "__main__":

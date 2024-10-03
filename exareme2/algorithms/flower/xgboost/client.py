@@ -1,11 +1,10 @@
-import argparse
+import os
+import time
 import warnings
 from logging import INFO
-from typing import Union
+from math import log2
 
 import flwr as fl
-import numpy as np
-import pandas as pd
 import xgboost as xgb
 from flwr.common import Code
 from flwr.common import EvaluateIns
@@ -16,8 +15,8 @@ from flwr.common import GetParametersIns
 from flwr.common import GetParametersRes
 from flwr.common import Parameters
 from flwr.common import Status
+from flwr.common.logger import FLOWER_LOGGER
 from flwr.common.logger import log
-from sklearn import preprocessing
 
 from exareme2.algorithms.flower.inputdata_preprocessing import fetch_data
 from exareme2.algorithms.flower.inputdata_preprocessing import get_input
@@ -83,7 +82,7 @@ class XgbClient(fl.client.Client):
     def fit(self, ins: FitIns) -> FitRes:
         if not self.bst:
             # First round local training
-            log(INFO, "Start training at round 1")
+            FLOWER_LOGGER.info("Start training at round 1")
             bst = xgb.train(
                 params,
                 train_dmatrix,
@@ -160,7 +159,7 @@ if __name__ == "__main__":
             fl.client.start_client(
                 server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
             )
-            FLOWER_LOGGER.debug("Connection successful on attempt", attempts + 1)
+            FLOWER_LOGGER.debug("Connection successful on attempt")
             break
         except Exception as e:
             FLOWER_LOGGER.warning(

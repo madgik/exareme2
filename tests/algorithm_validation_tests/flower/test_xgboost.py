@@ -1,0 +1,28 @@
+def test_xgboost(get_algorithm_result):
+    input = {
+        "inputdata": {
+            "y": ["gender"],
+            "x": ["lefthippocampus"],
+            "data_model": "dementia:0.1",
+            "datasets": [
+                "ppmi0",
+                "ppmi1",
+                "ppmi2",
+                "ppmi3",
+                "ppmi5",
+                "ppmi6",
+                "edsd6",
+                "ppmi7",
+                "ppmi8",
+                "ppmi9",
+            ],
+            "validation_datasets": ["ppmi_test"],
+            "filters": None,
+        },
+        "parameters": None,
+        "test_case_num": 99,
+    }
+    input["type"] = "flower"
+    algorithm_result = get_algorithm_result("xgboost", input)
+    print(algorithm_result)
+    assert algorithm_result == {"accuracy": 0.63}
