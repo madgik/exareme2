@@ -28,7 +28,7 @@ def test_processes_garbage_collect(
         task_signature=start_flower_server_task_signature,
         logger=StdOutputLogger(),
         request_id="test_bro",
-        algorithm_name="logistic_regression",
+        algorithm_folder_path="./exareme2/algorithms/flower/logistic_regression",
         number_of_clients=1,
         server_address=f"{COMMON_IP}:8080",
         csv_paths="dataset1.csv,dataset2.csv",
