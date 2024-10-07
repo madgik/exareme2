@@ -30,22 +30,26 @@ class FlowerTasksHandler:
         return self._db_address
 
     def start_flower_client(
-        self, algorithm_name, server_address, csv_paths, execution_timeout
+        self, algorithm_folder_path, server_address, csv_paths, execution_timeout
     ) -> int:
         return self._worker_tasks_handler.start_flower_client(
             self._request_id,
-            algorithm_name,
+            algorithm_folder_path,
             server_address,
             csv_paths,
             execution_timeout,
         ).get(timeout=self._tasks_timeout)
 
     def start_flower_server(
-        self, algorithm_name: str, number_of_clients: int, server_address, csv_paths
+        self,
+        algorithm_folder_path: str,
+        number_of_clients: int,
+        server_address,
+        csv_paths,
     ) -> int:
         return self._worker_tasks_handler.start_flower_server(
             self._request_id,
-            algorithm_name,
+            algorithm_folder_path,
             number_of_clients,
             server_address,
             csv_paths,

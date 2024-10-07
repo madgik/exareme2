@@ -10,8 +10,8 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
-from exareme2 import algorithm_classes
-from exareme2 import algorithm_data_loaders
+from exareme2 import exareme2_algorithm_classes
+from exareme2 import exareme2_algorithm_data_loaders
 from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 from exareme2.algorithms.exareme2.algorithm import (
     InitializationParams as AlgorithmInitParams,
@@ -531,7 +531,7 @@ class ExecutionStrategy(ABC):
     ):
         self._algorithm_name = algorithm_name
         self._variables = variables
-        self._algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+        self._algorithm_data_loader = exareme2_algorithm_data_loaders[algorithm_name](
             variables=variables
         )
         self._algorithm_request_dto = algorithm_request_dto
@@ -598,7 +598,7 @@ class LongitudinalStrategy(ExecutionStrategy):
         X = data_transformed[0]
         y = data_transformed[1]
         alg_vars = Variables(x=X.columns, y=y.columns)
-        algorithm_data_loader = algorithm_data_loaders[self._algorithm_name](
+        algorithm_data_loader = exareme2_algorithm_data_loaders[self._algorithm_name](
             variables=alg_vars
         )
 
@@ -692,7 +692,7 @@ class AlgorithmExecutor:
             algorithm_parameters=self._params,
             datasets=self._datasets,
         )
-        algorithm = algorithm_classes[self._algorithm_name](
+        algorithm = exareme2_algorithm_classes[self._algorithm_name](
             initialization_params=init_params,
             data_loader=self._algorithm_data_loader,
             engine=self._engine,

@@ -25,8 +25,11 @@ from exareme2.controller.logger import init_logger
 from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.worker_communication import TableSchema
 
-ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
-    "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower,./tests/algorithms"
+EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
+    "./exareme2/algorithms/exareme2,./tests/algorithms"
+)
+FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
+    "./exareme2/algorithms/flower,./tests/algorithms"
 )
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
 TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"
@@ -920,7 +923,7 @@ def _create_worker_service(algo_folders_env_variable_val, worker_config_filepath
         os.remove(logpath)
 
     env = os.environ.copy()
-    env["ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
+    env["EXAREME2_ALGORITHM_FOLDERS"] = algo_folders_env_variable_val
     env["EXAREME2_WORKER_CONFIG_FILE"] = worker_config_filepath
 
     cmd = f"poetry run celery -A exareme2.worker.utils.celery_app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
@@ -965,7 +968,7 @@ def kill_service(proc):
 @pytest.fixture(scope="session")
 def globalworker_worker_service(rabbitmq_globalworker, monetdb_globalworker):
     worker_config_file = GLOBALWORKER_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
@@ -975,7 +978,7 @@ def globalworker_worker_service(rabbitmq_globalworker, monetdb_globalworker):
 @pytest.fixture(scope="session")
 def localworker1_worker_service(rabbitmq_localworker1, monetdb_localworker1):
     worker_config_file = LOCALWORKER1_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
@@ -985,7 +988,7 @@ def localworker1_worker_service(rabbitmq_localworker1, monetdb_localworker1):
 @pytest.fixture(scope="session")
 def localworker2_worker_service(rabbitmq_localworker2, monetdb_localworker2):
     worker_config_file = LOCALWORKER2_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
@@ -997,7 +1000,7 @@ def smpc_globalworker_worker_service(
     rabbitmq_smpc_globalworker, monetdb_smpc_globalworker
 ):
     worker_config_file = GLOBALWORKER_SMPC_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
@@ -1009,7 +1012,7 @@ def smpc_localworker1_worker_service(
     rabbitmq_smpc_localworker1, monetdb_smpc_localworker1
 ):
     worker_config_file = LOCALWORKER1_SMPC_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
@@ -1021,7 +1024,7 @@ def smpc_localworker2_worker_service(
     rabbitmq_smpc_localworker2, monetdb_smpc_localworker2
 ):
     worker_config_file = LOCALWORKER2_SMPC_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     yield
@@ -1030,7 +1033,7 @@ def smpc_localworker2_worker_service(
 
 def create_localworkertmp_worker_service():
     worker_config_file = LOCALWORKERTMP_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     return _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
 
@@ -1248,7 +1251,7 @@ def _create_controller_service(
         os.remove(logpath)
 
     env = os.environ.copy()
-    env["ALGORITHM_FOLDERS"] = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    env["EXAREME2_ALGORITHM_FOLDERS"] = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["LOCALWORKERS_CONFIG_FILE"] = localworkers_config_filepath
     env["EXAREME2_CONTROLLER_CONFIG_FILE"] = controller_config_filepath
     env["PYTHONPATH"] = str(Path(__file__).parent.parent.parent)

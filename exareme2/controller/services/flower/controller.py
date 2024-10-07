@@ -2,6 +2,7 @@ import asyncio
 from typing import Dict
 from typing import List
 
+from exareme2 import flower_algorithm_folder_paths
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.federation_info_logs import log_experiment_execution
@@ -91,10 +92,10 @@ class Controller:
             server_pid = None
             clients_pids = {}
             server_address = f"{server_ip}:{FLOWER_SERVER_PORT}"
-
+            algorithm_folder_path = flower_algorithm_folder_paths[algorithm_name]
             try:
                 server_pid = server_task_handler.start_flower_server(
-                    algorithm_name,
+                    algorithm_folder_path,
                     len(task_handlers),
                     str(server_address),
                     csv_paths_per_worker_id[server_id]
@@ -103,7 +104,7 @@ class Controller:
                 )
                 clients_pids = {
                     handler.start_flower_client(
-                        algorithm_name,
+                        algorithm_folder_path,
                         str(server_address),
                         csv_paths_per_worker_id[handler.worker_id],
                         ctrl_config.flower_execution_timeout,

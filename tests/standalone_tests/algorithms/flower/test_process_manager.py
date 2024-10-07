@@ -1,13 +1,10 @@
 import os
-import signal
 import unittest
-from unittest import mock
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import psutil
 
-from exareme2.algorithms.flower.process_manager import ALGORITHMS_ROOT
 from exareme2.algorithms.flower.process_manager import FlowerProcess
 from exareme2.algorithms.flower.process_manager import handle_zombie
 from exareme2.algorithms.flower.process_manager import terminate_process
@@ -21,7 +18,7 @@ class TestFlowerProcess(unittest.TestCase):
         logger = MagicMock()
         mock_popen.return_value.pid = 12345
 
-        expected_script_path = os.path.join(ALGORITHMS_ROOT, "script.py")
+        expected_script_path = os.path.join("algorithm_path", "script.py")
 
         # Starting the process
         pid = process.start(logger)

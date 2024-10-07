@@ -8,7 +8,7 @@ import pytest
 from freezegun import freeze_time
 
 from exareme2 import AttrDict
-from exareme2 import algorithm_classes
+from exareme2 import exareme2_algorithm_classes
 from exareme2.algorithms.exareme2.algorithm import (
     InitializationParams as AlgorithmInitParams,
 )
@@ -35,9 +35,11 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
     WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
-from tests.standalone_tests.conftest import ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
 from tests.standalone_tests.conftest import (
     CONTROLLER_GLOBALWORKER_LOCALWORKER1_LOCALWORKER2_LOCALWORKERTMP_ADDRESSES_FILE,
+)
+from tests.standalone_tests.conftest import (
+    EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE,
 )
 from tests.standalone_tests.conftest import LOCALWORKERTMP_CONFIG_FILE
 from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_NAME
@@ -290,7 +292,7 @@ def algorithm(algorithm_request_dto, metadata):
         algorithm_parameters=algorithm_parameters,
         metadata=metadata,
     )
-    return algorithm_classes[algorithm_name](initialization_params=init_params)
+    return exareme2_algorithm_classes[algorithm_name](initialization_params=init_params)
 
 
 @pytest.fixture(scope="function")
@@ -710,7 +712,7 @@ def test_cleanup_after_worker_service_restart(
 
 def start_localworkertmp_worker_service():
     worker_config_file = LOCALWORKERTMP_CONFIG_FILE
-    algo_folders_env_variable_val = ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
     proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
     return proc

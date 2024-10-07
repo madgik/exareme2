@@ -23,7 +23,7 @@ from exareme2.worker_communication import WorkerTableDTO
 from exareme2.worker_communication import WorkerUDFKeyArguments
 from exareme2.worker_communication import WorkerUDFPosArguments
 from exareme2.worker_communication import WorkerUDFResults
-from tests.algorithms.orphan_udfs import local_step
+from tests.algorithms.exareme2.orphan_udfs import local_step
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.conftest import insert_data_to_db
 from tests.standalone_tests.controller.workers_communication_helper import (

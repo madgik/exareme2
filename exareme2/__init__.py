@@ -14,18 +14,20 @@ from exareme2.utils import AttrDict
 __all__ = [
     "DType",
     "AttrDict",
-    "ALGORITHM_FOLDERS_ENV_VARIABLE",
-    "ALGORITHM_FOLDERS",
-    "algorithm_classes",
+    "EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE",
+    "EXAREME2_ALGORITHM_FOLDERS",
+    "exareme2_algorithm_classes",
     "DATA_TABLE_PRIMARY_KEY",
+    "FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE",
+    "FLOWER_ALGORITHM_FOLDERS",
 ]
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
 
-ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
-ALGORITHM_FOLDERS = "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower"
-if algorithm_folders := os.getenv(ALGORITHM_FOLDERS_ENV_VARIABLE):
-    ALGORITHM_FOLDERS = algorithm_folders
+EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME2_ALGORITHM_FOLDERS"
+EXAREME2_ALGORITHM_FOLDERS = "./exareme2/algorithms/exareme2"
+if exareme2_algorithm_folders := os.getenv(EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE):
+    EXAREME2_ALGORITHM_FOLDERS = exareme2_algorithm_folders
 
 
 class AlgorithmNamesMismatchError(Exception):
@@ -46,13 +48,13 @@ class AlgorithmNamesMismatchError(Exception):
         self.message = message
 
 
-def import_algorithm_modules() -> Dict[str, ModuleType]:
+def import_exareme2_algorithm_modules() -> Dict[str, ModuleType]:
     # Import all algorithm modules
     # Import all .py modules in the algorithm folder paths
     # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path?page=1&tab=votes#tab-top
 
     all_modules = {}
-    for algorithm_folder in ALGORITHM_FOLDERS.split(","):
+    for algorithm_folder in EXAREME2_ALGORITHM_FOLDERS.split(","):
         all_module_paths = glob.glob(f"{algorithm_folder}/*.py")
         algorithm_module_paths = [
             module
@@ -84,14 +86,14 @@ def import_algorithm_modules() -> Dict[str, ModuleType]:
     return all_modules
 
 
-import_algorithm_modules()
+import_exareme2_algorithm_modules()
 
 
-def get_algorithm_classes() -> Dict[str, type]:
+def get_exareme2_algorithm_classes() -> Dict[str, type]:
     return {cls.algname: cls for cls in Algorithm.__subclasses__()}
 
 
-def get_algorithm_data_loaders() -> Dict[str, type]:
+def get_exareme2_algorithm_data_loaders() -> Dict[str, type]:
     return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
 
 
@@ -103,8 +105,46 @@ def _check_algo_naming_matching(algo_classes: dict, algo_data_loaders: dict):
         raise AlgorithmNamesMismatchError(sym_diff, algo_classes, algo_data_loaders)
 
 
-algorithm_classes = get_algorithm_classes()
-algorithm_data_loaders = get_algorithm_data_loaders()
+exareme2_algorithm_classes = get_exareme2_algorithm_classes()
+exareme2_algorithm_data_loaders = get_exareme2_algorithm_data_loaders()
 _check_algo_naming_matching(
-    algo_classes=algorithm_classes, algo_data_loaders=algorithm_data_loaders
+    algo_classes=exareme2_algorithm_classes,
+    algo_data_loaders=exareme2_algorithm_data_loaders,
+)
+
+
+def find_flower_algorithm_folder_paths(algorithm_folders):
+    # Split the input string into a list of folder paths
+    folder_paths = algorithm_folders.split(",")
+
+    # Initialize an empty dictionary to store the result
+    algorithm_folder_paths = {}
+
+    # Iterate over each folder path
+    for folder_path in folder_paths:
+        if not os.path.isdir(folder_path):
+            continue  # Skip if the path is not a valid directory
+
+        # List all files and folders in the current folder path
+        items = os.listdir(folder_path)
+
+        # Filter for .json files and corresponding folders
+        for item in items:
+            if item.endswith(".json"):
+                algorithm_name = item[:-5]  # Remove '.json' to get the algorithm name
+                algorithm_folder = os.path.join(folder_path, algorithm_name)
+                if os.path.isdir(algorithm_folder):
+                    # Store the algorithm name and the complete folder path in the dictionary
+                    algorithm_folder_paths[algorithm_name] = algorithm_folder
+
+    return algorithm_folder_paths
+
+
+FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
+FLOWER_ALGORITHM_FOLDERS = "./exareme2/algorithms/flower"
+if flower_algorithm_folders := os.getenv(FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE):
+    FLOWER_ALGORITHM_FOLDERS = flower_algorithm_folders
+
+flower_algorithm_folder_paths = find_flower_algorithm_folder_paths(
+    FLOWER_ALGORITHM_FOLDERS
 )
