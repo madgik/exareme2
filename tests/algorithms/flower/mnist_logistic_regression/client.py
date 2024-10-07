@@ -1,4 +1,3 @@
-import os
 import warnings
 
 import flwr as fl
@@ -7,7 +6,8 @@ from flwr.common.logger import FLOWER_LOGGER
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 
-from exareme2.algorithms.flower.mnist_logistic_regression import utils
+from exareme2.algorithms.flower.inputdata_preprocessing import connect_with_retries
+from tests.algorithms.flower.mnist_logistic_regression import utils
 
 if __name__ == "__main__":
     # Load data from file
@@ -65,7 +65,6 @@ if __name__ == "__main__":
             accuracy = model.score(X_test, y_test)
             return loss, len(X_test), {"accuracy": accuracy}
 
-    # Start Flower client
-    fl.client.start_client(
-        server_address=os.environ["SERVER_ADDRESS"], client=MnistClient().to_client()
-    )
+    # MnistClient
+    mnist_client = MnistClient()
+    connect_with_retries(mnist_client, "MnistClient")

@@ -6,7 +6,7 @@ from exareme2.worker.utils.logger import initialise_logger
 
 @initialise_logger
 def start_flower_client(
-    request_id: str, algorithm_name, server_address, csv_paths, execution_timeout
+    request_id: str, algorithm_folder_path, server_address, csv_paths, execution_timeout
 ) -> int:
     env_vars = {
         "MONETDB_IP": worker_config.monetdb.ip,
@@ -25,7 +25,7 @@ def start_flower_client(
         "CSV_PATHS": ",".join(csv_paths),
         "TIMEOUT": execution_timeout,
     }
-    process = FlowerProcess(f"{algorithm_name}/client.py", env_vars=env_vars)
+    process = FlowerProcess(f"{algorithm_folder_path}/client.py", env_vars=env_vars)
     logger = get_logger()
 
     logger.info("Starting client.py")
@@ -37,7 +37,7 @@ def start_flower_client(
 @initialise_logger
 def start_flower_server(
     request_id: str,
-    algorithm_name: str,
+    algorithm_folder_path: str,
     number_of_clients: int,
     server_address,
     csv_paths,
@@ -53,7 +53,7 @@ def start_flower_server(
         "DATA_PATH": worker_config.data_path,
         "CSV_PATHS": ",".join(csv_paths),
     }
-    process = FlowerProcess(f"{algorithm_name}/server.py", env_vars=env_vars)
+    process = FlowerProcess(f"{algorithm_folder_path}/server.py", env_vars=env_vars)
     logger = get_logger()
     logger.info("Starting server.py")
     pid = process.start(logger)

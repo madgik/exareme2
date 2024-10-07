@@ -11,7 +11,7 @@ from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerTableDTO
 from exareme2.worker_communication import WorkerUDFKeyArguments
 from exareme2.worker_communication import WorkerUDFPosArguments
-from tests.algorithms.orphan_udfs import one_second_udf
+from tests.algorithms.exareme2.orphan_udfs import one_second_udf
 from tests.standalone_tests.algorithms.exareme2.test_udfs import (
     create_table_with_one_column_and_ten_rows,
 )

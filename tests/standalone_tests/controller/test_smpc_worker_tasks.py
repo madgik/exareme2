@@ -26,8 +26,8 @@ from exareme2.worker_communication import WorkerTableDTO
 from exareme2.worker_communication import WorkerUDFKeyArguments
 from exareme2.worker_communication import WorkerUDFPosArguments
 from exareme2.worker_communication import WorkerUDFResults
-from tests.algorithms.orphan_udfs import smpc_global_step
-from tests.algorithms.orphan_udfs import smpc_local_step
+from tests.algorithms.exareme2.orphan_udfs import smpc_global_step
+from tests.algorithms.exareme2.orphan_udfs import smpc_local_step
 from tests.standalone_tests.conftest import LOCALWORKER1_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import LOCALWORKER2_SMPC_CONFIG_FILE
 from tests.standalone_tests.conftest import SMPC_COORDINATOR_ADDRESS
