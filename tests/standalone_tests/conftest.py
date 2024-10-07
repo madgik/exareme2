@@ -26,10 +26,10 @@ from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHan
 from exareme2.worker_communication import TableSchema
 
 EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
-    "./exareme2/algorithms/exareme2,./tests/algorithms"
+    "./exareme2/algorithms/exareme2,./tests/algorithms/exareme2"
 )
 FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE = (
-    "./exareme2/algorithms/flower,./tests/algorithms"
+    "./exareme2/algorithms/flower,./tests/algorithms/flower"
 )
 TESTING_RABBITMQ_CONT_IMAGE = "madgik/exareme2_rabbitmq:dev"
 TESTING_MONETDB_CONT_IMAGE = "madgik/exareme2_db:dev"

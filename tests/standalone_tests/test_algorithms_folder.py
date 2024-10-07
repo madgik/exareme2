@@ -14,10 +14,7 @@ def set_default_algorithms_folder():
 
 
 def test_default_algorithms_folder(set_default_algorithms_folder):
-    assert (
-        exareme2.EXAREME2_ALGORITHM_FOLDERS
-        == "./exareme2/algorithms/exareme2,./exareme2/algorithms/flower"
-    )
+    assert exareme2.EXAREME2_ALGORITHM_FOLDERS == "./exareme2/algorithms/exareme2"
 
 
 @pytest.fixture

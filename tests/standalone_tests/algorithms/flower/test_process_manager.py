@@ -18,7 +18,7 @@ class TestFlowerProcess(unittest.TestCase):
         logger = MagicMock()
         mock_popen.return_value.pid = 12345
 
-        expected_script_path = os.path.join("algorithm_path", "script.py")
+        expected_script_path = "script.py"
 
         # Starting the process
         pid = process.start(logger)
