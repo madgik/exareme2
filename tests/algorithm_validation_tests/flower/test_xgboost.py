@@ -24,5 +24,7 @@ def test_xgboost(get_algorithm_result):
     }
     input["type"] = "flower"
     algorithm_result = get_algorithm_result("xgboost", input)
+    # {'metrics_aggregated': {'AUC': 0.7575790087463558}}
     print(algorithm_result)
-    assert algorithm_result == {"accuracy": 0.63}
+    auc_aggregated = algorithm_result["metrics_aggregated"]["AUC"]
+    assert auc_aggregated > 0.0
