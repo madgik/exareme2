@@ -1,0 +1,36 @@
+{
+    "name": "mann_whitneyu",
+    "desc": "A non-parametric statistical test used to compare differences between two independent groups on a continuous or ordinal variable.",
+    "label": "Mann-Whitney U Test on Flower",
+    "enabled": true,
+    "type": "flower",
+    "inputdata": {
+        "y": {
+            "label": "Grouping Variable (dependent)",
+            "desc": "A binary nominal variable that divides the dataset into two independent groups. The Mann-Whitney U test compares these two groups.",
+            "types": [
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Variable (independent)",
+            "desc": "A continuous or ordinal variable whose distributions in the two groups are compared using the Mann-Whitney U test. Ordinal data is treated as numerical for validation.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "validation": true
+    }
+}
