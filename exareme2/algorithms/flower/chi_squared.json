@@ -1,0 +1,37 @@
+{
+    "name": "chi_squared",
+    "desc": "A statistical test applied to categorical data to assess how likely it is that any observed difference between the sets occurred by chance.",
+    "label": "Chi-Squared Test on Flower",
+    "enabled": true,
+    "type": "flower",
+    "inputdata": {
+        "y": {
+            "label": "Grouping Variable (dependent)",
+            "desc": "A categorical variable. This variable is used to create the contingency table for the Chi-Squared test.",
+            "types": [
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Covariates (independent)",
+            "desc": "One or more categorical variables whose relationship with the dependent variable will be tested using the Chi-Squared test.",
+            "types": [
+                "real",
+                "int",
+                "text"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": true
+        },
+        "validation": true
+    }
+}

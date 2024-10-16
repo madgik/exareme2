@@ -52,19 +52,30 @@ def fetch_data(inputdata) -> pd.DataFrame:
     return apply_inputdata(df, inputdata)
 
 
+from sklearn import preprocessing
+
+
 def preprocess_data(inputdata, full_data):
     # Ensure x and y are specified and correct
     if not inputdata.x or not inputdata.y:
         raise ValueError("Input features 'x' and labels 'y' must be specified")
 
-    # Select features and target based on inputdata configuration
-    features = full_data[inputdata.x]  # This should be a DataFrame
-    target = full_data[inputdata.y].values.ravel()  # Flatten the array if it's 2D
+    # Select features (X) and target (y) based on inputdata configuration
+    features = full_data[inputdata.x]  # X: Independent variables
+    target = full_data[inputdata.y].values.ravel()  # y: Dependent variable, flattened
 
-    # Encode target variable
-    label_encoder = preprocessing.LabelEncoder()
-    label_encoder.fit(get_enumerations(inputdata.data_model, inputdata.y[0]))
-    y_train = label_encoder.transform(target)
+    # Encode target (y) variable if categorical
+    label_encoder_y = preprocessing.LabelEncoder()
+    label_encoder_y.fit(get_enumerations(inputdata.data_model, inputdata.y[0]))
+    y_train = label_encoder_y.transform(target)
+
+    # Encode features (x) if they are categorical
+    for col in features.columns:
+        if features[col].dtype == "object" or isinstance(
+            features[col].dtype, pd.CategoricalDtype
+        ):
+            label_encoder_x = preprocessing.LabelEncoder()
+            features[col] = label_encoder_x.fit_transform(features[col])
 
     return features, y_train
 
@@ -123,26 +134,20 @@ def connect_with_retries(client, client_name):
         client: The client instance to connect.
         client_name: The name of the client (for logging purposes).
     """
-    attempts = 0
-    max_attempts = int(log2(int(os.environ["TIMEOUT"])))
-
-    while True:
+    try:
+        fl.client.start_client(
+            server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
+        )
+        FLOWER_LOGGER.debug(f"{client_name} - Connection successful.")
+    except Exception:
         try:
+            time.sleep(1)
             fl.client.start_client(
                 server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
             )
-            FLOWER_LOGGER.debug(
-                f"{client_name} - Connection successful on attempt: {attempts + 1}"
-            )
-            break
+            FLOWER_LOGGER.debug(f"{client_name} - Connection successful.")
         except Exception as e:
-            FLOWER_LOGGER.warning(
-                f"{client_name} - Connection with the server failed. Attempt {attempts + 1} failed: {e}"
+            FLOWER_LOGGER.error(
+                f"{client_name} - Could not establish connection to the server."
             )
-            time.sleep(pow(2, attempts))  # Exponential backoff
-            attempts += 1
-            if attempts >= max_attempts:
-                FLOWER_LOGGER.error(
-                    f"{client_name} - Could not establish connection to the server."
-                )
-                raise e
+            raise e
