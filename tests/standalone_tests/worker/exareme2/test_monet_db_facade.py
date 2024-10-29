@@ -31,6 +31,7 @@ def patch_worker_logger():
                 "log_level": "DEBUG",
                 "role": "localworker",
                 "identifier": "localworkertmp",
+                "federation": "standalone_tests",
             },
         ),
     ), patch(

@@ -4,12 +4,12 @@ exareme2_images:
   repository: madgik
   version: latest
 
+federation: dementia
+
 log_level: INFO
 framework_log_level: ERROR
 
 max_concurrent_experiments: 32
-
-globalworker_identifier: globalworker
 
 db:
   credentials_location: /opt/exareme2/credentials
@@ -25,6 +25,8 @@ controller:
   celery_tasks_timeout: 300
   workers_cleanup_interval: 60
   cleanup_file_folder: /opt/cleanup
+
+globalworker_identifier: globalworker
 
 smpc:
   enabled: false

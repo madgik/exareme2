@@ -70,12 +70,11 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         curr_iter = 0
         centers_to_compute = global_result2
         centers_to_compute_global = global_result
-        print(centers_to_compute)
 
-        init_centers = get_transfer_data(global_result)["centers"]
-
-        init_centers_array = numpy.array(init_centers)
-        init_centers_list = init_centers_array.tolist()
+        # init_centers = get_transfer_data(global_result)["centers"]
+        #
+        # init_centers_array = numpy.array(init_centers)
+        # init_centers_list = init_centers_array.tolist()
         while True:
             metrics_local = local_run(
                 func=compute_metrics2,
@@ -103,7 +102,6 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                     title="K-Means Centers",
                     centers=new_centers_array.tolist(),
                 )
-                print("finished after " + str(curr_iter))
                 return ret_obj
 
             else:

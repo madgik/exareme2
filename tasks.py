@@ -140,6 +140,7 @@ def create_configs(c):
 
         worker_config["identifier"] = worker["id"]
         worker_config["role"] = worker["role"]
+        worker_config["federation"] = deployment_config["federation"]
         worker_config["log_level"] = deployment_config["log_level"]
         worker_config["framework_log_level"] = deployment_config["framework_log_level"]
         worker_config["controller"]["ip"] = deployment_config["ip"]
@@ -206,6 +207,8 @@ def create_configs(c):
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
     controller_config = copy.deepcopy(template_controller_config)
+    controller_config["node_identifier"] = "controller"
+    controller_config["federation"] = deployment_config["federation"]
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 

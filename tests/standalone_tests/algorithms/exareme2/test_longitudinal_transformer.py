@@ -199,6 +199,7 @@ def db(globalworker_db_cursor):
 
 @pytest.mark.slow
 @pytest.mark.database
+@pytest.mark.usefixtures("monetdb_globalworker")
 class TestLongitudinalTransformerUdf_WithDb:
     test_table = "test_longitudinal_table"
 

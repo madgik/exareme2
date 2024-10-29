@@ -40,7 +40,7 @@ worker_logger.info("Celery app created.")
 def setup_celery_logging(*args, **kwargs):
     logger = logging.getLogger()
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - WORKER - {worker_config.role} - {worker_config.identifier} - CELERY - FRAMEWORK - %(message)s"
+        f"%(asctime)s - %(levelname)s - CELERY FRAMEWORK - [{worker_config.federation}] - [exareme2-controller] - [{worker_config.identifier}] - [FRAMEWORK] - %(message)s"
     )
 
     # StreamHandler

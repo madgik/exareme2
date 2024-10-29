@@ -939,7 +939,7 @@ def _create_worker_service(algo_folders_env_variable_val, worker_config_filepath
     )
 
     # Check that celery started
-    _search_for_string_in_logfile("CELERY - FRAMEWORK - celery@.* ready.", logpath)
+    _search_for_string_in_logfile("celery@.* ready.", logpath)
 
     print(f"Created worker service with id '{worker_id}' and process id '{proc.pid}'.")
     return proc
@@ -1272,9 +1272,7 @@ def _create_controller_service(
     _search_for_string_in_logfile("Running on", logpath)
 
     # Check that workers were loaded
-    _search_for_string_in_logfile(
-        "INFO - CONTROLLER - BACKGROUND - federation_info_logs", logpath
-    )
+    _search_for_string_in_logfile("Workers:", logpath)
     print(f"\nCreated controller service on port '{service_port}'.")
 
     return proc

@@ -14,6 +14,7 @@ def mock_worker_config():
     worker_config = AttrDict(
         {
             "identifier": "localworker1",
+            "federation": "standalone_tests",
             "log_level": "INFO",
             "role": "LOCALWORKER",
         }
@@ -56,8 +57,8 @@ def test_get_ctx_id_from_args(capsys):
     my_regex = re.compile(r'\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\s-[^"]*')
     assert my_regex.match(captured.err) is not None
     assert captured.err.find(" INFO ") > -1
-    assert captured.err.find(" WORKER ") > -1
-    assert captured.err.find("1234abcd") > -1
+    assert captured.err.find("[exareme2-localworker]") > -1
+    assert captured.err.find("[1234abcd]") > -1
     assert test_ctx_id.name == "1234abcd"
     assert test_ctx_id.level == 20
 
@@ -80,7 +81,7 @@ def test_get_ctx_id_from_args1(capsys):
     my_regex = re.compile(r'\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2},\d{3}\s-[^"]*')
     assert my_regex.match(captured.err) is not None
     assert captured.err.find(" INFO ") > -1
-    assert captured.err.find(" WORKER ") > -1
-    assert captured.err.find("logger1") > -1
+    assert captured.err.find("[exareme2-localworker]") > -1
+    assert captured.err.find("[logger1]") > -1
     assert logger1.name == "logger1"
     assert logger1.level == 20

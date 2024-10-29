@@ -147,6 +147,8 @@ spec:
               fieldPath: spec.nodeName
         - name: WORKER_ROLE
           value: "LOCALWORKER"
+        - name: FEDERATION
+          value: {{ .Values.federation }}
         - name: LOG_LEVEL
           value: {{ .Values.log_level }}
         - name: FRAMEWORK_LOG_LEVEL

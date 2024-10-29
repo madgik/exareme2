@@ -1,3 +1,6 @@
+node_identifier = "$NODE_IDENTIFIER"
+federation = "$FEDERATION"
+
 log_level = "$LOG_LEVEL"
 framework_log_level = "$FRAMEWORK_LOG_LEVEL"
 
