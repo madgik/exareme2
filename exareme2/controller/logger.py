@@ -19,7 +19,7 @@ def get_request_logger(request_id):
 def init_logger(request_id, log_level=None):
     logger = logging.getLogger(request_id)
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - CONTROLLER - %(module)s - %(funcName)s(%(lineno)d) - {request_id} - %(message)s"
+        f"%(asctime)s - %(levelname)s - %(module)s.%(funcName)s(%(lineno)d) - [{ctrl_config.federation}] - [exareme2-controller] - [{ctrl_config.node_identifier}] - [{request_id}] - %(message)s"
     )
 
     # StreamHandler

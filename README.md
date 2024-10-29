@@ -42,6 +42,7 @@
 
    ```
    ip = "172.17.0.1"
+   federation = "dementia"
    log_level = "DEBUG"
    framework_log_level ="INFO"
    monetdb_image = "madgik/exareme2_db:dev"

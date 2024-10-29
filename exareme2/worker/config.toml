@@ -1,5 +1,7 @@
 identifier = "$WORKER_IDENTIFIER"
 role = "$WORKER_ROLE"
+federation = "$FEDERATION"
+
 data_path = "$DATA_PATH"
 
 log_level = "$LOG_LEVEL"

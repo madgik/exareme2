@@ -23,7 +23,7 @@ def get_logger(udf_name: str, request_id: str):
 
     log_level = os.getenv(LOG_LEVEL_ENV_VARIABLE, LOG_LEVEL_DEFAULT_VALUE)
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - MONETDB - PYTHONUDF - {udf_name}(%(lineno)d) - {request_id} - %(message)s"
+        f"%(asctime)s - %(levelname)s - {udf_name}(%(lineno)d) - [UNKNOWN] - [exareme2-monetdb] - [UNKNOWN] - [{request_id}] - %(message)s"
     )
     # StreamHandler
     sh = logging.StreamHandler()

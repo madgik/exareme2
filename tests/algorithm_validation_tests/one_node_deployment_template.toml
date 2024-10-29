@@ -1,4 +1,5 @@
 ip = "172.17.0.1"
+federation = "algorithm_tests"
 log_level = "INFO"
 framework_log_level ="INFO"
 monetdb_image = "madgik/exareme2_db:testing"
