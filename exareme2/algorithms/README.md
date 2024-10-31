@@ -1,30 +1,31 @@
-In order to test the validity of the algorithms we need to test specific parts of the implementation. In brief:
+# Creating Tests
 
-Client Algorithm Testing:
+In order to test the validity of the algorithms, we need to test specific parts of the implementation. In brief:
 
-Training Functionality: Ensure the algorithm correctly updates its parameters or state given a batch of data.
+### Client Algorithm Testing:
 
-Prediction Functionality: Test the model’s ability to make predictions on new, unseen data.
+- **Training Functionality**: Ensure the algorithm correctly updates its parameters or state given a batch of data.
+- **Prediction Functionality**: Test the model’s ability to make predictions on new, unseen data.
+- **Evaluation Functionality**: Verify the algorithm can calculate correct metrics (like loss, accuracy, F1 score, etc.) on a validation set.
 
-Evaluation Functionality: Verify the algorithm can calculate correct metrics (like loss, accuracy, F1 score, etc.) on a validation set.
+### Server Algorithm Testing:
 
-Server Algorithm Testing:
+- **Model Aggregation**: Test the server’s ability to correctly aggregate models or parameters from multiple clients.
+- **Configuration Management**: Ensure the server correctly sets up rounds and other configuration settings based on the learning task.
 
-Model Aggregation: Test the server’s ability to correctly aggregate models or parameters from multiple clients.
+### Integration Testing:
 
-Configuration Management: Ensure the server correctly sets up rounds and other configuration settings based on the learning task.
+- **End-to-End Functionality**: Validate the complete cycle from data distribution, client training, parameter updates, server aggregation, and evaluation across multiple rounds.
+- **Robustness to Diverse Data**: Test how the algorithm handles different kinds of data distributions across clients.
 
-Integration Testing:
+---
 
-End-to-End Functionality: Validate the complete cycle from data distribution, client training, parameter updates, server aggregation, and evaluation across multiple rounds.
+Following, there is a general example of how we would test any algorithm. Bear in mind, this is an example that serves to guide the developer to create a similar example, using mostly the logic of the test, not the code. The purpose is to outline the major areas that should be tested in each algorithm to ensure the algorithm developed will yield the proper results without retesting robust components.
 
-Robustness to Diverse Data: Test how the algorithm handles different kinds of data distributions across clients.
+---
 
-
-
-Following, there is an general example of how we would test any algorithm. Bear in mind, this is an example that it is value lies in it’s ability to guide the developer to create a similar example, using mostly the logic of the test, not the code. The purpose is to outline the major areas that should be tested in each algorithm to ascertain the algorithm wrote by the developer will yield the proper results, without retesting robust flower components. 
-
-Test Client (Generic)
+## Test Client (Generic)
+```python
 
 import pytest
 import numpy as np
@@ -59,10 +60,10 @@ def test_client_evaluation(sample_data):
     assert loss >= 0, "Loss should be non-negative"
     assert "accuracy" in metrics, "Metrics should include accuracy"
 
+```
 
-
-
-Test Server (Generic)
+## Test Server (Generic)
+```python
 
 import pytest
 from unittest.mock import patch
@@ -83,14 +84,11 @@ def test_round_configuration():
     config = configure_round(1)
     assert isinstance(config, dict), "Configuration should be a dictionary"
 
+```
+# General Testing Methodology
 
-
-
-Regarding the algorithm itself, we should have a general methodology to follow for every algorithm. This means that all testing algorithms should follow certain steps, if and when these steps apply to each individual algorithm. 
-
-
-
-Tests setup
+## Tests Setup
+```python
 
 import pytest
 import numpy as np
@@ -108,11 +106,10 @@ def data_fixture():
 @pytest.fixture(scope="module")
 def model_fixture():
     return AlgorithmClass(parameters...)
+```
 
-
-
-
-Test Cases
+## Test Cases
+```python
 
 def test_training(model_fixture, data_fixture):
     X, y = data_fixture
@@ -167,5 +164,4 @@ def test_varied_class_sizes(n_classes, expected):
     except Exception:
         result = False
     assert result == expected, f"Model should handle {n_classes} classes as expected."
-
-
+```
