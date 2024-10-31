@@ -1,5 +1,6 @@
 import asyncio
 import concurrent
+import itertools
 import traceback
 from abc import ABC
 from abc import abstractmethod
@@ -194,7 +195,7 @@ class DataModelViewsCreator:
             A boolean flag denoting if the 'Not Available' values will be kept in the
             "data model views" or not
         check_min_rows: bool
-            A boolean flag denoting if a "minimum row count threshol" will be in palce
+            A boolean flag denoting if a "minimum row count threshold" will be in place
             or not
         command_id: int
             A unique id
@@ -227,6 +228,12 @@ class DataModelViewsCreator:
 
         if self._data_model_views:
             return
+
+        if not list(itertools.chain(*self._variable_groups)):
+            raise ValueError(
+                "There are not variables in the 'variable_groups' of the algorithm. "
+                "Please check that the 'variable_groups' in the data loader are pointing to the proper variables."
+            )
 
         views_per_localworker = {}
         for worker in self._local_workers:
