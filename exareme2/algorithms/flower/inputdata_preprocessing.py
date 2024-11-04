@@ -1,9 +1,12 @@
 import json
 import os
-from pathlib import Path
+import time
+from math import log2
+from math import pow
 from typing import List
 from typing import Optional
 
+import flwr as fl
 import pandas as pd
 import requests
 from flwr.common.logger import FLOWER_LOGGER
@@ -110,3 +113,36 @@ def get_enumerations(data_model: str, variable_name: str) -> list:
             raise KeyError(f"'enumerations' key not found in {variable_name}")
     except (requests.RequestException, KeyError, json.JSONDecodeError) as e:
         error_handling(str(e))
+
+
+def connect_with_retries(client, client_name):
+    """
+    Attempts to connect the client to the Flower server with retries.
+
+    Args:
+        client: The client instance to connect.
+        client_name: The name of the client (for logging purposes).
+    """
+    attempts = 0
+    max_attempts = int(log2(int(os.environ["TIMEOUT"])))
+
+    while True:
+        try:
+            fl.client.start_client(
+                server_address=os.environ["SERVER_ADDRESS"], client=client.to_client()
+            )
+            FLOWER_LOGGER.debug(
+                f"{client_name} - Connection successful on attempt: {attempts + 1}"
+            )
+            break
+        except Exception as e:
+            FLOWER_LOGGER.warning(
+                f"{client_name} - Connection with the server failed. Attempt {attempts + 1} failed: {e}"
+            )
+            time.sleep(pow(2, attempts))  # Exponential backoff
+            attempts += 1
+            if attempts >= max_attempts:
+                FLOWER_LOGGER.error(
+                    f"{client_name} - Could not establish connection to the server."
+                )
+                raise e

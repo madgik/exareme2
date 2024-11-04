@@ -57,6 +57,7 @@ import os
 import pathlib
 import shutil
 import sys
+import time
 from enum import Enum
 from itertools import cycle
 from os import listdir
@@ -94,7 +95,8 @@ if not CLEANUP_DIR.exists():
 
 TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
-ALGORITHM_FOLDERS_ENV_VARIABLE = "ALGORITHM_FOLDERS"
+EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME2_ALGORITHM_FOLDERS"
+FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
 
 SMPC_COORDINATOR_PORT = 12314
@@ -138,6 +140,7 @@ def create_configs(c):
 
         worker_config["identifier"] = worker["id"]
         worker_config["role"] = worker["role"]
+        worker_config["federation"] = deployment_config["federation"]
         worker_config["log_level"] = deployment_config["log_level"]
         worker_config["framework_log_level"] = deployment_config["framework_log_level"]
         worker_config["controller"]["ip"] = deployment_config["ip"]
@@ -204,6 +207,8 @@ def create_configs(c):
     with open(CONTROLLER_CONFIG_TEMPLATE_FILE) as fp:
         template_controller_config = toml.load(fp)
     controller_config = copy.deepcopy(template_controller_config)
+    controller_config["node_identifier"] = "controller"
+    controller_config["federation"] = deployment_config["federation"]
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
@@ -473,14 +478,38 @@ def load_data(c, use_sockets=False, worker=None):
         data_model_code = data_model_metadata["code"]
         data_model_version = data_model_metadata["version"]
 
+        def run_with_retries(c, cmd, retries=5, wait_seconds=1):
+            """Attempts to run a command, retrying in case of failure."""
+            attempt = 0
+            while attempt < retries:
+                try:
+                    run(c, cmd)  # Try to run the command
+                    return  # Exit if successful
+                except Exception as e:
+                    attempt += 1
+                    if attempt < retries:
+                        message(
+                            f"Attempt {attempt} failed. Retrying in {wait_seconds} seconds...",
+                            Level.WARNING,
+                        )
+                        time.sleep(wait_seconds)  # Wait before retrying
+                    else:
+                        message(
+                            f"All {retries} attempts failed. Error: {str(e)}",
+                            Level.ERROR,
+                        )
+                        raise e  # Re-raise the last exception after all retries
+
+        # Main loop for loading data models with retries
         for worker_id, port in worker_id_and_ports:
             message(
                 f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
                 Level.HEADER,
             )
             cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-            run(c, cmd)
 
+            # Try running the command with retries
+            run_with_retries(c, cmd)
         return data_model_code, data_model_version
 
     def load_datasets(
@@ -766,6 +795,15 @@ def kill_worker(c, worker=None, all_=False):
         message("No celery instances found", Level.HEADER)
 
 
+def validate_algorithm_folders(folders, name):
+    """Validates and retrieves the algorithm folder configuration."""
+    if not folders:
+        folders = get_deployment_config(name)
+    if not isinstance(folders, str):
+        raise ValueError(f"The {name} configuration must be a comma-separated string.")
+    return folders
+
+
 @task
 def start_worker(
     c,
@@ -773,7 +811,8 @@ def start_worker(
     all_=False,
     framework_log_level=None,
     detached=False,
-    algorithm_folders=None,
+    exareme2_algorithm_folders=None,
+    flower_algorithm_folders=None,
 ):
     """
     (Re)Start the worker(s) service(s). If a worker service is running, stop and start it again.
@@ -782,7 +821,8 @@ def start_worker(
     :param all_: If set, the workers of which the configuration file exists, will be started.
     :param framework_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
-    :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param exareme2_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
 
     The containers related to the api remain unchanged.
     """
@@ -790,37 +830,45 @@ def start_worker(
     if not framework_log_level:
         framework_log_level = get_deployment_config("framework_log_level")
 
-    if not algorithm_folders:
-        algorithm_folders = get_deployment_config("algorithm_folders")
-    if not isinstance(algorithm_folders, str):
-        raise ValueError(
-            "The algorithm_folders configuration must be a comma separated string."
-        )
+    # Validate algorithm folders
+    exareme2_algorithm_folders = validate_algorithm_folders(
+        exareme2_algorithm_folders, "exareme2_algorithm_folders"
+    )
+    flower_algorithm_folders = validate_algorithm_folders(
+        flower_algorithm_folders, "flower_algorithm_folders"
+    )
 
     worker_ids = get_worker_ids(all_, worker)
-    worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
+    worker_ids.sort()  # Sorting the ids protects removing a similarly named id
 
     for worker_id in worker_ids:
         kill_worker(c, worker_id)
 
         message(f"Starting Worker {worker_id}...", Level.HEADER)
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
-        with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
-            with c.prefix(f"export {EXAREME2_WORKER_CONFIG_FILE}={worker_config_file}"):
-                outpath = OUTDIR / (worker_id + ".out")
-                if detached or all_:
-                    cmd = (
-                        f"PYTHONPATH={PROJECT_ROOT} poetry run celery "
-                        f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
-                        f"--pool=eventlet --purge 2>&1"
-                    )
-                    run(c, cmd, wait=False)
-                else:
-                    cmd = (
-                        f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                        f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
-                    )
-                    run(c, cmd, attach_=True)
+        with c.prefix(
+            f"export {EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE}={exareme2_algorithm_folders}"
+        ):
+            with c.prefix(
+                f"export {FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE}={flower_algorithm_folders}"
+            ):
+                with c.prefix(
+                    f"export {EXAREME2_WORKER_CONFIG_FILE}={worker_config_file}"
+                ):
+                    outpath = OUTDIR / (worker_id + ".out")
+                    if detached or all_:
+                        cmd = (
+                            f"PYTHONPATH={PROJECT_ROOT}: poetry run celery "
+                            f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
+                            f"--pool=eventlet --purge 2>&1"
+                        )
+                        run(c, cmd, wait=False)
+                    else:
+                        cmd = (
+                            f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
+                            f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
+                        )
+                        run(c, cmd, attach_=True)
 
 
 @task
@@ -837,36 +885,40 @@ def kill_controller(c):
 
 
 @task
-def start_controller(c, detached=False, algorithm_folders=None):
+def start_controller(
+    c, detached=False, exareme2_algorithm_folders=None, flower_algorithm_folders=None
+):
     """
     (Re)Start the controller service. If the service is already running, stop and start it again.
-
-    :param detached: If set to True, it will start the service in the background.
-    :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
-
-    if not algorithm_folders:
-        algorithm_folders = get_deployment_config("algorithm_folders")
-    if not isinstance(algorithm_folders, str):
-        raise ValueError(
-            "The algorithm_folders configuration must be a comma separated string."
-        )
+    # Validate algorithm folders
+    exareme2_algorithm_folders = validate_algorithm_folders(
+        exareme2_algorithm_folders, "exareme2_algorithm_folders"
+    )
+    flower_algorithm_folders = validate_algorithm_folders(
+        flower_algorithm_folders, "flower_algorithm_folders"
+    )
 
     kill_controller(c)
 
     message("Starting Controller...", Level.HEADER)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
-    with c.prefix(f"export {ALGORITHM_FOLDERS_ENV_VARIABLE}={algorithm_folders}"):
+    with c.prefix(
+        f"export {EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE}={exareme2_algorithm_folders}"
+    ):
         with c.prefix(
-            f"export EXAREME2_CONTROLLER_CONFIG_FILE={controller_config_file}"
+            f"export {FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE}={flower_algorithm_folders}"
         ):
-            outpath = OUTDIR / "controller.out"
-            if detached:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app>> {outpath} 2>&1"
-                run(c, cmd, wait=False)
-            else:
-                cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app"
-                run(c, cmd, attach_=True)
+            with c.prefix(
+                f"export EXAREME2_CONTROLLER_CONFIG_FILE={controller_config_file}"
+            ):
+                outpath = OUTDIR / "controller.out"
+                if detached:
+                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app>> {outpath} 2>&1"
+                    run(c, cmd, wait=False)
+                else:
+                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app"
+                    run(c, cmd, attach_=True)
 
 
 @task
@@ -880,7 +932,8 @@ def deploy(
     framework_log_level=None,
     monetdb_image=None,
     monetdb_nclients=None,
-    algorithm_folders=None,
+    exareme2_algorithm_folders=None,
+    flower_algorithm_folders=None,
     smpc=None,
 ):
     """
@@ -894,7 +947,8 @@ def deploy(
     :param framework_log_level: Used for the engine api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_nclients: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param exareme2_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
@@ -910,8 +964,11 @@ def deploy(
     if not monetdb_nclients:
         monetdb_nclients = get_deployment_config("monetdb_nclients")
 
-    if not algorithm_folders:
-        algorithm_folders = get_deployment_config("algorithm_folders")
+    if not exareme2_algorithm_folders:
+        exareme2_algorithm_folders = get_deployment_config("exareme2_algorithm_folders")
+
+    if not flower_algorithm_folders:
+        flower_algorithm_folders = get_deployment_config("flower_algorithm_folders")
 
     if smpc is None:
         smpc = get_deployment_config("smpc", subconfig="enabled")
@@ -952,12 +1009,18 @@ def deploy(
             all_=True,
             framework_log_level=framework_log_level,
             detached=True,
-            algorithm_folders=algorithm_folders,
+            exareme2_algorithm_folders=exareme2_algorithm_folders,
+            flower_algorithm_folders=flower_algorithm_folders,
         )
 
     # Start CONTROLLER service
     if start_controller_ or start_all:
-        start_controller(c, detached=True, algorithm_folders=algorithm_folders)
+        start_controller(
+            c,
+            detached=True,
+            exareme2_algorithm_folders=exareme2_algorithm_folders,
+            flower_algorithm_folders=flower_algorithm_folders,
+        )
 
     if smpc and not get_deployment_config("smpc", subconfig="coordinator_ip"):
         deploy_smpc(c)

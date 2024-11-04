@@ -6,7 +6,7 @@ from exareme2.worker.utils.logger import initialise_logger
 
 @initialise_logger
 def start_flower_client(
-    request_id: str, algorithm_name, server_address, csv_paths, execution_timeout
+    request_id: str, algorithm_folder_path, server_address, csv_paths, execution_timeout
 ) -> int:
     env_vars = {
         "MONETDB_IP": worker_config.monetdb.ip,
@@ -15,8 +15,11 @@ def start_flower_client(
         "MONETDB_PASSWORD": worker_config.monetdb.local_password,
         "MONETDB_DB": worker_config.monetdb.database,
         "REQUEST_ID": request_id,
-        "WORKER_ROLE": worker_config.role,
+        "FEDERATION": worker_config.federation,
         "WORKER_IDENTIFIER": worker_config.identifier,
+        "WORKER_ROLE": worker_config.role,
+        "LOG_LEVEL": worker_config.log_level,
+        "FRAMEWORK_LOG_LEVEL": worker_config.framework_log_level,
         "SERVER_ADDRESS": server_address,
         "NUMBER_OF_CLIENTS": worker_config.monetdb.database,
         "CONTROLLER_IP": worker_config.controller.ip,
@@ -25,27 +28,30 @@ def start_flower_client(
         "CSV_PATHS": ",".join(csv_paths),
         "TIMEOUT": execution_timeout,
     }
-    process = FlowerProcess(f"{algorithm_name}/client.py", env_vars=env_vars)
+    process = FlowerProcess(f"{algorithm_folder_path}/client.py", env_vars=env_vars)
     logger = get_logger()
 
-    logger.info("Starting client.py")
+    logger.info("Starting flower client...")
     pid = process.start(logger)
-    logger.info(f"Started client.py process id: {pid}")
+    logger.info(f"Started flower client, with process id: {pid}")
     return pid
 
 
 @initialise_logger
 def start_flower_server(
     request_id: str,
-    algorithm_name: str,
+    algorithm_folder_path: str,
     number_of_clients: int,
     server_address,
     csv_paths,
 ) -> int:
     env_vars = {
-        "REQUEST_ID": request_id,
+        "FEDERATION": worker_config.federation,
         "WORKER_ROLE": worker_config.role,
         "WORKER_IDENTIFIER": worker_config.identifier,
+        "LOG_LEVEL": worker_config.log_level,
+        "FRAMEWORK_LOG_LEVEL": worker_config.framework_log_level,
+        "REQUEST_ID": request_id,
         "SERVER_ADDRESS": server_address,
         "NUMBER_OF_CLIENTS": number_of_clients,
         "CONTROLLER_IP": worker_config.controller.ip,
@@ -53,9 +59,9 @@ def start_flower_server(
         "DATA_PATH": worker_config.data_path,
         "CSV_PATHS": ",".join(csv_paths),
     }
-    process = FlowerProcess(f"{algorithm_name}/server.py", env_vars=env_vars)
+    process = FlowerProcess(f"{algorithm_folder_path}/server.py", env_vars=env_vars)
     logger = get_logger()
-    logger.info("Starting server.py")
+    logger.info("Starting flower server...")
     pid = process.start(logger)
-    logger.info(f"Started server.py process id: {pid}")
+    logger.info(f"Started flower server, with process id: {pid}")
     return pid

@@ -1,4 +1,5 @@
 identifier = "testlocalworkertmp"
+federation = "standalone_tests"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 role = "LOCALWORKER"

@@ -151,3 +151,4 @@ pyrightconfig.json
 /configs
 /smpc_configs
 .stored_data/
+*.db

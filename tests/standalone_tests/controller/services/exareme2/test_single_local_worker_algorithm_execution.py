@@ -3,8 +3,8 @@ from os import path
 import pytest
 
 from exareme2 import AttrDict
-from exareme2 import algorithm_classes
-from exareme2 import algorithm_data_loaders
+from exareme2 import exareme2_algorithm_classes
+from exareme2 import exareme2_algorithm_data_loaders
 from exareme2.algorithms.exareme2.algorithm import (
     InitializationParams as AlgorithmInitParams,
 )
@@ -247,7 +247,7 @@ def metadata_case_2(worker_landscape_aggregator, algorithm_request_case_2):
 def algorithm_data_loader_case_1(algorithm_request_case_1):
     algorithm_name = algorithm_request_case_1[0]
     algorithm_request_dto = algorithm_request_case_1[1]
-    algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+    algorithm_data_loader = exareme2_algorithm_data_loaders[algorithm_name](
         variables=Variables(
             x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
             y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
@@ -260,7 +260,7 @@ def algorithm_data_loader_case_1(algorithm_request_case_1):
 def algorithm_data_loader_case_2(algorithm_request_case_2):
     algorithm_name = algorithm_request_case_2[0]
     algorithm_request_dto = algorithm_request_case_2[1]
-    algorithm_data_loader = algorithm_data_loaders[algorithm_name](
+    algorithm_data_loader = exareme2_algorithm_data_loaders[algorithm_name](
         variables=Variables(
             x=sanitize_request_variable(algorithm_request_dto.inputdata.x),
             y=sanitize_request_variable(algorithm_request_dto.inputdata.y),
@@ -290,7 +290,7 @@ def algorithm_case_1(
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
     )
-    return algorithm_classes[algorithm_name](
+    return exareme2_algorithm_classes[algorithm_name](
         initialization_params=init_params,
         data_loader=algorithm_data_loader_case_1,
         engine=engine_case_1,
@@ -318,7 +318,7 @@ def algorithm_case_2(
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
     )
-    return algorithm_classes[algorithm_name](
+    return exareme2_algorithm_classes[algorithm_name](
         initialization_params=init_params,
         data_loader=algorithm_data_loader_case_2,
         engine=engine_case_2,

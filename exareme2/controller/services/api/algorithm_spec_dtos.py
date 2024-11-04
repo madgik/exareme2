@@ -9,7 +9,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from exareme2 import ALGORITHM_FOLDERS
+from exareme2 import EXAREME2_ALGORITHM_FOLDERS
+from exareme2 import FLOWER_ALGORITHM_FOLDERS
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.algorithms.specifications import InputDataSpecification
@@ -299,7 +300,11 @@ class Specifications:
 
     @staticmethod
     def get_specs_paths():
-        return [Path(specs_path.strip()) for specs_path in ALGORITHM_FOLDERS.split(",")]
+        return [
+            Path(specs_path.strip())
+            for specs_path in EXAREME2_ALGORITHM_FOLDERS.split(",")
+            + FLOWER_ALGORITHM_FOLDERS.split(",")
+        ]
 
     def parse_specifications(self, specs_path, all_algorithms, all_transformers):
         for spec_property_path in specs_path.glob("*.json"):

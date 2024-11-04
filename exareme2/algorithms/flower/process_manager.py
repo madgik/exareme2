@@ -4,8 +4,6 @@ from pathlib import Path
 
 import psutil
 
-ALGORITHMS_ROOT = Path(__file__).parent
-
 
 def process_status(proc):
     """Check the status of a process."""
@@ -108,9 +106,8 @@ class FlowerProcess:
         if self.proc is not None:
             logger.error("Process already started!")
             raise RuntimeError("Process already started!")
-        flower_executable = ALGORITHMS_ROOT / self.file
         env = {**os.environ, **{k: str(v) for k, v in self.env_vars.items()}}
-        command = ["poetry", "run", "python", str(flower_executable), *self.parameters]
+        command = ["poetry", "run", "python", str(self.file), *self.parameters]
         logger.info(f"Executing command: {command}")
         self.proc = subprocess.Popen(
             command, env=env, stdout=self.stdout, stderr=self.stderr

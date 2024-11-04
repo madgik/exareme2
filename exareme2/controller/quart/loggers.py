@@ -5,10 +5,10 @@ loggers = {
     "version": 1,
     "formatters": {
         "controller_background_service_frm": {
-            "format": "%(asctime)s - %(levelname)s - CONTROLLER - BACKGROUND - %(module)s - %(funcName)s(%(lineno)d) - %(message)s",
+            "format": f"%(asctime)s - %(levelname)s - %(module)s.%(funcName)s(%(lineno)d) - [{ctrl_config.federation}] - [exareme2-controller] - [{ctrl_config.node_identifier}] - [BACKGROUND] - %(message)s"
         },
         "framework": {
-            "format": "%(asctime)s - %(levelname)s - CONTROLLER - WEBAPI - %(message)s"
+            "format": f"%(asctime)s - %(levelname)s - WEBAPI FRAMEWORK - [{ctrl_config.federation}] - [exareme2-controller] - [{ctrl_config.node_identifier}] - [FRAMEWORK] - %(message)s"
         },
     },
     "handlers": {

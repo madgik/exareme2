@@ -31,6 +31,8 @@ LOGFILE_NAME = "test_show_controller_audit_entries.out"
 def controller_config_dict_mock():
     controller_config = {
         "log_level": "INFO",
+        "node_identifier": "controller",
+        "federation": "standalone_tests",
     }
     yield controller_config
 

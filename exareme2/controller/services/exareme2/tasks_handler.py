@@ -1,3 +1,4 @@
+import itertools
 from typing import List
 from typing import Optional
 
@@ -87,6 +88,9 @@ class Exareme2TasksHandler:
         dropna: bool = True,
         check_min_rows: bool = True,
     ) -> List[TableInfo]:
+        if not list(itertools.chain(*columns_per_view)):
+            raise ValueError("'columns_per_view' are completely empty.")
+
         result_str = self._worker_tasks_handler.create_data_model_views(
             request_id=self._request_id,
             context_id=context_id,

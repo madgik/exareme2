@@ -17,7 +17,7 @@ def init_logger(request_id):
     logger = logging.getLogger(request_id)
 
     formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - WORKER - {worker_config.role} - {worker_config.identifier} - %(module)s - %(funcName)s(%(lineno)d) - {request_id} - %(message)s"
+        f"%(asctime)s - %(levelname)s - %(module)s.%(funcName)s(%(lineno)d) - [{worker_config.federation}] - [exareme2-{worker_config.role.lower()}] - [{worker_config.identifier}] - [{request_id}] - %(message)s"
     )
 
     # StreamHandler
