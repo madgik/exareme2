@@ -26,5 +26,5 @@ def test_xgboost(get_algorithm_result):
     algorithm_result = get_algorithm_result("xgboost", input)
     # {'metrics_aggregated': {'AUC': 0.7575790087463558}}
     print(algorithm_result)
-    auc_aggregated = algorithm_result["metrics_aggregated"]["AUC"]
+    auc_aggregated = algorithm_result["metrics_aggregated"][1]["AUC"]
     assert auc_aggregated > 0.0
