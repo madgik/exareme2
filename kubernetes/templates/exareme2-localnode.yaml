@@ -23,10 +23,10 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
               matchExpressions:
-              - key: app
+              - key: nodeType
                 operator: In
                 values:
-                - exareme2-worker
+                - localworker
             topologyKey: "kubernetes.io/hostname"
       volumes:
       - name: db-data
@@ -59,7 +59,7 @@ spec:
         ports:
           - containerPort: 50000
         volumeMounts:
-        - mountPath: /home/monetdb
+        - mountPath: /home/monetdb/localworker
           name: db-data
         - mountPath: /opt/data
           name: csv-data
