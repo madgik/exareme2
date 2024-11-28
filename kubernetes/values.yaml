@@ -1,4 +1,4 @@
-localnodes: 2
+localnodes: 1
 
 exareme2_images:
   repository: madgik
@@ -36,3 +36,8 @@ smpc:
   queue_image: redis:alpine3.15
   get_result_interval: 5
   get_result_max_retries: 100
+
+elk:
+  enabled: true
+  logstash_host: 127.0.0.1
+  logstash_port: 30510
