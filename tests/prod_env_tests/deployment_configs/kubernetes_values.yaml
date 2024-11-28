@@ -28,3 +28,6 @@ controller:
 
 smpc:
   enabled: false
+
+elk:
+  enabled: false
