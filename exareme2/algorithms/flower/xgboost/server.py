@@ -34,10 +34,10 @@ class CustomFedXgbBagging(FedXgbBagging):
             self.initial_auc = aggregated_metrics["AUC"]
         if rnd == self.num_rounds:
             print(aggregated_metrics)
-            curr_auc = aggregated_metrics["AUC"]
+            curr_auc = aggregated_metrics[1]["AUC"]
             auc_diff = curr_auc - self.initial_auc
             auc_ascending = ""
-            if auc_diff > 0.0:
+            if auc_diff >= 0.0:
                 auc_ascending = "correct"
             else:
                 auc_ascending = "not_correct"
