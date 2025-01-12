@@ -26,11 +26,27 @@ class CustomFedXgbBagging(FedXgbBagging):
     def __init__(self, num_rounds, **kwargs):
         super().__init__(**kwargs)
         self.num_rounds = num_rounds
+        self.initial_auc = 0.0
 
     def aggregate_evaluate(self, rnd, results, failures):
         aggregated_metrics = super().aggregate_evaluate(rnd, results, failures)
+        if rnd == 1:
+            self.initial_auc = aggregated_metrics["AUC"]
         if rnd == self.num_rounds:
-            post_result({"metrics_aggregated": aggregated_metrics})
+            print(aggregated_metrics)
+            curr_auc = aggregated_metrics["AUC"]
+            auc_diff = curr_auc - self.initial_auc
+            auc_ascending = ""
+            if auc_diff > 0.0:
+                auc_ascending = "correct"
+            else:
+                auc_ascending = "not_correct"
+            post_result(
+                {
+                    "metrics_aggregated": aggregated_metrics,
+                    "auc_ascending": auc_ascending,
+                }
+            )
         return aggregated_metrics
 
 
