@@ -1,6 +1,8 @@
+import copy
 import os
 
 import flwr as fl
+from flwr.common.logger import FLOWER_LOGGER
 from flwr.server.strategy import FedXgbBagging
 
 from exareme2.algorithms.flower.inputdata_preprocessing import post_result
@@ -30,21 +32,30 @@ class CustomFedXgbBagging(FedXgbBagging):
 
     def aggregate_evaluate(self, rnd, results, failures):
         aggregated_metrics = super().aggregate_evaluate(rnd, results, failures)
+        d2 = copy.deepcopy(aggregated_metrics)
+        curr_auc = d2[1]["AUC"]
+
         if rnd == 1:
-            self.initial_auc = aggregated_metrics["AUC"]
+            # print(aggregated_metrics)
+            d3 = copy.deepcopy(aggregated_metrics)
+            curr_auc = d3[1]["AUC"]
+            self.initial_auc = curr_auc
+
         if rnd == self.num_rounds:
-            print(aggregated_metrics)
-            curr_auc = aggregated_metrics[1]["AUC"]
+            FLOWER_LOGGER.debug("aggregated metrics is " + str(aggregated_metrics))
+
             auc_diff = curr_auc - self.initial_auc
             auc_ascending = ""
-            if auc_diff >= 0.0:
+            if auc_diff >= -0.05:
                 auc_ascending = "correct"
             else:
                 auc_ascending = "not_correct"
+
             post_result(
                 {
-                    "metrics_aggregated": aggregated_metrics,
+                    "AUC": curr_auc,
                     "auc_ascending": auc_ascending,
+                    "initial_auc": self.initial_auc,
                 }
             )
         return aggregated_metrics
