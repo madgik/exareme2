@@ -164,16 +164,16 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       containers:
       - name: filebeat
-        image: docker.elastic.co/beats/filebeat-wolfi:8.16.0
+        image: docker.elastic.co/beats/filebeat-wolfi:{{ .Values.elk.version }}
         args: [
           "-c", "/etc/filebeat.yml",
           "-e",
         ]
         env:
         - name: LOGSTASH_HOST
-          value: 192.168.38.128
+          value: {{ .Values.elk.logstash_host }}
         - name: LOGSTASH_PORT
-          value: "5010"
+          value: "{{ .Values.elk.logstash_port }}"
         - name: NODE_NAME
           valueFrom:
             fieldRef:

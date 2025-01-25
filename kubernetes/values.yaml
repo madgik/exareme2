@@ -1,8 +1,8 @@
-localnodes: 2
+localnodes: 1
 
 exareme2_images:
   repository: madgik
-  version: latest
+  version: 0.23.1
 
 federation: dementia
 
@@ -15,7 +15,7 @@ db:
   credentials_location: /opt/exareme2/credentials
   storage_location: /opt/exareme2/db
   csvs_location: /opt/exareme2/csvs
-  max_memory: 1024    # k8s memory limit in megabytes
+  max_memory: 2048    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
 
@@ -39,3 +39,6 @@ smpc:
 
 elk:
   enabled: true
+  version: 8.17.0
+  logstash_host: 192.168.38.128
+  logstash_port: 5010
