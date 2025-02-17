@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: exareme2-localworker-deployment
+  namespace: {{ .Values.namespace }}
   labels:
     app: exareme2-worker
     nodeType: localworker
@@ -12,6 +13,7 @@ spec:
       app: exareme2-worker
   template:
     metadata:
+      namespace: {{ .Values.namespace }}
       labels:
         app: exareme2-worker
         nodeType: localworker
@@ -256,6 +258,7 @@ spec:
 #kind: Service
 #metadata:
 #  name: exareme2-worker-service
+#  namespace: {{ .Values.namespace }}
 #spec:
 #  type: LoadBalancer
 #  selector:

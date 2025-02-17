@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: exareme2-controller-deployment
+  namespace: {{ .Values.namespace }}
   labels:
     app: exareme2-controller
 spec:
@@ -148,6 +149,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-controller-service
+  namespace: {{ .Values.namespace }}
 spec:
   type: LoadBalancer
   selector:
@@ -164,6 +166,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-workers-service
+  namespace: {{ .Values.namespace }}
 spec:
   clusterIP: None
   selector:
@@ -182,6 +185,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-smpc-coordinator-service
+  namespace: {{ .Values.namespace }}
 spec:
   type: LoadBalancer
   selector:
@@ -201,6 +205,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-smpc-coordinator-db-service
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     app: exareme2-controller
@@ -275,6 +280,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-smpc-player0-service
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     smpc_player: player0
@@ -357,6 +363,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-smpc-player1-service
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     smpc_player: player1
@@ -439,6 +446,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-smpc-player2-service
+  namespace: {{ .Values.namespace }}
 spec:
   selector:
     smpc_player: player2
