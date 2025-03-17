@@ -1,5 +1,7 @@
 import logging
 
+from pythonjsonlogger import jsonlogger
+
 from exareme2.controller import BACKGROUND_LOGGER_NAME
 from exareme2.controller import config as ctrl_config
 
@@ -18,18 +20,29 @@ def get_request_logger(request_id):
 
 def init_logger(request_id, log_level=None):
     logger = logging.getLogger(request_id)
-    formatter = logging.Formatter(
-        f"%(asctime)s - %(levelname)s - %(module)s.%(funcName)s(%(lineno)d) - [{ctrl_config.federation}] - [exareme2-controller] - [{ctrl_config.node_identifier}] - [{request_id}] - %(message)s"
+    formatter = jsonlogger.JsonFormatter(
+        "%(asctime)s %(levelname)s %(module)s %(funcName)s %(lineno)d "
+        "federation=%(federation)s node_identifier=%(node_identifier)s request_id=%(request_id)s "
+        "message=%(message)s"
     )
 
     # StreamHandler
     sh = logging.StreamHandler()
     sh.setFormatter(formatter)
     logger.addHandler(sh)
+
     if log_level:
         logger.setLevel(log_level)
     else:
         logger.setLevel(ctrl_config.log_level)
+
+    # Extra attributes for JSON logging
+    extra = {
+        "federation": ctrl_config.federation,
+        "node_identifier": ctrl_config.node_identifier,
+        "request_id": request_id,
+    }
+    logger = logging.LoggerAdapter(logger, extra)
 
     return logger
 
@@ -41,8 +54,8 @@ def get_background_service_logger() -> logging.Logger:
     return logging.getLogger(BACKGROUND_LOGGER_NAME)
 
 
-# this is only used by some tests.
-# a better implementation needed when logger gets refactored
+# This is only used by some tests.
+# A better implementation is needed when the logger gets refactored.
 def set_background_service_logger(log_level):
     logger = logging.getLogger(BACKGROUND_LOGGER_NAME)
     logger.setLevel(log_level)
