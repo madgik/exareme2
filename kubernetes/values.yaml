@@ -38,4 +38,4 @@ smpc:
   get_result_max_retries: 100
 
 elk:
-  enabled: true
+  enabled: false
