@@ -2,9 +2,8 @@
 
 ### Setting up the data
 
-Before the data manager can load data in a local node, the data should be located
-in the `db.csvs_location` provided in the kubernetes `values.yaml`.
-
+Before the data manager can load data in a local node, ensure that the data is placed in the csvs subdirectory of the path specified by `db.localworker_location` in your [helm chart values](../values.yaml).
+For example, if your `db.localworker_location` is set to `/opt/exareme2/localworker`, then the data should be located in `/opt/exareme2/localworker/csvs`.
 That folder should contain the metadata of the data model that will be loaded and the dataset csvs.
 
 ### Importing the data in the node
@@ -45,7 +44,6 @@ kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb add-dataset /opt/data/demen
 kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb --help'
 ```
 
-
 ### (FAST) Import of all the data available
 
 Instead of manually importing each data model and dataset there is a command that loads all of the data models and datasets inside a specific folder.
@@ -57,4 +55,3 @@ kubectl exec <POD_ID> -c db-importer -- sh -c 'mipdb load-folder /opt/data'
 ```
 
 **ATTENTION** Only absolute paths can be used with this command.
-

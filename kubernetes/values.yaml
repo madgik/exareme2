@@ -13,9 +13,8 @@ framework_log_level: ERROR
 max_concurrent_experiments: 32
 
 db:
-  credentials_location: /opt/exareme2/credentials
-  storage_location: /opt/exareme2/db
-  csvs_location: /opt/exareme2/csvs
+  localworker_location: /opt/exareme2/localworker
+  globalworker_location: /opt/exareme2/globalworker
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85

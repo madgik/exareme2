@@ -31,15 +31,15 @@ spec:
                 - localworker
             topologyKey: "kubernetes.io/hostname"
       volumes:
-      - name: db-data
-        hostPath:
-          path: {{ .Values.db.storage_location }}
-      - name: csv-data
-        hostPath:
-          path: {{ .Values.db.csvs_location }}
-      - name: credentials
-        hostPath:
-          path: {{ .Values.db.credentials_location }}
+        - name: db-data
+          hostPath:
+            path: {{ printf "%s/db" .Values.db.localworker_location }}
+        - name: csv-data
+          hostPath:
+            path: {{ printf "%s/csvs" .Values.db.localworker_location }}
+        - name: credentials
+          hostPath:
+            path: {{ printf "%s/credentials" .Values.db.localworker_location }}
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
