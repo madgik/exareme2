@@ -114,4 +114,4 @@ jobs:
         with:
           coverageLocations: |
             ./non_smpc_cov.xml:coverage.py
-            ./smpc_cov.xml:coverage.py
+#            ./smpc_cov.xml:coverage.py
