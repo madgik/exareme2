@@ -87,10 +87,10 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-      - name: SMPC Controller logs (post run)
-        uses: webiny/action-post-run@3.0.0
-        with:
-          run: cat /tmp/exareme2/test_smpc_controller.out
+#      - name: SMPC Controller logs (post run)
+#        uses: webiny/action-post-run@3.0.0
+#        with:
+#          run: cat /tmp/exareme2/test_smpc_controller.out
 
       - name: Run all standalone tests except the SMPC
         id: non_smpc_tests
