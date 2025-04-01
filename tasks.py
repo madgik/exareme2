@@ -58,6 +58,8 @@ import pathlib
 import shutil
 import sys
 import time
+from contextlib import ExitStack
+from contextlib import contextmanager
 from enum import Enum
 from itertools import cycle
 from os import listdir
@@ -97,7 +99,10 @@ TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
 EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME2_ALGORITHM_FOLDERS"
 FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
+EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
+EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
+DATA_PATH = "DATA_PATH"
 
 SMPC_COORDINATOR_PORT = 12314
 SMPC_COORDINATOR_DB_PORT = 27017
@@ -804,6 +809,18 @@ def validate_algorithm_folders(folders, name):
     return folders
 
 
+@contextmanager
+def env_prefixes(c, env_vars):
+    """
+    A context manager that applies a set of environment variable prefixes
+    using an ExitStack.
+    """
+    with ExitStack() as stack:
+        for key, value in env_vars.items():
+            stack.enter_context(c.prefix(f"export {key}={value}"))
+        yield
+
+
 @task
 def start_worker(
     c,
@@ -813,6 +830,7 @@ def start_worker(
     detached=False,
     exareme2_algorithm_folders=None,
     flower_algorithm_folders=None,
+    exaflow_algorithm_folders=None,
 ):
     """
     (Re)Start the worker(s) service(s). If a worker service is running, stop and start it again.
@@ -837,38 +855,45 @@ def start_worker(
     flower_algorithm_folders = validate_algorithm_folders(
         flower_algorithm_folders, "flower_algorithm_folders"
     )
+    exaflow_algorithm_folders = validate_algorithm_folders(
+        exaflow_algorithm_folders, "exaflow_algorithm_folders"
+    )
 
-    worker_ids = get_worker_ids(all_, worker)
-    worker_ids.sort()  # Sorting the ids protects removing a similarly named id
+    # Retrieve and sort worker ids to avoid accidental removal of similarly named ids
+    worker_ids = sorted(get_worker_ids(all_, worker))
 
     for worker_id in worker_ids:
         kill_worker(c, worker_id)
-
         message(f"Starting Worker {worker_id}...", Level.HEADER)
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
-        with c.prefix(
-            f"export {EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE}={exareme2_algorithm_folders}"
-        ):
-            with c.prefix(
-                f"export {FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE}={flower_algorithm_folders}"
-            ):
-                with c.prefix(
-                    f"export {EXAREME2_WORKER_CONFIG_FILE}={worker_config_file}"
-                ):
-                    outpath = OUTDIR / (worker_id + ".out")
-                    if detached or all_:
-                        cmd = (
-                            f"PYTHONPATH={PROJECT_ROOT}: poetry run celery "
-                            f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
-                            f"--pool=eventlet --purge 2>&1"
-                        )
-                        run(c, cmd, wait=False)
-                    else:
-                        cmd = (
-                            f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                            f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
-                        )
-                        run(c, cmd, attach_=True)
+
+        # Build environment variables dictionary
+        env_vars = {
+            EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme2_algorithm_folders,
+            FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
+            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
+            EXAREME2_WORKER_CONFIG_FILE: worker_config_file,
+            DATA_PATH: TEST_DATA_FOLDER.as_posix(),
+        }
+
+        # Use the helper context manager to apply environment variable prefixes
+        with env_prefixes(c, env_vars):
+            outpath = OUTDIR / f"{worker_id}.out"
+
+            # Build and run the command based on the detached/all_ flags
+            if detached or all_:
+                cmd = (
+                    f"PYTHONPATH={PROJECT_ROOT}: poetry run celery "
+                    f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
+                    f"--pool=eventlet --purge 2>&1"
+                )
+                run(c, cmd, wait=False)
+            else:
+                cmd = (
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
+                    f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
+                )
+                run(c, cmd, attach_=True)
 
 
 @task
@@ -886,11 +911,16 @@ def kill_controller(c):
 
 @task
 def start_controller(
-    c, detached=False, exareme2_algorithm_folders=None, flower_algorithm_folders=None
+    c,
+    detached=False,
+    exareme2_algorithm_folders=None,
+    flower_algorithm_folders=None,
+    exaflow_algorithm_folders=None,
 ):
     """
     (Re)Start the controller service. If the service is already running, stop and start it again.
     """
+
     # Validate algorithm folders
     exareme2_algorithm_folders = validate_algorithm_folders(
         exareme2_algorithm_folders, "exareme2_algorithm_folders"
@@ -898,27 +928,37 @@ def start_controller(
     flower_algorithm_folders = validate_algorithm_folders(
         flower_algorithm_folders, "flower_algorithm_folders"
     )
+    exaflow_algorithm_folders = validate_algorithm_folders(
+        exaflow_algorithm_folders, "exaflow_algorithm_folders"
+    )
 
     kill_controller(c)
-
     message("Starting Controller...", Level.HEADER)
     controller_config_file = CONTROLLER_CONFIG_DIR / "controller.toml"
-    with c.prefix(
-        f"export {EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE}={exareme2_algorithm_folders}"
-    ):
-        with c.prefix(
-            f"export {FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE}={flower_algorithm_folders}"
-        ):
-            with c.prefix(
-                f"export EXAREME2_CONTROLLER_CONFIG_FILE={controller_config_file}"
-            ):
-                outpath = OUTDIR / "controller.out"
-                if detached:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app>> {outpath} 2>&1"
-                    run(c, cmd, wait=False)
-                else:
-                    cmd = f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app"
-                    run(c, cmd, attach_=True)
+
+    # Build a dictionary of environment variables for the controller
+    env_vars = {
+        EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme2_algorithm_folders,
+        FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
+        EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
+        EXAREME2_CONTROLLER_CONFIG_FILE: controller_config_file,
+    }
+
+    # Use the helper context manager to apply environment variable prefixes
+    with env_prefixes(c, env_vars):
+        outpath = OUTDIR / "controller.out"
+        if detached:
+            cmd = (
+                f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config "
+                f"-b 0.0.0.0:5000 exareme2.controller.quart.app:app >> {outpath} 2>&1"
+            )
+            run(c, cmd, wait=False)
+        else:
+            cmd = (
+                f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config "
+                f"-b 0.0.0.0:5000 exareme2.controller.quart.app:app"
+            )
+            run(c, cmd, attach_=True)
 
 
 @task
