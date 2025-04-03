@@ -1,7 +1,9 @@
 from exareme2.algorithms.exaflow.exaflow_registry import exaflow_registry
-from exareme2.worker import config as worker_config
+from exareme2.algorithms.specifications import InputDataType
+from exareme2.algorithms.utils.inputdata_utils import Inputdata
 from exareme2.worker.utils.logger import get_logger
 from exareme2.worker.utils.logger import initialise_logger
+from exareme2.worker.worker_info.worker_info_db import get_dataset_csv_paths
 
 
 @initialise_logger
@@ -21,10 +23,13 @@ def run_udf(
     Returns:
         Any: Result returned by the algorithm step.
     """
-    params["csv_paths"] = [
-        f"{worker_config.data_path}/{csv_path}" for csv_path in params["csv_paths"]
-    ]
+    inpudata_dict = params["inputdata"]
+    inpudata = Inputdata.parse_raw(inpudata_dict)
+    params["inputdata"] = inpudata
+    params["csv_paths"] = get_dataset_csv_paths(inpudata.data_model, inpudata.datasets)
+
     udf = exaflow_registry.get_udf(udf_name)
+
     logger = get_logger()
 
     if not udf:

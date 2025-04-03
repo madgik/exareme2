@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from exareme2.algorithms.flower.df_filter import apply_filter
+from exareme2.algorithms.utils.inputdata_utils import _apply_filter
 
 # Sample DataFrame
 data = {
@@ -333,10 +333,9 @@ all_success_cases = [
 ]
 
 
-# Testing function
 @pytest.mark.parametrize("test_input,expected", all_success_cases)
 def test_apply_filter(test_input, expected):
-    result = apply_filter(sample_dataframe, test_input)
+    result = _apply_filter(sample_dataframe, test_input)
     pd.testing.assert_frame_equal(
         result.reset_index(drop=True), expected.reset_index(drop=True)
     )

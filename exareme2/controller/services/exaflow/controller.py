@@ -33,15 +33,15 @@ class Controller:
 
         datasets = algorithm_request_dto.inputdata.datasets
 
-        csv_paths_per_worker_id: Dict[
-            str, List[str]
-        ] = self.worker_landscape_aggregator.get_csv_paths_per_worker_id(
-            algorithm_request_dto.inputdata.data_model, datasets
+        worker_ids = (
+            self.worker_landscape_aggregator.get_worker_ids_with_any_of_datasets(
+                algorithm_request_dto.inputdata.data_model, datasets
+            )
         )
 
         workers_info = [
             self.worker_landscape_aggregator.get_worker_info(worker_id)
-            for worker_id in csv_paths_per_worker_id
+            for worker_id in worker_ids
         ]
 
         task_handlers = [
@@ -53,7 +53,6 @@ class Controller:
             request_id=request_id,
             context_id=context_id,
             tasks_handlers=task_handlers,
-            csv_paths_per_worker_id=csv_paths_per_worker_id,
         )
 
         algorithm_class = exaflow_algorithm_classes[algorithm_name]
@@ -81,7 +80,6 @@ class Controller:
             )
 
             result = algorithm.run(
-                inputdata=algorithm_request_dto.inputdata.dict(),
                 metadata=metadata,
             )
 
