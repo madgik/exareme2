@@ -303,7 +303,8 @@ class WorkerTasksHandler:
         request_id,
         algorithm_folder_path,
         server_address,
-        csv_paths,
+        data_model,
+        datasets,
         execution_timeout,
     ) -> WorkerTaskResult:
         return self._queue_task(
@@ -311,7 +312,8 @@ class WorkerTasksHandler:
             request_id=request_id,
             algorithm_folder_path=algorithm_folder_path,
             server_address=server_address,
-            csv_paths=csv_paths,
+            data_model=data_model,
+            datasets=datasets,
             execution_timeout=execution_timeout,
         )
 
@@ -321,7 +323,8 @@ class WorkerTasksHandler:
         algorithm_folder_path,
         number_of_clients,
         server_address,
-        csv_paths,
+        data_model,
+        datasets,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["start_flower_server"],
@@ -329,7 +332,8 @@ class WorkerTasksHandler:
             algorithm_folder_path=algorithm_folder_path,
             number_of_clients=number_of_clients,
             server_address=server_address,
-            csv_paths=csv_paths,
+            data_model=data_model,
+            datasets=datasets,
         )
 
     def stop_flower_server(

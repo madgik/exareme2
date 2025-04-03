@@ -3,17 +3,14 @@ import os
 import time
 from math import log2
 from math import pow
-from typing import List
 from typing import Optional
 
 import flwr as fl
-import pandas as pd
 import requests
 from flwr.common.logger import FLOWER_LOGGER
-from pydantic import BaseModel
 from sklearn import preprocessing
 
-from exareme2.algorithms.flower.df_filter import apply_filter
+from exareme2.algorithms.utils.inputdata_utils import Inputdata
 
 # Constants for project directories and environment configurations
 CONTROLLER_IP = os.getenv("CONTROLLER_IP", "127.0.0.1")
@@ -22,34 +19,6 @@ RESULT_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/flower/result"
 INPUT_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/flower/input"
 CDES_URL = f"http://{CONTROLLER_IP}:{CONTROLLER_PORT}/cdes_metadata"
 HEADERS = {"Content-type": "application/json", "Accept": "text/plain"}
-
-
-class Inputdata(BaseModel):
-    data_model: str
-    datasets: List[str]
-    validation_datasets: List[str]
-    filters: Optional[dict]
-    y: Optional[List[str]]
-    x: Optional[List[str]]
-
-
-def apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
-    if inputdata.filters:
-        df = apply_filter(df, inputdata.filters)
-    df = df[df["dataset"].isin(inputdata.datasets + inputdata.validation_datasets)]
-    columns = inputdata.x + inputdata.y
-    df = df[columns]
-    df = df.dropna(subset=columns)
-    return df
-
-
-def fetch_data(inputdata) -> pd.DataFrame:
-    dataframes = [
-        pd.read_csv(f"{os.getenv('DATA_PATH')}{csv_path}")
-        for csv_path in os.getenv("CSV_PATHS").split(",")
-    ]
-    df = pd.concat(dataframes, ignore_index=True)
-    return apply_inputdata(df, inputdata)
 
 
 def preprocess_data(inputdata, full_data):
@@ -89,11 +58,11 @@ def get_input() -> Inputdata:
     response = requests.get(INPUT_URL)
     if response.status_code != 200:
         error_handling(response.text)
-    input_data = Inputdata.parse_raw(response.text)
-    return input_data
+    inputdata = Inputdata.parse_raw(response.text)
+    return inputdata
 
 
-def get_enumerations(data_model: str, variable_name: str) -> list:
+def get_enumerations(data_model: str, variable_name: str) -> Optional[list]:
     try:
         FLOWER_LOGGER.debug(f"Getting enumerations from: {CDES_URL} ...")
         response = requests.get(CDES_URL)

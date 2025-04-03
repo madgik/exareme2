@@ -31,7 +31,8 @@ def test_processes_garbage_collect(
         algorithm_folder_path="./exareme2/algorithms/flower/logistic_regression",
         number_of_clients=1,
         server_address=f"{COMMON_IP}:8080",
-        csv_paths="dataset1.csv,dataset2.csv",
+        data_model="data_model:1",
+        datasets=["dataset1", "dataset2"],
     )
     localworker1_celery_app.get_result(
         async_result=async_result,

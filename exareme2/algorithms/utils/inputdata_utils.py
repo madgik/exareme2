@@ -1,8 +1,22 @@
+import warnings
 from typing import Any
 from typing import Dict
+from typing import Iterator
 from typing import List
+from typing import Optional
+from typing import Set
 
 import pandas as pd
+from pydantic import BaseModel
+
+
+class Inputdata(BaseModel):
+    data_model: str
+    datasets: List[str]
+    validation_datasets: Optional[List[str]] = None
+    filters: Optional[dict] = None
+    y: Optional[List[str]] = None
+    x: Optional[List[str]] = None
 
 
 def _apply_filter(df: pd.DataFrame, filter_rule: Dict[str, Any]) -> pd.DataFrame:
@@ -45,7 +59,7 @@ def _apply_single_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
     Returns:
         The DataFrame filtered according to the rule.
     """
-    # Rename "id" to "column" to avoid shadowing built-in names.
+    # If the rule is composite, delegate to _apply_filter.
     if "condition" in rule:
         return _apply_filter(df, rule)
     else:
@@ -75,20 +89,23 @@ def _apply_single_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
             raise ValueError(f"Unsupported operator: {operator}")
 
 
-def _apply_inputdata(df: pd.DataFrame, inputdata: Dict[str, Any]) -> pd.DataFrame:
+def _apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
     """
-    Filters the dataframe based on the provided input data including filters, datasets, and selected columns.
+    Filters the dataframe based on the provided inputdata including filters, datasets, and selected columns.
     """
-    if "filters" in inputdata and inputdata["filters"]:
-        df = _apply_filter(df, inputdata["filters"])
+    if inputdata.filters:
+        df = _apply_filter(df, inputdata.filters)
 
-    if "datasets" in inputdata:
-        df = df[df["dataset"].isin(inputdata["datasets"])]
-    else:
-        raise ValueError("Missing 'datasets' key in inputdata.")
+    # Filter based on the provided datasets.
+    all_datasets = (
+        inputdata.datasets + inputdata.validation_datasets
+        if inputdata.validation_datasets
+        else []
+    )
+    df = df[df["dataset"].isin(all_datasets)]
 
-    x_columns = inputdata.get("x") or []
-    y_columns = inputdata.get("y") or []
+    x_columns = inputdata.x if inputdata.x is not None else []
+    y_columns = inputdata.y if inputdata.y is not None else []
     columns = x_columns + y_columns
 
     if not columns:
@@ -104,9 +121,6 @@ def _apply_inputdata(df: pd.DataFrame, inputdata: Dict[str, Any]) -> pd.DataFram
     if non_empty_columns:
         df = df.dropna(subset=non_empty_columns)
     else:
-        # Optionally, you can warn or handle the case where all columns are empty.
-        import warnings
-
         warnings.warn(
             "All selected columns are empty. Returning the original dataframe slice."
         )
@@ -114,32 +128,42 @@ def _apply_inputdata(df: pd.DataFrame, inputdata: Dict[str, Any]) -> pd.DataFram
     return df
 
 
-def fetch_data(inputdata: Dict[str, Any], csv_paths: List[str]) -> pd.DataFrame:
+def _read_filtered_chunks(
+    path: str, needed_columns: Set[str], inputdata: Inputdata
+) -> Iterator[pd.DataFrame]:
+    """
+    Yields filtered DataFrame chunks from a CSV file.
+    """
+    for chunk in pd.read_csv(path, usecols=needed_columns, chunksize=10000):
+        filtered_chunk = _apply_inputdata(chunk, inputdata)
+        if not filtered_chunk.empty:
+            yield filtered_chunk
+
+
+def fetch_data(inputdata: Inputdata, csv_paths: List[str]) -> pd.DataFrame:
     """
     Loads CSV data from the given paths in chunks, applies filtering based on inputdata,
     and concatenates the results into a single DataFrame.
 
     Args:
-        inputdata: A dictionary with filter and column selection instructions.
+        inputdata: An instance of Inputdata with filter and column selection instructions.
         csv_paths: A list of CSV file paths.
 
     Returns:
         A concatenated DataFrame after filtering.
     """
-    x_columns = inputdata.get("x") or []
-    y_columns = inputdata.get("y") or []
+    x_columns = inputdata.x or []
+    y_columns = inputdata.y or []
     # Include "dataset" column for filtering
     needed_columns = set(x_columns + y_columns + ["dataset"])
 
+    # Gather filtered chunks from all CSV files
     chunks = []
     for path in csv_paths:
-        for chunk in pd.read_csv(path, usecols=needed_columns, chunksize=10000):
-            # Apply filtering on the chunk if needed
-            filtered_chunk = _apply_inputdata(chunk, inputdata)
-            if not filtered_chunk.empty:
-                chunks.append(filtered_chunk)
-    if chunks:
-        return pd.concat(chunks, ignore_index=True)
-    else:
-        # Return an empty DataFrame with the expected columns
-        return pd.DataFrame(columns=list(needed_columns))
+        chunks.extend(list(_read_filtered_chunks(path, needed_columns, inputdata)))
+
+    return (
+        pd.concat(chunks, ignore_index=True)
+        if chunks
+        else pd.DataFrame(columns=list(needed_columns))
+    )

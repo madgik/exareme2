@@ -8,15 +8,14 @@ ALGORITHM_NAME = "compute_average"
 
 
 class ComputeAverage(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, inputdata, metadata):
+    def run(self, metadata):
         local_results = self.engine.run_algorithm_udf(
             func="compute_average_local_step",
-            positional_args={"inputdata": inputdata},
+            positional_args={"inputdata": self.inputdata.json()},
         )
 
-        # Assume inputdata["y"] is now a list of column names.
         results = {}
-        for column in inputdata["y"]:
+        for column in self.inputdata.y:
             global_sum = sum(res[column]["sum"] for res in local_results)
             global_count = sum(res[column]["count"] for res in local_results)
             average = global_sum / global_count if global_count else float("nan")
@@ -51,6 +50,5 @@ def local_step(inputdata, csv_paths):
     from exareme2.algorithms.utils.inputdata_utils import fetch_data
 
     data = fetch_data(inputdata, csv_paths)
-    # Get the list of columns from inputdata["y"]
-    columns = inputdata["y"]
+    columns = inputdata.y
     return compute_local_sum_and_count(columns, data)

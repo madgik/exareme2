@@ -11,9 +11,6 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
     DataModelsCDES,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
-    DatasetLocation,
-)
-from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     DatasetsLocations,
 )
 from exareme2.worker_communication import CommonDataElement
@@ -26,44 +23,20 @@ def mocked_datasets_locations():
     yield DatasetsLocations(
         datasets_locations={
             "tbi:0.1": {
-                "dummy_tbi0": DatasetLocation(
-                    worker_id="localworker1", csv_path="/opt/data/dummy_tbi0.csv"
-                ),
-                "dummy_tbi1": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/dummy_tbi1.csv"
-                ),
-                "dummy_tbi3": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/dummy_tbi3.csv"
-                ),
+                "dummy_tbi0": "localworker1",
+                "dummy_tbi1": "localworker2",
+                "dummy_tbi3": "localworker2",
             },
             "dementia:0.1": {
-                "ppmi0": DatasetLocation(
-                    worker_id="localworker1", csv_path="/opt/data/ppmi0.csv"
-                ),
-                "ppmi1": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/ppmi1.csv"
-                ),
-                "ppmi3": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/ppmi3.csv"
-                ),
-                "edsd0": DatasetLocation(
-                    worker_id="localworker1", csv_path="/opt/data/edsd0.csv"
-                ),
-                "edsd1": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/edsd1.csv"
-                ),
-                "edsd3": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/edsd3.csv"
-                ),
-                "synthdata0": DatasetLocation(
-                    worker_id="localworker1", csv_path="/opt/data/synthdata0.csv"
-                ),
-                "synthdata1": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/synthdata1.csv"
-                ),
-                "synthdata2": DatasetLocation(
-                    worker_id="localworker2", csv_path="/opt/data/synthdata2.csv"
-                ),
+                "ppmi0": "localworker1",
+                "ppmi1": "localworker2",
+                "ppmi3": "localworker2",
+                "edsd0": "localworker1",
+                "edsd1": "localworker2",
+                "edsd3": "localworker2",
+                "desd-synthdata0": "localworker1",
+                "desd-synthdata1": "localworker2",
+                "desd-synthdata3": "localworker2",
             },
         }
     )

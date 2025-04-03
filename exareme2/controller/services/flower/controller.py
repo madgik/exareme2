@@ -1,6 +1,4 @@
 import asyncio
-from typing import Dict
-from typing import List
 
 from exareme2 import flower_algorithm_folder_paths
 from exareme2.controller import config as ctrl_config
@@ -50,20 +48,22 @@ class Controller:
             request_id = algorithm_request_dto.request_id
             context_id = UIDGenerator().get_a_uid()
             logger = ctrl_logger.get_request_logger(request_id)
+            data_model = algorithm_request_dto.inputdata.data_model
             datasets = algorithm_request_dto.inputdata.datasets + (
                 algorithm_request_dto.inputdata.validation_datasets
                 if algorithm_request_dto.inputdata.validation_datasets
                 else []
             )
-            csv_paths_per_worker_id: Dict[
-                str, List[str]
-            ] = self.worker_landscape_aggregator.get_csv_paths_per_worker_id(
-                algorithm_request_dto.inputdata.data_model, datasets
+
+            worker_ids = (
+                self.worker_landscape_aggregator.get_worker_ids_with_any_of_datasets(
+                    algorithm_request_dto.inputdata.data_model, datasets
+                )
             )
 
             workers_info = [
                 self.worker_landscape_aggregator.get_worker_info(worker_id)
-                for worker_id in csv_paths_per_worker_id
+                for worker_id in worker_ids
             ]
             task_handlers = [
                 self._create_worker_tasks_handler(request_id, worker)
@@ -82,7 +82,7 @@ class Controller:
                 handler.garbage_collect()
 
             self.flower_execution_info.set_inputdata(
-                inputdata=algorithm_request_dto.inputdata
+                inputdata=algorithm_request_dto.inputdata.dict()
             )
             server_pid = None
             clients_pids = {}
@@ -93,15 +93,15 @@ class Controller:
                     algorithm_folder_path,
                     len(task_handlers),
                     str(server_address),
-                    csv_paths_per_worker_id[server_id]
-                    if algorithm_request_dto.inputdata.validation_datasets
-                    else [],
+                    data_model,
+                    datasets,
                 )
                 clients_pids = {
                     handler.start_flower_client(
                         algorithm_folder_path,
                         str(server_address),
-                        csv_paths_per_worker_id[handler.worker_id],
+                        data_model,
+                        datasets,
                         ctrl_config.flower_execution_timeout,
                     ): handler
                     for handler in task_handlers

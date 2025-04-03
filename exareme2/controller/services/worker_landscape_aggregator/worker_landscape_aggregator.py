@@ -31,7 +31,6 @@ from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
 from exareme2.worker_communication import DatasetInfo
-from exareme2.worker_communication import DatasetMissingCsvPathError
 from exareme2.worker_communication import DatasetsInfoPerDataModel
 from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerRole
@@ -73,11 +72,6 @@ class DataModelsAttributes(ImmutableBaseModel):
     data_models_attributes: Optional[Dict[str, DataModelAttributes]] = {}
 
 
-class DatasetLocation(ImmutableBaseModel):
-    worker_id: str
-    csv_path: Optional[str]
-
-
 class DatasetsLocations(ImmutableBaseModel):
     """
     A dictionary representation of the locations of each dataset in the federation.
@@ -85,7 +79,7 @@ class DatasetsLocations(ImmutableBaseModel):
     Values are Dictionaries of datasets and their locations.
     """
 
-    datasets_locations: Optional[Dict[str, Dict[str, DatasetLocation]]] = {}
+    datasets_locations: Optional[Dict[str, Dict[str, str]]] = {}
 
 
 class DataModelRegistry(ImmutableBaseModel):
@@ -132,33 +126,6 @@ class DataModelRegistry(ImmutableBaseModel):
             and dataset in self.datasets_locations.datasets_locations[data_model]
         )
 
-    def get_csv_paths_per_worker_id(
-        self, data_model: str, datasets: List[str]
-    ) -> Dict[str, List[str]]:
-        if not self.data_model_exists(data_model):
-            return {}
-
-        csv_paths_per_worker_id = {}
-        dataset_infos = [
-            dataset_info
-            for dataset, dataset_info in self.datasets_locations.datasets_locations[
-                data_model
-            ].items()
-            if dataset in datasets
-        ]
-
-        for dataset_info in dataset_infos:
-            if not dataset_info.csv_path:
-                raise DatasetMissingCsvPathError()
-            if dataset_info.worker_id not in csv_paths_per_worker_id:
-                csv_paths_per_worker_id[dataset_info.worker_id] = []
-
-            csv_paths_per_worker_id[dataset_info.worker_id].append(
-                dataset_info.csv_path
-            )
-
-        return csv_paths_per_worker_id
-
     def get_worker_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
     ) -> List[str]:
@@ -166,10 +133,10 @@ class DataModelRegistry(ImmutableBaseModel):
             return []
 
         local_workers_with_datasets = [
-            self.datasets_locations.datasets_locations[data_model][dataset].worker_id
+            self.datasets_locations.datasets_locations[data_model][dataset]
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in datasets
-            if self.datasets_locations.datasets_locations[data_model][dataset].worker_id
+            if self.datasets_locations.datasets_locations[data_model][dataset]
             != "globalworker"
         ]
         return list(set(local_workers_with_datasets))
@@ -200,7 +167,7 @@ class DataModelRegistry(ImmutableBaseModel):
             for dataset in self.datasets_locations.datasets_locations[data_model]
             if dataset in wanted_datasets
             and worker_id
-            == self.datasets_locations.datasets_locations[data_model][dataset].worker_id
+            == self.datasets_locations.datasets_locations[data_model][dataset]
         ]
         return datasets_in_worker
 
@@ -482,6 +449,23 @@ class WorkerLandscapeAggregator:
             worker_registry=worker_registry, data_model_registry=data_model_registry
         )
 
+    def get_datasets_per_worker(self, data_model: str):
+        dataset_worker_mapping = (
+            self._registries.data_model_registry.datasets_locations.datasets_locations[
+                data_model
+            ]
+        )
+        # Initialize an empty dictionary for worker_id -> list of datasets
+        worker_to_datasets = {}
+
+        # Iterate through the mapping and invert it
+        for dataset, worker_id in dataset_worker_mapping.items():
+            if worker_id in worker_to_datasets:
+                worker_to_datasets[worker_id].append(dataset)
+            else:
+                worker_to_datasets[worker_id] = [dataset]
+        return worker_to_datasets
+
     def get_workers(self) -> List[WorkerInfo]:
         return list(self._registries.worker_registry.workers_per_id.values())
 
@@ -539,8 +523,8 @@ class WorkerLandscapeAggregator:
             data_model
         ]
 
-        for dataset, dataset_location in datasets_locations.items():
-            if dataset_location.worker_id == self.get_global_worker().id:
+        for dataset, worker_id in datasets_locations.items():
+            if worker_id == self.get_global_worker().id:
                 validation_datasets.append(dataset)
             else:
                 training_datasets.append(dataset)
@@ -557,11 +541,6 @@ class WorkerLandscapeAggregator:
 
     def dataset_exists(self, data_model: str, dataset: str) -> bool:
         return self._registries.data_model_registry.dataset_exists(data_model, dataset)
-
-    def get_csv_paths_per_worker_id(self, data_model: str, datasets: List[str]):
-        return self._registries.data_model_registry.get_csv_paths_per_worker_id(
-            data_model, datasets
-        )
 
     def get_worker_ids_with_any_of_datasets(
         self, data_model: str, datasets: List[str]
@@ -804,10 +783,7 @@ def _extract_datasets_locations(
             model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
             for dataset in model_metadata.dataset_infos:
-                datasets_locations_dict[data_model][dataset.code] = DatasetLocation(
-                    worker_id=worker_id, csv_path=dataset.csv_path
-                )
-
+                datasets_locations_dict[data_model][dataset.code] = worker_id
     return DatasetsLocations(datasets_locations=datasets_locations_dict)
 
 
@@ -942,7 +918,7 @@ def _log_datasets_added(old_datasets_locations, new_datasets_locations, logger):
                 data_model,
                 dataset,
                 logger,
-                new_datasets_locations[data_model][dataset].worker_id,
+                new_datasets_locations[data_model][dataset],
             )
 
 
@@ -956,7 +932,7 @@ def _log_datasets_removed(old_datasets_locations, new_datasets_locations, logger
                 data_model,
                 dataset,
                 logger,
-                old_datasets_locations[data_model][dataset].worker_id,
+                old_datasets_locations[data_model][dataset],
             )
 
 

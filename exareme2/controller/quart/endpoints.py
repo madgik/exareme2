@@ -34,7 +34,7 @@ async def get_datasets() -> dict:
 async def get_datasets_locations() -> dict:
     return {
         data_model: {
-            dataset: info.worker_id for dataset, info in datasets_location.items()
+            dataset: worker_id for dataset, worker_id in datasets_location.items()
         }
         for data_model, datasets_location in get_worker_landscape_aggregator()
         .get_datasets_locations()
@@ -100,7 +100,7 @@ async def run_algorithm(algorithm_name: str) -> str:
 
 @algorithms.route("/flower/input", methods=["GET"])
 async def get_flower_input() -> dict:
-    return get_flower_execution_info().get_inputdata().dict()
+    return get_flower_execution_info().get_inputdata()
 
 
 @algorithms.route("/flower/result", methods=["POST"])
