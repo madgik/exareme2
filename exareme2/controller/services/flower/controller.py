@@ -6,7 +6,7 @@ from exareme2 import flower_algorithm_folder_paths
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.federation_info_logs import log_experiment_execution
-from exareme2.controller.services.flower.tasks_handler import FlowerTasksHandler
+from exareme2.controller.services.flower.tasks_handler import TasksHandler
 from exareme2.controller.uid_generator import UIDGenerator
 from exareme2.worker_communication import WorkerInfo
 
@@ -15,11 +15,6 @@ FLOWER_SERVER_PORT = "8080"
 
 class WorkerException(Exception):
     pass
-
-
-class WorkerUnresponsiveException(WorkerException):
-    def __init__(self):
-        super().__init__("One of the workers stopped responding")
 
 
 class WorkerTaskTimeoutException(WorkerException):
@@ -42,7 +37,7 @@ class Controller:
     def _create_worker_tasks_handler(self, request_id, worker_info: WorkerInfo):
         worker_addr = f"{worker_info.ip}:{worker_info.port}"
         worker_db_addr = f"{worker_info.db_ip}:{worker_info.db_port}"
-        return FlowerTasksHandler(
+        return TasksHandler(
             request_id,
             worker_id=worker_info.id,
             worker_queue_addr=worker_addr,

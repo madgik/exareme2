@@ -712,9 +712,8 @@ def test_cleanup_after_worker_service_restart(
 
 def start_localworkertmp_worker_service():
     worker_config_file = LOCALWORKERTMP_CONFIG_FILE
-    algo_folders_env_variable_val = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     worker_config_filepath = path.join(TEST_ENV_CONFIG_FOLDER, worker_config_file)
-    proc = _create_worker_service(algo_folders_env_variable_val, worker_config_filepath)
+    proc = _create_worker_service(worker_config_filepath)
     return proc
 
 

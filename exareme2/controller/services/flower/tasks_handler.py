@@ -2,7 +2,7 @@ from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
 
 
-class FlowerTasksHandler:
+class TasksHandler:
     def __init__(
         self,
         request_id: str,

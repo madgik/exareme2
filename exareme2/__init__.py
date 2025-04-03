@@ -6,7 +6,8 @@ from os.path import isfile
 from types import ModuleType
 from typing import Dict
 
-from exareme2.algorithms.exareme2.algorithm import Algorithm
+from exareme2.algorithms.exaflow.algorithm import Algorithm as ExaflowAlgorithm
+from exareme2.algorithms.exareme2.algorithm import Algorithm as Exareme2Algorithm
 from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 from exareme2.datatypes import DType
 from exareme2.utils import AttrDict
@@ -18,16 +19,20 @@ __all__ = [
     "EXAREME2_ALGORITHM_FOLDERS",
     "exareme2_algorithm_classes",
     "DATA_TABLE_PRIMARY_KEY",
+    "flower_algorithm_folder_paths",
     "FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE",
     "FLOWER_ALGORITHM_FOLDERS",
+    "EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE",
+    "EXAFLOW_ALGORITHM_FOLDERS",
+    "exaflow_algorithm_classes",
 ]
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
 
 EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME2_ALGORITHM_FOLDERS"
-EXAREME2_ALGORITHM_FOLDERS = "./exareme2/algorithms/exareme2"
-if exareme2_algorithm_folders := os.getenv(EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE):
-    EXAREME2_ALGORITHM_FOLDERS = exareme2_algorithm_folders
+EXAREME2_ALGORITHM_FOLDERS = os.getenv(
+    EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exareme2/algorithms/exareme2"
+)
 
 
 class AlgorithmNamesMismatchError(Exception):
@@ -48,13 +53,16 @@ class AlgorithmNamesMismatchError(Exception):
         self.message = message
 
 
-def import_exareme2_algorithm_modules() -> Dict[str, ModuleType]:
-    # Import all algorithm modules
-    # Import all .py modules in the algorithm folder paths
-    # https://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path?page=1&tab=votes#tab-top
+def import_algorithm_modules(algorithm_folders: str) -> Dict[str, ModuleType]:
+    """
+    Import all algorithm modules from the given folder paths.
 
+    :param algorithm_folders: Comma-separated string of folder paths.
+    :return: A dictionary mapping module names to imported module objects.
+    """
     all_modules = {}
-    for algorithm_folder in EXAREME2_ALGORITHM_FOLDERS.split(","):
+    for algorithm_folder in algorithm_folders.split(","):
+        # Get all .py files in the folder (excluding __init__.py)
         all_module_paths = glob.glob(f"{algorithm_folder}/*.py")
         algorithm_module_paths = [
             module
@@ -74,23 +82,15 @@ def import_exareme2_algorithm_modules() -> Dict[str, ModuleType]:
             name: importlib.util.module_from_spec(spec)
             for name, spec in zip(algorithm_names, specs)
         }
-
-        # Import modules
-        [
+        for spec, module in zip(specs, modules.values()):
             spec.loader.exec_module(module)
-            for spec, module in zip(specs, modules.values())
-        ]
-
         all_modules.update(modules)
-
     return all_modules
 
 
-import_exareme2_algorithm_modules()
-
-
 def get_exareme2_algorithm_classes() -> Dict[str, type]:
-    return {cls.algname: cls for cls in Algorithm.__subclasses__()}
+    import_algorithm_modules(EXAREME2_ALGORITHM_FOLDERS)
+    return {cls.algname: cls for cls in Exareme2Algorithm.__subclasses__()}
 
 
 def get_exareme2_algorithm_data_loaders() -> Dict[str, type]:
@@ -148,3 +148,17 @@ if flower_algorithm_folders := os.getenv(FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE):
 flower_algorithm_folder_paths = find_flower_algorithm_folder_paths(
     FLOWER_ALGORITHM_FOLDERS
 )
+
+
+EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
+EXAFLOW_ALGORITHM_FOLDERS = os.getenv(
+    EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exareme2/algorithms/exaflow"
+)
+
+
+def get_exaflow_algorithm_classes() -> Dict[str, type]:
+    import_algorithm_modules(EXAFLOW_ALGORITHM_FOLDERS)
+    return {cls.algname: cls for cls in ExaflowAlgorithm.__subclasses__()}
+
+
+exaflow_algorithm_classes = get_exaflow_algorithm_classes()

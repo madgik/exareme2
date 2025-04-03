@@ -39,6 +39,7 @@ TASK_SIGNATURES: Final = {
     "stop_flower_server": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_server",
     "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
     "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
+    "run_exaflow_udf": "exareme2.worker.exaflow.udf.udf_api.run_udf",
 }
 
 
@@ -355,4 +356,17 @@ class WorkerTasksHandler:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["garbage_collect"],
             request_id=request_id,
+        )
+
+    def queue_udf(
+        self,
+        request_id,
+        udf_name,
+        params,
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["run_exaflow_udf"],
+            request_id=request_id,
+            udf_name=udf_name,
+            params=params,
         )

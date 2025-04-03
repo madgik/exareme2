@@ -10,6 +10,7 @@ monetdb_memory_limit = 2048 # MB
 
 exareme2_algorithm_folders = "./exareme2/algorithms/exareme2,./tests/algorithms/exareme2"
 flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
+exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
 
 worker_landscape_aggregator_update_interval = 30
 flower_execution_timeout = 30
