@@ -974,6 +974,7 @@ def deploy(
     monetdb_nclients=None,
     exareme2_algorithm_folders=None,
     flower_algorithm_folders=None,
+    exaflow_algorithm_folders=None,
     smpc=None,
 ):
     """
@@ -1009,6 +1010,9 @@ def deploy(
 
     if not flower_algorithm_folders:
         flower_algorithm_folders = get_deployment_config("flower_algorithm_folders")
+
+    if not exaflow_algorithm_folders:
+        exaflow_algorithm_folders = get_deployment_config("exaflow_algorithm_folders")
 
     if smpc is None:
         smpc = get_deployment_config("smpc", subconfig="enabled")
@@ -1051,6 +1055,7 @@ def deploy(
             detached=True,
             exareme2_algorithm_folders=exareme2_algorithm_folders,
             flower_algorithm_folders=flower_algorithm_folders,
+            exaflow_algorithm_folders=exaflow_algorithm_folders,
         )
 
     # Start CONTROLLER service
@@ -1060,6 +1065,7 @@ def deploy(
             detached=True,
             exareme2_algorithm_folders=exareme2_algorithm_folders,
             flower_algorithm_folders=flower_algorithm_folders,
+            exaflow_algorithm_folders=exaflow_algorithm_folders,
         )
 
     if smpc and not get_deployment_config("smpc", subconfig="coordinator_ip"):
