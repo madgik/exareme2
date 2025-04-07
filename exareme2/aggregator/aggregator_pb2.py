@@ -4,10 +4,20 @@
 # source: aggregator.proto
 # Protobuf Python Version: 5.29.0
 """Generated protocol buffer code."""
+# from google.protobuf import runtime_version as _runtime_version ------>   WE HAVE A HUGE CONFLICT WITH THE _runtime_version
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
+# _runtime_version.ValidateProtobufRuntimeVersion(      ------> ONCE WE COMMENT OUT EVERYTHING WITH _runtime_version IT WORKS FINE
+#     _runtime_version.Domain.PUBLIC,                   ------> BUT ITS A HACK AND EACH TIME WE GENERATE THEM USING THE PROTO WE WILL HAVE TO COMMENT THEM OUT.
+#     5,
+#     29,
+#     0,
+#     '',
+#     'aggregator.proto'
+# )
 
 # @@protoc_insertion_point(imports)
 

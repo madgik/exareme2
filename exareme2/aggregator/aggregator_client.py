@@ -17,7 +17,7 @@ class AggregationClient:
     It supports basic operations such as sum, min, max, count, and average.
     """
 
-    def __init__(self, request_id: str, aggregator_address: str = "127.0.0.1:50051"):
+    def __init__(self, request_id: str, aggregator_address: str = "172.17.0.1:50051"):
         self._request_id = request_id
         self.aggregator_address = aggregator_address
         self.channel = grpc.insecure_channel(self.aggregator_address)

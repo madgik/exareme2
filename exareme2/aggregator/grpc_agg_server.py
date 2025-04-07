@@ -1,4 +1,3 @@
-import argparse
 import logging
 import threading
 from concurrent import futures
@@ -7,6 +6,7 @@ import grpc
 
 from exareme2.aggregator import aggregator_pb2 as pb2
 from exareme2.aggregator import aggregator_pb2_grpc as pb2_grpc
+from exareme2.aggregator import config
 from exareme2.aggregator.aggregation_server import NumpyAggregationServer
 from exareme2.aggregator.constants import AGG
 
@@ -141,20 +141,21 @@ class AggregatorServer(pb2_grpc.AggregatorServicer, NumpyAggregationServer):
                 return pb2.CleanupResponse(status="No aggregation found for request_id")
 
 
-def serve(host: str, port: int, max_workers: int, log_level: str):
+def serve():
     """
     Start the gRPC aggregator server.
     """
+    log_level = config.log_level
     logging.basicConfig(
-        level=getattr(logging, log_level.upper()),
+        level=log_level.upper(),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=config.max_workers))
     pb2_grpc.add_AggregatorServicer_to_server(AggregatorServer(), server)
-    server.add_insecure_port(f"{host}:{port}")
+    server.add_insecure_port(f"{config.host}:{config.port}")
     server.start()
-    logger.info(f"Aggregator server running on {host}:{port}")
+    logger.info(f"Aggregator server running on {config.host}:{config.port}")
     try:
         # Use gRPC's built-in wait_for_termination for a clean shutdown.
         server.wait_for_termination()
@@ -164,10 +165,4 @@ def serve(host: str, port: int, max_workers: int, log_level: str):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=50051)
-    parser.add_argument("--max-workers", type=int, default=10)
-    parser.add_argument("--log-level", default="INFO")
-    args = parser.parse_args()
-    serve(args.host, args.port, args.max_workers, args.log_level)
+    serve()
