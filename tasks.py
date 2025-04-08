@@ -49,6 +49,7 @@ the worker service will be called 'localworker1' and should be referenced using 
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
+import concurrent.futures
 import copy
 import glob
 import itertools
@@ -81,11 +82,15 @@ DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 WORKERS_CONFIG_DIR = PROJECT_ROOT / "configs" / "workers"
 WORKER_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "worker" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
+AGGREGATOR_CONFIG_DIR = PROJECT_ROOT / "configs" / "aggregator"
 CONTROLLER_LOCALWORKERS_CONFIG_FILE = (
     PROJECT_ROOT / "configs" / "controller" / "localworkers_config.json"
 )
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "exareme2" / "controller" / "config.toml"
+)
+AGGREGATOR_CONFIG_TEMPLATE_FILE = (
+    PROJECT_ROOT / "exareme2" / "aggregator" / "config.toml"
 )
 OUTDIR = Path("/tmp/exareme2/")
 if not OUTDIR.exists():
@@ -102,6 +107,7 @@ FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
 EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
+EXAREME2_AGGREGATOR_CONFIG_FILE = "EXAREME2_AGGREGATOR_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
 
 SMPC_COORDINATOR_PORT = 12314
@@ -291,6 +297,20 @@ def create_configs(c):
     with open(CONTROLLER_LOCALWORKERS_CONFIG_FILE, "w+") as fp:
         json.dump(localworkers_addresses, fp)
 
+    # Create the aggregator config file
+    with open(AGGREGATOR_CONFIG_TEMPLATE_FILE) as fp:
+        template_aggregator_config = toml.load(fp)
+    aggregator_config = copy.deepcopy(template_aggregator_config)
+    aggregator_config["host"] = deployment_config["ip"]
+    aggregator_config["port"] = deployment_config["aggregator"]["port"]
+    aggregator_config["max_workers"] = deployment_config["aggregator"]["max_workers"]
+    aggregator_config["log_level"] = deployment_config["log_level"]
+
+    AGGREGATOR_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    aggregator_config_file = AGGREGATOR_CONFIG_DIR / "aggregator.toml"
+    with open(aggregator_config_file, "w+") as fp:
+        toml.dump(aggregator_config, fp)
+
 
 @task
 def install_dependencies(c):
@@ -426,257 +446,190 @@ def load_data(c, use_sockets=False, worker=None):
     """
     Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
-    :param port: A list of ports, in which it will load the data. If not set, it will use the `WORKERS_CONFIG_DIR` files.
-    :param use_sockets: Flag that determines if the data will be loaded via sockets or not.
+    For each directory under TEST_DATA_FOLDER (which must contain a CDEsMetadata.json),
+    we build dictionaries mapping workers to a list of CSV files (and associated metadata)
+    that they should load. Regular CSVs are assigned to LOCALWORKERs while test CSVs
+    are assigned to GLOBALWORKERs.
+
+    All load tasks are then executed concurrently.
+
+    :param use_sockets: Flag determining if the data will be loaded via sockets.
+    :param worker: If provided, only this worker's config is used.
     """
 
     def get_worker_configs():
-        """
-        Retrieve the configuration files of all workers.
-
-        :return: A list of worker configurations.
-        """
-        config_files = [
-            WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)
-        ]
+        config_files = [WORKERS_CONFIG_DIR / f for f in listdir(WORKERS_CONFIG_DIR)]
         if not config_files:
-            message(
-                f"There are no worker config files to be used for data import. Folder: {WORKERS_CONFIG_DIR}",
-                Level.WARNING,
-            )
+            # No message printed
             sys.exit(1)
-
-        worker_configs = []
-        for worker_config_file in config_files:
-            with open(worker_config_file) as fp:
-                worker_config = toml.load(fp)
-                worker_configs.append(worker_config)
-        return worker_configs
+        configs = []
+        for file in config_files:
+            with open(file) as fp:
+                configs.append(toml.load(fp))
+        return configs
 
     def filter_worker_configs(worker_configs, worker, node_type):
-        """
-        Filter worker configurations based on a specific worker identifier and node type.
-
-        :param worker_configs: A list of all worker configurations.
-        :param worker: The identifier of the worker to filter for.
-        :param node_type: The type of node to filter for (default is "localworker").
-        :return: A list of tuples containing worker identifiers and ports.
-        """
         return [
-            (config["identifier"], config["monetdb"]["port"])
-            for config in worker_configs
-            if (not worker or config["identifier"] == worker)
-            and config["role"] == node_type
+            (conf["identifier"], conf["monetdb"]["port"])
+            for conf in worker_configs
+            if (not worker or conf["identifier"] == worker)
+            and conf["role"] == node_type
         ]
 
     def load_data_model_metadata(c, cdes_file, worker_id_and_ports):
         """
-        Load the data model metadata into MonetDB for each worker.
-
-        :param c: The context object.
-        :param cdes_file: Path to the CDEsMetadata.json file.
-        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
-        :return: The data model code and version.
+        Run the add-data-model command for each worker in worker_id_and_ports.
+        Return the (code, version) tuple.
         """
-        with open(cdes_file) as data_model_metadata_file:
-            data_model_metadata = json.load(data_model_metadata_file)
-        data_model_code = data_model_metadata["code"]
-        data_model_version = data_model_metadata["version"]
+        with open(cdes_file) as fp:
+            metadata = json.load(fp)
+        data_model_code = metadata["code"]
+        data_model_version = metadata["version"]
 
         def run_with_retries(c, cmd, retries=5, wait_seconds=1):
-            """Attempts to run a command, retrying in case of failure."""
             attempt = 0
             while attempt < retries:
                 try:
-                    run(c, cmd)  # Try to run the command
-                    return  # Exit if successful
+                    run(c, cmd, show_ok=False)
+                    return
                 except Exception as e:
                     attempt += 1
                     if attempt < retries:
-                        message(
-                            f"Attempt {attempt} failed. Retrying in {wait_seconds} seconds...",
-                            Level.WARNING,
-                        )
-                        time.sleep(wait_seconds)  # Wait before retrying
+                        time.sleep(wait_seconds)
                     else:
-                        message(
-                            f"All {retries} attempts failed. Error: {str(e)}",
-                            Level.ERROR,
-                        )
-                        raise e  # Re-raise the last exception after all retries
+                        raise e
 
-        # Main loop for loading data models with retries
         for worker_id, port in worker_id_and_ports:
-            message(
-                f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
-                Level.HEADER,
+            cmd = (
+                f"poetry run mipdb add-data-model {cdes_file} "
+                f"{get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
             )
-            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-
-            # Try running the command with retries
             run_with_retries(c, cmd)
         return data_model_code, data_model_version
 
-    def load_datasets(
+    def submit_load_task(
+        executor,
         c,
-        dirpath,
-        filenames,
+        csv,
         data_model_code,
         data_model_version,
-        worker_id_and_ports,
+        worker_id,
+        port,
         use_sockets,
     ):
-        """
-        Load datasets into MonetDB for each worker in a round-robin fashion.
-
-        :param c: The context object.
-        :param dirpath: Directory path of the current dataset.
-        :param filenames: List of filenames in the current directory.
-        :param data_model_code: The data model code.
-        :param data_model_version: The data model version.
-        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
-        :param use_sockets: Flag to determine if data will be loaded via sockets.
-        """
-        if len(worker_id_and_ports) == 1:
-            worker_id, port = worker_id_and_ports[0]
-            for file in filenames:
-                if file.endswith(".csv") and not file.endswith("test.csv"):
-                    csv = os.path.join(dirpath, file)
-                    message(
-                        f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
-                        Level.HEADER,
-                    )
-                    cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-                    run(c, cmd)
-            return
-
-        # Load the first set of CSVs into the first worker
-        first_worker_csvs = sorted(
-            [
-                f"{dirpath}/{file}"
-                for file in filenames
-                if file.endswith("0.csv") and not file.endswith("10.csv")
-            ]
+        cmd = (
+            f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+            f"--copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
         )
-        for csv in first_worker_csvs:
-            worker_id, port = worker_id_and_ports[0]
-            message(
-                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
-                Level.HEADER,
-            )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-            run(c, cmd)
+        return executor.submit(run, c, cmd, show_ok=False)
 
-        # Load the remaining CSVs into the remaining workers in a round-robin fashion
-        remaining_csvs = sorted(
-            [
-                f"{dirpath}/{file}"
-                for file in filenames
-                if file.endswith(".csv")
-                and not file.endswith("0.csv")
-                and not file.endswith("test.csv")
-            ]
-        )
-        worker_id_and_ports_cycle = itertools.cycle(worker_id_and_ports[1:])
-        for csv in remaining_csvs:
-            worker_id, port = next(worker_id_and_ports_cycle)
-            message(
-                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
-                Level.HEADER,
-            )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-            run(c, cmd)
+    # --- Build the assignment dictionaries ---
+    # These dictionaries map (worker_id, port) to a list of tuples: (csv, data_model_code, data_model_version)
+    local_tasks = {}  # for regular CSVs
+    global_tasks = {}  # for test CSVs
 
-    def load_test_datasets(
-        c,
-        dirpath,
-        filenames,
-        data_model_code,
-        data_model_version,
-        worker_id_and_ports,
-        use_sockets,
-    ):
-        """
-        Load datasets ending with 'test' into the global worker.
-
-        :param c: The context object.
-        :param dirpath: Directory path of the current dataset.
-        :param filenames: List of filenames in the current directory.
-        :param data_model_code: The data model code.
-        :param data_model_version: The data model version.
-        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
-        :param use_sockets: Flag to determine if data will be loaded via sockets.
-        """
-        test_csvs = sorted(
-            [f"{dirpath}/{file}" for file in filenames if file.endswith("test.csv")]
-        )
-        for csv in test_csvs:
-            worker_id, port = worker_id_and_ports[0]
-            message(
-                f"Loading test dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
-                Level.HEADER,
-            )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
-            run(c, cmd)
-
-    # Retrieve and filter worker configurations for local workers
     worker_configs = get_worker_configs()
-    local_worker_id_and_ports = filter_worker_configs(
-        worker_configs, worker, "LOCALWORKER"
-    )
-
-    if not local_worker_id_and_ports:
+    local_workers = filter_worker_configs(worker_configs, worker, "LOCALWORKER")
+    if not local_workers:
         raise Exception("Local worker config files cannot be loaded.")
-
-    # Process each dataset in the TEST_DATA_FOLDER for local workers
-    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
-        if "CDEsMetadata.json" not in filenames:
-            continue
-        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
-
-        # Load data model metadata
-        data_model_code, data_model_version = load_data_model_metadata(
-            c, cdes_file, local_worker_id_and_ports
-        )
-
-        # Load datasets
-        load_datasets(
-            c,
-            dirpath,
-            filenames,
-            data_model_code,
-            data_model_version,
-            local_worker_id_and_ports,
-            use_sockets,
-        )
-
-    # Retrieve and filter worker configurations for global worker
-    global_worker_id_and_ports = filter_worker_configs(
-        worker_configs, worker, "GLOBALWORKER"
-    )
-
-    if not global_worker_id_and_ports:
+    global_workers = filter_worker_configs(worker_configs, worker, "GLOBALWORKER")
+    if not global_workers:
         raise Exception("Global worker config files cannot be loaded.")
 
-    # Process each dataset in the TEST_DATA_FOLDER for global worker
-    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+    # Iterate over directories under TEST_DATA_FOLDER
+    for dirpath, _, filenames in os.walk(TEST_DATA_FOLDER):
         if "CDEsMetadata.json" not in filenames:
             continue
         cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
-
-        # Load data model metadata
+        # Load metadata and run add-data-model for local workers
         data_model_code, data_model_version = load_data_model_metadata(
-            c, cdes_file, global_worker_id_and_ports
+            c, cdes_file, local_workers
         )
-        load_test_datasets(
-            c,
-            dirpath,
-            filenames,
-            data_model_code,
-            data_model_version,
-            global_worker_id_and_ports,
-            use_sockets,
-        )
+
+        # Collect regular CSV files (exclude those ending with "test.csv")
+        regular_csvs = [
+            os.path.join(dirpath, f)
+            for f in filenames
+            if f.endswith(".csv") and not f.endswith("test.csv")
+        ]
+        # Collect test CSV files
+        test_csvs = [
+            os.path.join(dirpath, f) for f in filenames if f.endswith("test.csv")
+        ]
+
+        # For local workers: if only one, assign all regular CSVs to it;
+        # if multiple, assign first set (files ending with "0.csv" but not "10.csv") to the first worker,
+        # and distribute the rest round-robin among the others.
+        if len(local_workers) == 1:
+            worker_key = local_workers[0]
+            local_tasks.setdefault(worker_key, [])
+            for csv in regular_csvs:
+                local_tasks[worker_key].append(
+                    (csv, data_model_code, data_model_version)
+                )
+        else:
+            first_worker = local_workers[0]
+            local_tasks.setdefault(first_worker, [])
+            first_csvs = sorted(
+                [
+                    csv
+                    for csv in regular_csvs
+                    if csv.endswith("0.csv") and not csv.endswith("10.csv")
+                ]
+            )
+            local_tasks[first_worker].extend(
+                [(csv, data_model_code, data_model_version) for csv in first_csvs]
+            )
+            remaining_csvs = sorted(
+                [csv for csv in regular_csvs if csv not in first_csvs]
+            )
+            worker_cycle = itertools.cycle(local_workers[1:])
+            for csv in remaining_csvs:
+                worker_key = next(worker_cycle)
+                local_tasks.setdefault(worker_key, []).append(
+                    (csv, data_model_code, data_model_version)
+                )
+
+        # For test CSVs, assign them to the first global worker.
+        global_worker = global_workers[0]
+        global_tasks.setdefault(global_worker, [])
+        for csv in test_csvs:
+            global_tasks[global_worker].append(
+                (csv, data_model_code, data_model_version)
+            )
+
+    # --- Schedule all tasks concurrently ---
+    all_tasks = []
+    max_parallel = 10  # adjust as needed
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_parallel) as executor:
+        # Schedule local tasks
+        for worker_key, tasks in local_tasks.items():
+            worker_id, port = worker_key
+            for csv, data_model_code, data_model_version in tasks:
+                all_tasks.append(
+                    submit_load_task(
+                        executor,
+                        c,
+                        csv,
+                        data_model_code,
+                        data_model_version,
+                        worker_id,
+                        port,
+                        use_sockets,
+                    )
+                )
+        # Schedule global (test) tasks
+        for worker_key, tasks in global_tasks.items():
+            worker_id, port = worker_key
+            for csv, data_model_code, data_model_version in tasks:
+                cmd = (
+                    f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+                    f"--copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+                )
+                all_tasks.append(executor.submit(run, c, cmd, show_ok=False))
+        concurrent.futures.wait(all_tasks)
+        # Final message is now disabled or can be removed if desired.
+        message("All data loading tasks completed.", Level.SUCCESS)
 
 
 def get_sqlite_path(worker_id):
@@ -897,6 +850,56 @@ def start_worker(
 
 
 @task
+def kill_aggregator(c):
+    """
+    Kill the aggregator service by finding and terminating its process.
+
+    This task looks for any process whose command line contains 'grpc_agg_server.py'
+    and terminates it.
+    """
+    res = run(c, "ps aux | grep '[g]rpc_agg_server.py'", warn=True, show_ok=False)
+    if res.ok and res.stdout.strip():
+        message("Killing aggregator process...", Level.HEADER)
+        cmd = "ps aux | grep '[g]rpc_agg_server.py' | awk '{print $2}' | xargs kill -9"
+        run(c, cmd)
+        message("Aggregator process killed.", Level.SUCCESS)
+    else:
+        message("No aggregator process found.", Level.HEADER)
+
+
+@task
+def start_aggregator(c, detached=False):
+    """
+    Starts the Aggregation gRPC server.
+
+    The aggregator now uses the configuration provided in the config file
+    (via exareme2.aggregator.config) so no command-line parameters are needed.
+    If detached is True, the server will run in the background.
+    """
+
+    kill_aggregator(c)
+    message("Starting Aggregator...", Level.HEADER)
+    aggregator_config_file = AGGREGATOR_CONFIG_DIR / "aggregator.toml"
+
+    server_script = PROJECT_ROOT / "exareme2" / "aggregator" / "grpc_agg_server.py"
+
+    if not server_script.exists():
+        message(f"Aggregator server script not found at {server_script}.", Level.ERROR)
+        return
+
+    with c.prefix(f"export {EXAREME2_AGGREGATOR_CONFIG_FILE}={aggregator_config_file}"):
+        # Command simply runs the aggregator server script.
+        cmd = f"PYTHONPATH={PROJECT_ROOT} python {server_script}"
+
+        if detached:
+            log_file = OUTDIR / "aggregator_server.out"
+            c.run(f"{cmd} >> {log_file} 2>&1 &", disown=True)
+            message("Ok", Level.SUCCESS)
+        else:
+            c.run(cmd, pty=True)
+
+
+@task
 def kill_controller(c):
     """Kill the controller service."""
     HYPERCORN_PROCESS_NAME = "[f]rom multiprocessing.spawn import spawn_main;"
@@ -967,6 +970,7 @@ def deploy(
     install_dep=True,
     start_all=True,
     start_controller_=False,
+    start_aggregator_=False,
     start_workers=False,
     log_level=None,
     framework_log_level=None,
@@ -1058,6 +1062,9 @@ def deploy(
             exaflow_algorithm_folders=exaflow_algorithm_folders,
         )
 
+    if start_aggregator_ or start_all:
+        start_aggregator(c, detached=True)
+
     # Start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(
@@ -1097,6 +1104,7 @@ def attach(c, worker=None, controller=False, db=None):
 def cleanup(c):
     """Kill all worker/controller api and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
+    kill_aggregator(c)
     kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
 

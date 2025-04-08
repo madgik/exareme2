@@ -1,7 +1,5 @@
-from typing import Dict
-from typing import List
-
 from exareme2 import exaflow_algorithm_classes
+from exareme2.aggregator.aggregator_client import AggregationClient
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.exaflow.execution_engine import (
@@ -44,31 +42,38 @@ class Controller:
             for worker_id in worker_ids
         ]
 
-        task_handlers = [
-            self._create_worker_tasks_handler(request_id, worker)
-            for worker in workers_info
-        ]
-
-        engine = AlgorithmExecutionEngine(
-            request_id=request_id,
-            context_id=context_id,
-            tasks_handlers=task_handlers,
-        )
-
-        algorithm_class = exaflow_algorithm_classes[algorithm_name]
-        algorithm = algorithm_class(
-            inputdata=algorithm_request_dto.inputdata,
-            engine=engine,
-        )
-
-        variable_names = (algorithm_request_dto.inputdata.x or []) + (
-            algorithm_request_dto.inputdata.y or []
-        )
-        metadata = self.worker_landscape_aggregator.get_metadata(
-            data_model=algorithm_request_dto.inputdata.data_model,
-            variable_names=variable_names,
-        )
         try:
+            agg_client = AggregationClient(request_id)
+            status = agg_client.configure(num_workers=len(workers_info))
+
+            if status != "Configured":
+                raise RuntimeError(f"Failed to configure aggregator: {status}")
+            logger.error(f"Aggregator configuration response: {status}")
+
+            # Proceed with algorithm execution
+            task_handlers = [
+                self._create_worker_tasks_handler(request_id, worker)
+                for worker in workers_info
+            ]
+            engine = AlgorithmExecutionEngine(
+                request_id=request_id,
+                context_id=context_id,
+                tasks_handlers=task_handlers,
+            )
+
+            algorithm_class = exaflow_algorithm_classes[algorithm_name]
+            algorithm = algorithm_class(
+                inputdata=algorithm_request_dto.inputdata,
+                engine=engine,
+            )
+
+            variable_names = (algorithm_request_dto.inputdata.x or []) + (
+                algorithm_request_dto.inputdata.y or []
+            )
+            metadata = self.worker_landscape_aggregator.get_metadata(
+                data_model=algorithm_request_dto.inputdata.data_model,
+                variable_names=variable_names,
+            )
             log_experiment_execution(
                 logger,
                 request_id,
@@ -79,13 +84,13 @@ class Controller:
                 [info.id for info in workers_info],
             )
 
-            result = algorithm.run(
-                metadata=metadata,
-            )
-
+            # Run the algorithm.
+            result = algorithm.run(metadata=metadata)
             logger.info(f"Finished execution -> {algorithm_name} with {request_id}")
-            return result.json()
-
+            status = agg_client.cleanup()
+            logger.info(f"Aggregator cleanup response: {status}")
         except Exception as e:
             logger.exception(f"Algorithm execution failed: {str(e)}")
             raise
+
+        return result.json()

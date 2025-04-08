@@ -97,10 +97,8 @@ def _apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
         df = _apply_filter(df, inputdata.filters)
 
     # Filter based on the provided datasets.
-    all_datasets = (
-        inputdata.datasets + inputdata.validation_datasets
-        if inputdata.validation_datasets
-        else []
+    all_datasets = inputdata.datasets + (
+        inputdata.validation_datasets if inputdata.validation_datasets else []
     )
     df = df[df["dataset"].isin(all_datasets)]
 

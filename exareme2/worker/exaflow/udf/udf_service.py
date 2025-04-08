@@ -1,5 +1,4 @@
 from exareme2.algorithms.exaflow.exaflow_registry import exaflow_registry
-from exareme2.algorithms.specifications import InputDataType
 from exareme2.algorithms.utils.inputdata_utils import Inputdata
 from exareme2.worker.utils.logger import get_logger
 from exareme2.worker.utils.logger import initialise_logger
