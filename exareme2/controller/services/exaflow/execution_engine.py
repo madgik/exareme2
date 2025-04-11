@@ -45,7 +45,9 @@ class AlgorithmExecutionEngine:
         # Directly call .get(timeout) on each task result
         return [task.get(timeout) for task, timeout in tasks]
 
-    def run_algorithm_udf_with_aggregator(self, func, positional_args) -> dict:
+    def run_algorithm_udf_with_aggregator(
+        self, func, positional_args, on_monetdb: bool = False
+    ) -> dict:
         """
         Executes the given UDF on all local workers, verifies that all returned results are identical,
         and returns the first result.
@@ -69,7 +71,10 @@ class AlgorithmExecutionEngine:
         for task_handler in self._tasks_handlers:
             # Ensure the request_id is included in the positional arguments.
             positional_args["request_id"] = self._request_id
-            task = task_handler.queue_udf(udf_name=func, params=positional_args)
+            queue_udf = (
+                task_handler.queue_monetdb_udf if on_monetdb else task_handler.queue_udf
+            )
+            task = queue_udf(udf_name=func, params=positional_args)
             tasks.append((task, task_handler.tasks_timeout))
 
         # Retrieve results from all tasks.

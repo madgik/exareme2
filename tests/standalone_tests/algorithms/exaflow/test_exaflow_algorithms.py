@@ -76,3 +76,4 @@ def test_exaflow_algorithms(
         headers=headers,
     )
     assert response.status_code == 200, f"Response message: {response.text}"
+    print(response.text)

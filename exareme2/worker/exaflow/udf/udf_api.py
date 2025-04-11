@@ -10,3 +10,12 @@ def run_udf(
     params: dict,
 ):
     return udf_service.run_udf(request_id, udf_name, params)
+
+
+@shared_task
+def run_monetdb_udf(
+    request_id,
+    udf_name: str,
+    params: dict,
+):
+    return udf_service.run_monetdb_udf(request_id, udf_name, params)

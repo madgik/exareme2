@@ -34,3 +34,10 @@ class TasksHandler:
             udf_name,
             params,
         )
+
+    def queue_monetdb_udf(self, udf_name, params: dict) -> WorkerTaskResult:
+        return self._worker_tasks_handler.queue_monetdb_udf(
+            self._request_id,
+            udf_name,
+            params,
+        )

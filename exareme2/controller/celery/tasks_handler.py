@@ -40,6 +40,7 @@ TASK_SIGNATURES: Final = {
     "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
     "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
     "run_exaflow_udf": "exareme2.worker.exaflow.udf.udf_api.run_udf",
+    "run_exaflow_monetdb_udf": "exareme2.worker.exaflow.udf.udf_api.run_monetdb_udf",
 }
 
 
@@ -370,6 +371,19 @@ class WorkerTasksHandler:
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["run_exaflow_udf"],
+            request_id=request_id,
+            udf_name=udf_name,
+            params=params,
+        )
+
+    def queue_monetdb_udf(
+        self,
+        request_id,
+        udf_name,
+        params,
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["run_exaflow_monetdb_udf"],
             request_id=request_id,
             udf_name=udf_name,
             params=params,

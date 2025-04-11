@@ -74,6 +74,25 @@ class AggregationClient:
             logger.error(f"[AGGREGATE ERROR] request_id='{self._request_id}': {e}")
             raise
 
+    def stddev(self, data):
+        import math
+
+        # Create an AggregationClient instance with a fixed request ID.
+        # 'data' is received as a Python list of floats.
+        # Filter out any NaN values.
+        clean_data = [xi for xi in data if not math.isnan(xi)]
+
+        if self.count(clean_data) <= 1:
+            return 0
+
+        # Compute E(x^2): the average of squared valid values.
+        avg_x_squared = self.avg([float(xi) ** 2 for xi in clean_data])
+        # Compute E(x): the average of the valid values.
+        avg_x = self.avg(clean_data)
+
+        # Standard deviation: sqrt(E(x^2) - (E(x))^2)
+        return math.sqrt(avg_x_squared - avg_x**2)
+
     def sum(self, values: List[float]) -> float:
         """
         Compute the global sum by first computing a partial sum locally.

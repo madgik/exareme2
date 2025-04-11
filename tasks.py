@@ -363,13 +363,14 @@ def create_monetdb(
     """
     (Re)Create MonetDB container(s) for given worker(s). If the container exists, it will remove it and create it again.
 
-    :param worker: A list of workers for which it will create the monetdb containers.
-    :param image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
-    :param log_level: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
-    :param nclients: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
+    :param worker: A list of workers for which it will create the MonetDB containers.
+    :param image: The image to deploy. If not set, it will read it from the DEPLOYMENT_CONFIG_FILE.
+    :param log_level: If not set, it will read it from the DEPLOYMENT_CONFIG_FILE.
+    :param nclients: If not set, it will read it from the DEPLOYMENT_CONFIG_FILE.
+    :param monetdb_memory_limit: Memory limit for MonetDB. If not set, it will read it from the DEPLOYMENT_CONFIG_FILE.
 
-    If an image is not provided it will use the 'monetdb_image' field from
-    the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/exareme2_db:dev1.2"
+    If an image is not provided it will use the 'monetdb_image' field from the DEPLOYMENT_CONFIG_FILE,
+    e.g., monetdb_image = "madgik/exareme2_db:dev1.2".
 
     The data of the monetdb container are not persisted. If the container is recreated, all data will be lost.
     """
@@ -393,6 +394,13 @@ def create_monetdb(
 
     udfio_full_path = path.abspath(udfio.__file__)
 
+    # Mount the aggregator source directory so that the MonetDB container
+    # has access to the aggregator modules needed by the Python UDF.
+    aggregator_src = "/home/kfilippopolitis/Desktop/aggregator_for_monetdb/"
+    volume_aggregator = f"-v {aggregator_src}:/home/udflib/aggregator_for_monetdb"
+    # Set PYTHONPATH to include the aggregator folder
+    py_path_env = "-e PYTHONPATH=/home/udflib/aggregator_for_monetdb"
+
     worker_ids = worker
     for worker_id in worker_ids:
         container_name = f"monetdb-{worker_id}"
@@ -409,7 +417,18 @@ def create_monetdb(
             f"Starting container {container_name} on ports {container_ports}...",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e SOFT_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.7} -e HARD_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.85}  -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -e MAX_MEMORY={monetdb_memory_limit*1048576} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
+        cmd = (
+            f"docker run -d -P -p {container_ports} "
+            f"-e SOFT_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.7} "
+            f"-e HARD_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.85} "
+            f"-e LOG_LEVEL={log_level} {monetdb_nclient_env_var} "
+            f"-e MAX_MEMORY={monetdb_memory_limit * 1048576} {monetdb_nclient_env_var} "
+            f"{py_path_env} "
+            f"-v {udfio_full_path}:/home/udflib/udfio.py "
+            f"-v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} "
+            f"{volume_aggregator} "
+            f"--name {container_name} --memory={monetdb_memory_limit}m {image}"
+        )
         run(c, cmd)
 
 
