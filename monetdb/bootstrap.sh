@@ -9,6 +9,7 @@ then
   echo 'Initializing the database...'
 
   # Create the monetdb daemon
+  chmod -R 777 $MONETDB_STORAGE
   monetdbd create $MONETDB_STORAGE
   monetdbd set port=50000 $MONETDB_STORAGE
   monetdbd set listenaddr=0.0.0.0  $MONETDB_STORAGE
@@ -41,6 +42,7 @@ else
   echo 'No monetdbd instances are running.'
 
   echo 'Starting the already existing database...'
+  chmod -R 777 $MONETDB_STORAGE
   monetdbd start $MONETDB_STORAGE
   monetdb set vmmaxsize=$MAX_MEMORY db
   monetdb set memmaxsize=$MAX_MEMORY db
