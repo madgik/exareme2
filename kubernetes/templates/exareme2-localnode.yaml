@@ -61,7 +61,7 @@ spec:
         ports:
           - containerPort: 50000
         volumeMounts:
-        - mountPath: /home/monetdb/localworker
+        - mountPath: /home/monetdb
           name: db-data
         - mountPath: /opt/data
           name: csv-data
