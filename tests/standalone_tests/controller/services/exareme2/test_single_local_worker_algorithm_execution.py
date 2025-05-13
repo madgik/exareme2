@@ -543,7 +543,7 @@ async def test_single_local_worker_algorithm_execution(
     metadata,
     controller,
     request,
-    reset_celery_app_factory,  # celery celery fail if this is not reset
+    reset_celery_app_factory,  # celery fail if this is not reset
 ):
     algorithm = request.getfixturevalue(algorithm)
     data_model_views = request.getfixturevalue(data_model_views_and_workers)

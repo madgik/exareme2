@@ -21,9 +21,6 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
     DataModelsMetadataPerWorker,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
-    DatasetLocation,
-)
-from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     DatasetsLocations,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -85,12 +82,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -119,7 +114,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     )
                                 ],
                                 cdes=CommonDataElements(
@@ -151,12 +145,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -189,12 +181,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -223,7 +213,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -313,40 +302,16 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
-                            "dataset3": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset3.csv",
-                            ),
-                            "dataset4": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset4.csv",
-                            ),
-                            "dataset5": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset5.csv",
-                            ),
-                            "dataset6": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset6.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -363,12 +328,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=None,
@@ -382,7 +345,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     )
                                 ],
                                 cdes=CommonDataElements(
@@ -414,12 +376,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -452,12 +412,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -486,7 +444,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -561,32 +518,14 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset3": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset3.csv",
-                            ),
-                            "dataset4": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset4.csv",
-                            ),
-                            "dataset5": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset5.csv",
-                            ),
-                            "dataset6": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset6.csv",
-                            ),
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -603,12 +542,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -646,7 +583,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     )
                                 ],
                                 cdes=CommonDataElements(
@@ -678,12 +614,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -725,12 +659,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -768,7 +700,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     )
                                 ],
                                 cdes=CommonDataElements(
@@ -824,14 +755,8 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -1033,12 +958,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1067,7 +990,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1099,12 +1021,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1133,7 +1053,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1165,12 +1084,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1199,7 +1116,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1231,12 +1147,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1265,7 +1179,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1343,12 +1256,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1377,7 +1288,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1409,12 +1319,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1447,12 +1355,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1481,7 +1387,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1555,30 +1460,12 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
-                            "dataset3": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset3.csv",
-                            ),
-                            "dataset4": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset4.csv",
-                            ),
-                            "dataset5": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset5.csv",
-                            ),
-                            "dataset6": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset6.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                     }
                 ),
@@ -1595,12 +1482,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1638,7 +1523,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1670,12 +1554,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1708,12 +1590,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1742,7 +1622,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1798,14 +1677,8 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -1822,12 +1695,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1865,7 +1736,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1897,12 +1767,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1935,12 +1803,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -1969,7 +1835,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2025,14 +1890,8 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -2049,12 +1908,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2086,7 +1943,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2118,12 +1974,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2159,12 +2013,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2193,7 +2045,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2284,40 +2135,16 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
-                            "dataset3": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset3.csv",
-                            ),
-                            "dataset4": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset4.csv",
-                            ),
-                            "dataset5": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset5.csv",
-                            ),
-                            "dataset6": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset6.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -2334,12 +2161,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2371,7 +2196,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset1",
                                         label="DATASET1",
-                                        csv_path="/opt/data/dataset1.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2403,12 +2227,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset3",
                                         label="DATASET3",
-                                        csv_path="/opt/data/dataset3.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset4",
                                         label="DATASET4",
-                                        csv_path="/opt/data/dataset4.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2444,12 +2266,10 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset5",
                                         label="DATASET5",
-                                        csv_path="/opt/data/dataset5.csv",
                                     ),
                                     DatasetInfo(
                                         code="dataset6",
                                         label="DATASET6",
-                                        csv_path="/opt/data/dataset6.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2478,7 +2298,6 @@ def get_parametrization_cases():
                                     DatasetInfo(
                                         code="dataset2",
                                         label="DATASET2",
-                                        csv_path="/opt/data/dataset2.csv",
                                     ),
                                 ],
                                 cdes=CommonDataElements(
@@ -2569,40 +2388,16 @@ def get_parametrization_cases():
                 datasets_locations=DatasetsLocations(
                     datasets_locations={
                         "data_model:1": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
-                            "dataset3": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset3.csv",
-                            ),
-                            "dataset4": DatasetLocation(
-                                worker_id="localworker2",
-                                csv_path="/opt/data/dataset4.csv",
-                            ),
-                            "dataset5": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset5.csv",
-                            ),
-                            "dataset6": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset6.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker1",
+                            "dataset3": "localworker2",
+                            "dataset4": "localworker2",
+                            "dataset5": "localworker3",
+                            "dataset6": "localworker3",
                         },
                         "data_model:2": {
-                            "dataset1": DatasetLocation(
-                                worker_id="localworker1",
-                                csv_path="/opt/data/dataset1.csv",
-                            ),
-                            "dataset2": DatasetLocation(
-                                worker_id="localworker3",
-                                csv_path="/opt/data/dataset2.csv",
-                            ),
+                            "dataset1": "localworker1",
+                            "dataset2": "localworker3",
                         },
                     }
                 ),
@@ -2649,12 +2444,10 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
                             DatasetInfo(
                                 code="dataset1",
                                 label="DATASET1",
-                                csv_path="/opt/data/dataset1.csv",
                             ),
                             DatasetInfo(
                                 code="dataset2",
                                 label="DATASET2",
-                                csv_path="/opt/data/dataset2.csv",
                             ),
                         ],
                         cdes=CommonDataElements(
@@ -2680,7 +2473,6 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
                             DatasetInfo(
                                 code="dataset1",
                                 label="DATASET1",
-                                csv_path="/opt/data/dataset1.csv",
                             ),
                         ],
                         cdes=CommonDataElements(
@@ -2712,12 +2504,10 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
                             DatasetInfo(
                                 code="dataset3",
                                 label="DATASET3",
-                                csv_path="/opt/data/dataset3.csv",
                             ),
                             DatasetInfo(
                                 code="dataset4",
                                 label="DATASET4",
-                                csv_path="/opt/data/dataset4.csv",
                             ),
                         ],
                         cdes=CommonDataElements(
@@ -2750,12 +2540,10 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
                             DatasetInfo(
                                 code="dataset5",
                                 label="DATASET5",
-                                csv_path="/opt/data/dataset5.csv",
                             ),
                             DatasetInfo(
                                 code="dataset6",
                                 label="DATASET6",
-                                csv_path="/opt/data/dataset6.csv",
                             ),
                         ],
                         cdes=CommonDataElements(
@@ -2784,7 +2572,6 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
                             DatasetInfo(
                                 code="dataset2",
                                 label="DATASET2",
-                                csv_path="/opt/data/dataset2.csv",
                             ),
                         ],
                         cdes=CommonDataElements(
@@ -2873,26 +2660,14 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
         datasets_locations=DatasetsLocations(
             datasets_locations={
                 "data_model:1": {
-                    "dataset3": DatasetLocation(
-                        worker_id="localworker2", csv_path="/opt/data/dataset3.csv"
-                    ),
-                    "dataset4": DatasetLocation(
-                        worker_id="localworker2", csv_path="/opt/data/dataset4.csv"
-                    ),
-                    "dataset5": DatasetLocation(
-                        worker_id="localworker3", csv_path="/opt/data/dataset5.csv"
-                    ),
-                    "dataset6": DatasetLocation(
-                        worker_id="localworker3", csv_path="/opt/data/dataset6.csv"
-                    ),
+                    "dataset3": "localworker2",
+                    "dataset4": "localworker2",
+                    "dataset5": "localworker3",
+                    "dataset6": "localworker3",
                 },
                 "data_model:2": {
-                    "dataset1": DatasetLocation(
-                        worker_id="localworker1", csv_path="/opt/data/dataset1.csv"
-                    ),
-                    "dataset2": DatasetLocation(
-                        worker_id="localworker3", csv_path="/opt/data/dataset2.csv"
-                    ),
+                    "dataset1": "localworker1",
+                    "dataset2": "localworker3",
                 },
             }
         ),

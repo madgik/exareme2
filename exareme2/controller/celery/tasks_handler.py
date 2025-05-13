@@ -39,6 +39,7 @@ TASK_SIGNATURES: Final = {
     "stop_flower_server": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_server",
     "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
     "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
+    "run_exaflow_udf": "exareme2.worker.exaflow.udf.udf_api.run_udf",
 }
 
 
@@ -302,7 +303,8 @@ class WorkerTasksHandler:
         request_id,
         algorithm_folder_path,
         server_address,
-        csv_paths,
+        data_model,
+        datasets,
         execution_timeout,
     ) -> WorkerTaskResult:
         return self._queue_task(
@@ -310,7 +312,8 @@ class WorkerTasksHandler:
             request_id=request_id,
             algorithm_folder_path=algorithm_folder_path,
             server_address=server_address,
-            csv_paths=csv_paths,
+            data_model=data_model,
+            datasets=datasets,
             execution_timeout=execution_timeout,
         )
 
@@ -320,7 +323,8 @@ class WorkerTasksHandler:
         algorithm_folder_path,
         number_of_clients,
         server_address,
-        csv_paths,
+        data_model,
+        datasets,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["start_flower_server"],
@@ -328,7 +332,8 @@ class WorkerTasksHandler:
             algorithm_folder_path=algorithm_folder_path,
             number_of_clients=number_of_clients,
             server_address=server_address,
-            csv_paths=csv_paths,
+            data_model=data_model,
+            datasets=datasets,
         )
 
     def stop_flower_server(
@@ -355,4 +360,17 @@ class WorkerTasksHandler:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["garbage_collect"],
             request_id=request_id,
+        )
+
+    def queue_udf(
+        self,
+        request_id,
+        udf_name,
+        params,
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["run_exaflow_udf"],
+            request_id=request_id,
+            udf_name=udf_name,
+            params=params,
         )

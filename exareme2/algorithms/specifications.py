@@ -13,6 +13,7 @@ from pydantic import root_validator
 class AlgorithmType(Enum):
     EXAREME2 = "exareme2"
     FLOWER = "flower"
+    EXAFLOW = "exaflow"
 
 
 @unique

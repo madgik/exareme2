@@ -5,10 +5,6 @@ from typing import Any
 from typing import Dict
 from typing import Optional
 
-from exareme2.controller.services.api.algorithm_request_dtos import (
-    AlgorithmInputDataDTO,
-)
-
 
 @unique
 class Status(str, Enum):
@@ -28,7 +24,7 @@ class Result:
 
 class FlowerIORegistry:
     def __init__(self, timeout, logger):
-        self._inputdata: Optional[AlgorithmInputDataDTO] = None
+        self._inputdata: Optional[dict] = None
         self._result: Optional[Result] = None
         self.result_ready: Optional[asyncio.Event] = None
         self._logger = logger
@@ -37,7 +33,7 @@ class FlowerIORegistry:
 
     def _reset_sync(self):
         """Synchronously resets the algorithm execution info to initial state."""
-        self._inputdata = AlgorithmInputDataDTO(data_model="", datasets=[])
+        self._inputdata = {}
         self._result = Result(content={}, status=Status.RUNNING)
         self.result_ready = asyncio.Event()
         self._logger.debug("Algorithm reset: input data cleared, status set to RUNNING")
@@ -76,14 +72,14 @@ class FlowerIORegistry:
         self._logger.debug(f"Status retrieved: {status}")
         return status
 
-    def set_inputdata(self, inputdata: AlgorithmInputDataDTO):
+    def set_inputdata(self, inputdata: dict):
         """Sets new input data for the algorithm and resets status and result."""
         self._inputdata = inputdata
         self._result = Result(content={}, status=Status.RUNNING)
         self.result_ready.clear()
         self._logger.debug(f"Input data updated: {inputdata}, status reset to RUNNING")
 
-    def get_inputdata(self) -> AlgorithmInputDataDTO:
+    def get_inputdata(self) -> dict:
         """Returns the current input data."""
         self._logger.debug(f"Input data retrieved: {self._inputdata}")
         return self._inputdata

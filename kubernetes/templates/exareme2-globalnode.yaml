@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: exareme2-globalworker-deployment
+  namespace: {{ .Values.namespace }}
   labels:
     app: exareme2-worker
     nodeType: globalworker
@@ -19,15 +20,16 @@ spec:
       nodeSelector:
         master: "true"
       volumes:
-      - name: db-data
-        hostPath:
-          path: {{ .Values.db.storage_location }}
-      - name: csv-data
-        hostPath:
-          path: {{ .Values.db.csvs_location }}
-      - name: credentials
-        hostPath:
-          path: {{ .Values.db.credentials_location }}
+        - name: db-data
+          hostPath:
+            path: {{ printf "%s/db" .Values.db.globalworker_location }}
+        - name: csv-data
+          hostPath:
+            path: {{ printf "%s/csvs" .Values.db.globalworker_location }}
+        - name: credentials
+          hostPath:
+            path: {{ printf "%s/credentials" .Values.db.globalworker_location }}
+
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}

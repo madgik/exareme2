@@ -9,6 +9,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from exareme2 import EXAFLOW_ALGORITHM_FOLDERS
 from exareme2 import EXAREME2_ALGORITHM_FOLDERS
 from exareme2 import FLOWER_ALGORITHM_FOLDERS
 from exareme2.algorithms.specifications import AlgorithmSpecification
@@ -304,6 +305,7 @@ class Specifications:
             Path(specs_path.strip())
             for specs_path in EXAREME2_ALGORITHM_FOLDERS.split(",")
             + FLOWER_ALGORITHM_FOLDERS.split(",")
+            + EXAFLOW_ALGORITHM_FOLDERS.split(",")
         ]
 
     def parse_specifications(self, specs_path, all_algorithms, all_transformers):

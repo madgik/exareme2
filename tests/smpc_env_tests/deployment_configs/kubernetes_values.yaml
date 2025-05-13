@@ -8,9 +8,8 @@ log_level: DEBUG
 framework_log_level: INFO
 
 db:
-  credentials_location: /opt/exareme2/credentials
-  storage_location: /opt/exareme2/db
-  csvs_location: /opt/exareme2/csvs
+  localworker_location: /opt/exareme2/localworker
+  globalworker_location: /opt/exareme2/globalworker
   max_memory: 1024Mi    # k8s memory limit
 
 controller:

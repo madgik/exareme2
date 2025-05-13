@@ -6,6 +6,9 @@ from exareme2.controller.services.api.algorithm_request_validator import (
     validate_algorithm_request,
 )
 from exareme2.controller.services.api.algorithm_spec_dtos import specifications
+from exareme2.controller.services.exaflow import (
+    get_controller as get_exaflow_controller,
+)
 from exareme2.controller.services.exareme2 import (
     get_controller as get_exareme2_controller,
 )
@@ -26,11 +29,14 @@ async def execute_algorithm(algo_name: str, request_dto: AlgorithmRequestDTO):
         smpc_enabled=ctrl_config.smpc.enabled,
         smpc_optional=ctrl_config.smpc.optional,
     )
-    controller = (
-        get_flower_controller()
-        if request_dto.type == AlgorithmType.FLOWER
-        else get_exareme2_controller()
-    )
+
+    if request_dto.type == AlgorithmType.FLOWER:
+        controller = get_flower_controller()
+    elif request_dto.type == AlgorithmType.EXAFLOW:
+        controller = get_exaflow_controller()
+    else:
+        controller = get_exareme2_controller()
+
     algorithm_result = await controller.exec_algorithm(
         algorithm_name=algo_name,
         algorithm_request_dto=request_dto,

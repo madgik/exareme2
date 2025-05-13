@@ -2,7 +2,7 @@ from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
 
 
-class FlowerTasksHandler:
+class TasksHandler:
     def __init__(
         self,
         request_id: str,
@@ -30,13 +30,19 @@ class FlowerTasksHandler:
         return self._db_address
 
     def start_flower_client(
-        self, algorithm_folder_path, server_address, csv_paths, execution_timeout
+        self,
+        algorithm_folder_path,
+        server_address,
+        data_model,
+        datasets,
+        execution_timeout,
     ) -> int:
         return self._worker_tasks_handler.start_flower_client(
             self._request_id,
             algorithm_folder_path,
             server_address,
-            csv_paths,
+            data_model,
+            datasets,
             execution_timeout,
         ).get(timeout=self._tasks_timeout)
 
@@ -45,14 +51,16 @@ class FlowerTasksHandler:
         algorithm_folder_path: str,
         number_of_clients: int,
         server_address,
-        csv_paths,
+        data_model,
+        datasets,
     ) -> int:
         return self._worker_tasks_handler.start_flower_server(
             self._request_id,
             algorithm_folder_path,
             number_of_clients,
             server_address,
-            csv_paths,
+            data_model,
+            datasets,
         ).get(timeout=self._tasks_timeout)
 
     def stop_flower_server(self, pid: int, algorithm_name: str):
