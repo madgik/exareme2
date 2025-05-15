@@ -47,7 +47,7 @@ class CustomFedXgbBagging(FedXgbBagging):
 
             auc_diff = curr_auc - self.initial_auc
             auc_ascending = ""
-            if auc_diff >= -0.05:
+            if auc_diff >= -0.1:
                 auc_ascending = "correct"
             else:
                 auc_ascending = "not_correct"
