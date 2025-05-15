@@ -8,10 +8,11 @@ from flwr.server.strategy import FedXgbBagging
 from exareme2.algorithms.flower.inputdata_preprocessing import post_result
 
 # FL experimental settings
-pool_size = 2
+NUM_CLIENTS = int(os.environ["NUMBER_OF_CLIENTS"])
+pool_size = NUM_CLIENTS
 NUM_OF_ROUNDS = 5
-num_clients_per_round = 2
-num_evaluate_clients = 2
+num_clients_per_round = NUM_CLIENTS
+num_evaluate_clients = NUM_CLIENTS
 
 
 def evaluate_metrics_aggregation(eval_metrics):
