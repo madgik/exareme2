@@ -16,9 +16,9 @@ from flwr.common import Parameters
 from flwr.common import Status
 from flwr.common.logger import FLOWER_LOGGER
 
-from exareme2.algorithms.flower.inputdata_preprocessing import fetch_data
 from exareme2.algorithms.flower.inputdata_preprocessing import get_input
 from exareme2.algorithms.flower.inputdata_preprocessing import preprocess_data
+from exareme2.algorithms.utils.inputdata_utils import fetch_data
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -135,7 +135,7 @@ class XgbClient(fl.client.Client):
 
 if __name__ == "__main__":
     inputdata = get_input()
-    full_data = fetch_data(inputdata)
+    full_data = fetch_data(inputdata, os.getenv("CSV_PATHS").split(","))
     X_train, y_train = preprocess_data(inputdata, full_data)
     # hard coded for now, later we can split X_train and y_train
     X_valid, y_valid = X_train, y_train
