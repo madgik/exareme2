@@ -1,12 +1,8 @@
-from typing import List
-
 from exareme2.worker import config as worker_config
 from exareme2.worker.utils.logger import initialise_logger
 from exareme2.worker.worker_info import worker_info_db
 from exareme2.worker.worker_info.worker_info_db import check_database_connection
-from exareme2.worker.worker_info.worker_info_db import convert_csv_paths_to_absolute
 from exareme2.worker.worker_info.worker_info_db import get_data_models
-from exareme2.worker.worker_info.worker_info_db import get_dataset_csv_paths
 from exareme2.worker.worker_info.worker_info_db import get_dataset_infos
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes

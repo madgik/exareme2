@@ -117,6 +117,7 @@ LOCALWORKER1_CONFIG_FILE = "test_localworker1.toml"
 LOCALWORKER2_CONFIG_FILE = "test_localworker2.toml"
 LOCALWORKERTMP_CONFIG_FILE = "test_localworkertmp.toml"
 CONTROLLER_CONFIG_FILE = "test_controller.toml"
+AGGREGATOR_CONFIG_FILE = "test_aggregator.toml"
 CONTROLLER_GLOBALWORKER_LOCALWORKER1_ADDRESSES_FILE = (
     "test_localworker1_globalworker_addresses.json"
 )
@@ -914,6 +915,64 @@ def remove_localworkertmp_rabbitmq():
     _remove_rabbitmq_container(cont_name)
 
 
+def _create_aggregator_service(
+    aggregator_config_filepath, logs_filename: str = "test_aggregator_server.out"
+):
+    """
+    Creates and starts the Aggregator gRPC server as a subprocess using Poetry.
+
+    :param logs_filename: Name of the log file to capture aggregator output.
+    :return: Process handle for the aggregator server.
+    """
+
+    logpath = OUTDIR / logs_filename
+    if os.path.isfile(logpath):
+        os.remove(logpath)
+
+    PYTHONPATH = Path(__file__).parent.parent.parent
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(PYTHONPATH)
+    env["EXAREME2_AGGREGATOR_CONFIG_FILE"] = aggregator_config_filepath
+    server_script = PYTHONPATH / "exareme2" / "aggregator" / "grpc_agg_server.py"
+
+    # Remove the PYTHONPATH assignment from the command string since it's set in env.
+    cmd = f"poetry run python {server_script} >> {logpath} 2>&1"
+
+    print(f"\nCreating aggregator service ...")
+
+    # Use 'exec' to replace the shell process; this helps with proper termination later.
+    proc = subprocess.Popen(
+        "exec " + cmd,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+    )
+
+    # Wait for the aggregator server to start up by searching for a specific log string.
+    _search_for_string_in_logfile("Aggregator server running", logpath)
+
+    print(f"\nCreated aggregator service.")
+    return proc
+
+
+@pytest.fixture(scope="session")
+def aggregator_service():
+    """
+    Pytest fixture that starts the aggregator service for the duration of a test.
+    It uses _create_aggregator_service to launch the server and then cleans it up afterward.
+    """
+    aggregator_config_file = AGGREGATOR_CONFIG_FILE
+    aggregator_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, aggregator_config_file
+    )
+    proc = _create_aggregator_service(aggregator_config_filepath)
+    # Optionally, add a short sleep if needed for stability:
+    time.sleep(1)
+    yield proc
+    kill_service(proc)
+
+
 def _create_worker_service(worker_config_filepath):
     with open(worker_config_filepath) as fp:
         tmp = toml.load(fp)
@@ -929,6 +988,7 @@ def _create_worker_service(worker_config_filepath):
     env["EXAREME2_ALGORITHM_FOLDERS"] = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["FLOWER_ALGORITHM_FOLDERS"] = FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["EXAFLOW_ALGORITHM_FOLDERS"] = EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    env["DATA_PATH"] = str(TEST_DATA_FOLDER)
     env["EXAREME2_WORKER_CONFIG_FILE"] = worker_config_filepath
 
     cmd = f"poetry run celery -A exareme2.worker.utils.celery_app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "

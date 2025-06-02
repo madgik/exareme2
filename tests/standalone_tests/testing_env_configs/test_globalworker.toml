@@ -4,6 +4,7 @@ log_level = "DEBUG"
 framework_log_level = "INFO"
 role = "GLOBALWORKER"
 monetdb_nclients = 128
+data_path = "$DATA_PATH"
 
 [controller]
 ip = "172.17.0.1"

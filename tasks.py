@@ -81,11 +81,15 @@ DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 WORKERS_CONFIG_DIR = PROJECT_ROOT / "configs" / "workers"
 WORKER_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "worker" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
+AGGREGATOR_CONFIG_DIR = PROJECT_ROOT / "configs" / "aggregator"
 CONTROLLER_LOCALWORKERS_CONFIG_FILE = (
     PROJECT_ROOT / "configs" / "controller" / "localworkers_config.json"
 )
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "exareme2" / "controller" / "config.toml"
+)
+AGGREGATOR_CONFIG_TEMPLATE_FILE = (
+    PROJECT_ROOT / "exareme2" / "aggregator" / "config.toml"
 )
 OUTDIR = Path("/tmp/exareme2/")
 if not OUTDIR.exists():
@@ -102,6 +106,7 @@ FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
 EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
+EXAREME2_AGGREGATOR_CONFIG_FILE = "EXAREME2_AGGREGATOR_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
 
 SMPC_COORDINATOR_PORT = 12314
@@ -290,6 +295,21 @@ def create_configs(c):
     ]
     with open(CONTROLLER_LOCALWORKERS_CONFIG_FILE, "w+") as fp:
         json.dump(localworkers_addresses, fp)
+
+    # Create the aggregator config file
+    with open(AGGREGATOR_CONFIG_TEMPLATE_FILE) as fp:
+        template_aggregator_config = toml.load(fp)
+    aggregator_config = copy.deepcopy(template_aggregator_config)
+    aggregator_config["host"] = deployment_config["ip"]
+    aggregator_config["port"] = deployment_config["aggregator"]["port"]
+    aggregator_config["max_workers"] = deployment_config["aggregator"]["max_workers"]
+    aggregator_config["timeout"] = deployment_config["aggregator"]["timeout"]
+    aggregator_config["log_level"] = deployment_config["log_level"]
+
+    AGGREGATOR_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    aggregator_config_file = AGGREGATOR_CONFIG_DIR / "aggregator.toml"
+    with open(aggregator_config_file, "w+") as fp:
+        toml.dump(aggregator_config, fp)
 
 
 @task
@@ -897,6 +917,56 @@ def start_worker(
 
 
 @task
+def kill_aggregator(c):
+    """
+    Kill the aggregator service by finding and terminating its process.
+
+    This task looks for any process whose command line contains 'grpc_agg_server.py'
+    and terminates it.
+    """
+    res = run(c, "ps aux | grep '[g]rpc_agg_server.py'", warn=True, show_ok=False)
+    if res.ok and res.stdout.strip():
+        message("Killing aggregator process...", Level.HEADER)
+        cmd = "ps aux | grep '[g]rpc_agg_server.py' | awk '{print $2}' | xargs kill -9"
+        run(c, cmd)
+        message("Aggregator process killed.", Level.SUCCESS)
+    else:
+        message("No aggregator process found.", Level.HEADER)
+
+
+@task
+def start_aggregator(c, detached=False):
+    """
+    Starts the Aggregation gRPC server.
+
+    The aggregator now uses the configuration provided in the config file
+    (via exareme2.aggregator.config) so no command-line parameters are needed.
+    If detached is True, the server will run in the background.
+    """
+
+    kill_aggregator(c)
+    message("Starting Aggregator...", Level.HEADER)
+    aggregator_config_file = AGGREGATOR_CONFIG_DIR / "aggregator.toml"
+
+    server_script = PROJECT_ROOT / "exareme2" / "aggregator" / "grpc_agg_server.py"
+
+    if not server_script.exists():
+        message(f"Aggregator server script not found at {server_script}.", Level.ERROR)
+        return
+
+    with c.prefix(f"export {EXAREME2_AGGREGATOR_CONFIG_FILE}={aggregator_config_file}"):
+        # Command simply runs the aggregator server script.
+        cmd = f"PYTHONPATH={PROJECT_ROOT} python {server_script}"
+
+        if detached:
+            log_file = OUTDIR / "aggregator_server.out"
+            c.run(f"{cmd} >> {log_file} 2>&1 &", disown=True)
+            message("Ok", Level.SUCCESS)
+        else:
+            c.run(cmd, pty=True)
+
+
+@task
 def kill_controller(c):
     """Kill the controller service."""
     HYPERCORN_PROCESS_NAME = "[f]rom multiprocessing.spawn import spawn_main;"
@@ -967,6 +1037,7 @@ def deploy(
     install_dep=True,
     start_all=True,
     start_controller_=False,
+    start_aggregator_=False,
     start_workers=False,
     log_level=None,
     framework_log_level=None,
@@ -1058,6 +1129,9 @@ def deploy(
             exaflow_algorithm_folders=exaflow_algorithm_folders,
         )
 
+    if start_aggregator_ or start_all:
+        start_aggregator(c, detached=True)
+
     # Start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(
@@ -1097,6 +1171,7 @@ def attach(c, worker=None, controller=False, db=None):
 def cleanup(c):
     """Kill all worker/controller api and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
+    kill_aggregator(c)
     kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
 
