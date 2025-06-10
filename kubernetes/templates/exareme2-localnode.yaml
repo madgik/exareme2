@@ -1,16 +1,18 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: exareme2-localworker-deployment
+  name: exareme2-localworker
   namespace: {{ .Values.namespace }}
   labels:
     app: exareme2-worker
     nodeType: localworker
 spec:
+  serviceName: "exareme2-worker"
   replicas: {{ .Values.localnodes }}
   selector:
     matchLabels:
       app: exareme2-worker
+      nodeType: localworker
   template:
     metadata:
       namespace: {{ .Values.namespace }}
@@ -18,8 +20,10 @@ spec:
         app: exareme2-worker
         nodeType: localworker
     spec:
+      {{ if not .Values.managed_cluster }}
       nodeSelector:
         worker: "true"
+      {{ end }}
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -29,17 +33,21 @@ spec:
                 operator: In
                 values:
                 - localworker
-            topologyKey: "kubernetes.io/hostname"
+            topologyKey: kubernetes.io/hostname
+      # HostPath volumes if hostPath selected
+      {{ if not .Values.managed_cluster }}
       volumes:
         - name: db-data
           hostPath:
-            path: {{ printf "%s/db" .Values.db.localworker_location }}
+            path: {{ printf "%s/db" .Values.storage.hostPath.db.localworker }}
         - name: csv-data
           hostPath:
-            path: {{ printf "%s/csvs" .Values.db.localworker_location }}
+            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.localworker }}
         - name: credentials
           hostPath:
-            path: {{ printf "%s/credentials" .Values.db.localworker_location }}
+            path: {{ printf "%s/credentials" .Values.storage.hostPath.db.localworker }}
+      {{ end }}
+
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
@@ -52,14 +60,14 @@ spec:
           value: {{ .Values.log_level }}
         - name: MONETDB_NCLIENTS
           value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
-        - name: MAX_MEMORY   # Value in bytes
-          value: {{ mul .Values.db.max_memory 1048576 | quote }} # Conversion to bytes
-        - name: SOFT_RESTART_MEMORY_LIMIT   # Value in megabytes
-          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
-        - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
-          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
+        - name: MAX_MEMORY
+          value: {{ mul .Values.db.max_memory 1048576 | quote }}
+        - name: SOFT_RESTART_MEMORY_LIMIT
+          value: {{ div (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
+        - name: HARD_RESTART_MEMORY_LIMIT
+          value: {{ div (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
         ports:
-          - containerPort: 50000
+        - containerPort: 50000
         volumeMounts:
         - mountPath: /home/monetdb
           name: db-data
@@ -116,7 +124,7 @@ spec:
         - name: RABBITMQ_SLEEP_BEFORE_CONFIGURATION
           value: "30"
         ports:
-          - containerPort: 5672
+        - containerPort: 5672
         startupProbe:
           exec:
             command:
@@ -252,6 +260,36 @@ spec:
           value: "http://$(PLAYER_IP_2):7002"
       {{ end }}
 
+  {{ if .Values.managed_cluster }}
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+        accessModes:
+          - {{ index .Values.storage.cephfs.localworker.db.accessModes 0 }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.cephfs.localworker.db.size }}
+    - metadata:
+        name: csv-data
+      spec:
+        storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+        accessModes:
+          - {{ index .Values.storage.cephfs.localworker.csvs.accessModes 0 }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.cephfs.localworker.csvs.size }}
+    - metadata:
+        name: credentials
+      spec:
+        storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+        accessModes:
+          - {{ index .Values.storage.cephfs.localworker.creds.accessModes 0 }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.cephfs.localworker.creds.size }}
+  {{ end }}
 #---  # Used for SMPC cluster debugging
 #
 #apiVersion: v1
