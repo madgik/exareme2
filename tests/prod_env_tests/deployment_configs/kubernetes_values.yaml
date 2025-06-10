@@ -1,4 +1,5 @@
 localnodes: 2
+managed_cluster: false
 
 exareme2_images:
   repository: madgik
@@ -12,8 +13,6 @@ max_concurrent_experiments: 32
 globalworker_identifier: globalworker
 
 db:
-  localworker_location: /opt/exareme2/localworker
-  globalworker_location: /opt/exareme2/globalworker
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
@@ -23,10 +22,18 @@ controller:
   flower_execution_timeout: 20
   celery_tasks_timeout: 120
   workers_cleanup_interval: 60
-  cleanup_file_folder: /opt/cleanup
 
 smpc:
   enabled: false
 
 elk:
   enabled: false
+
+storage:
+  type: hostPath  # options: hostPath | cephfs
+
+  hostPath:
+    controller_cleanup: "/opt/cleanup"
+    db:
+      localworker: "/opt/exareme2/localworker"
+      globalworker: "/opt/exareme2/globalworker"

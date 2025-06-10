@@ -15,12 +15,21 @@ spec:
       labels:
         app: exareme2-controller
     spec:
+      {{ if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
+      {{ end }}
+
       volumes:
       - name: cleanup-file
+        {{ if .Values.managed_cluster }}
+        persistentVolumeClaim:
+          claimName: cleanup-file-pvc
+        {{ else }}
         hostPath:
-          path: {{ .Values.controller.cleanup_file_folder }}
+          path: {{ .Values.storage.hostPath.controller_cleanup }}
+        {{ end }}
+
       containers:
       - name: controller
         image: {{ .Values.exareme2_images.repository }}/exareme2_controller:{{ .Values.exareme2_images.version }}

@@ -1,4 +1,5 @@
 localworkers: 2
+managed_cluster: false
 
 exareme2_images:
   repository: madgik
@@ -8,8 +9,6 @@ log_level: DEBUG
 framework_log_level: INFO
 
 db:
-  localworker_location: /opt/exareme2/localworker
-  globalworker_location: /opt/exareme2/globalworker
   max_memory: 1024Mi    # k8s memory limit
 
 controller:
@@ -18,7 +17,6 @@ controller:
   celery_tasks_timeout: 20
   celery_run_udf_task_timeout: 120
   workers_cleanup_interval: 60
-  cleanup_file_folder: /opt/cleanup
 
 smpc:
   enabled: true
@@ -28,3 +26,12 @@ smpc:
   queue_image: redis:alpine3.15
   get_result_interval: 10
   get_result_max_retries: 100
+
+storage:
+  type: hostPath  # options: hostPath | cephfs
+
+  hostPath:
+    controller_cleanup: "/opt/cleanup"
+    db:
+      localworker: "/opt/exareme2/localworker"
+      globalworker: "/opt/exareme2/globalworker"
