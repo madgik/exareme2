@@ -36,7 +36,7 @@ smpc:
   get_result_max_retries: 100
 
 storage:
-  type: hostPath  # options: hostPath | cephfs
+  type: hostPath
 
   hostPath:
     controller_cleanup: "/opt/cleanup"

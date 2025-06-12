@@ -234,24 +234,24 @@ spec:
             name: db-data
           spec:
             storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.db.accessModes | nindent 6 }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.db.accessModes | nindent 6 }}
             resources:
               requests:
-                storage: {{ .Values.storage.cephfs.db.size }}
+                storage: {{ .Values.storage.cephfs.globalworker.db.size }}
         - metadata:
             name: csv-data
           spec:
             storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.csvs.accessModes | nindent 6 }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
             resources:
               requests:
-                storage: {{ .Values.storage.cephfs.csvs.size }}
+                storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
         - metadata:
             name: credentials
           spec:
             storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.creds.accessModes | nindent 6 }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
             resources:
               requests:
-                storage: {{ .Values.storage.cephfs.creds.size }}
+                storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
       {{ end }}
