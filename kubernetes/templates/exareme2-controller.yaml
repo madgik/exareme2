@@ -1,3 +1,22 @@
+# PVC for cleanup-file (only if using CephFS PVC)
+{{ if .Values.managed_cluster }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cleanup-file-pvc
+  namespace: {{ .Values.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.cephfs.controller.size }}
+  storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+
+{{ end }}
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
