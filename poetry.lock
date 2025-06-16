@@ -2991,6 +2991,30 @@ files = [
 h11 = ">=0.9.0,<1"
 
 [[package]]
+name = "xgboost-cpu"
+version = "2.1.4"
+description = "XGBoost Python Package"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "xgboost_cpu-2.1.4-py3-none-manylinux2014_aarch64.whl", hash = "sha256:f2eb1997a490789a9866abad46179e0a4e1ea01c1673cb5b586b630dc6b18232"},
+    {file = "xgboost_cpu-2.1.4-py3-none-manylinux2014_x86_64.whl", hash = "sha256:ac3281127b2f77f6c62e8699216b0974a1c4a442ee6162eb94256c01df7cd1f5"},
+    {file = "xgboost_cpu-2.1.4-py3-none-win_amd64.whl", hash = "sha256:5bd5017085fcf1756306eadd6548973a8ef05f18ad2eec529f5b54c00843cecf"},
+]
+
+[package.dependencies]
+numpy = "*"
+scipy = "*"
+
+[package.extras]
+dask = ["dask", "distributed", "pandas"]
+datatable = ["datatable"]
+pandas = ["pandas (>=1.2)"]
+plotting = ["graphviz", "matplotlib"]
+pyspark = ["cloudpickle", "pyspark", "scikit-learn"]
+scikit-learn = ["scikit-learn"]
+
+[[package]]
 name = "zipp"
 version = "3.19.2"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -3008,4 +3032,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.8"
-content-hash = "72b48e2af97e04691afbe14e1ed311b8e4709902fbf04f420bdaf0a5b82db9d3"
+content-hash = "c07bd4d9a34417efc26dde9eab8e1c97376e4c853fc6dc9afbea05ed3dd7135f"
