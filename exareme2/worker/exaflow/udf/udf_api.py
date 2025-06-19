@@ -8,5 +8,6 @@ def run_udf(
     request_id,
     udf_name: str,
     params: dict,
+    use_aggregator: bool,
 ):
-    return udf_service.run_udf(request_id, udf_name, params)
+    return udf_service.run_udf(request_id, udf_name, params, use_aggregator)

@@ -11,6 +11,9 @@ max_concurrent_experiments: 32
 
 globalworker_identifier: globalworker
 
+aggregation_server:
+  maxWorkers: 10
+  timeout: 60
 db:
   localworker_location: /opt/exareme2/localworker
   globalworker_location: /opt/exareme2/globalworker

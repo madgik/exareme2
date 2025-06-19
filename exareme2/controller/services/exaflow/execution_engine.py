@@ -1,13 +1,23 @@
+from typing import Any
+from typing import Callable
+from typing import Dict
 from typing import List
+from typing import Union
 
+from exareme2.algorithms.exaflow.exaflow_registry import exaflow_registry
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.exaflow.tasks_handler import TasksHandler
 
 
 class AlgorithmExecutionEngine:
     """
-    The AlgorithmExecutionEngine is the class used by the algorithms to communicate with
-    the workers of the system. An AlgorithmExecutionEngine object is passed to all algorithms
+    Helper handed to algorithms so they can send UDFs to the workers.
+
+    Notes
+    -----
+    * `run_algorithm_udf`  – fire-and-collect.
+    * `run_algorithm_udf_with_aggregator` – same, but requires **identical**
+      results from every worker (often used when a global aggregation server is in play).
     """
 
     def __init__(
@@ -15,31 +25,48 @@ class AlgorithmExecutionEngine:
         request_id: str,
         context_id: str,
         tasks_handlers: List[TasksHandler],
-    ):
+    ) -> None:
         self._logger = ctrl_logger.get_request_logger(request_id=request_id)
+        self._request_id = request_id
         self._context_id = context_id
         self._tasks_handlers = tasks_handlers
 
-    def run_algorithm_udf(self, func, positional_args) -> List[dict]:
-        """
-        Executes the given UDF on all local workers and returns the results.
-
-        This version queues the UDF on each worker and collects the resulting task objects along
-        with their respective timeout values. The results are then retrieved by directly calling the
-        task's `.get(timeout)` method, eliminating the need for an extra wrapper method.
-
-        Parameters:
-            func: The UDF to execute.
-            positional_args (dict): The arguments for the UDF.
-
-        Returns:
-            List[dict]: A list of results from each worker.
-        """
-        tasks = []
-        for task_handler in self._tasks_handlers:
-            # Queue the UDF and store both the task and its timeout
-            task = task_handler.queue_udf(udf_name=func, params=positional_args)
-            tasks.append((task, task_handler.tasks_timeout))
-
-        # Directly call .get(timeout) on each task result
+    def _broadcast_udf(
+        self,
+        func: Union[str, Callable],
+        positional_args: Dict[str, Any],
+        *,
+        use_aggregator: bool = False,
+    ):
+        """Internal helper shared by the two public methods below."""
+        key = exaflow_registry.resolve_key(func)
+        tasks = [
+            (
+                handler.queue_udf(
+                    udf_name=key,
+                    params=dict(positional_args),  # avoid accidental mutation
+                    use_aggregator=use_aggregator,
+                ),
+                handler.tasks_timeout,
+            )
+            for handler in self._tasks_handlers
+        ]
         return [task.get(timeout) for task, timeout in tasks]
+
+    # ------------------------------------------------------------------ #
+    def run_algorithm_udf(
+        self, func: Union[str, Callable], positional_args: Dict[str, Any]
+    ) -> List[dict]:
+        """Fire‐and-collect convenience wrapper."""
+        return self._broadcast_udf(func, positional_args, use_aggregator=False)
+
+    # ------------------------------------------------------------------ #
+    def run_algorithm_udf_with_aggregator(
+        self, func: Union[str, Callable], positional_args: Dict[str, Any]
+    ) -> dict:
+        """Same, but insists every worker returns the **same** payload."""
+        results = self._broadcast_udf(func, positional_args, use_aggregator=True)
+        first = results[0]
+        if any(r != first for r in results[1:]):
+            raise ValueError("Worker results do not match")
+        return first

@@ -117,6 +117,7 @@ LOCALWORKER1_CONFIG_FILE = "test_localworker1.toml"
 LOCALWORKER2_CONFIG_FILE = "test_localworker2.toml"
 LOCALWORKERTMP_CONFIG_FILE = "test_localworkertmp.toml"
 CONTROLLER_CONFIG_FILE = "test_controller.toml"
+AGG_SERVER_CONFIG_FILE = "test_aggregation_server.toml"
 CONTROLLER_GLOBALWORKER_LOCALWORKER1_ADDRESSES_FILE = (
     "test_localworker1_globalworker_addresses.json"
 )
@@ -914,6 +915,49 @@ def remove_localworkertmp_rabbitmq():
     _remove_rabbitmq_container(cont_name)
 
 
+def _create_aggregation_server_service(
+    aggregation_server_config_filepath: str,
+    logs_filename: str = "test_aggregation_server.out",
+):
+    """
+    Launches aggregation_server.server as a subprocess, capturing logs.
+    """
+    logpath = OUTDIR / logs_filename
+    if logpath.exists():
+        logpath.unlink()
+
+    env = os.environ.copy()
+    env["AGG_SERVER_CONFIG_FILE"] = str(aggregation_server_config_filepath)
+
+    # Directly run the module—no Poetry wrapper
+    cmd = f"exec python -m aggregation_server.server >> {logpath} 2>&1"
+
+    print(f"\nStarting aggregation_server (logs → {logpath})…")
+    proc = subprocess.Popen(cmd, shell=True, env=env)
+
+    # Wait for the startup message in the log (timeout in seconds)
+    _search_for_string_in_logfile("Aggregation server running", logpath)
+
+    print(f"[TEST] aggregation_server is up (PID {proc.pid}).")
+    return proc
+
+
+@pytest.fixture(scope="module")
+def aggregation_server_service():
+    """
+    Pytest fixture: starts the aggregation_server for all tests in the module,
+    then ensures it’s cleaned up at teardown.
+    """
+    aggregation_server_config_filepath = path.join(
+        TEST_ENV_CONFIG_FOLDER, AGG_SERVER_CONFIG_FILE
+    )
+    proc = _create_aggregation_server_service(aggregation_server_config_filepath)
+    # allow a brief warm-up
+    time.sleep(0.5)
+    yield proc
+    kill_service(proc)
+
+
 def _create_worker_service(worker_config_filepath):
     with open(worker_config_filepath) as fp:
         tmp = toml.load(fp)
@@ -929,6 +973,7 @@ def _create_worker_service(worker_config_filepath):
     env["EXAREME2_ALGORITHM_FOLDERS"] = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["FLOWER_ALGORITHM_FOLDERS"] = FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["EXAFLOW_ALGORITHM_FOLDERS"] = EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    env["DATA_PATH"] = str(TEST_DATA_FOLDER)
     env["EXAREME2_WORKER_CONFIG_FILE"] = worker_config_filepath
 
     cmd = f"poetry run celery -A exareme2.worker.utils.celery_app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "

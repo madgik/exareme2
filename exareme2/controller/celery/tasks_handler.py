@@ -367,10 +367,12 @@ class WorkerTasksHandler:
         request_id,
         udf_name,
         params,
+        use_aggregator,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["run_exaflow_udf"],
             request_id=request_id,
             udf_name=udf_name,
             params=params,
+            use_aggregator=use_aggregator,
         )

@@ -1,12 +1,12 @@
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services import set_worker_landscape_aggregator
+from exareme2.controller.services.exaflow import AggregationServerExaflowController
+from exareme2.controller.services.exaflow import ExaflowController
 from exareme2.controller.services.exaflow import (
-    set_controller as set_exaflow_controller,
+    set_aggregation_server_exaflow_controller,
 )
-from exareme2.controller.services.exaflow.controller import (
-    Controller as ExaFlowController,
-)
+from exareme2.controller.services.exaflow import set_exaflow_controller
 from exareme2.controller.services.exareme2 import set_cleaner
 from exareme2.controller.services.exareme2 import (
     set_controller as set_exareme2_controller,
@@ -84,8 +84,14 @@ def start_background_services():
     )
     set_flower_controller(controller)
 
-    exaflow_controller = ExaFlowController(
+    exaflow_controller = ExaflowController(
         worker_landscape_aggregator=worker_landscape_aggregator,
         task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
     )
     set_exaflow_controller(exaflow_controller)
+
+    aggregation_server_exaflow_controller = AggregationServerExaflowController(
+        worker_landscape_aggregator=worker_landscape_aggregator,
+        task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
+    )
+    set_aggregation_server_exaflow_controller(aggregation_server_exaflow_controller)

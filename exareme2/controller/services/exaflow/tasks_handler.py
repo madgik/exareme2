@@ -28,9 +28,9 @@ class TasksHandler:
     def tasks_timeout(self) -> int:
         return self._tasks_timeout
 
-    def queue_udf(self, udf_name, params: dict) -> WorkerTaskResult:
+    def queue_udf(
+        self, udf_name, params: dict, use_aggregator: bool = False
+    ) -> WorkerTaskResult:
         return self._worker_tasks_handler.queue_udf(
-            self._request_id,
-            udf_name,
-            params,
+            self._request_id, udf_name, params, use_aggregator
         )

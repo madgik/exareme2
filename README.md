@@ -71,6 +71,11 @@
    workers_cleanup_interval=10
    contextid_release_timelimit=3600 #an hour
 
+   [aggregation_server]
+   port = 50051
+   max_workers = 10
+   timeout = 10
+
    [smpc]
    enabled=false
    optional=false

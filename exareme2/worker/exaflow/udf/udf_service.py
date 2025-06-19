@@ -1,6 +1,8 @@
 from exareme2.algorithms.exaflow.exaflow_registry import exaflow_registry
-from exareme2.algorithms.specifications import InputDataType
 from exareme2.algorithms.utils.inputdata_utils import Inputdata
+from exareme2.worker.exaflow.aggregation_client import (
+    AlgorithmUdfWorkerAggregationClient as AggregationClient,
+)
 from exareme2.worker.utils.logger import get_logger
 from exareme2.worker.utils.logger import initialise_logger
 from exareme2.worker.worker_info.worker_info_db import get_dataset_csv_paths
@@ -11,6 +13,7 @@ def run_udf(
     request_id,
     udf_name: str,
     params: dict,
+    use_aggregator: bool,
 ):
     """
     Executes a registered exaflow algorithm step.
@@ -19,6 +22,7 @@ def run_udf(
         request_id (str): Unique identifier for the request.
         udf_name (str): Name of the registered udf to execute (e.g., 'local_step').
         params (dict): Parameters required by the udf.
+        use_aggregator (bool): Whether the udf should initiate the aggregation client.
 
     Returns:
         Any: Result returned by the algorithm step.
@@ -27,6 +31,8 @@ def run_udf(
     inpudata = Inputdata.parse_raw(inpudata_dict)
     params["inputdata"] = inpudata
     params["csv_paths"] = get_dataset_csv_paths(inpudata.data_model, inpudata.datasets)
+    if use_aggregator:
+        params["agg_client"] = AggregationClient(request_id)
 
     udf = exaflow_registry.get_udf(udf_name)
 

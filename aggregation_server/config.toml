@@ -1,0 +1,5 @@
+host = "$AGGREGATOR_HOST"
+port = "$AGGREGATOR_PORT"
+max_workers = "$AGGREGATOR_MAX_WORKERS"
+timeout = "$AGGREGATOR_TIMEOUT"
+log_level = "$LOG_LEVEL"

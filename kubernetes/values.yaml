@@ -28,6 +28,10 @@ controller:
 
 globalworker_identifier: globalworker
 
+aggregation_server:
+  maxWorkers: 10
+  timeout: 60
+
 smpc:
   enabled: false
   optional: false
