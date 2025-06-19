@@ -148,7 +148,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: exareme2/aggregation_server/Dockerfile
+          file: aggregation_server/Dockerfile
           push: false
           load: true
           tags: madgik/exareme2_aggregator:dev

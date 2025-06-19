@@ -1,5 +1,5 @@
-# aggregation_server/Dockerfile
 FROM python:3.8-slim
+MAINTAINER Konstantinos Filippopolitis <kfilippopolitis@athenarc.gr>
 
 # 1) install Poetry
 RUN pip install --no-cache-dir poetry
