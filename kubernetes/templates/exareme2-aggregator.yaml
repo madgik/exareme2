@@ -18,7 +18,7 @@ spec:
       nodeSelector:
         master: "true"
       containers:
-        - name: aggregator_server
+        - name: aggregator-server
           image: "{{ .Values.exareme2_images.repository }}/exareme2_aggregator:{{ .Values.exareme2_images.version }}"
           imagePullPolicy: IfNotPresent
           ports:
