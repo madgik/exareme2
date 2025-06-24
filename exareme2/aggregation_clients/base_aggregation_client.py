@@ -19,8 +19,6 @@ class BaseAggregationClient:
         self._channel = grpc.insecure_channel(aggregator_address)
         self._stub = pb2_grpc.AggregationServerStub(self._channel)
 
-    # --------------------------------------------------------------------- #
-    # tiny helper reused by Worker client
     def _aggregate_request(
         self, aggregation_type: AggregationType, flat_values: List[float]
     ) -> List[float]:
@@ -34,7 +32,6 @@ class BaseAggregationClient:
         )
         return self._stub.Aggregate(req).result
 
-    # --------------------------------------------------------------------- #
     def close(self) -> None:
         logger.debug("[CHANNEL] Closing gRPC channel.")
         self._channel.close()

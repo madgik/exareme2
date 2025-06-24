@@ -9,18 +9,6 @@ from aggregation_server import aggregation_server_pb2 as pb2
 from exareme2.aggregation_client.base_aggregation_client import BaseAggregationClient
 
 
-class ControllerAggregationClient(BaseAggregationClient):
-    """What the controller cares about (lifecycle only)."""
-
-    @abstractmethod
-    def configure(self, num_workers: int) -> str:
-        ...
-
-    @abstractmethod
-    def cleanup(self) -> str:
-        ...
-
-
 class AggregationControllerClient(ControllerAggregationClient):
     """
     gRPC wrapper used *only* by the controller to configure / clean up the
