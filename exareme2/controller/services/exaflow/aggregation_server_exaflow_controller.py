@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.services.exaflow.controller_aggregation_client_interface import (
-    ControllerAggregationClientI as AggregationClient,
+from exareme2.aggregation_clients.controller_aggregation_client import (
+    ControllerAggregationClient,
 )
+from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.exaflow.exaflow_controller import ExaflowController
 
 
@@ -11,7 +11,8 @@ class AggregationServerExaflowController(ExaflowController):
     def _configure_aggregator(
         self, request_id: str, workers_info: list[object]
     ) -> object:
-        agg_client = AggregationClient(request_id)
+        # TODO Remove the direct dependency from the aggregation clients package
+        agg_client = ControllerAggregationClient(request_id)
         status = agg_client.configure(num_workers=len(workers_info))
         if status != "Configured":
             raise RuntimeError(f"AggregationServer refused to configure: {status}")
