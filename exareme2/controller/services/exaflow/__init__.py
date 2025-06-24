@@ -7,13 +7,11 @@ from exareme2.controller.services.exaflow.aggregation_server_exaflow_controller 
 )
 from exareme2.controller.services.exaflow.exaflow_controller import ExaflowController
 
-# Singletons for each controller flavor
 _exaflow_ctrl: Optional[ExaflowController] = None
 _exaflow_agg_ctrl: Optional[AggregationServerExaflowController] = None
 
 
 def set_exaflow_controller(controller: ExaflowController):
-    """Override the default ExaFlow (non-aggregation_server) controller."""
     global _exaflow_ctrl
     _exaflow_ctrl = controller
 
@@ -21,13 +19,11 @@ def set_exaflow_controller(controller: ExaflowController):
 def set_aggregation_server_exaflow_controller(
     controller: AggregationServerExaflowController,
 ):
-    """Override the default ExaFlow aggregation_server controller."""
     global _exaflow_agg_ctrl
     _exaflow_agg_ctrl = controller
 
 
 def get_exaflow_controller() -> ExaflowController:
-    """Get or initialize the standard ExaFlow controller."""
     global _exaflow_ctrl
     if _exaflow_ctrl is None:
         worker_landscape = get_worker_landscape_aggregator()
@@ -40,7 +36,6 @@ def get_exaflow_controller() -> ExaflowController:
 
 
 def get_aggregation_server_exaflow_controller() -> AggregationServerExaflowController:
-    """Get or initialize the ExaFlow controller with aggregation server."""
     global _exaflow_agg_ctrl
     if _exaflow_agg_ctrl is None:
         worker_landscape = get_worker_landscape_aggregator()

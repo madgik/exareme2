@@ -3,8 +3,8 @@ from typing import List
 
 import grpc
 
-import exareme2.aggregation_client.aggregation_server_pb2 as pb2
-import exareme2.aggregation_client.aggregation_server_pb2_grpc as pb2_grpc
+import exareme2.aggregation_clients.aggregation_server_pb2 as pb2
+import exareme2.aggregation_clients.aggregation_server_pb2_grpc as pb2_grpc
 
 from .constants import AggregationType
 
@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class BaseAggregationClient:
-    """Connection handling shared by both concrete clients."""
-
     def __init__(self, request_id: str, aggregator_address: str = "172.17.0.1:50051"):
         self._request_id = request_id
         self._channel = grpc.insecure_channel(aggregator_address)

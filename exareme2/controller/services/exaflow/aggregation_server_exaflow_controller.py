@@ -1,22 +1,16 @@
 from __future__ import annotations
 
 from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services.exaflow.controller_aggregation_client_interface import (
+    ControllerAggregationClientI as AggregationClient,
+)
 from exareme2.controller.services.exaflow.exaflow_controller import ExaflowController
 
 
 class AggregationServerExaflowController(ExaflowController):
-    """
-    Controller that integrates with an external aggregation server.
-    """
-
     def _configure_aggregator(
         self, request_id: str, workers_info: list[object]
     ) -> object:
-        # Lazy import to avoid loading aggregation code when unused
-        from exareme2.controller.services.exaflow.aggregation_client import (
-            AggregationControllerClient as AggregationClient,
-        )
-
         agg_client = AggregationClient(request_id)
         status = agg_client.configure(num_workers=len(workers_info))
         if status != "Configured":

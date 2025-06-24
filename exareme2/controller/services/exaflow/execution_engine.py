@@ -57,15 +57,13 @@ class AlgorithmExecutionEngine:
     def run_algorithm_udf(
         self, func: Union[str, Callable], positional_args: Dict[str, Any]
     ) -> List[dict]:
-        """Fire‐and-collect convenience wrapper."""
-        return self._broadcast_udf(func, positional_args, use_aggregator=False)
+        return self._broadcast_udf(func, positional_args)
 
-    # ------------------------------------------------------------------ #
     def run_algorithm_udf_with_aggregator(
         self, func: Union[str, Callable], positional_args: Dict[str, Any]
     ) -> dict:
         """Same, but insists every worker returns the **same** payload."""
-        results = self._broadcast_udf(func, positional_args, use_aggregator=True)
+        results = self._broadcast_udf(func, positional_args)
         first = results[0]
         if any(r != first for r in results[1:]):
             raise ValueError("Worker results do not match")

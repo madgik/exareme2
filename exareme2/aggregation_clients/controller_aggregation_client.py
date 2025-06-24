@@ -1,21 +1,19 @@
 from __future__ import annotations
 
-from abc import ABC
-from abc import abstractmethod
-
 import grpc
 
-from aggregation_server import aggregation_server_pb2 as pb2
-from exareme2.aggregation_client.base_aggregation_client import BaseAggregationClient
+import exareme2.aggregation_clients.aggregation_server_pb2 as pb2
+from exareme2.controller.services.exaflow.controller_aggregation_client_interface import (
+    ControllerAggregationClientI,
+)
 
 
-class AggregationControllerClient(ControllerAggregationClient):
+class ControllerAggregationClient(ControllerAggregationClientI):
     """
     gRPC wrapper used *only* by the controller to configure / clean up the
     aggregation_server service.
     """
 
-    # -- life-cycle -------------------------------------------------------- #
     def configure(self, num_workers: int) -> str:
         response = self._stub.Configure(
             pb2.ConfigureRequest(
@@ -34,8 +32,7 @@ class AggregationControllerClient(ControllerAggregationClient):
             # aggregation_server already shut down remotely – not an error
             return "AggregationServer already offline"
 
-    # -- context-manager convenience -------------------------------------- #
-    def __enter__(self) -> "AggregationControllerClient":
+    def __enter__(self) -> ControllerAggregationClient:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
