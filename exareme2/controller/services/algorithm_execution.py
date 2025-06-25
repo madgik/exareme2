@@ -33,9 +33,7 @@ async def execute_algorithm(algo_name: str, request_dto: AlgorithmRequestDTO):
         smpc_optional=ctrl_config.smpc.optional,
     )
 
-    if request_dto.type == AlgorithmType.EXAFLOW_AGGREGATOR:
-        controller = get_aggregation_server_exaflow_controller()
-    elif request_dto.type == AlgorithmType.EXAFLOW:
+    if request_dto.type in [AlgorithmType.EXAFLOW_AGGREGATOR, AlgorithmType.EXAFLOW]:
         controller = get_exaflow_controller()
     elif request_dto.type == AlgorithmType.FLOWER:
         controller = get_flower_controller()

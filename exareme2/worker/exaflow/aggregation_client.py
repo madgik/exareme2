@@ -2,8 +2,8 @@ from typing import List
 
 import numpy as np
 
-from exareme2.aggregation_client import AggregationType
-from exareme2.aggregation_client.base_aggregation_client import BaseAggregationClient
+from exareme2.aggregation_clients import AggregationType
+from exareme2.aggregation_clients import BaseAggregationClient
 from exareme2.algorithms.exaflow.algorithm_udf_aggregation_client import (
     AlgorithmUdfAggregationClient,
 )
