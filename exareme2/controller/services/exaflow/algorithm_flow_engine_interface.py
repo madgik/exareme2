@@ -12,6 +12,14 @@ from exareme2.controller.services.exaflow.tasks_handler import ExaflowTasksHandl
 class ExaflowAlgorithmFlowEngineInterface:
     """
     Used from the algorithm developer in the algorithm flow to execute tasks in the engine.
+
+    TODO Kostas, refactor the engine interface.
+    0) Please.... less chatGPT...
+    1) Define worker_tasks_handlers and global_worker_tasks_handler
+    2) What does _broadcast_udf mean? Why not a similar name to exareme2?
+    3) The engine interface should not be different for aggregation server and without it
+    4) We need a simpler way to collect the results from the exaflow with aggregation server algorithms
+        Maybe for now, have that logic in the algorithm and we improve later.
     """
 
     def __init__(
@@ -32,7 +40,6 @@ class ExaflowAlgorithmFlowEngineInterface:
         *,
         use_aggregator: bool = False,
     ):
-        """Internal helper shared by the two public methods below."""
         key = exaflow_registry.resolve_key(func)
         tasks = [
             (
@@ -47,7 +54,6 @@ class ExaflowAlgorithmFlowEngineInterface:
         ]
         return [task.get(timeout) for task, timeout in tasks]
 
-    # ------------------------------------------------------------------ #
     def run_algorithm_udf(
         self, func: Union[str, Callable], positional_args: Dict[str, Any]
     ) -> List[dict]:

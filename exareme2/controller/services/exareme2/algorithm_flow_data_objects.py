@@ -85,7 +85,7 @@ class LocalWorkersTable(LocalWorkersData):
     being workers and values being a table on that worker.
 
     example:
-      When AlgorithmExecutionEngine::run_udf_on_local_workers(..) is called, depending on
+      When Exareme2AlgorithmFlowEngineInterface::run_udf_on_local_workers(..) is called, depending on
     how many local workers are participating in the current algorithm execution, several
     database tables are created on all participating local workers. Irrespective of the
     number of local workers participating, the number of tables created on each of these local

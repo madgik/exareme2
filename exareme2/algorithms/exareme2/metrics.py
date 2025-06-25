@@ -18,7 +18,7 @@ def confusion_matrix_binary(engine, ytrue, proba):
 
     Parameters
     ----------
-    engine : AlgorithmExecutionEngine
+    engine : Exareme2AlgorithmFlowEngineInterface
         Algorithm execution engine passed in algorithm's `run` function.
     ytrue : relation
         Ground truth (correct) target values.
@@ -69,7 +69,7 @@ def roc_curve(engine, ytrue, proba):
 
     Parameters
     ----------
-    engine : AlgorithmExecutionEngine
+    engine : Exareme2AlgorithmFlowEngineInterface
         Algorithm execution engine passed in algorithm's `run` function.
     ytrue : relation
         Ground truth (correct) target values.
@@ -192,7 +192,7 @@ def confusion_matrix_multiclass(engine, ytrue, proba, labels):
 
     Parameters
     ----------
-    engine : AlgorithmExecutionEngine
+    engine : Exareme2AlgorithmFlowEngineInterface
         Algorithm execution engine passed in algorithm's `run` function.
     ytrue : relation
         Ground truth (correct) target values.

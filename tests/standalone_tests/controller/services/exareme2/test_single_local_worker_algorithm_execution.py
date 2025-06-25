@@ -15,6 +15,18 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    CommandIdGenerator,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    InitializationParams as EngineInitParams,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    SMPCParams,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Workers,
+)
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
 from exareme2.controller.services.exareme2.controller import Exareme2Controller
 from exareme2.controller.services.exareme2.controller import WorkersFederation
@@ -25,12 +37,6 @@ from exareme2.controller.services.exareme2.controller import (
     _create_algorithm_execution_engine,
 )
 from exareme2.controller.services.exareme2.controller import sanitize_request_variable
-from exareme2.controller.services.exareme2.execution_engine import CommandIdGenerator
-from exareme2.controller.services.exareme2.execution_engine import (
-    InitializationParams as EngineInitParams,
-)
-from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.exareme2.execution_engine import Workers
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -396,7 +402,7 @@ def controller(controller_config, worker_landscape_aggregator):
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=None,
         logger=ctrl_logger.get_background_service_logger(),
-        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        task_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
     )

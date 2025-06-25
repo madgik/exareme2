@@ -1,16 +1,11 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import TYPE_CHECKING
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 
 from pydantic import BaseModel
-
-if TYPE_CHECKING:
-    from exareme2.controller.services.exareme2 import AlgorithmExecutionEngine
-    from exareme2.controller.services.exareme2 import LocalWorkersTable
 
 
 class Variables(BaseModel):
@@ -101,7 +96,7 @@ class Algorithm(ABC):
         self,
         initialization_params: InitializationParams,
         data_loader: AlgorithmDataLoader,
-        engine: "AlgorithmExecutionEngine",
+        engine,
     ):
         """
         Parameters
@@ -160,7 +155,7 @@ class Algorithm(ABC):
         return self._initialization_params.datasets
 
     @abstractmethod
-    def run(self, data: "LocalWorkersTable", metadata: dict):
+    def run(self, data, metadata: dict):
         """
         The implementation of the algorithm flow logic goes in this method.
         """

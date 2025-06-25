@@ -6,7 +6,7 @@ from exareme2.aggregation_clients.controller_aggregation_client import (
 )
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.exaflow import ExaflowController
-from exareme2.controller.services.exaflow.execution_engine import (
+from exareme2.controller.services.exaflow.algorithm_flow_engine_interface import (
     ExaflowAlgorithmFlowEngineInterface,
 )
 from exareme2.controller.services.exaflow.tasks_handler import ExaflowTasksHandler
@@ -15,7 +15,8 @@ from exareme2.controller.services.strategy_interface import AlgorithmExecutionSt
 
 class ExaflowStrategy(AlgorithmExecutionStrategyI):
     controller: ExaflowController
-    tasks_handlers: List[ExaflowTasksHandler]
+    local_worker_tasks_handlers: List[ExaflowTasksHandler]
+    global_worker_tasks_handler: ExaflowTasksHandler
 
     async def execute(self) -> str:
         variable_names = (self.algorithm_request_dto.inputdata.x or []) + (
@@ -29,7 +30,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
         engine = ExaflowAlgorithmFlowEngineInterface(
             request_id=self.request_id,
             context_id=self.context_id,
-            tasks_handlers=self.tasks_handlers,
+            tasks_handlers=self.worker_tasks_handlers,
         )
         algorithm_cls = exaflow_algorithm_classes[self.algorithm_name]
         algorithm = algorithm_cls(
@@ -43,7 +44,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
             self.algorithm_name,
             self.algorithm_request_dto.inputdata.datasets,
             self.algorithm_request_dto.parameters,
-            [h.worker_id for h in self.tasks_handlers],
+            [h.worker_id for h in self.worker_tasks_handlers],
         )
         result = algorithm.execute(metadata)
         self.logger.info(
@@ -55,7 +56,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
 class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
     async def execute(self) -> str:
         agg_client = ControllerAggregationClient(self.request_id)
-        status = agg_client.configure(num_workers=len(self.tasks_handlers))
+        status = agg_client.configure(num_workers=len(self.worker_tasks_handlers))
         if status != "Configured":
             raise RuntimeError(f"AggregationServer refused to configure: {status}")
         self.logger.debug(f"Aggregation configured: {status}")

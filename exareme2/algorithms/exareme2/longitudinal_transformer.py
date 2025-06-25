@@ -1,6 +1,5 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from typing import Any
 from typing import Dict
 from typing import List
@@ -11,9 +10,6 @@ from exareme2.algorithms.exareme2.udfgen import AdhocUdfGenerator
 from exareme2.algorithms.exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
 from exareme2.algorithms.specifications import TransformerName
 from exareme2.worker_communication import BadUserInput
-
-if TYPE_CHECKING:
-    from exareme2.controller.services.exareme2 import AlgorithmExecutionEngine
 
 TRANSFORMER_NAME = TransformerName.LONGITUDINAL_TRANSFORMER
 
@@ -57,7 +53,7 @@ class LongitudinalTransformerRunner:
         self,
         initialization_params: InitializationParams,
         data_loader: DataLoader,
-        engine: "AlgorithmExecutionEngine",
+        engine,
     ):
         self.algorithm_parameters = initialization_params.algorithm_parameters
         self.variables = data_loader.get_variables()

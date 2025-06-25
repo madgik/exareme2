@@ -21,7 +21,8 @@ class WorkerTaskTimeoutException(Exception):
 
 class FlowerStrategy(AlgorithmExecutionStrategyI):
     controller: FlowerController
-    tasks_handlers: List[FlowerTasksHandler]
+    local_worker_tasks_handlers: List[FlowerTasksHandler]
+    global_worker_tasks_handler: FlowerTasksHandler
 
     async def execute(self) -> str:
         async with (self.controller.algorithm_execution_lock):
@@ -32,21 +33,8 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                 else []
             )
 
-            tasks_handlers = self.controller.get_tasks_handlers(
-                self.algorithm_request_dto.inputdata.data_model,
-                self.algorithm_request_dto.inputdata.datasets,
-                self.request_id,
-            )
-
-            global_worker = (
-                self.controller.worker_landscape_aggregator.get_global_worker()
-            )
-            server_task_handler = self.controller.create_worker_tasks_handler(
-                self.request_id, global_worker
-            )
-
-            server_task_handler.garbage_collect()
-            for handler in tasks_handlers:
+            self.global_worker_tasks_handler.garbage_collect()
+            for handler in self.local_worker_tasks_handlers:
                 handler.garbage_collect()
 
             self.controller.flower_execution_info.set_inputdata(
@@ -54,12 +42,12 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
             )
             server_pid = None
             clients_pids = {}
-            server_address = f"{global_worker.ip}:{FLOWER_SERVER_PORT}"
+            server_address = f"{self.controller.worker_landscape_aggregator.get_global_worker().ip}:{FLOWER_SERVER_PORT}"
             algorithm_folder_path = flower_algorithm_folder_paths[self.algorithm_name]
             try:
-                server_pid = server_task_handler.start_flower_server(
+                server_pid = self.global_worker_tasks_handler.start_flower_server(
                     algorithm_folder_path,
-                    len(tasks_handlers),
+                    len(self.local_worker_tasks_handlers),
                     str(server_address),
                     data_model,
                     datasets,
@@ -72,7 +60,7 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                         datasets,
                         ctrl_config.flower_execution_timeout,
                     ): handler
-                    for handler in tasks_handlers
+                    for handler in self.local_worker_tasks_handlers
                 }
 
                 log_experiment_execution(
@@ -82,25 +70,27 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                     self.algorithm_name,
                     self.algorithm_request_dto.inputdata.datasets,
                     self.algorithm_request_dto.parameters,
-                    [h.worker_id for h in self.tasks_handlers],
+                    [h.worker_id for h in self.local_worker_tasks_handlers],
                 )
                 result = (
                     await self.controller.flower_execution_info.get_result_with_timeout()
                 )
 
-                # TODO Kostas
-                # The result should be str but this returns dict
-
                 self.logger.info(
                     f"Finished execution -> {self.algorithm_name} with {self.request_id}"
                 )
+
+                # TODO Kostas, The result should be str but this returns dict
                 return result
 
             except asyncio.TimeoutError:
                 raise WorkerTaskTimeoutException(self.controller.task_timeout)
             finally:
                 await self._cleanup(
-                    self.algorithm_name, server_task_handler, server_pid, clients_pids
+                    self.algorithm_name,
+                    self.global_worker_tasks_handler,
+                    server_pid,
+                    clients_pids,
                 )
 
     async def _cleanup(

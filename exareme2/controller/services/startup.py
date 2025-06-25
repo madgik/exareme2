@@ -7,14 +7,16 @@ from exareme2.controller.services.exareme2 import set_cleaner
 from exareme2.controller.services.exareme2 import (
     set_controller as set_exareme2_controller,
 )
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    SMPCParams,
+)
 from exareme2.controller.services.exareme2.cleaner import Cleaner
 from exareme2.controller.services.exareme2.controller import (
     Exareme2Controller as Exareme2Controller,
 )
-from exareme2.controller.services.exareme2.execution_engine import SMPCParams
 from exareme2.controller.services.flower import set_controller as set_flower_controller
 from exareme2.controller.services.flower import set_flower_execution_info
-from exareme2.controller.services.flower.flower_controller import (
+from exareme2.controller.services.flower.controller import (
     FlowerController as FlowerController,
 )
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -50,7 +52,7 @@ def start_background_services():
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=cleaner,
         logger=ctrl_logger.get_background_service_logger(),
-        tasks_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
+        task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=ctrl_config.rabbitmq.celery_run_udf_task_timeout,
         smpc_params=SMPCParams(
             smpc_enabled=ctrl_config.smpc.enabled or False,

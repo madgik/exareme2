@@ -9,10 +9,12 @@ import pytest
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
     LocalWorkersTable,
 )
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Workers,
+)
 from exareme2.controller.services.exareme2.controller import DataModelViews
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
 from exareme2.controller.services.exareme2.controller import WorkersFederation
-from exareme2.controller.services.exareme2.execution_engine import Workers
 from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.worker_communication import InsufficientDataError
