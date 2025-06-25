@@ -12,7 +12,7 @@ class ExaflowRegistry(metaclass=Singleton):
         self._registry: Dict[str, Callable] = {}
 
     # ------------------------------------------------------------------ #
-    def _make_key(self, func: Callable) -> str:
+    def _makeRegistry_key(self, func: Callable) -> str:
         """module basename + '_' + function name"""
         return f"{func.__module__.split('.')[-1]}_{func.__name__}"
 

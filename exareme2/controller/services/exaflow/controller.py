@@ -1,28 +1,20 @@
 from exareme2.controller import logger as ctrl_logger
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.controller_interface import ControllerI
+from exareme2.controller.services.exaflow.strategies import ExaflowStrategy
 from exareme2.controller.services.exaflow.tasks_handler import TasksHandler
 from exareme2.controller.uid_generator import UIDGenerator
 
 
-class Controller:
+class ExaflowController(ControllerI):
     def __init__(self, worker_landscape_aggregator, task_timeout: int) -> None:
-        self.worker_landscape_aggregator = worker_landscape_aggregator
-        self.task_timeout = task_timeout
-
-    def _create_worker_tasks_handler(
-        self, request_id: str, worker_info
-    ) -> TasksHandler:
-        return TasksHandler(
-            request_id=request_id,
-            worker_id=worker_info.id,
-            worker_queue_addr=f"{worker_info.ip}:{worker_info.port}",
-            tasks_timeout=self.task_timeout,
-        )
+        super().__init__(worker_landscape_aggregator, task_timeout)
 
     async def exec_algorithm(
         self,
         algorithm_name: str,
-        algorithm_request_dto,
-        strategy,  # instance of ControllerExecutionStrategy
+        algorithm_request_dto: AlgorithmRequestDTO,
+        strategy: ExaflowStrategy,
     ):
         request_id = algorithm_request_dto.request_id
         context_id = UIDGenerator().get_a_uid()
@@ -52,7 +44,7 @@ class Controller:
             variable_names=variable_names,
         )
 
-        return await strategy.execute(
+        return await strategy.run(
             request_id,
             context_id,
             algorithm_name,
@@ -60,4 +52,14 @@ class Controller:
             task_handlers,
             metadata,
             logger,
+        )
+
+    def _create_worker_tasks_handler(
+        self, request_id: str, worker_info
+    ) -> TasksHandler:
+        return TasksHandler(
+            request_id=request_id,
+            worker_id=worker_info.id,
+            worker_queue_addr=f"{worker_info.ip}:{worker_info.port}",
+            tasks_timeout=self.task_timeout,
         )

@@ -1,6 +1,3 @@
-from abc import ABC
-from abc import abstractmethod
-
 from exareme2 import exaflow_algorithm_classes
 from exareme2.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
@@ -9,25 +6,11 @@ from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.exaflow.execution_engine import (
     AlgorithmExecutionEngine,
 )
+from exareme2.controller.services.strategy_interface import AlgorithmExecutionStrategyI
 
 
-class ControllerExecutionStrategy(ABC):
-    @abstractmethod
-    async def execute(
-        self,
-        request_id: str,
-        context_id: str,
-        algorithm_name: str,
-        algorithm_request_dto,
-        task_handlers: list,
-        metadata,
-        logger,
-    ) -> str:
-        ...
-
-
-class ExaflowStrategy(ControllerExecutionStrategy):
-    async def execute(
+class ExaflowStrategy(AlgorithmExecutionStrategyI):
+    async def run(
         self,
         request_id: str,
         context_id: str,
@@ -61,8 +44,8 @@ class ExaflowStrategy(ControllerExecutionStrategy):
         return result.json()
 
 
-class ExaflowWithAggregationServerStrategy(ControllerExecutionStrategy):
-    async def execute(
+class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
+    async def run(
         self,
         request_id: str,
         context_id: str,
@@ -79,7 +62,7 @@ class ExaflowWithAggregationServerStrategy(ControllerExecutionStrategy):
         logger.debug(f"Aggregation configured: {status}")
 
         try:
-            return await ExaflowStrategy().execute(
+            return await super().run(
                 request_id,
                 context_id,
                 algorithm_name,

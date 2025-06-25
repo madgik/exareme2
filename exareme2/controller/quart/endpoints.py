@@ -7,7 +7,9 @@ from quart import request
 
 from exareme2.controller.quart.loggers import loggers
 from exareme2.controller.services import get_worker_landscape_aggregator
-from exareme2.controller.services.algorithm_execution import execute_algorithm
+from exareme2.controller.services.algorithm_execution_factory import (
+    get_algorithm_execution_strategy,
+)
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.api.algorithm_request_validator import BadRequest
 from exareme2.controller.services.api.algorithm_spec_dtos import (
@@ -93,7 +95,9 @@ async def run_algorithm(algorithm_name: str) -> str:
         )
         raise BadRequest(error_msg)
 
-    result = await execute_algorithm(algorithm_name, algorithm_request_dto)
+    result = await get_algorithm_execution_strategy(
+        algorithm_name, algorithm_request_dto
+    )
 
     return result
 

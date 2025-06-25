@@ -15,8 +15,8 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
-from exareme2.controller.services.exareme2.controller import Controller
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
+from exareme2.controller.services.exareme2.controller import Exareme2Controller
 from exareme2.controller.services.exareme2.controller import WorkersFederation
 from exareme2.controller.services.exareme2.controller import (
     _algorithm_run_in_event_loop,
@@ -392,7 +392,7 @@ def workers_case_2(
 def controller(controller_config, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
-    controller = Controller(
+    controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=None,
         logger=ctrl_logger.get_background_service_logger(),

@@ -1,10 +1,14 @@
 import asyncio
+from typing import Optional
 
 from exareme2 import flower_algorithm_folder_paths
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.federation_info_logs import log_experiment_execution
+from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.controller_interface import ControllerI
 from exareme2.controller.services.flower.tasks_handler import TasksHandler
+from exareme2.controller.services.strategy_interface import AlgorithmExecutionStrategyI
 from exareme2.controller.uid_generator import UIDGenerator
 from exareme2.worker_communication import WorkerInfo
 
@@ -22,28 +26,22 @@ class WorkerTaskTimeoutException(WorkerException):
         )
 
 
-# Controller class
-class Controller:
+class FlowerController(ControllerI):
     def __init__(
-        self, worker_landscape_aggregator, flower_execution_info, task_timeout
+        self, worker_landscape_aggregator, task_timeout, flower_execution_info
     ):
-        self.worker_landscape_aggregator = worker_landscape_aggregator
+        super().__init__(worker_landscape_aggregator, task_timeout)
         self.flower_execution_info = flower_execution_info
-        self.task_timeout = task_timeout
         self.lock = asyncio.Lock()
 
-    def _create_worker_tasks_handler(self, request_id, worker_info: WorkerInfo):
-        worker_addr = f"{worker_info.ip}:{worker_info.port}"
-        worker_db_addr = f"{worker_info.db_ip}:{worker_info.db_port}"
-        return TasksHandler(
-            request_id,
-            worker_id=worker_info.id,
-            worker_queue_addr=worker_addr,
-            worker_db_addr=worker_db_addr,
-            tasks_timeout=self.task_timeout,
-        )
+    async def exec_algorithm(
+        self,
+        algorithm_name: str,
+        algorithm_request_dto: AlgorithmRequestDTO,
+        strategy: Optional[AlgorithmExecutionStrategyI] = None,
+    ):
+        assert strategy is None
 
-    async def exec_algorithm(self, algorithm_name, algorithm_request_dto):
         async with (self.lock):
             request_id = algorithm_request_dto.request_id
             context_id = UIDGenerator().get_a_uid()
@@ -75,8 +73,7 @@ class Controller:
                 request_id, global_worker
             )
             server_ip = global_worker.ip
-            server_id = global_worker.id
-            # Garbage Collect
+
             server_task_handler.garbage_collect()
             for handler in task_handlers:
                 handler.garbage_collect()
@@ -127,6 +124,17 @@ class Controller:
                 await self._cleanup(
                     algorithm_name, server_task_handler, server_pid, clients_pids
                 )
+
+    def _create_worker_tasks_handler(self, request_id, worker_info: WorkerInfo):
+        worker_addr = f"{worker_info.ip}:{worker_info.port}"
+        worker_db_addr = f"{worker_info.db_ip}:{worker_info.db_port}"
+        return TasksHandler(
+            request_id,
+            worker_id=worker_info.id,
+            worker_queue_addr=worker_addr,
+            worker_db_addr=worker_db_addr,
+            tasks_timeout=self.task_timeout,
+        )
 
     def _create_global_handler(self, request_id):
         global_worker = self.worker_landscape_aggregator.get_global_worker()

@@ -19,8 +19,8 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.exareme2.cleaner import Cleaner
-from exareme2.controller.services.exareme2.controller import Controller
 from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
+from exareme2.controller.services.exareme2.controller import Exareme2Controller
 from exareme2.controller.services.exareme2.controller import (
     _create_algorithm_execution_engine,
 )
@@ -101,7 +101,7 @@ def init_background_controller_logger():
 def controller(controller_config, cleaner, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
-    controller = Controller(
+    controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=cleaner,
         logger=ctrl_logger.get_background_service_logger(),
@@ -727,7 +727,7 @@ def create_dummy_tables(worker_id, cursor, context_id):
     for i in range(10):
         table_name = f"normal_{worker_id}_{context_id}_0_{i}"
         query = query + f"CREATE TABLE {table_name}({columns});"
-    cursor.execute(query)
+    cursor.run(query)
 
 
 def get_tables(cursor, context_id):
@@ -736,7 +736,7 @@ def get_tables(cursor, context_id):
     WHERE name LIKE '%{context_id.lower()}%'
     AND system=FALSE;
     """
-    result = cursor.execute(query).fetchall()
+    result = cursor.run(query).fetchall()
     return [i[0] for i in result]
 
 

@@ -287,6 +287,9 @@ def _get_algorithm_specifications_dtos(
 
 
 class Specifications:
+    enabled_algorithms: Dict[str, AlgorithmSpecification]
+    enabled_transformers: Dict[str, TransformerSpecification]
+
     def __init__(self):
         (
             self.enabled_algorithms,
@@ -349,6 +352,9 @@ class Specifications:
         enabled_algorithms = {k: v for k, v in all_algorithms.items() if v.enabled}
         enabled_transformers = {k: v for k, v in all_transformers.items() if v.enabled}
         return enabled_algorithms, enabled_transformers
+
+    def get_algorithm_type(self, algo_name: str):
+        return self.enabled_algorithms[algo_name].type
 
 
 specifications = Specifications()

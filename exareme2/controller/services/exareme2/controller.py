@@ -33,6 +33,7 @@ from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
+from exareme2.controller.services.controller_interface import ControllerI
 from exareme2.controller.services.exareme2.algorithm_flow_data_objects import (
     LocalWorkersTable,
 )
@@ -52,6 +53,7 @@ from exareme2.controller.services.exareme2.execution_engine import Workers
 from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
 from exareme2.controller.services.exareme2.workers import GlobalWorker
 from exareme2.controller.services.exareme2.workers import LocalWorker
+from exareme2.controller.services.strategy_interface import AlgorithmExecutionStrategyI
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     DatasetsLocations,
 )
@@ -737,7 +739,7 @@ class AlgorithmExecutor:
         return algorithm_result.json()
 
 
-class Controller:
+class Exareme2Controller(ControllerI):
     def __init__(
         self,
         worker_landscape_aggregator: WorkerLandscapeAggregator,
@@ -767,6 +769,7 @@ class Controller:
         self,
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
+        strategy: Optional[AlgorithmExecutionStrategyI] = None,
     ) -> str:
         command_id_generator = CommandIdGenerator()
 
