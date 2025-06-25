@@ -206,24 +206,26 @@ class TestUDFGenBase:
 
     @pytest.fixture(scope="function")
     def create_transfer_table(self, globalworker_db_cursor):
-        globalworker_db_cursor.run("CREATE TABLE test_transfer_table(transfer CLOB)")
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
+            "CREATE TABLE test_transfer_table(transfer CLOB)"
+        )
+        globalworker_db_cursor.execute(
             "INSERT INTO test_transfer_table(transfer) VALUES('{\"num\":5}')"
         )
 
     @pytest.fixture(scope="function")
     def create_state_table(self, globalworker_db_cursor):
         state = pickle.dumps({"num": 5}).hex()
-        globalworker_db_cursor.run("CREATE TABLE test_state_table(state BLOB)")
+        globalworker_db_cursor.execute("CREATE TABLE test_state_table(state BLOB)")
         insert_state = f"INSERT INTO test_state_table(state) VALUES('{state}')"
-        globalworker_db_cursor.run(insert_state)
+        globalworker_db_cursor.execute(insert_state)
 
     @pytest.fixture(scope="function")
     def create_merge_transfer_table(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_merge_transfer_table(transfer CLOB)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             """INSERT INTO test_merge_transfer_table
                  (transfer)
                VALUES
@@ -233,10 +235,10 @@ class TestUDFGenBase:
 
     @pytest.fixture(scope="function")
     def create_secure_transfer_table(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_secure_transfer_table(secure_transfer CLOB)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             """INSERT INTO test_secure_transfer_table
                  (secure_transfer)
                VALUES
@@ -247,38 +249,38 @@ class TestUDFGenBase:
 
     @pytest.fixture(scope="function")
     def create_smpc_template_table_with_sum(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_template_table(secure_transfer CLOB)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             'INSERT INTO test_smpc_template_table(secure_transfer) VALUES(\'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_sum_op_values_table(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_sum_op_values_table(secure_transfer CLOB)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "INSERT INTO test_smpc_sum_op_values_table(secure_transfer) VALUES('[100,200,300]')"
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_template_table_with_sum_and_max(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_template_table(secure_transfer CLOB)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             'INSERT INTO test_smpc_template_table(secure_transfer) VALUES(\'{"sum": {"data": [0,1,2], "operation": "sum", "type": "int"}, '
             '"max": {"data": 0, "operation": "max", "type": "int"}}\')'
         )
 
     @pytest.fixture(scope="function")
     def create_smpc_max_op_values_table(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE test_smpc_max_op_values_table(secure_transfer CLOB)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "INSERT INTO test_smpc_max_op_values_table(secure_transfer) VALUES('[58]')"
         )
 
@@ -286,10 +288,10 @@ class TestUDFGenBase:
     # It should receive a TableInfo object as input and maybe data as well.
     @pytest.fixture(scope="function")
     def create_tensor_table(self, globalworker_db_cursor):
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             "CREATE TABLE tensor_in_db(dim0 INT, dim1 INT, val INT)"
         )
-        globalworker_db_cursor.run(
+        globalworker_db_cursor.execute(
             """INSERT INTO tensor_in_db
                  (dim0, dim1, val)
                VALUES
@@ -307,9 +309,9 @@ class TestUDFGenBase:
         expected_udfexec,
     ):
         for query in _get_udf_table_creation_queries(expected_udf_outputs):
-            globalworker_db_cursor.run(query)
-        globalworker_db_cursor.run(expected_udfdef)
-        globalworker_db_cursor.run(expected_udfexec)
+            globalworker_db_cursor.execute(query)
+        globalworker_db_cursor.execute(expected_udfdef)
+        globalworker_db_cursor.execute(expected_udfexec)
 
 
 class TestUDFGen_InvalidUDFArgs_NamesMismatch(TestUDFGenBase):
@@ -818,7 +820,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        output_table_values = db.run("SELECT * FROM __main").fetchall()
+        output_table_values = db.execute("SELECT * FROM __main").fetchall()
 
         assert output_table_values == [
             (0, 0, 3.0),
@@ -2504,7 +2506,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [state] = db.run("SELECT * FROM __main").fetchone()
+        [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
 
         assert result == {"num": 5}
@@ -2608,7 +2610,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [state] = db.run("SELECT * FROM __main").fetchone()
+        [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
 
         assert result == {"num": 10}
@@ -2696,7 +2698,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [transfer] = db.run("SELECT * FROM __main").fetchone()
+        [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
 
         assert result == {"num": 5, "list_of_nums": [5, 5, 5]}
@@ -2801,7 +2803,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [transfer] = db.run("SELECT * FROM __main").fetchone()
+        [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
 
         assert result == {"num": 10}
@@ -2906,7 +2908,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [state] = db.run("SELECT * FROM __main").fetchone()
+        [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
 
         assert result == {"num": 10}
@@ -3029,7 +3031,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [state] = db.run("SELECT * FROM __main").fetchone()
+        [state] = db.execute("SELECT * FROM __main").fetchone()
         result = pickle.loads(state)
 
         assert result == {"num": 15}
@@ -3156,7 +3158,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [transfer] = db.run("SELECT * FROM __main").fetchone()
+        [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
 
         assert result == {"num": 20}
@@ -3285,12 +3287,12 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [state] = db.run("SELECT state FROM __main").fetchone()
+        [state] = db.execute("SELECT state FROM __main").fetchone()
         result1 = pickle.loads(state)
 
         assert result1 == {"num": 10}
 
-        [transfer] = db.run("SELECT transfer FROM __lt0").fetchone()
+        [transfer] = db.execute("SELECT transfer FROM __lt0").fetchone()
         result2 = json.loads(transfer)
 
         assert result2 == {"num": 25}
@@ -3426,16 +3428,16 @@ FROM
     ):
         db = globalworker_db_cursor
         for output in expected_udf_outputs:
-            db.run(output.create_query)
-        db.run(expected_udfdef)
-        db.run(expected_udfexec)
+            db.execute(output.create_query)
+        db.execute(expected_udfdef)
+        db.execute(expected_udfexec)
 
-        [transfer_] = db.run("SELECT transfer FROM __main").fetchone()
+        [transfer_] = db.execute("SELECT transfer FROM __main").fetchone()
         result1 = json.loads(transfer_)
 
         assert result1 == {"num": 10}
 
-        [state_] = db.run("SELECT state FROM __lt0").fetchone()
+        [state_] = db.execute("SELECT state FROM __lt0").fetchone()
         result2 = pickle.loads(state_)
 
         assert result2 == {"num": 25}
@@ -3575,12 +3577,12 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [state_] = db.run("SELECT state FROM __main").fetchone()
+        [state_] = db.execute("SELECT state FROM __main").fetchone()
         result1 = pickle.loads(state_)
 
         assert result1 == {"num": 20}
 
-        [transfer_] = db.run("SELECT transfer FROM __lt0").fetchone()
+        [transfer_] = db.execute("SELECT transfer FROM __lt0").fetchone()
         result2 = json.loads(transfer_)
 
         assert result2 == {"num": 75}
@@ -3697,7 +3699,9 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        secure_transfer_, *_ = db.run("SELECT secure_transfer FROM __main").fetchone()
+        secure_transfer_, *_ = db.execute(
+            "SELECT secure_transfer FROM __main"
+        ).fetchone()
         result = json.loads(secure_transfer_)
 
         assert result == {
@@ -3831,7 +3835,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        template_str, *_ = db.run("SELECT secure_transfer FROM __main").fetchone()
+        template_str, *_ = db.execute("SELECT secure_transfer FROM __main").fetchone()
         template = json.loads(template_str)
 
         assert template == {
@@ -3839,14 +3843,14 @@ FROM
             "sum": {"data": 0, "operation": "sum", "type": "int"},
         }
 
-        sum_op_values_str, *_ = db.run(
+        sum_op_values_str, *_ = db.execute(
             "SELECT secure_transfer FROM __main_sum_op"
         ).fetchone()
         sum_op_values = json.loads(sum_op_values_str)
 
         assert sum_op_values == [5]
 
-        max_op_values_str, *_ = db.run(
+        max_op_values_str, *_ = db.execute(
             "SELECT secure_transfer FROM __main_max_op"
         ).fetchone()
         max_op_values = json.loads(max_op_values_str)
@@ -3972,7 +3976,9 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        secure_transfer_, *_ = db.run("SELECT secure_transfer FROM __lt0").fetchone()
+        secure_transfer_, *_ = db.execute(
+            "SELECT secure_transfer FROM __lt0"
+        ).fetchone()
         result = json.loads(secure_transfer_)
 
         assert result == {
@@ -4131,7 +4137,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        template_str, *_ = db.run("SELECT secure_transfer FROM __lt0").fetchone()
+        template_str, *_ = db.execute("SELECT secure_transfer FROM __lt0").fetchone()
         template = json.loads(template_str)
         assert template == {
             "sum": {"data": 0, "operation": "sum", "type": "int"},
@@ -4139,19 +4145,19 @@ FROM
             "max": {"data": 0, "operation": "max", "type": "int"},
         }
 
-        sum_op_values_str, *_ = db.run(
+        sum_op_values_str, *_ = db.execute(
             "SELECT secure_transfer FROM __lt0sum"
         ).fetchone()
         sum_op_values = json.loads(sum_op_values_str)
         assert sum_op_values == [5]
 
-        min_op_values_str, *_ = db.run(
+        min_op_values_str, *_ = db.execute(
             "SELECT secure_transfer FROM __lt0min"
         ).fetchone()
         min_op_values = json.loads(min_op_values_str)
         assert min_op_values == [5]
 
-        max_op_values_str, *_ = db.run(
+        max_op_values_str, *_ = db.execute(
             "SELECT secure_transfer FROM __lt0max"
         ).fetchone()
         max_op_values = json.loads(max_op_values_str)
@@ -4262,7 +4268,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        transfer, *_ = db.run("SELECT transfer FROM __main").fetchone()
+        transfer, *_ = db.execute("SELECT transfer FROM __main").fetchone()
         result = json.loads(transfer)
 
         assert result == {"sum": 111}
@@ -4393,7 +4399,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        transfer, *_ = db.run("SELECT transfer FROM __main").fetchone()
+        transfer, *_ = db.execute("SELECT transfer FROM __main").fetchone()
         result = json.loads(transfer)
 
         assert result == {"sum": [100, 200, 300], "max": 58}
@@ -4489,7 +4495,7 @@ FROM
     ):
         db = globalworker_db_cursor
 
-        [transfer] = db.run("SELECT * FROM __main").fetchone()
+        [transfer] = db.execute("SELECT * FROM __main").fetchone()
         result = json.loads(transfer)
 
         assert result == {"num": 5}

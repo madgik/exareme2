@@ -924,10 +924,12 @@ def kill_aggregation_server(c):
     """
     Kill any running aggregation_server.server processes.
     """
-    res = c.run("ps aux | grep '[a]ggregation_server.server'", warn=True, hide="both")
+    res = c.execute(
+        "ps aux | grep '[a]ggregation_server.server'", warn=True, hide="both"
+    )
     if res.ok and res.stdout.strip():
         message("Killing existing aggregation_server…", Level.HEADER)
-        c.run(
+        c.execute(
             "ps aux | grep '[a]ggregation_server.server' "
             "| awk '{print $2}' | xargs kill -9",
             warn=True,
@@ -961,7 +963,7 @@ def start_aggregation_server(c, detached: bool = False):
     if detached:
         logf = OUTDIR / "aggregation_server.out"
         message(f"Detached mode; logging → {logf}", Level.HEADER)
-        c.run(
+        c.execute(
             f"{run_cmd} >> {logf!s} 2>&1 &",
             env=env,
             pty=False,
@@ -970,7 +972,7 @@ def start_aggregation_server(c, detached: bool = False):
         )
         message("aggregation_server started (detached).", Level.SUCCESS)
     else:
-        c.run(
+        c.execute(
             run_cmd,
             env=env,
             pty=True,
@@ -1508,12 +1510,12 @@ def run(
     env=None,
 ):
     if attach_:
-        c.run(cmd, pty=True, env=env)
+        c.execute(cmd, pty=True, env=env)
         return
 
     if not wait:
         # TODO disown=True will make c.run(..) return immediately
-        c.run(cmd, disown=True, env=env)
+        c.execute(cmd, disown=True, env=env)
         # TODO wait is False to get in here
         # nevertheless, it will wait (sleep) for 4 seconds here, why??
         spin_wheel(time=4)
@@ -1522,7 +1524,7 @@ def run(
         return
 
     # TODO this is supposed to run when wait=True, yet asynchronous=True
-    promise = c.run(cmd, asynchronous=True, warn=warn, env=env)
+    promise = c.execute(cmd, asynchronous=True, warn=warn, env=env)
     # TODO and then it blocks here, what is the point of asynchronous=True?
     spin_wheel(promise=promise)
     stderr = promise.runner.stderr

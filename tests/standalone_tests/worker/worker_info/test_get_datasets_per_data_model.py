@@ -13,8 +13,8 @@ label_identifier = "test_get_datasets_per_data_model"
 
 
 def setup_data_table_in_db(datasets_per_data_model, cursor):
-    cursor.run("DELETE FROM datasets;")
-    cursor.run("DELETE FROM data_models;")
+    cursor.execute("DELETE FROM datasets;")
+    cursor.execute("DELETE FROM data_models;")
     data_model_id = 0
     dataset_id = 0
     for data_model in datasets_per_data_model.keys():
@@ -22,11 +22,11 @@ def setup_data_table_in_db(datasets_per_data_model, cursor):
         dataset_id += 1
         data_model_code, data_model_version = data_model.split(":")
         sql_query = f"""INSERT INTO "data_models" (code, version, label, status, properties) VALUES ('{data_model_code}', '{data_model_version}', '{label_identifier}', 'ENABLED', null);"""
-        cursor.run(sql_query)
+        cursor.execute(sql_query)
         for dataset_name in datasets_per_data_model[data_model]:
             dataset_id += 1
             sql_query = f"""INSERT INTO "datasets" (data_model_id, code, label, csv_path, status, properties) VALUES ({data_model_id}, '{dataset_name}', '{label_identifier}', 'csv_path', 'ENABLED', null);"""
-            cursor.run(sql_query)
+            cursor.execute(sql_query)
 
 
 data_model1 = "data_model1:0.1"

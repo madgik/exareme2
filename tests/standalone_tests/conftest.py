@@ -673,7 +673,7 @@ def create_table_in_db(
     publish_table_query = (
         f"GRANT SELECT ON TABLE {table_name} TO guest;" if publish_table else ""
     )
-    db_cursor.run(create_table_query + publish_table_query)
+    db_cursor.execute(create_table_query + publish_table_query)
 
 
 def insert_data_to_db(
@@ -688,14 +688,14 @@ def insert_data_to_db(
     )
     sql_clause = f"INSERT INTO {table_name} VALUES {values}"
 
-    db_cursor.run(sql_clause, list(chain(*table_values)))
+    db_cursor.execute(sql_clause, list(chain(*table_values)))
 
 
 def get_table_data_from_db(
     db_cursor,
     table_name: str,
 ):
-    return db_cursor.run(f"SELECT * FROM {table_name};").fetchall()
+    return db_cursor.execute(f"SELECT * FROM {table_name};").fetchall()
 
 
 def _clean_db(cursor):
@@ -714,12 +714,12 @@ def _clean_db(cursor):
     )
     for table_type in table_type_drop_order:
         select_user_tables = f"SELECT name FROM sys.tables WHERE system=FALSE AND schema_id  in (SELECT id from schemas where system=false and name='executor') AND type={table_type.value}"
-        user_tables = cursor.run(select_user_tables).fetchall()
+        user_tables = cursor.execute(select_user_tables).fetchall()
         for table_name, *_ in user_tables:
             if table_type == TableType.VIEW:
-                cursor.run(f"DROP VIEW {table_name}")
+                cursor.execute(f"DROP VIEW {table_name}")
             else:
-                cursor.run(f"DROP TABLE {table_name}")
+                cursor.execute(f"DROP TABLE {table_name}")
 
 
 @pytest.fixture(scope="function")

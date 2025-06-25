@@ -998,7 +998,7 @@ async def _algorithm_run_in_event_loop(algorithm, data_model_views, metadata):
     loop = asyncio.get_event_loop()
     algorithm_result = await loop.run_in_executor(
         _thread_pool_executor,
-        algorithm.run,
+        algorithm.execute,
         data_model_views.to_list(),
         metadata,
     )

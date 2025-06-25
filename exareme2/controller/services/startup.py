@@ -1,11 +1,7 @@
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services import set_worker_landscape_aggregator
-from exareme2.controller.services.exaflow import AggregationServerExaflowController
 from exareme2.controller.services.exaflow import ExaflowController
-from exareme2.controller.services.exaflow import (
-    set_aggregation_server_exaflow_controller,
-)
 from exareme2.controller.services.exaflow import set_exaflow_controller
 from exareme2.controller.services.exareme2 import set_cleaner
 from exareme2.controller.services.exareme2 import (
@@ -21,7 +17,6 @@ from exareme2.controller.services.flower import set_flower_execution_info
 from exareme2.controller.services.flower.flower_controller import (
     FlowerController as FlowerController,
 )
-from exareme2.controller.services.flower.flower_io_registry import FlowerIORegistry
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -51,7 +46,7 @@ def start_background_services():
     )
     set_cleaner(cleaner)
 
-    controller = Exareme2Controller(
+    exareme2_controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=cleaner,
         logger=ctrl_logger.get_background_service_logger(),
@@ -68,30 +63,17 @@ def start_background_services():
             else None,
         ),
     )
-    controller.start_cleanup_loop()
-    set_exareme2_controller(controller)
+    exareme2_controller.start_cleanup_loop()
+    set_exareme2_controller(exareme2_controller)
 
-    flower_execution_info = FlowerIORegistry(
-        ctrl_config.flower_execution_timeout,
-        ctrl_logger.get_background_service_logger(),
-    )
-    set_flower_execution_info(flower_execution_info)
-
-    controller = FlowerController(
-        flower_execution_info=flower_execution_info,
+    flower_controller = FlowerController(
         worker_landscape_aggregator=worker_landscape_aggregator,
         task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
     )
-    set_flower_controller(controller)
+    set_flower_controller(flower_controller)
 
     exaflow_controller = ExaflowController(
         worker_landscape_aggregator=worker_landscape_aggregator,
         task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
     )
     set_exaflow_controller(exaflow_controller)
-
-    aggregation_server_exaflow_controller = AggregationServerExaflowController(
-        worker_landscape_aggregator=worker_landscape_aggregator,
-        task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
-    )
-    set_aggregation_server_exaflow_controller(aggregation_server_exaflow_controller)

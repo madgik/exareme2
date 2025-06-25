@@ -1,9 +1,10 @@
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handler import WorkerTaskResult
 from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
+from exareme2.controller.services.tasks_handler_interface import TasksHandlerI
 
 
-class TasksHandler:
+class ExaflowTasksHandler(TasksHandlerI):
     def __init__(
         self,
         request_id: str,

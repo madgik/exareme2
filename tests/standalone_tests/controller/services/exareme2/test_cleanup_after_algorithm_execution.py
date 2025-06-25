@@ -727,7 +727,7 @@ def create_dummy_tables(worker_id, cursor, context_id):
     for i in range(10):
         table_name = f"normal_{worker_id}_{context_id}_0_{i}"
         query = query + f"CREATE TABLE {table_name}({columns});"
-    cursor.run(query)
+    cursor.execute(query)
 
 
 def get_tables(cursor, context_id):
@@ -736,7 +736,7 @@ def get_tables(cursor, context_id):
     WHERE name LIKE '%{context_id.lower()}%'
     AND system=FALSE;
     """
-    result = cursor.run(query).fetchall()
+    result = cursor.execute(query).fetchall()
     return [i[0] for i in result]
 
 

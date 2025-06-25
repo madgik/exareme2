@@ -210,7 +210,7 @@ class TestLongitudinalTransformerUdf_WithDb:
 
         udf_result, *_ = transf.get_results(output_table_names=["result"])
         create_query = udf_result.create_query
-        db.run(create_query)
+        db.execute(create_query)
 
         result = self._get_result(db)
         assert result == []
@@ -226,7 +226,7 @@ class TestLongitudinalTransformerUdf_WithDb:
         transf = LongitudinalTransformerUdf(flowkwargs=kwargs, output_schema=schema)
 
         exec_stmt = transf.get_exec_stmt(udf_name=None, output_table_names=["result"])
-        db.run(exec_stmt)
+        db.execute(exec_stmt)
 
         result = self._get_result(db)
         assert result == []
@@ -242,7 +242,7 @@ class TestLongitudinalTransformerUdf_WithDb:
         transf = LongitudinalTransformerUdf(flowkwargs=kwargs, output_schema=schema)
 
         exec_stmt = transf.get_exec_stmt(udf_name=None, output_table_names=["result"])
-        db.run(exec_stmt)
+        db.execute(exec_stmt)
 
         result = self._get_result(db)
         assert result == [(0, 2, "a")]
@@ -258,7 +258,7 @@ class TestLongitudinalTransformerUdf_WithDb:
         transf = LongitudinalTransformerUdf(flowkwargs=kwargs, output_schema=schema)
 
         exec_stmt = transf.get_exec_stmt(udf_name=None, output_table_names=["result"])
-        db.run(exec_stmt)
+        db.execute(exec_stmt)
 
         result = self._get_result(db)
         assert result == [(0, 1, "a"), (3, 2, "a")]
@@ -274,7 +274,7 @@ class TestLongitudinalTransformerUdf_WithDb:
         transf = LongitudinalTransformerUdf(flowkwargs=kwargs, output_schema=schema)
 
         exec_stmt = transf.get_exec_stmt(udf_name=None, output_table_names=["result"])
-        db.run(exec_stmt)
+        db.execute(exec_stmt)
 
         result = self._get_result(db)
         assert result == [(0, 2, "b")]
@@ -290,7 +290,7 @@ class TestLongitudinalTransformerUdf_WithDb:
 
     @pytest.fixture(scope="function")
     def result_table(self, db, delete_result_table):
-        db.run("CREATE TABLE result(row_id INT, numvar INT, nomvar TEXT)")
+        db.execute("CREATE TABLE result(row_id INT, numvar INT, nomvar TEXT)")
         yield
 
     @pytest.fixture(scope="function")
@@ -298,7 +298,7 @@ class TestLongitudinalTransformerUdf_WithDb:
         try:
             yield
         finally:
-            db.run("DROP TABLE IF EXISTS result")
+            db.execute("DROP TABLE IF EXISTS result")
 
     def _create_longitudinal_table(self, db):
         sql = f"""
@@ -308,7 +308,7 @@ class TestLongitudinalTransformerUdf_WithDb:
                                        numvar INT,
                                        nomvar TEXT);
         """
-        db.run(sql)
+        db.execute(sql)
 
     def _populate_longitudinal_table(self, db):
         sql = f"""
@@ -319,14 +319,14 @@ class TestLongitudinalTransformerUdf_WithDb:
             (3 , 2 , 'BL'  , 2 , 'a'),
             (4 , 2 , 'FL1' , 4 , 'b');
         """
-        db.run(sql)
+        db.execute(sql)
 
     def _delete_longitudinal_table(self, db):
-        db.run(f"DROP TABLE {self.test_table};")
+        db.execute(f"DROP TABLE {self.test_table};")
 
     @staticmethod
     def _get_result(db):
-        return db.run("SELECT * FROM result").fetchall()
+        return db.execute("SELECT * FROM result").fetchall()
 
     def _make_kwargs(self, strategies, visit1, visit2):
         dataframe = SimpleNamespace(name=self.test_table)

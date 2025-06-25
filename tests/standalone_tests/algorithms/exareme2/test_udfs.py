@@ -149,7 +149,7 @@ def test_run_udf_state_and_transfer_output(
     assert "sum" in transfer_result.keys()
     assert transfer_result["sum"] == input_table_name_sum
 
-    [state_result_str] = localworker1_db_cursor.run(
+    [state_result_str] = localworker1_db_cursor.execute(
         f"SELECT * FROM {state_result.value.name};"
     ).fetchone()
     state_result = pickle.loads(state_result_str)

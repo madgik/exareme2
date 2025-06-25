@@ -6,25 +6,19 @@ from typing import Union
 
 from exareme2.algorithms.exaflow.exaflow_registry import exaflow_registry
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.services.exaflow.tasks_handler import TasksHandler
+from exareme2.controller.services.exaflow.tasks_handler import ExaflowTasksHandler
 
 
-class AlgorithmExecutionEngine:
+class ExaflowAlgorithmFlowEngineInterface:
     """
-    Helper handed to algorithms so they can send UDFs to the workers.
-
-    Notes
-    -----
-    * `run_algorithm_udf`  – fire-and-collect.
-    * `run_algorithm_udf_with_aggregator` – same, but requires **identical**
-      results from every worker (often used when a global aggregation server is in play).
+    Used from the algorithm developer in the algorithm flow to execute tasks in the engine.
     """
 
     def __init__(
         self,
         request_id: str,
         context_id: str,
-        tasks_handlers: List[TasksHandler],
+        tasks_handlers: List[ExaflowTasksHandler],
     ) -> None:
         self._logger = ctrl_logger.get_request_logger(request_id=request_id)
         self._request_id = request_id

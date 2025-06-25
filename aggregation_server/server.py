@@ -135,7 +135,7 @@ class AggregationServer(AggregationServerServicer):
           - If the expected number of vectors have been received,
             computes the aggregated result (only once) and signals that the result is ready.
         """
-        with agg_ctx.lock:
+        with agg_ctx.algorithm_execution_lock:
             if agg_ctx.aggregation_type is None:
                 agg_ctx.aggregation_type = request.aggregation_type
             elif agg_ctx.aggregation_type != request.aggregation_type:
@@ -204,7 +204,7 @@ class AggregationServer(AggregationServerServicer):
         Update the count of workers that have obtained the result.
         Once all workers have received the result, reset the context for the next aggregation operation.
         """
-        with agg_ctx.lock:
+        with agg_ctx.algorithm_execution_lock:
             if agg_ctx.error is not None:
                 logger.error(f"[AGGREGATE] Error during aggregation: {agg_ctx.error}")
                 context.abort(grpc.StatusCode.INTERNAL, str(agg_ctx.error))

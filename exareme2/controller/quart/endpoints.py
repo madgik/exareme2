@@ -7,7 +7,7 @@ from quart import request
 
 from exareme2.controller.quart.loggers import loggers
 from exareme2.controller.services import get_worker_landscape_aggregator
-from exareme2.controller.services.algorithm_execution_factory import (
+from exareme2.controller.services.algorithm_execution_strategy_factory import (
     get_algorithm_execution_strategy,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
