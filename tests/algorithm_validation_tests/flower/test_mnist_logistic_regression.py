@@ -21,6 +21,5 @@ def test_mnist_logistic_regression(get_algorithm_result):
         "parameters": None,
         "test_case_num": 99,
     }
-    input["type"] = "flower"
     algorithm_result = get_algorithm_result("mnist_logistic_regression", input)
     assert {"accuracy": 0.8486} == algorithm_result

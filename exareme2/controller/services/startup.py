@@ -3,23 +3,15 @@ from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services import set_worker_landscape_aggregator
 from exareme2.controller.services.exaflow import ExaflowController
 from exareme2.controller.services.exaflow import set_exaflow_controller
-from exareme2.controller.services.exareme2 import set_cleaner
-from exareme2.controller.services.exareme2 import (
-    set_controller as set_exareme2_controller,
-)
+from exareme2.controller.services.exareme2 import set_exareme2_cleaner
+from exareme2.controller.services.exareme2 import set_exareme2_controller
 from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
     SMPCParams,
 )
 from exareme2.controller.services.exareme2.cleaner import Cleaner
-from exareme2.controller.services.exareme2.controller import (
-    Exareme2Controller as Exareme2Controller,
-)
-from exareme2.controller.services.flower import (
-    set_flower_controller as set_flower_controller,
-)
-from exareme2.controller.services.flower.controller import (
-    FlowerController as FlowerController,
-)
+from exareme2.controller.services.exareme2.controller import Exareme2Controller
+from exareme2.controller.services.flower import set_flower_controller
+from exareme2.controller.services.flower.controller import FlowerController
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -47,7 +39,7 @@ def start_background_services():
         contextids_cleanup_folder=ctrl_config.cleanup.contextids_cleanup_folder,
         worker_landscape_aggregator=worker_landscape_aggregator,
     )
-    set_cleaner(cleaner)
+    set_exareme2_cleaner(cleaner)
 
     exareme2_controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,

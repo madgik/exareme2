@@ -337,9 +337,17 @@ class Specifications:
             spec_type = spec_json["type"]
             if TransformerType.EXAREME2_TRANSFORMER.value in spec_type:
                 transformer_spec = TransformerSpecification.parse_raw(spec_content)
+                if transformer_spec.name in all_transformers.keys():
+                    raise ValueError(
+                        f"The transformer name '{transformer_spec.name}' exists more than once in the transformer specifications."
+                    )
                 all_transformers[transformer_spec.name] = transformer_spec
             else:
                 algorithm_specification = AlgorithmSpecification.parse_raw(spec_content)
+                if algorithm_specification.name in all_algorithms.keys():
+                    raise ValueError(
+                        f"The algorithm name '{algorithm_specification.name}' exists more than once in the algorithm specifications."
+                    )
                 all_algorithms[algorithm_specification.name] = algorithm_specification
         except KeyError as e:
             logging.error(f"Missing key {e} in {spec_name}")

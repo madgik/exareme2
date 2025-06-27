@@ -3,7 +3,7 @@ import asyncio
 from exareme2.controller import config as ctrl_config
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.controller_interface import ControllerI
-from exareme2.controller.services.flower import FlowerIORegistry
+from exareme2.controller.services.flower.flower_io_registry import FlowerIORegistry
 from exareme2.controller.services.flower.tasks_handler import FlowerTasksHandler
 from exareme2.worker_communication import WorkerInfo
 

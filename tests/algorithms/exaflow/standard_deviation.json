@@ -1,5 +1,5 @@
 {
-    "name":"standard_deviation",
+    "name":"standard_deviation_exaflow",
     "desc":"Standard Deviation of a column",
     "label":"Standard Deviation",
     "type": "exaflow_aggregator",

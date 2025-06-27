@@ -35,7 +35,7 @@ def get_algorithms():
             id="Dummy avg algorithm",
         ),
         pytest.param(
-            "standard_deviation",
+            "standard_deviation_exaflow",
             {
                 "inputdata": {
                     "data_model": "dementia:0.1",

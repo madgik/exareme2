@@ -1,9 +1,7 @@
 from typing import Optional
 
 from exareme2.controller.services.flower.controller import FlowerController
-from exareme2.controller.services.flower.flower_io_registry import FlowerIORegistry
 
-_flower_execution_info: Optional[FlowerIORegistry] = None
 _flower_controller: Optional[FlowerController] = None
 
 

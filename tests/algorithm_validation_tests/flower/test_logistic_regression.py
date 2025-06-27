@@ -22,8 +22,9 @@ def test_logistic_regression(get_algorithm_result):
         "parameters": None,
         "test_case_num": 99,
     }
-    input["type"] = "flower"
-    algorithm_result = get_algorithm_result("logistic_regression", input)
+    algorithm_result = get_algorithm_result(
+        "logistic_regression_fedaverage_flower", input
+    )
     assert "accuracy" in algorithm_result
 
 
@@ -64,6 +65,7 @@ def test_logistic_regression_with_filters(get_algorithm_result):
         "parameters": None,
         "test_case_num": 99,
     }
-    input["type"] = "flower"
-    algorithm_result = get_algorithm_result("logistic_regression", input)
+    algorithm_result = get_algorithm_result(
+        "logistic_regression_fedaverage_flower", input
+    )
     assert "accuracy" in algorithm_result
