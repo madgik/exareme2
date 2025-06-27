@@ -1,5 +1,5 @@
 {
-    "name": "logistic_regression",
+    "name": "logistic_regression_flower",
     "desc": "Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
     "label": "Logistic Regression on Flower",
     "enabled": true,
