@@ -7,11 +7,11 @@ import pandas as pd
 import pytest
 
 from aggregation_server.constants import AggregationType
+from exareme2.aggregation_clients.exaflow_udf_aggregation_client import (
+    ExaflowUDFAggregationClient,
+)
 from exareme2.controller.services.exaflow.controller_aggregation_client_interface import (
     AggregationControllerClientI,
-)
-from exareme2.worker.exaflow.aggregation_client import (
-    AlgorithmUdfWorkerAggregationClient,
 )
 
 
@@ -31,7 +31,7 @@ def agg_client(aggregation_server_service):
     status = controller.configure(2)
     assert status == "Configured"
 
-    worker = AlgorithmUdfWorkerAggregationClient(request_id=request_id)
+    worker = ExaflowUDFAggregationClient(request_id=request_id)
 
     yield worker  # <<< The tests receive only the worker-side client.
 
@@ -148,7 +148,7 @@ def _make_pair(req_id: str, n_workers: int = 2):
     """Utility: return (controller, worker) configured for *n_workers*."""
     ctrl = AggregationControllerClientI(request_id=req_id)
     ctrl.configure(n_workers)
-    return ctrl, AlgorithmUdfWorkerAggregationClient(request_id=req_id)
+    return ctrl, ExaflowUDFAggregationClient(request_id=req_id)
 
 
 def test_parallel_aggregations_different_clients():

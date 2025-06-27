@@ -14,55 +14,55 @@ from exareme2.controller.services.strategy_interface import AlgorithmExecutionSt
 
 
 class ExaflowStrategy(AlgorithmExecutionStrategyI):
-    controller: ExaflowController
-    local_worker_tasks_handlers: List[ExaflowTasksHandler]
-    global_worker_tasks_handler: ExaflowTasksHandler
+    _controller: ExaflowController
+    _local_worker_tasks_handlers: List[ExaflowTasksHandler]
+    _global_worker_tasks_handler: ExaflowTasksHandler
 
     async def execute(self) -> str:
-        variable_names = (self.algorithm_request_dto.inputdata.x or []) + (
-            self.algorithm_request_dto.inputdata.y or []
+        variable_names = (self._algorithm_request_dto.inputdata.x or []) + (
+            self._algorithm_request_dto.inputdata.y or []
         )
         metadata = self.controller.worker_landscape_aggregator.get_metadata(
-            data_model=self.algorithm_request_dto.inputdata.data_model,
+            data_model=self._algorithm_request_dto.inputdata.data_model,
             variable_names=variable_names,
         )
 
         engine = ExaflowAlgorithmFlowEngineInterface(
-            request_id=self.request_id,
-            context_id=self.context_id,
+            request_id=self._request_id,
+            context_id=self._context_id,
             tasks_handlers=self.worker_tasks_handlers,
         )
-        algorithm_cls = exaflow_algorithm_classes[self.algorithm_name]
+        algorithm_cls = exaflow_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(
-            inputdata=self.algorithm_request_dto.inputdata,
+            inputdata=self._algorithm_request_dto.inputdata,
             engine=engine,
         )
         log_experiment_execution(
-            self.logger,
-            self.request_id,
-            self.context_id,
-            self.algorithm_name,
-            self.algorithm_request_dto.inputdata.datasets,
-            self.algorithm_request_dto.parameters,
+            self._logger,
+            self._request_id,
+            self._context_id,
+            self._algorithm_name,
+            self._algorithm_request_dto.inputdata.datasets,
+            self._algorithm_request_dto.parameters,
             [h.worker_id for h in self.worker_tasks_handlers],
         )
         result = algorithm.execute(metadata)
-        self.logger.info(
-            f"Execution completed: {self.algorithm_name} ({self.request_id})"
+        self._logger.info(
+            f"Execution completed: {self._algorithm_name} ({self._request_id})"
         )
         return result.json()
 
 
 class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
     async def execute(self) -> str:
-        agg_client = ControllerAggregationClient(self.request_id)
+        agg_client = ControllerAggregationClient(self._request_id)
         status = agg_client.configure(num_workers=len(self.worker_tasks_handlers))
         if status != "Configured":
             raise RuntimeError(f"AggregationServer refused to configure: {status}")
-        self.logger.debug(f"Aggregation configured: {status}")
+        self._logger.debug(f"Aggregation configured: {status}")
 
         try:
             return await super().execute()
         finally:
             cleanup_status = agg_client.cleanup()
-            self.logger.debug(f"Aggregation cleanup response: {cleanup_status}")
+            self._logger.debug(f"Aggregation cleanup response: {cleanup_status}")

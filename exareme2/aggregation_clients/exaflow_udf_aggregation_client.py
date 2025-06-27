@@ -4,14 +4,12 @@ import numpy as np
 
 from exareme2.aggregation_clients import AggregationType
 from exareme2.aggregation_clients import BaseAggregationClient
-from exareme2.algorithms.exaflow.algorithm_udf_aggregation_client import (
-    AlgorithmUdfAggregationClient,
+from exareme2.algorithms.exaflow.exaflow_udf_aggregation_client_interface import (
+    ExaflowUDFAggregationClientI,
 )
 
 
-class AlgorithmUdfWorkerAggregationClient(
-    BaseAggregationClient, AlgorithmUdfAggregationClient
-):
+class ExaflowUDFAggregationClient(BaseAggregationClient, ExaflowUDFAggregationClientI):
     """Used by workers only."""
 
     def aggregate(

@@ -6,7 +6,7 @@ from exareme2 import AttrDict
 from exareme2 import exareme2_algorithm_classes
 from exareme2 import exareme2_algorithm_data_loaders
 from exareme2.algorithms.exareme2.algorithm import (
-    InitializationParams as AlgorithmInitParams,
+    AlgorithmInitializationParams as AlgorithmInitParams,
 )
 from exareme2.algorithms.exareme2.algorithm import Variables
 from exareme2.algorithms.specifications import AlgorithmType

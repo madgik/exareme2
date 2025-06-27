@@ -66,19 +66,19 @@ class AggregationServer(AggregationServerServicer):
         Create an AggregationContext for a given request_id if not already configured.
         """
         with self.global_lock:
-            if request.request_id in self.aggregation_contexts:
+            if request._request_id in self.aggregation_contexts:
                 logger.warning(
-                    f"[CONFIGURE] Request context already exists for request_id='{request.request_id}'"
+                    f"[CONFIGURE] Request context already exists for request_id='{request._request_id}'"
                 )
                 return ConfigureResponse(
                     status="Already configured for this request_id"
                 )
-            self.aggregation_contexts[request.request_id] = AggregationContext(
-                request.request_id, request.num_of_workers
+            self.aggregation_contexts[request._request_id] = AggregationContext(
+                request._request_id, request.num_of_workers
             )
 
         logger.info(
-            f"[CONFIGURE] Created AggregationContext for request_id='{request.request_id}' "
+            f"[CONFIGURE] Created AggregationContext for request_id='{request._request_id}' "
             f"with expected workers: {request.num_of_workers}"
         )
         return ConfigureResponse(status="Configured")
@@ -91,7 +91,7 @@ class AggregationServer(AggregationServerServicer):
           3. Wait until the result is ready.
           4. Finalize the aggregation and return the result.
         """
-        agg_ctx = self._get_aggregation_context(request.request_id, context)
+        agg_ctx = self._get_aggregation_context(request._request_id, context)
         self._append_response_and_compute(agg_ctx, request, context)
         self._wait_for_result(agg_ctx, request, context)
         result = self._finalize_and_get_result(agg_ctx, context)
@@ -103,15 +103,15 @@ class AggregationServer(AggregationServerServicer):
         (Useful if the request is complete and no further aggregations are expected.)
         """
         with self.global_lock:
-            if request.request_id in self.aggregation_contexts:
-                del self.aggregation_contexts[request.request_id]
+            if request._request_id in self.aggregation_contexts:
+                del self.aggregation_contexts[request._request_id]
                 logger.info(
-                    f"[CLEANUP] Removed AggregationContext for request_id='{request.request_id}'"
+                    f"[CLEANUP] Removed AggregationContext for request_id='{request._request_id}'"
                 )
                 return CleanupResponse(status="Cleaned up")
             else:
                 logger.warning(
-                    f"[CLEANUP] No AggregationContext found for request_id='{request.request_id}'"
+                    f"[CLEANUP] No AggregationContext found for request_id='{request._request_id}'"
                 )
                 return CleanupResponse(status="No aggregation found for request_id")
 
@@ -140,7 +140,7 @@ class AggregationServer(AggregationServerServicer):
                 agg_ctx.aggregation_type = request.aggregation_type
             elif agg_ctx.aggregation_type != request.aggregation_type:
                 msg = (
-                    f"Mismatched computation type for request_id='{request.request_id}'. "
+                    f"Mismatched computation type for request_id='{request._request_id}'. "
                     f"Expected '{agg_ctx.aggregation_type}', got '{request.aggregation_type}'"
                 )
                 logger.error(f"[AGGREGATE] {msg}")
@@ -149,7 +149,7 @@ class AggregationServer(AggregationServerServicer):
             agg_ctx.vectors.append(request.vectors)
             current_count = len(agg_ctx.vectors)
             logger.info(
-                f"[AGGREGATE] request_id='{request.request_id}' aggregation_type='{request.aggregation_type}' "
+                f"[AGGREGATE] request_id='{request._request_id}' aggregation_type='{request.aggregation_type}' "
                 f"received response {current_count}/{agg_ctx.expected_workers}: vectors={request.vectors}"
             )
 
@@ -192,7 +192,7 @@ class AggregationServer(AggregationServerServicer):
         """
         if not agg_ctx.result_ready.wait(timeout=config.timeout):
             msg = (
-                f"Timeout waiting for aggregation result for request_id='{request.request_id}' "
+                f"Timeout waiting for aggregation result for request_id='{request._request_id}' "
                 f"and aggregation_type='{request.aggregation_type}'"
             )
             logger.error(f"[AGGREGATE] {msg}")

@@ -20,16 +20,16 @@ class WorkerTaskTimeoutException(Exception):
 
 
 class FlowerStrategy(AlgorithmExecutionStrategyI):
-    controller: FlowerController
-    local_worker_tasks_handlers: List[FlowerTasksHandler]
-    global_worker_tasks_handler: FlowerTasksHandler
+    _controller: FlowerController
+    _local_worker_tasks_handlers: List[FlowerTasksHandler]
+    _global_worker_tasks_handler: FlowerTasksHandler
 
     async def execute(self) -> str:
         async with (self.controller.algorithm_execution_lock):
-            data_model = self.algorithm_request_dto.inputdata.data_model
-            datasets = self.algorithm_request_dto.inputdata.datasets + (
-                self.algorithm_request_dto.inputdata.validation_datasets
-                if self.algorithm_request_dto.inputdata.validation_datasets
+            data_model = self._algorithm_request_dto.inputdata.data_model
+            datasets = self._algorithm_request_dto.inputdata.datasets + (
+                self._algorithm_request_dto.inputdata.validation_datasets
+                if self._algorithm_request_dto.inputdata.validation_datasets
                 else []
             )
 
@@ -38,12 +38,12 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                 handler.garbage_collect()
 
             self.controller.flower_execution_info.set_inputdata(
-                inputdata=self.algorithm_request_dto.inputdata.dict()
+                inputdata=self._algorithm_request_dto.inputdata.dict()
             )
             server_pid = None
             clients_pids = {}
             server_address = f"{self.controller.worker_landscape_aggregator.get_global_worker().ip}:{FLOWER_SERVER_PORT}"
-            algorithm_folder_path = flower_algorithm_folder_paths[self.algorithm_name]
+            algorithm_folder_path = flower_algorithm_folder_paths[self._algorithm_name]
             try:
                 server_pid = self.global_worker_tasks_handler.start_flower_server(
                     algorithm_folder_path,
@@ -64,20 +64,20 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                 }
 
                 log_experiment_execution(
-                    self.logger,
-                    self.request_id,
-                    self.context_id,
-                    self.algorithm_name,
-                    self.algorithm_request_dto.inputdata.datasets,
-                    self.algorithm_request_dto.parameters,
+                    self._logger,
+                    self._request_id,
+                    self._context_id,
+                    self._algorithm_name,
+                    self._algorithm_request_dto.inputdata.datasets,
+                    self._algorithm_request_dto.parameters,
                     [h.worker_id for h in self.local_worker_tasks_handlers],
                 )
                 result = (
                     await self.controller.flower_execution_info.get_result_with_timeout()
                 )
 
-                self.logger.info(
-                    f"Finished execution -> {self.algorithm_name} with {self.request_id}"
+                self._logger.info(
+                    f"Finished execution -> {self._algorithm_name} with {self._request_id}"
                 )
 
                 # TODO Kostas, The result should be str but this returns dict
@@ -87,7 +87,7 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                 raise WorkerTaskTimeoutException(self.controller.task_timeout)
             finally:
                 await self._cleanup(
-                    self.algorithm_name,
+                    self._algorithm_name,
                     self.global_worker_tasks_handler,
                     server_pid,
                     clients_pids,

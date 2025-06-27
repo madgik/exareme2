@@ -2,10 +2,10 @@ from abc import ABC
 from abc import abstractmethod
 from typing import List
 
-from exareme2.aggregation_client.constants import AggregationType
+from exareme2.aggregation_clients import AggregationType
 
 
-class AlgorithmUdfAggregationClient(ABC):
+class ExaflowUDFAggregationClientI(ABC):
     """What a worker cares about (data aggregation only)."""
 
     # low-level primitive

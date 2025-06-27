@@ -71,7 +71,7 @@ class AlgorithmDataLoader(ABC):
         return self._variables
 
 
-class InitializationParams(BaseModel):
+class AlgorithmInitializationParams(BaseModel):
     algorithm_name: str
     var_filters: Optional[dict] = None
     algorithm_parameters: Optional[Dict[str, Any]] = None
@@ -94,14 +94,14 @@ class Algorithm(ABC):
 
     def __init__(
         self,
-        initialization_params: InitializationParams,
+        initialization_params: AlgorithmInitializationParams,
         data_loader: AlgorithmDataLoader,
         engine,
     ):
         """
         Parameters
         ----------
-        initialization_params : InitializationParams
+        initialization_params : AlgorithmInitializationParams
         """
         self._initialization_params = initialization_params
         self._data_loader = data_loader

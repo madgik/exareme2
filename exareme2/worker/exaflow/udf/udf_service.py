@@ -1,8 +1,8 @@
+from exareme2.aggregation_clients.exaflow_udf_aggregation_client import (
+    ExaflowUDFAggregationClient as AggregationClient,
+)
 from exareme2.algorithms.exaflow.exaflow_registry import exaflow_registry
 from exareme2.algorithms.utils.inputdata_utils import Inputdata
-from exareme2.worker.exaflow.aggregation_client import (
-    AlgorithmUdfWorkerAggregationClient as AggregationClient,
-)
 from exareme2.worker.utils.logger import get_logger
 from exareme2.worker.utils.logger import initialise_logger
 from exareme2.worker.worker_info.worker_info_db import get_dataset_csv_paths

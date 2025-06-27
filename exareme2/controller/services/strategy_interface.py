@@ -4,8 +4,6 @@ from logging import Logger
 from typing import List
 from typing import Optional
 
-from billiard.pool import TaskHandler
-
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.controller_interface import ControllerI
@@ -21,14 +19,14 @@ class AlgorithmExecutionStrategyI(ABC):
     algorithm execution independent variables.
     """
 
-    controller: ControllerI
-    algorithm_name: str
-    algorithm_request_dto: AlgorithmRequestDTO
-    request_id: str
-    context_id: str
-    logger: Logger
-    local_worker_tasks_handlers: List[TasksHandlerI]
-    global_worker_tasks_handler: Optional[TasksHandlerI]
+    _controller: ControllerI
+    _algorithm_name: str
+    _algorithm_request_dto: AlgorithmRequestDTO
+    _request_id: str
+    _context_id: str
+    _logger: Logger
+    _local_worker_tasks_handlers: List[TasksHandlerI]
+    _global_worker_tasks_handler: Optional[TasksHandlerI]
 
     def __init__(
         self,
@@ -36,21 +34,21 @@ class AlgorithmExecutionStrategyI(ABC):
         algorithm_name: str,
         algorithm_request_dto: AlgorithmRequestDTO,
     ):
-        self.controller = controller
-        self.algorithm_name = algorithm_name
-        self.algorithm_request_dto = algorithm_request_dto
-        self.request_id = self.algorithm_request_dto.request_id
-        self.context_id = UIDGenerator().get_a_uid()
-        self.logger = ctrl_logger.get_request_logger(self.request_id)
-        self.local_worker_tasks_handlers = (
-            self.controller.get_local_worker_tasks_handlers(
-                self.algorithm_request_dto.inputdata.data_model,
-                self.algorithm_request_dto.inputdata.datasets,
-                self.request_id,
+        self._controller = controller
+        self._algorithm_name = algorithm_name
+        self._algorithm_request_dto = algorithm_request_dto
+        self._request_id = self._algorithm_request_dto.request_id
+        self._context_id = UIDGenerator().get_a_uid()
+        self._logger = ctrl_logger.get_request_logger(self._request_id)
+        self._local_worker_tasks_handlers = (
+            self._controller.get_local_worker_tasks_handlers(
+                self._algorithm_request_dto.inputdata.data_model,
+                self._algorithm_request_dto.inputdata.datasets,
+                self._request_id,
             )
         )
-        self.global_worker_tasks_handler = (
-            self.controller.get_global_worker_tasks_handler(self.request_id)
+        self._global_worker_tasks_handler = (
+            self._controller.get_global_worker_tasks_handler(self._request_id)
         )
 
     @abstractmethod

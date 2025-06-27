@@ -5,6 +5,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from exareme2 import AlgorithmDataLoader
 from exareme2 import DType
 from exareme2.algorithms.exareme2.udfgen import AdhocUdfGenerator
 from exareme2.algorithms.exareme2.udfgen.udfgen_DTOs import UDFGenTableResult
@@ -20,9 +21,9 @@ class Result:
     metadata: dict
 
 
-class DataLoader:
+class LongitudinalTransformerRunnerDataLoader(AlgorithmDataLoader):
     def __init__(self, variables):
-        self._variables = variables
+        super().__init__(variables)
 
     def get_variable_groups(self):
         xvars = self._variables.x
@@ -52,7 +53,7 @@ class LongitudinalTransformerRunner:
     def __init__(
         self,
         initialization_params: InitializationParams,
-        data_loader: DataLoader,
+        data_loader: LongitudinalTransformerRunnerDataLoader,
         engine,
     ):
         self.algorithm_parameters = initialization_params.algorithm_parameters
