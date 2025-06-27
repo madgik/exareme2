@@ -11,12 +11,10 @@ class ExaflowRegistry(metaclass=Singleton):
     def __init__(self) -> None:
         self._registry: Dict[str, Callable] = {}
 
-    # ------------------------------------------------------------------ #
-    def _makeRegistry_key(self, func: Callable) -> str:
+    def _make_key(self, func: Callable) -> str:
         """module basename + '_' + function name"""
         return f"{func.__module__.split('.')[-1]}_{func.__name__}"
 
-    # ------------------------------------------------------------------ #
     def register(self, func: Callable) -> Callable:
         key = self._make_key(func)
         if key in self._registry:
@@ -31,7 +29,6 @@ class ExaflowRegistry(metaclass=Singleton):
         self._registry[key] = func
         return func
 
-    # ------------------------------------------------------------------ #
     def resolve_key(self, item: Union[str, Callable]) -> str:
         if callable(item):
             key = self._make_key(item)
@@ -39,7 +36,6 @@ class ExaflowRegistry(metaclass=Singleton):
                 self._registry[key] = item
             return key
 
-    # conveniences ------------------------------------------------------- #
     def get_udf(self, key: str) -> Optional[Callable]:
         return self._registry.get(key)
 

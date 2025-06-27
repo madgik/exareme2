@@ -8,20 +8,17 @@ from exareme2.aggregation_clients import AggregationType
 class ExaflowUDFAggregationClientI(ABC):
     """What a worker cares about (data aggregation only)."""
 
-    # low-level primitive
     @abstractmethod
     def aggregate(
         self, aggregation_type: AggregationType, values: List[float]
     ) -> List[float]:
         ...
 
-    # convenience helpers ----------------------------------------------------
-    # These *can* remain abstract, but providing defaults avoids repetition.
-    def sum(self, values: List[float]) -> float:
+    def sum(self, values: List[float]) -> List[float]:
         return self.aggregate(AggregationType.SUM, [sum(values)])
 
-    def min(self, values: List[float]) -> float:
+    def min(self, values: List[float]) -> List[float]:
         return self.aggregate(AggregationType.MIN, [min(values)])
 
-    def max(self, values: List[float]) -> float:
+    def max(self, values: List[float]) -> List[float]:
         return self.aggregate(AggregationType.MAX, [max(values)])

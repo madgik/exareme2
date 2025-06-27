@@ -21,9 +21,9 @@ class Result:
     metadata: dict
 
 
-class LongitudinalTransformerRunnerDataLoader(AlgorithmDataLoader):
+class LongitudinalTransformerRunnerDataLoader:
     def __init__(self, variables):
-        super().__init__(variables)
+        self._variables = variables
 
     def get_variable_groups(self):
         xvars = self._variables.x

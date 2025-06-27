@@ -147,16 +147,18 @@ class Exareme2AlgorithmExecutionStrategy(AlgorithmExecutionStrategyI):
             data_model_views=data_model_views,
             metadata=metadata,
             logger=self._logger,
-        ).json()
+        )
+
+        algorithm_result_json = algorithm_result.json()
 
         self._logger.info(
             f"Finished execution->  {self._algorithm_name=} with {self._request_id=}"
         )
         self._logger.debug(
-            f"Algorithm {self._request_id=} result-> {algorithm_result=}"
+            f"Algorithm {self._request_id=} result-> {algorithm_result_json=}"
         )
 
-        return algorithm_result
+        return algorithm_result_json
 
     @abstractmethod
     async def execute(self) -> str:
@@ -239,7 +241,10 @@ class LongitudinalStrategy(Exareme2AlgorithmExecutionStrategy):
         return data_transformed, metadata
 
     async def execute(self):
-        transformation_data, transformation_metadata = self._execute_transformation()
+        (
+            transformation_data,
+            transformation_metadata,
+        ) = await self._execute_transformation()
 
         X = transformation_data[0]
         y = transformation_data[1]

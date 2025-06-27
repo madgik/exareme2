@@ -3,10 +3,8 @@ from __future__ import annotations
 from abc import ABC
 from abc import abstractmethod
 
-from exareme2.aggregation_clients import BaseAggregationClient
 
-
-class ControllerAggregationClientI(ABC, BaseAggregationClient):
+class ControllerAggregationClientI(ABC):
     @abstractmethod
     def configure(self, num_workers: int) -> str:
         ...

@@ -4,8 +4,8 @@ from quart import Blueprint
 
 from exareme2.controller.logger import get_background_service_logger
 from exareme2.controller.services.api.algorithm_request_validator import BadRequest
-from exareme2.controller.services.exareme2.controller import WorkerTaskTimeoutException
-from exareme2.controller.services.exareme2.controller import WorkerUnresponsiveException
+from exareme2.controller.services.errors import WorkerTaskTimeoutError
+from exareme2.controller.services.errors import WorkerUnresponsiveError
 from exareme2.data_filters import FilterError
 from exareme2.smpc_cluster_communication import SMPCUsageError
 from exareme2.worker_communication import BadUserInput
@@ -88,9 +88,9 @@ def handle_smpc_error(error: SMPCUsageError):
     return error.message, HTTPStatusCode.SMPC_USAGE_ERROR
 
 
-@error_handlers.app_errorhandler(WorkerUnresponsiveException)
+@error_handlers.app_errorhandler(WorkerUnresponsiveError)
 def handle_worker_unresponsive_algorithm_excecution_exception(
-    error: WorkerUnresponsiveException,
+    error: WorkerUnresponsiveError,
 ):
     get_background_service_logger().error(
         f"Internal Server Error. Type: '{type(error).__name__}' Message: '{error}'"
@@ -101,9 +101,9 @@ def handle_worker_unresponsive_algorithm_excecution_exception(
     )
 
 
-@error_handlers.app_errorhandler(WorkerTaskTimeoutException)
+@error_handlers.app_errorhandler(WorkerTaskTimeoutError)
 def handle_worker_task_timeout_algorithm_execution_exception(
-    error: WorkerTaskTimeoutException,
+    error: WorkerTaskTimeoutError,
 ):
     get_background_service_logger().error(
         f"Internal Server Error. Type: '{type(error).__name__}' Message: '{error}'"

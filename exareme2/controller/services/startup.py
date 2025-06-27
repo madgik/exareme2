@@ -14,8 +14,9 @@ from exareme2.controller.services.exareme2.cleaner import Cleaner
 from exareme2.controller.services.exareme2.controller import (
     Exareme2Controller as Exareme2Controller,
 )
-from exareme2.controller.services.flower import set_controller as set_flower_controller
-from exareme2.controller.services.flower import set_flower_execution_info
+from exareme2.controller.services.flower import (
+    set_flower_controller as set_flower_controller,
+)
 from exareme2.controller.services.flower.controller import (
     FlowerController as FlowerController,
 )

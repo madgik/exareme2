@@ -340,9 +340,7 @@ class Specifications:
                 all_transformers[transformer_spec.name] = transformer_spec
             else:
                 algorithm_specification = AlgorithmSpecification.parse_raw(spec_content)
-                all_algorithms[
-                    (algorithm_specification.name, algorithm_specification.type)
-                ] = algorithm_specification
+                all_algorithms[algorithm_specification.name] = algorithm_specification
         except KeyError as e:
             logging.error(f"Missing key {e} in {spec_name}")
             raise
@@ -358,7 +356,6 @@ class Specifications:
 
 
 specifications = Specifications()
-
 
 algorithm_specifications_dtos = _get_algorithm_specifications_dtos(
     list(specifications.enabled_algorithms.values()),

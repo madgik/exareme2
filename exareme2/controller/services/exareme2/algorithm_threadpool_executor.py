@@ -4,6 +4,8 @@ import traceback
 
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
+from exareme2.controller.services.errors import WorkerTaskTimeoutError
+from exareme2.controller.services.errors import WorkerUnresponsiveError
 
 _thread_pool_executor = concurrent.futures.ThreadPoolExecutor()
 
@@ -26,31 +28,10 @@ async def algorithm_run_in_threadpool(algorithm, data_model_views, metadata, log
         return algorithm_result
     except CeleryConnectionError as exc:
         logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
-        raise WorkerUnresponsiveException()
+        raise WorkerUnresponsiveError()
     except CeleryTaskTimeoutException as exc:
         logger.error(f"ErrorType: '{type(exc)}' and message: '{exc}'")
-        raise WorkerTaskTimeoutException()
+        raise WorkerTaskTimeoutError()
     except Exception as exc:
         logger.error(traceback.format_exc())
         raise exc
-
-
-class WorkerUnresponsiveException(Exception):
-    def __init__(self):
-        message = (
-            "One of the workers participating in the algorithm execution "
-            "stopped responding"
-        )
-        super().__init__(message)
-        self.message = message
-
-
-class WorkerTaskTimeoutException(Exception):
-    def __init__(self):
-        message = (
-            f"One of the celery in the algorithm execution took longer to finish than "
-            f"the timeout.This could be caused by a high load or by an experiment with "
-            f"too much data. Please try again or increase the timeout."
-        )
-        super().__init__(message)
-        self.message = message

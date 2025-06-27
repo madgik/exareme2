@@ -22,7 +22,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
         variable_names = (self._algorithm_request_dto.inputdata.x or []) + (
             self._algorithm_request_dto.inputdata.y or []
         )
-        metadata = self.controller.worker_landscape_aggregator.get_metadata(
+        metadata = self._controller.worker_landscape_aggregator.get_metadata(
             data_model=self._algorithm_request_dto.inputdata.data_model,
             variable_names=variable_names,
         )
@@ -30,7 +30,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
         engine = ExaflowAlgorithmFlowEngineInterface(
             request_id=self._request_id,
             context_id=self._context_id,
-            tasks_handlers=self.worker_tasks_handlers,
+            tasks_handlers=self._local_worker_tasks_handlers,
         )
         algorithm_cls = exaflow_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(
@@ -44,7 +44,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
             self._algorithm_name,
             self._algorithm_request_dto.inputdata.datasets,
             self._algorithm_request_dto.parameters,
-            [h.worker_id for h in self.worker_tasks_handlers],
+            [h.worker_id for h in self._local_worker_tasks_handlers],
         )
         result = algorithm.execute(metadata)
         self._logger.info(
@@ -55,8 +55,10 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
 
 class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
     async def execute(self) -> str:
-        agg_client = ControllerAggregationClient(self._request_id)
-        status = agg_client.configure(num_workers=len(self.worker_tasks_handlers))
+        agg_client = ControllerAggregationClient()
+        status = agg_client.configure(
+            num_workers=len(self._local_worker_tasks_handlers)
+        )
         if status != "Configured":
             raise RuntimeError(f"AggregationServer refused to configure: {status}")
         self._logger.debug(f"Aggregation configured: {status}")

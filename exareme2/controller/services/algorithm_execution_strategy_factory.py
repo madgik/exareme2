@@ -20,7 +20,9 @@ from exareme2.controller.services.exareme2.strategies import (
 )
 from exareme2.controller.services.exareme2.strategies import LongitudinalStrategy
 from exareme2.controller.services.exareme2.strategies import SingleAlgorithmStrategy
-from exareme2.controller.services.flower import get_controller as get_flower_controller
+from exareme2.controller.services.flower import (
+    get_flower_controller as get_flower_controller,
+)
 from exareme2.controller.services.flower.strategies import FlowerStrategy
 from exareme2.controller.services.strategy_interface import AlgorithmExecutionStrategyI
 from exareme2.controller.uid_generator import UIDGenerator

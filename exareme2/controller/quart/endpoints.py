@@ -20,7 +20,7 @@ from exareme2.controller.services.api.algorithm_spec_dtos import (
     algorithm_specifications_dtos,
 )
 from exareme2.controller.services.api.algorithm_spec_dtos import specifications
-from exareme2.controller.services.flower import get_flower_execution_info
+from exareme2.controller.services.flower import get_flower_controller
 from exareme2.controller.services.startup import start_background_services
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
@@ -116,13 +116,13 @@ async def run_algorithm(algorithm_name: str) -> str:
 
 @algorithms.route("/flower/input", methods=["GET"])
 async def get_flower_input() -> dict:
-    return get_flower_execution_info().get_inputdata()
+    return get_flower_controller().flower_execution_info.get_inputdata()
 
 
 @algorithms.route("/flower/result", methods=["POST"])
 async def set_flower_result():
     request_body = await request.json
-    await get_flower_execution_info().set_result(result=request_body)
+    await get_flower_controller().flower_execution_info.set_result(result=request_body)
 
     return jsonify({"message": "Result set successfully"}), 200
 
