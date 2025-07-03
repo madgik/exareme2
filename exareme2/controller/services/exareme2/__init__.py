@@ -1,31 +1,31 @@
 from typing import Optional
 
 from exareme2.controller.services.exareme2.cleaner import Cleaner
-from exareme2.controller.services.exareme2.controller import Controller
+from exareme2.controller.services.exareme2.controller import Exareme2Controller
 
-_cleaner: Optional[Cleaner] = None
-_controller: Optional[Controller] = None
-
-
-def set_cleaner(cleaner: Cleaner):
-    global _cleaner
-    _cleaner = cleaner
+_exareme2_cleaner: Optional[Cleaner] = None
+_exareme2_controller: Optional[Exareme2Controller] = None
 
 
-def get_cleaner() -> Cleaner:
-    global _cleaner
-    if not _cleaner:
-        raise ValueError("Cleaner has not been initialized.")
-    return _cleaner
+def set_exareme2_cleaner(cleaner: Cleaner):
+    global _exareme2_cleaner
+    _exareme2_cleaner = cleaner
 
 
-def set_controller(controller: Controller):
-    global _controller
-    _controller = controller
+def get_exareme2_cleaner() -> Cleaner:
+    global _exareme2_cleaner
+    if not _exareme2_cleaner:
+        raise ValueError("Exareme2 cleaner has not been initialized.")
+    return _exareme2_cleaner
 
 
-def get_controller() -> Controller:
-    global _controller
-    if not _controller:
-        raise ValueError("Controller has not been initialized.")
-    return _controller
+def set_exareme2_controller(controller: Exareme2Controller):
+    global _exareme2_controller
+    _exareme2_controller = controller
+
+
+def get_controller() -> Exareme2Controller:
+    global _exareme2_controller
+    if not _exareme2_controller:
+        raise ValueError("Exareme2 controller has not been initialized.")
+    return _exareme2_controller

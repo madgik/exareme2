@@ -5,15 +5,22 @@ from celery.utils.serialization import jsonify
 from quart import Blueprint
 from quart import request
 
+from exareme2.controller import config as ctrl_config
 from exareme2.controller.quart.loggers import loggers
 from exareme2.controller.services import get_worker_landscape_aggregator
-from exareme2.controller.services.algorithm_execution import execute_algorithm
+from exareme2.controller.services.algorithm_execution_strategy_factory import (
+    get_algorithm_execution_strategy,
+)
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.api.algorithm_request_validator import BadRequest
+from exareme2.controller.services.api.algorithm_request_validator import (
+    validate_algorithm_request,
+)
 from exareme2.controller.services.api.algorithm_spec_dtos import (
     algorithm_specifications_dtos,
 )
-from exareme2.controller.services.flower import get_flower_execution_info
+from exareme2.controller.services.api.algorithm_spec_dtos import specifications
+from exareme2.controller.services.flower import get_flower_controller
 from exareme2.controller.services.startup import start_background_services
 
 algorithms = Blueprint("algorithms_endpoint", __name__)
@@ -93,20 +100,29 @@ async def run_algorithm(algorithm_name: str) -> str:
         )
         raise BadRequest(error_msg)
 
-    result = await execute_algorithm(algorithm_name, algorithm_request_dto)
+    validate_algorithm_request(
+        algorithm_name=algorithm_name,
+        algorithm_request_dto=algorithm_request_dto,
+        algorithms_specs=specifications.enabled_algorithms,
+        transformers_specs=specifications.enabled_transformers,
+        worker_landscape_aggregator=get_worker_landscape_aggregator(),
+        smpc_enabled=ctrl_config.smpc.enabled,
+        smpc_optional=ctrl_config.smpc.optional,
+    )
 
-    return result
+    strategy = get_algorithm_execution_strategy(algorithm_name, algorithm_request_dto)
+    return await strategy.execute()
 
 
 @algorithms.route("/flower/input", methods=["GET"])
 async def get_flower_input() -> dict:
-    return get_flower_execution_info().get_inputdata()
+    return get_flower_controller().flower_execution_info.get_inputdata()
 
 
 @algorithms.route("/flower/result", methods=["POST"])
 async def set_flower_result():
     request_body = await request.json
-    await get_flower_execution_info().set_result(result=request_body)
+    await get_flower_controller().flower_execution_info.set_result(result=request_body)
 
     return jsonify({"message": "Result set successfully"}), 200
 

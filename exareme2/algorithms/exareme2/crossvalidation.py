@@ -23,7 +23,7 @@ class KFold:
         """
         Parameters
         ----------
-        angine: AlgorithmExecutionEngine
+        angine: Exareme2AlgorithmFlowEngineInterface
         n_splits: int
         """
         self._local_run = engine.run_udf_on_local_workers

@@ -5,7 +5,10 @@ log_level = "DEBUG"
 framework_log_level = "INFO"
 deployment_type = "LOCAL"
 worker_landscape_aggregator_update_interval = 30
-flower_execution_timeout = 30
+
+[flower]
+execution_timeout=60
+server_port=8080
 
 [cleanup]
 contextids_cleanup_folder = "/tmp"

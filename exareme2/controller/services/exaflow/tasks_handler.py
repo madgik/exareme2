@@ -1,9 +1,10 @@
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handler import WorkerTaskResult
 from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
+from exareme2.controller.services.tasks_handler_interface import TasksHandlerI
 
 
-class TasksHandler:
+class ExaflowTasksHandler(TasksHandlerI):
     def __init__(
         self,
         request_id: str,
@@ -29,8 +30,4 @@ class TasksHandler:
         return self._tasks_timeout
 
     def queue_udf(self, udf_name, params: dict) -> WorkerTaskResult:
-        return self._worker_tasks_handler.queue_udf(
-            self._request_id,
-            udf_name,
-            params,
-        )
+        return self._worker_tasks_handler.queue_udf(self._request_id, udf_name, params)

@@ -3,10 +3,8 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 
 from exareme2.algorithms.specifications import AlgorithmSpecification
-from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -41,15 +39,13 @@ class BadRequest(Exception):
 def validate_algorithm_request(
     algorithm_name: str,
     algorithm_request_dto: AlgorithmRequestDTO,
-    algorithms_specs: Dict[Tuple[str, AlgorithmType], AlgorithmSpecification],
+    algorithms_specs: Dict[str, AlgorithmSpecification],
     transformers_specs: Dict[str, TransformerSpecification],
     worker_landscape_aggregator: WorkerLandscapeAggregator,
     smpc_enabled: bool,
     smpc_optional: bool,
 ):
-    algorithm_specs = _get_algorithm_specs(
-        algorithm_name, algorithm_request_dto.type, algorithms_specs
-    )
+    algorithm_specs = _get_algorithm_specs(algorithm_name, algorithms_specs)
 
     (
         training_datasets,
@@ -74,12 +70,11 @@ def validate_algorithm_request(
 
 def _get_algorithm_specs(
     algorithm_name: str,
-    algorithm_type: AlgorithmType,
-    algorithms_specs: Dict[Tuple[str, AlgorithmType], AlgorithmSpecification],
+    algorithms_specs: Dict[str, AlgorithmSpecification],
 ):
-    if (algorithm_name, algorithm_type) not in algorithms_specs.keys():
+    if algorithm_name not in algorithms_specs.keys():
         raise BadRequest(f"Algorithm '{algorithm_name}' does not exist.")
-    return algorithms_specs[(algorithm_name, algorithm_type)]
+    return algorithms_specs[algorithm_name]
 
 
 def _validate_algorithm_request_body(

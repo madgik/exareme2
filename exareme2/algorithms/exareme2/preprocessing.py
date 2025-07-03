@@ -249,7 +249,7 @@ class FormulaTransformer:
         """
         Parameters
         ----------
-        engine : AlgorithmExecutionEngine
+        engine : Exareme2AlgorithmFlowEngineInterface
             Instance of algorithm execution engine.
         formula : str
             R style model formula.

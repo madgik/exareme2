@@ -287,6 +287,9 @@ def _get_algorithm_specifications_dtos(
 
 
 class Specifications:
+    enabled_algorithms: Dict[str, AlgorithmSpecification]
+    enabled_transformers: Dict[str, TransformerSpecification]
+
     def __init__(self):
         (
             self.enabled_algorithms,
@@ -334,12 +337,18 @@ class Specifications:
             spec_type = spec_json["type"]
             if TransformerType.EXAREME2_TRANSFORMER.value in spec_type:
                 transformer_spec = TransformerSpecification.parse_raw(spec_content)
+                if transformer_spec.name in all_transformers.keys():
+                    raise ValueError(
+                        f"The transformer name '{transformer_spec.name}' exists more than once in the transformer specifications."
+                    )
                 all_transformers[transformer_spec.name] = transformer_spec
             else:
                 algorithm_specification = AlgorithmSpecification.parse_raw(spec_content)
-                all_algorithms[
-                    (algorithm_specification.name, algorithm_specification.type)
-                ] = algorithm_specification
+                if algorithm_specification.name in all_algorithms.keys():
+                    raise ValueError(
+                        f"The algorithm name '{algorithm_specification.name}' exists more than once in the algorithm specifications."
+                    )
+                all_algorithms[algorithm_specification.name] = algorithm_specification
         except KeyError as e:
             logging.error(f"Missing key {e} in {spec_name}")
             raise
@@ -350,9 +359,11 @@ class Specifications:
         enabled_transformers = {k: v for k, v in all_transformers.items() if v.enabled}
         return enabled_algorithms, enabled_transformers
 
+    def get_algorithm_type(self, algo_name: str):
+        return self.enabled_algorithms[algo_name].type
+
 
 specifications = Specifications()
-
 
 algorithm_specifications_dtos = _get_algorithm_specifications_dtos(
     list(specifications.enabled_algorithms.values()),

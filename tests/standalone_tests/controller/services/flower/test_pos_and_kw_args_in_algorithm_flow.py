@@ -14,7 +14,7 @@ def test_pos_and_kw_args_in_algorithm_flow(
     load_test_data_globalworker,
     controller_service_with_localworker1,
 ):
-    algorithm_name = "logistic_regression"
+    algorithm_name = "logistic_regression_fedaverage_flower"
     request_dict = {
         "inputdata": {
             "y": ["gender"],
@@ -29,7 +29,6 @@ def test_pos_and_kw_args_in_algorithm_flow(
             "validation_datasets": ["ppmi_test"],
             "filters": None,
         },
-        "type": "flower",
     }
 
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name

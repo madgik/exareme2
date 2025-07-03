@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
-from exareme2.controller.services.flower import FlowerIORegistry
+from exareme2.controller.services.flower.flower_io_registry import FlowerIORegistry
 from exareme2.controller.services.flower.flower_io_registry import Status
 
 

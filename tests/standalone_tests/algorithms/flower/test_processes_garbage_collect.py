@@ -28,7 +28,7 @@ def test_processes_garbage_collect(
         task_signature=start_flower_server_task_signature,
         logger=StdOutputLogger(),
         request_id="test_bro",
-        algorithm_folder_path="./exareme2/algorithms/flower/logistic_regression",
+        algorithm_folder_path="./exareme2/algorithms/flower/logistic_regression_fedaverage_flower",
         number_of_clients=1,
         server_address=f"{COMMON_IP}:8080",
         data_model="data_model:1",
@@ -54,10 +54,9 @@ def test_processes_garbage_collect(
             "validation_datasets": ["ppmi_test"],
             "filters": None,
         },
-        "type": "flower",
     }
 
-    algorithm_url = ALGORITHMS_URL + "/" + "logistic_regression"
+    algorithm_url = ALGORITHMS_URL + "/" + "logistic_regression_fedaverage_flower"
 
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
     response = requests.post(

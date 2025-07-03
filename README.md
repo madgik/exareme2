@@ -55,10 +55,14 @@
    flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
 
    worker_landscape_aggregator_update_interval = 30
-   flower_execution_timeout = 30
    celery_tasks_timeout = 20
    celery_cleanup_task_timeout=2
    celery_run_udf_task_timeout = 120
+
+
+   [flower]
+   execution_timeout=60
+   server_port=8080
 
    [controller]
    port = 5000

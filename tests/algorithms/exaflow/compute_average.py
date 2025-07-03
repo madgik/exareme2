@@ -10,7 +10,7 @@ ALGORITHM_NAME = "compute_average"
 class ComputeAverage(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         local_results = self.engine.run_algorithm_udf(
-            func="compute_average_local_step",
+            func=local_step,
             positional_args={"inputdata": self.inputdata.json()},
         )
 

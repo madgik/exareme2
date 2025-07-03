@@ -15,7 +15,7 @@ def test_parallel_requests_in_algorithm_flow(
     load_test_data_globalworker,
     controller_service_with_localworker1,
 ):
-    algorithm_name = "logistic_regression"
+    algorithm_name = "logistic_regression_fedaverage_flower"
     request_dict = {
         "inputdata": {
             "y": ["gender"],
@@ -30,7 +30,6 @@ def test_parallel_requests_in_algorithm_flow(
             "validation_datasets": ["ppmi_test"],
             "filters": None,
         },
-        "type": "flower",
     }
 
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
@@ -54,7 +53,7 @@ def test_parallel_requests_in_algorithm_flow(
             future.result() for future in concurrent.futures.as_completed(futures)
         ]
 
-    expected_result = {"accuracy": 0.63}
+    expected_result = {"accuracy": 0.37}
 
     for result in results:
         assert result == expected_result

@@ -929,6 +929,7 @@ def _create_worker_service(worker_config_filepath):
     env["EXAREME2_ALGORITHM_FOLDERS"] = EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["FLOWER_ALGORITHM_FOLDERS"] = FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
     env["EXAFLOW_ALGORITHM_FOLDERS"] = EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE_VALUE
+    env["DATA_PATH"] = str(TEST_DATA_FOLDER)
     env["EXAREME2_WORKER_CONFIG_FILE"] = worker_config_filepath
 
     cmd = f"poetry run celery -A exareme2.worker.utils.celery_app worker -l  DEBUG >> {logpath}  --pool=eventlet --purge 2>&1 "
