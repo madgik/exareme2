@@ -220,8 +220,11 @@ def create_configs(c):
     controller_config[
         "worker_landscape_aggregator_update_interval"
     ] = deployment_config["worker_landscape_aggregator_update_interval"]
-    controller_config["flower_execution_timeout"] = deployment_config[
-        "flower_execution_timeout"
+    controller_config["flower"]["execution_timeout"] = deployment_config["flower"][
+        "execution_timeout"
+    ]
+    controller_config["flower"]["server_port"] = deployment_config["flower"][
+        "server_port"
     ]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"

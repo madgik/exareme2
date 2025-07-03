@@ -1,4 +1,7 @@
+from typing import Any
+from typing import Dict
 from typing import List
+from typing import Optional
 
 #  ~~~ ATTENTION ~~~ Changing these logs will have implications on the federation_info script.
 
@@ -9,7 +12,7 @@ def log_experiment_execution(
     context_id: str,
     algorithm_name: str,
     datasets: List[str],
-    algorithm_parameters: str,
+    algorithm_parameters: Optional[Dict[str, Any]],
     local_worker_ids: List[str],
 ):
     logger.info(

@@ -3,15 +3,19 @@ from unittest.mock import patch
 import pytest
 
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.services.exareme2.execution_engine import (
-    AlgorithmExecutionEngine,
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Exareme2AlgorithmFlowEngineInterface,
 )
-from exareme2.controller.services.exareme2.execution_engine import InitializationParams
-from exareme2.controller.services.exareme2.execution_engine import SMPCParams
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    InitializationParams,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    SMPCParams,
+)
 from exareme2.smpc_cluster_communication import DifferentialPrivacyParams
 
 
-class TestAlgorithmExecutionEngine:
+class TestExareme2AlgorithmFlowEngineInterface:
     @pytest.fixture
     def algorithm_execution_engine_init_params(self):
         return InitializationParams(
@@ -26,7 +30,7 @@ class TestAlgorithmExecutionEngine:
 
     @pytest.fixture
     def algorithm_execution_engine(self, algorithm_execution_engine_init_params):
-        return AlgorithmExecutionEngine(
+        return Exareme2AlgorithmFlowEngineInterface(
             initialization_params=algorithm_execution_engine_init_params,
             command_id_generator="dummy_id_generator",
             workers="dummy_workers",
@@ -36,7 +40,7 @@ class TestAlgorithmExecutionEngine:
         dummy_command_id_generator = "dummy_id_generator"
         dummy_workers = "dummy_workers"
 
-        algorithm_execution_engine = AlgorithmExecutionEngine(
+        algorithm_execution_engine = Exareme2AlgorithmFlowEngineInterface(
             initialization_params=algorithm_execution_engine_init_params,
             command_id_generator=dummy_command_id_generator,
             workers=dummy_workers,
@@ -67,19 +71,19 @@ class TestAlgorithmExecutionEngine:
     # it would be much easier if refactored to smaller methods/functions.
     def test_share_local_smpc_tables_to_global(self, algorithm_execution_engine):
         with patch(
-            "exareme2.controller.services.exareme2.execution_engine.AlgorithmExecutionEngine._share_local_table_to_global"
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.Exareme2AlgorithmFlowEngineInterface._share_local_table_to_global"
         ) as mock_share_local_table_to_global, patch(
-            "exareme2.controller.services.exareme2.execution_engine.load_data_to_smpc_clients",
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.load_data_to_smpc_clients",
         ) as mock_load_data_to_smpc_clients, patch(
-            "exareme2.controller.services.exareme2.execution_engine.trigger_smpc_operations"
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.trigger_smpc_operations"
         ) as mock_trigger_smpc_operations, patch(
-            "exareme2.controller.services.exareme2.execution_engine.wait_for_smpc_results_to_be_ready"
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.wait_for_smpc_results_to_be_ready"
         ) as mock_wait_for_smpc_results_to_be_ready, patch(
-            "exareme2.controller.services.exareme2.execution_engine.get_smpc_results"
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.get_smpc_results"
         ) as mock_get_smpc_results, patch(
-            "exareme2.controller.services.exareme2.execution_engine.GlobalWorkerSMPCTables"
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.GlobalWorkerSMPCTables"
         ) as MockGlobalWorkerSMPCTables, patch(
-            "exareme2.controller.services.exareme2.execution_engine.SMPCTablesInfo"
+            "exareme2.controller.services.exareme2.algorithm_flow_engine_interface.SMPCTablesInfo"
         ) as MockSMPCTablesInfo:
             command_id = 12345
 

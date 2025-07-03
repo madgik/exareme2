@@ -39,4 +39,3 @@ class AlgorithmRequestDTO(BaseModel):
     parameters: Optional[PARAMETERS_TYPE]
     flags: Optional[Dict[str, Any]]
     preprocessing: Optional[Dict[str, PARAMETERS_TYPE]]
-    type: AlgorithmType

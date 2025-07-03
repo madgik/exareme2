@@ -135,7 +135,7 @@ def worker_landscape_aggregator():
 @pytest.fixture(scope="module")
 def algorithms_specs():
     return {
-        ("algorithm_with_y_int", AlgorithmType.EXAREME2): AlgorithmSpecification(
+        "algorithm_with_y_int": AlgorithmSpecification(
             name="algorithm_with_y_int",
             desc="algorithm_with_y_int",
             label="algorithm_with_y_int",
@@ -152,10 +152,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        (
-            "algorithm_with_y_int_and_validation",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_y_int_and_validation": AlgorithmSpecification(
             name="algorithm_with_y_int_and_validation",
             desc="algorithm_with_y_int_and_validation",
             label="algorithm_with_y_int_and_validation",
@@ -173,10 +170,7 @@ def algorithms_specs():
                 validation=True,
             ),
         ),
-        (
-            "algorithm_with_x_int_and_y_text",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_x_int_and_y_text": AlgorithmSpecification(
             name="algorithm_with_x_int_and_y_text",
             desc="algorithm_with_x_int_and_y_text",
             label="algorithm_with_x_int_and_y_text",
@@ -201,10 +195,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        (
-            "algorithm_with_y_text_multiple_true",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_y_text_multiple_true": AlgorithmSpecification(
             name="algorithm_with_y_text_multiple_true",
             desc="algorithm_with_y_text_multiple_true",
             label="algorithm_with_y_text_multiple_true",
@@ -221,7 +212,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        ("algorithm_with_y_text_categ", AlgorithmType.EXAREME2): AlgorithmSpecification(
+        "algorithm_with_y_text_categ": AlgorithmSpecification(
             name="algorithm_with_y_text_categ",
             desc="algorithm_with_y_text_categ",
             label="algorithm_with_y_text_categ",
@@ -238,10 +229,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        (
-            "algorithm_with_y_text_non_categ",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_y_text_non_categ": AlgorithmSpecification(
             name="algorithm_with_y_text_non_categ",
             desc="algorithm_with_y_text_non_categ",
             label="algorithm_with_y_text_non_categ",
@@ -258,10 +246,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        (
-            "algorithm_with_variable_enumslen",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_variable_enumslen": AlgorithmSpecification(
             name="algorithm_with_variable_enumslen",
             desc="algorithm_with_variable_enumslen",
             label="algorithm_with_variable_enumslen",
@@ -279,10 +264,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        (
-            "algorithm_with_y_and_x_optional",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_y_and_x_optional": AlgorithmSpecification(
             name="algorithm_with_y_and_x_optional",
             desc="algorithm_with_y_and_x_optional",
             label="algorithm_with_y_and_x_optional",
@@ -307,10 +289,7 @@ def algorithms_specs():
                 ),
             ),
         ),
-        (
-            "algorithm_with_required_param",
-            AlgorithmType.EXAREME2,
-        ): AlgorithmSpecification(
+        "algorithm_with_required_param": AlgorithmSpecification(
             name="algorithm_with_required_param",
             desc="algorithm_with_required_param",
             label="algorithm_with_required_param",
@@ -343,7 +322,7 @@ def algorithms_specs():
                 ),
             },
         ),
-        ("algorithm_with_many_params", AlgorithmType.EXAREME2): AlgorithmSpecification(
+        "algorithm_with_many_params": AlgorithmSpecification(
             name="algorithm_with_many_params",
             desc="algorithm_with_many_params",
             label="algorithm_with_many_params",
@@ -481,7 +460,7 @@ def algorithms_specs():
                 ),
             },
         ),
-        ("algorithm_with_transformer", AlgorithmType.EXAREME2): AlgorithmSpecification(
+        "algorithm_with_transformer": AlgorithmSpecification(
             name="algorithm_with_transformer",
             desc="algorithm_with_transformer",
             label="algorithm_with_transformer",
@@ -543,7 +522,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1", "sample_dataset2"],
@@ -555,7 +533,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_y_int_and_validation",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1", "sample_dataset2"],
@@ -568,7 +545,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_x_int_and_y_text",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -581,7 +557,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_y_text_multiple_true",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -593,7 +568,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_variable_enumslen",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -605,7 +579,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_y_and_x_optional",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -617,7 +590,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_y_and_x_optional",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -629,7 +601,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_required_param",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -642,7 +613,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -655,7 +625,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -668,7 +637,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -681,7 +649,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -694,7 +661,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -707,7 +673,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -720,7 +685,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -733,7 +697,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -746,7 +709,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -766,7 +728,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_transformer",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -781,7 +742,6 @@ def get_parametrization_list_success_cases():
         pytest.param(
             "algorithm_with_transformer",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -836,7 +796,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "non_existing_algorithm",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -848,7 +807,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["non_existing_dataset"],
@@ -864,7 +822,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int_and_validation",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -881,7 +838,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset"],
@@ -897,7 +853,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="non_existing_data_model:0.1",
                     datasets=["sample_dataset"],
@@ -910,7 +865,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -922,7 +876,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -935,7 +888,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -948,7 +900,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -961,7 +912,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_text_categ",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -974,7 +924,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_text_non_categ",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -987,7 +936,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_variable_enumslen",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1000,7 +948,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_required_param",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1013,7 +960,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_required_param",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1027,7 +973,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1041,7 +986,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1055,7 +999,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1069,7 +1012,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1083,7 +1025,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1097,7 +1038,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1111,7 +1051,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1125,7 +1064,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1139,7 +1077,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1158,7 +1095,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1177,7 +1113,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1196,7 +1131,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1215,7 +1149,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1236,7 +1169,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_many_params",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1257,7 +1189,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_transformer",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1271,7 +1202,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1288,7 +1218,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_transformer",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1304,7 +1233,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "disabled_algorithm",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1317,7 +1245,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_transformer",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1331,7 +1258,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_required_param",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1351,7 +1277,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1368,7 +1293,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1"],
@@ -1385,7 +1309,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1", "sample_dataset2"],
@@ -1402,7 +1325,6 @@ def get_parametrization_list_exception_cases():
         pytest.param(
             "algorithm_with_y_int_and_validation",
             AlgorithmRequestDTO(
-                type=AlgorithmType.EXAREME2,
                 inputdata=AlgorithmInputDataDTO(
                     data_model="data_model_with_all_cde_types:0.1",
                     datasets=["sample_dataset1", "sample_dataset2"],

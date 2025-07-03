@@ -18,6 +18,7 @@ __all__ = [
     "EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE",
     "EXAREME2_ALGORITHM_FOLDERS",
     "exareme2_algorithm_classes",
+    "exareme2_algorithm_data_loaders",
     "DATA_TABLE_PRIMARY_KEY",
     "flower_algorithm_folder_paths",
     "FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE",

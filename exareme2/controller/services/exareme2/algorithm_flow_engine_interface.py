@@ -130,10 +130,10 @@ class InitializationParams:
     algo_flags: Optional[Dict[str, Any]] = None
 
 
-class AlgorithmExecutionEngine:
+class Exareme2AlgorithmFlowEngineInterface:
     """
-    The AlgorithmExecutionEngine is the class used by the algorithms to communicate with
-    the workers of the system. An AlgorithmExecutionEngine object is passed to all algorithms
+    The Exareme2AlgorithmFlowEngineInterface is the class used by the algorithms to communicate with
+    the workers of the system. An Exareme2AlgorithmFlowEngineInterface object is passed to all algorithms
 
     """
 
@@ -300,7 +300,7 @@ class AlgorithmExecutionEngine:
         number_of_results = len(global_worker_tables)
         self._validate_share_to(share_to_locals, number_of_results)
 
-        # Share result to local workers when necessary
+        # Share the result to local workers when necessary
         results_after_sharing_step = [
             self._share_global_table_to_locals(table) if share else table
             for share, table in zip(share_to_locals, global_worker_tables)
@@ -594,7 +594,9 @@ class AlgorithmExecutionEngine:
         return reference_schema
 
 
-class AlgorithmExecutionEngineSingleLocalWorker(AlgorithmExecutionEngine):
+class Exareme2AlgorithmFlowEngineInterfaceSingleLocalWorker(
+    Exareme2AlgorithmFlowEngineInterface
+):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._workers.global_worker = self._workers.local_workers[0]

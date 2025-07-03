@@ -5,6 +5,7 @@ from typing import Optional
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.celery.tasks_handler import WorkerTaskResult
 from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
+from exareme2.controller.services.tasks_handler_interface import TasksHandlerI
 from exareme2.worker_communication import TableData
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
@@ -15,7 +16,7 @@ from exareme2.worker_communication import WorkerUDFPosArguments
 from exareme2.worker_communication import WorkerUDFResults
 
 
-class Exareme2TasksHandler:
+class Exareme2TasksHandler(TasksHandlerI):
     def __init__(
         self,
         request_id: str,

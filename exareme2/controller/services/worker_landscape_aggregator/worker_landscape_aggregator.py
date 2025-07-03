@@ -469,9 +469,9 @@ class WorkerLandscapeAggregator:
     def get_workers(self) -> List[WorkerInfo]:
         return list(self._registries.worker_registry.workers_per_id.values())
 
-    def get_global_worker(self) -> WorkerInfo:
+    def get_global_worker(self) -> Optional[WorkerInfo]:
         if not self._registries.worker_registry.global_workers:
-            raise Exception("Global Worker is unavailable")
+            return None
         return self._registries.worker_registry.global_workers[0]
 
     def get_all_local_workers(self) -> List[WorkerInfo]:

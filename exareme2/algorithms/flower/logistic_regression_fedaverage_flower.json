@@ -1,6 +1,6 @@
 {
-    "name": "logistic_regression",
-    "desc": "Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
+    "name": "logistic_regression_fedaverage_flower",
+    "desc": "Statistical method that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data. The Flower engine is used with the fedaverage aggregation method.",
     "label": "Logistic Regression on Flower",
     "enabled": true,
     "type": "flower",
