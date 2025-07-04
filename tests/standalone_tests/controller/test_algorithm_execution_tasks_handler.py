@@ -36,7 +36,7 @@ def test_create_table(
     )
 
     assert str(table_info.type_) == "NORMAL"
-    assert table_info.context_id == context_id
+    assert table_info._context_id == context_id
     assert table_info.command_id == command_id
 
 

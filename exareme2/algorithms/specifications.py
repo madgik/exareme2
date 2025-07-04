@@ -14,6 +14,7 @@ class AlgorithmType(Enum):
     EXAREME2 = "exareme2"
     FLOWER = "flower"
     EXAFLOW = "exaflow"
+    EXAFLOW_AGGREGATOR = "exaflow_aggregator"
 
 
 @unique

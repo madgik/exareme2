@@ -35,7 +35,7 @@ VOLUME $CLEANUP_FOLDER
 #######################################################
 RUN pip install poetry==$POETRY_VERSION
 COPY poetry.lock pyproject.toml ./
-RUN poetry install --no-dev
+RUN poetry install --no-dev --without aggregation-server
 
 #######################################################
 # Copying the codebase
@@ -47,4 +47,4 @@ RUN rm -rf exareme2/worker
 # Define Hypercorn needed env variables and start hypercorn
 #######################################################
 ENV PYTHONPATH=$CODE_PATH
-CMD ["sh", "-c", "hypercorn --config python:exareme2.controller.quart.hypercorn_config -b 0.0.0.0:5000 exareme2/controller/quart/app:app"]
+CMD ["sh", "-c", "hypercorn --config python:exareme2.controller.quart.hypercorn_config exareme2/controller/quart/app:app"]

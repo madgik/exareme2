@@ -32,7 +32,21 @@ def get_algorithms():
                 },
             },
             id="Dummy avg algorithm",
-        )
+        ),
+        pytest.param(
+            "standard_deviation_exaflow_aggregator",
+            {
+                "inputdata": {
+                    "data_model": "dementia:0.1",
+                    "datasets": ["edsd0", "edsd1", "edsd2", "edsd3", "edsd4", "edsd5"],
+                    "y": [
+                        "lefthippocampus",
+                    ],
+                    "filters": None,
+                },
+            },
+            id="Basic Stddev",
+        ),
     ]
 
 
@@ -51,6 +65,7 @@ def test_exaflow_algorithms(
     globalworker_worker_service,
     init_data_globalworker,
     controller_service_with_localworker_1_2,
+    aggregation_server_service,
 ):
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
     headers = {"Content-type": "application/json", "Accept": "text/plain"}
