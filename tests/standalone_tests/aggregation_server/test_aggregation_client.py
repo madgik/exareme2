@@ -7,17 +7,14 @@ import pandas as pd
 import pytest
 
 from aggregation_server.constants import AggregationType
+from exareme2.aggregation_clients.controller_aggregation_client import (
+    ControllerAggregationClient,
+)
 from exareme2.aggregation_clients.exaflow_udf_aggregation_client import (
     ExaflowUDFAggregationClient,
 )
-from exareme2.controller.services.exaflow.controller_aggregation_client_interface import (
-    AggregationControllerClientI,
-)
 
 
-# --------------------------------------------------------------------------- #
-# Fixtures
-# --------------------------------------------------------------------------- #
 @pytest.fixture(scope="module")
 def agg_client(aggregation_server_service):
     """
@@ -27,7 +24,7 @@ def agg_client(aggregation_server_service):
     """
     request_id = str(uuid.uuid4())
 
-    controller = AggregationControllerClientI(request_id=request_id)
+    controller = ControllerAggregationClient(request_id=request_id)
     status = controller.configure(2)
     assert status == "Configured"
 
@@ -146,7 +143,7 @@ def test_sequential_aggregations_same_request(agg_client):
 # --------------------------------------------------------------------------- #
 def _make_pair(req_id: str, n_workers: int = 2):
     """Utility: return (controller, worker) configured for *n_workers*."""
-    ctrl = AggregationControllerClientI(request_id=req_id)
+    ctrl = ControllerAggregationClient(request_id=req_id)
     ctrl.configure(n_workers)
     return ctrl, ExaflowUDFAggregationClient(request_id=req_id)
 
