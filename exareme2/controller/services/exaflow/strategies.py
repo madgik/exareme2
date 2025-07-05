@@ -1,6 +1,10 @@
+import warnings
 from typing import List
 
 from exareme2 import exaflow_algorithm_classes
+from exareme2.aggregation_clients.controller_aggregation_client import (
+    ControllerAggregationClient,
+)
 from exareme2.controller.federation_info_logs import log_experiment_execution
 from exareme2.controller.services.exaflow import ExaflowController
 from exareme2.controller.services.exaflow.algorithm_flow_engine_interface import (
@@ -48,3 +52,20 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
             f"Execution completed: {self._algorithm_name} ({self._request_id})"
         )
         return result.json()
+
+
+class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
+    async def execute(self) -> str:
+        agg_client = ControllerAggregationClient(self._request_id)
+        status = agg_client.configure(
+            num_workers=len(self._local_worker_tasks_handlers)
+        )
+        if status != "Configured":
+            raise RuntimeError(f"AggregationServer refused to configure: {status}")
+        self._logger.debug(f"Aggregation configured: {status}")
+
+        try:
+            return await super().execute()
+        finally:
+            cleanup_status = agg_client.cleanup()
+            self._logger.debug(f"Aggregation cleanup response: {cleanup_status}")

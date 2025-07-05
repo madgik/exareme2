@@ -6,7 +6,6 @@ role = "LOCALWORKER"
 monetdb_nclients = 64
 data_path = "$DATA_PATH"
 
-
 [controller]
 ip = "172.17.0.1"
 port = 4500

@@ -136,6 +136,25 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/controller
           cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
 
+      - name: Load AGGREGATION SERVER cached image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache/aggregation_server
+          key: ${{ runner.os }}-buildx-aggregation-server-${{ hashFiles('exareme2/**') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-aggregation-server-
+
+      - name: Build AGGREGATION SERVER docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: aggregation_server/Dockerfile
+          push: false
+          load: true
+          tags: madgik/exareme2_aggregation_server:dev
+          cache-from: type=local,src=/tmp/.buildx-cache/aggregation-server
+          cache-to: type=local,dest=/tmp/.buildx-cache-new/aggregation-server
+
         # Temp fix
         # https://github.com/docker/build-push-action/issues/252
         # https://github.com/moby/buildkit/issues/1896
@@ -177,6 +196,7 @@ jobs:
 
       - name: Load docker images to kind containers and delete them locally
         run: |
+
           kind load docker-image madgik/exareme2_worker:dev
           docker image rm madgik/exareme2_worker:dev
           kind load docker-image madgik/exareme2_controller:dev --nodes kind-control-plane
@@ -187,6 +207,9 @@ jobs:
           docker image rm madgik/exareme2_mipdb:dev
           kind load docker-image madgik/exareme2_rabbitmq:dev
           docker image rm madgik/exareme2_rabbitmq:dev
+          kind load docker-image madgik/exareme2_aggregation_server:dev --nodes kind-control-plane
+          docker image rm madgik/exareme2_aggregation_server:dev
+
 
       - name: Get container disk space
         run: df -h
@@ -201,7 +224,25 @@ jobs:
         run: helm install exareme2 kubernetes/ --debug
 
       - name: Wait for pods to get healthy
-        run: timeout 300 bash -c 'while true; do if kubectl get pods --no-headers | awk '\''{if ($2 != "1/1" && $2 != "2/2" && $2 != "3/3" && $2 != "4/4") exit 1;}'\''; then echo "All pods are ready!"; break; else kubectl get pods -o wide; sleep 20; fi done'
+        run: |
+          timeout 300 bash -c '
+          while true; do
+            if kubectl get pods --no-headers | awk '\''{if ($2 != "1/1" && $2 != "2/2" && $2 != "3/3" && $2 != "4/4") exit 1;}'\''; then
+              echo "All pods are ready!";
+              break;
+            else
+              kubectl get pods -o wide;
+              kubectl get pods -o wide;
+
+              aggregator_pod=$(kubectl get pods -l app=exareme2-aggregation-server -o jsonpath="{.items[0].metadata.name}");
+              echo "Describing aggregation server pod: $aggregation_server_pod";
+              kubectl describe pod "$aggregator_pod";
+              echo "Logs from aggregation-server pod:";
+              kubectl logs "$aggregation_server_pod" ;
+
+              sleep 20;
+            fi
+          done'
 
       - name: Load data models into localworkers and globalworker
         run: |

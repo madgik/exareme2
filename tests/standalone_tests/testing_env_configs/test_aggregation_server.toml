@@ -1,0 +1,5 @@
+host = "172.17.0.1"
+port = 50051
+max_workers = 10
+log_level = "DEBUG"
+timeout = 10
