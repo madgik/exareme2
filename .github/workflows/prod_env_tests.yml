@@ -151,7 +151,7 @@ jobs:
           file: aggregation_server/Dockerfile
           push: false
           load: true
-          tags: madgik/exareme2_aggregator:dev
+          tags: madgik/exareme2_aggregation_server:dev
           cache-from: type=local,src=/tmp/.buildx-cache/aggregation-server
           cache-to: type=local,dest=/tmp/.buildx-cache-new/aggregation-server
 
@@ -207,8 +207,8 @@ jobs:
           docker image rm madgik/exareme2_mipdb:dev
           kind load docker-image madgik/exareme2_rabbitmq:dev
           docker image rm madgik/exareme2_rabbitmq:dev
-          kind load docker-image madgik/exareme2_aggregator:dev --nodes kind-control-plane
-          docker image rm madgik/exareme2_aggregator:dev
+          kind load docker-image madgik/exareme2_aggregation_server:dev --nodes kind-control-plane
+          docker image rm madgik/exareme2_aggregation_server:dev
 
 
       - name: Get container disk space
