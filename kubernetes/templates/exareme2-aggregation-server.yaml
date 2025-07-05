@@ -18,19 +18,19 @@ spec:
       nodeSelector:
         master: "true"
       containers:
-        - name: aggregator-server
-          image: "{{ .Values.exareme2_images.repository }}/exareme2_aggregator:{{ .Values.exareme2_images.version }}"
+        - name: aggregation-server
+          image: "{{ .Values.exareme2_images.repository }}/exareme2_aggregation:{{ .Values.exareme2_images.version }}"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 50051
           env:
             - name: AGGREGATOR_HOST
               value: "0.0.0.0"
-            - name: AGGREGATOR_PORT
+            - name: PORT
               value: "50051"
-            - name: AGGREGATOR_MAX_WORKERS
+            - name: MAX_WORKERS
               value: "{{ .Values.aggregation_server.maxWorkers}}"
-            - name: AGGREGATOR_TIMEOUT
+            - name: TIMEOUT
               value: "{{ .Values.aggregation_server.timeout}}"
             - name: LOG_LEVEL
               value: "{{ .Values.log_level }}"
