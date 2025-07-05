@@ -252,9 +252,9 @@ def serve():
     health_servicer = health.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
     health_servicer.set("Aggregation", health_pb2.HealthCheckResponse.SERVING)
-    server.add_insecure_port(f"{config.host}:{config.port}")
+    server.add_insecure_port(f"0.0.0.0:{config.port}")
     server.start()
-    logger.info(f"Aggregation server running on {config.host}:{config.port}")
+    logger.info(f"Aggregation server running on 0.0.0.0:{config.port}")
     try:
         server.wait_for_termination()
     except KeyboardInterrupt:
