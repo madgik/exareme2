@@ -2,12 +2,12 @@ import os
 from importlib.resources import open_binary
 from types import SimpleNamespace
 
+# --- third-party ---
 import tomli
 
-from .aggregation_server_pb2 import *
-from .aggregation_server_pb2_grpc import *
-from .constants import AggregationType
-from .server import serve
+# --------------------------------------------------------------------------
+# 1. define defaults and load configuration *first*
+# --------------------------------------------------------------------------
 
 _DEFAULTS = {
     "port": 50051,
@@ -39,6 +39,11 @@ def _load_config():
 
 
 config = _load_config()
+
+from .aggregation_server_pb2 import *
+from .aggregation_server_pb2_grpc import *
+from .constants import AggregationType
+from .server import serve
 
 __all__ = [
     "config",
