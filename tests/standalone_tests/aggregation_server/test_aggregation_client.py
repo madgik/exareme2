@@ -17,11 +17,6 @@ from exareme2.aggregation_clients.exaflow_udf_aggregation_client import (
 
 @pytest.fixture(scope="module")
 def agg_client(aggregation_server_service):
-    """
-    * Configure an aggregation controller client so expects 2 workers.
-    * Yield a **worker** client that the tests will call .sum/.min/.max on.
-    * Tear everything down afterward.
-    """
     request_id = str(uuid.uuid4())
 
     controller = ControllerAggregationClient(request_id=request_id)
@@ -30,25 +25,19 @@ def agg_client(aggregation_server_service):
 
     worker = ExaflowUDFAggregationClient(request_id=request_id)
 
-    yield worker  # <<< The tests receive only the worker-side client.
+    yield worker
 
     controller.cleanup()
     worker.close()
     controller.close()
 
 
-# --------------------------------------------------------------------------- #
-# Single-column helpers
-# --------------------------------------------------------------------------- #
 def _run_concurrently(fn, times: int):
     with concurrent.futures.ThreadPoolExecutor(max_workers=times) as executor:
         futures = [executor.submit(fn) for _ in range(times)]
         return [f.result() for f in futures]
 
 
-# --------------------------------------------------------------------------- #
-# === Single-Column Tests ===
-# --------------------------------------------------------------------------- #
 def test_sum_single_column(agg_client):
     df = pd.DataFrame({"col": [1, 2, 3]})
     expected = 2 * np.sum(df["col"])
@@ -79,9 +68,6 @@ def test_max_single_column(agg_client):
         assert r == expected
 
 
-# --------------------------------------------------------------------------- #
-# === Multi-Column Tests (direct aggregate) ===
-# --------------------------------------------------------------------------- #
 def test_sum_multi_column(agg_client):
     df = pd.DataFrame({"col1": [10.0], "col2": [20.0], "col3": [30.0]})
     expected_first = 2 * df["col1"].iloc[0]
@@ -118,9 +104,6 @@ def test_max_multi_column(agg_client):
         assert r == expected_first
 
 
-# --------------------------------------------------------------------------- #
-# Sequential aggregations (same request id, same client)
-# --------------------------------------------------------------------------- #
 def test_sequential_aggregations_same_request(agg_client):
     df = pd.DataFrame({"col": [1, 2, 3]})
 
@@ -138,11 +121,7 @@ def test_sequential_aggregations_same_request(agg_client):
         assert r == expected_min
 
 
-# --------------------------------------------------------------------------- #
-# Parallel aggregations (different request ids)
-# --------------------------------------------------------------------------- #
 def _make_pair(req_id: str, n_workers: int = 2):
-    """Utility: return (controller, worker) configured for *n_workers*."""
     ctrl = ControllerAggregationClient(request_id=req_id)
     ctrl.configure(n_workers)
     return ctrl, ExaflowUDFAggregationClient(request_id=req_id)
@@ -199,9 +178,6 @@ def test_parallel_aggregations_different_clients():
         w.close()
 
 
-# --------------------------------------------------------------------------- #
-# High-concurrency and reset
-# --------------------------------------------------------------------------- #
 def test_high_concurrency_and_reset():
     df = pd.DataFrame({"col": list(range(1, 11))})
     expected_sum = 10 * np.sum(df["col"])
@@ -218,14 +194,7 @@ def test_high_concurrency_and_reset():
     ctrl.close()
 
 
-# --------------------------------------------------------------------------- #
-# Failure scenarios
-# --------------------------------------------------------------------------- #
 def test_worker_timeout(agg_client):
-    """
-    Expect DEADLINE_EXCEEDED because only one of the two required workers
-    calls the aggregation client.
-    """
     df = pd.DataFrame({"col": [1, 2, 3]})
 
     with pytest.raises(grpc.RpcError) as exc_info:
@@ -252,17 +221,11 @@ def test_mixed_computation_types(agg_client):
 
 
 def test_error_propagation_on_unsupported_type():
-    """
-    Call .aggregate with a bogus aggregation type ('AVG').
-    Both concurrent calls must raise.
-    """
     ctrl, worker = _make_pair("error-propagation")
 
     df = pd.DataFrame({"col": [1, 2, 3]})
 
     def call_avg():
-        # Intentionally pass an invalid value – should raise locally
-        # (AttributeError) or remotely (grpc.INTERNAL), either is fine.
         return worker.aggregate("AVG", df["col"])  # type: ignore[arg-type]
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:

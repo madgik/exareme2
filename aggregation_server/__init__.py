@@ -10,7 +10,6 @@ from .constants import AggregationType
 from .server import serve
 
 _DEFAULTS = {
-    "host": "0.0.0.0",
     "port": 50051,
     "max_grpc_connections": 10,
     "max_wait_for_aggregation_inputs": 60,
