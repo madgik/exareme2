@@ -81,12 +81,15 @@ DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 WORKERS_CONFIG_DIR = PROJECT_ROOT / "configs" / "workers"
 WORKER_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "worker" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
+AGG_SERVER_CONFIG_DIR = PROJECT_ROOT / "configs" / "aggregation_server"
 CONTROLLER_LOCALWORKERS_CONFIG_FILE = (
     PROJECT_ROOT / "configs" / "controller" / "localworkers_config.json"
 )
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "exareme2" / "controller" / "config.toml"
 )
+AGG_SERVER_DIR = PROJECT_ROOT / "aggregation_server"
+AGG_SERVER_CONFIG_TEMPLATE_FILE = AGG_SERVER_DIR / "config.toml"
 OUTDIR = Path("/tmp/exareme2/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
@@ -102,6 +105,7 @@ FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
 EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
+EXAREME2_AGG_SERVER_CONFIG_FILE = "EXAREME2_AGG_SERVER_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
 
 SMPC_COORDINATOR_PORT = 12314
@@ -293,6 +297,24 @@ def create_configs(c):
     ]
     with open(CONTROLLER_LOCALWORKERS_CONFIG_FILE, "w+") as fp:
         json.dump(localworkers_addresses, fp)
+
+    # Create the aggrcd egator config file
+    with open(AGG_SERVER_CONFIG_TEMPLATE_FILE) as fp:
+        template_aggregation_server_config = toml.load(fp)
+    aggregation_server_config = copy.deepcopy(template_aggregation_server_config)
+    aggregation_server_config["port"] = deployment_config["aggregation_server"]["port"]
+    aggregation_server_config["max_grpc_connections"] = deployment_config[
+        "aggregation_server"
+    ]["max_grpc_connections"]
+    aggregation_server_config["max_wait_for_aggregation_inputs"] = deployment_config[
+        "aggregation_server"
+    ]["max_wait_for_aggregation_inputs"]
+    aggregation_server_config["log_level"] = deployment_config["log_level"]
+
+    AGG_SERVER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    aggregation_server_config_file = AGG_SERVER_CONFIG_DIR / "aggregation_server.toml"
+    with open(aggregation_server_config_file, "w+") as fp:
+        toml.dump(aggregation_server_config, fp)
 
 
 @task
@@ -900,6 +922,64 @@ def start_worker(
 
 
 @task
+def kill_aggregation_server(c):
+    """
+    Kill any running aggregation_server.server processes.
+    """
+    res = c.run("ps aux | grep '[a]ggregation_server.server'", warn=True, hide="both")
+    if res.ok and res.stdout.strip():
+        message("Killing existing aggregation_server…", Level.HEADER)
+        c.run(
+            "ps aux | grep '[a]ggregation_server.server' "
+            "| awk '{print $2}' | xargs kill -9",
+            warn=True,
+        )
+        message("aggregation_server processes killed.", Level.SUCCESS)
+    else:
+        message("No aggregation_server process found.", Level.HEADER)
+
+
+@task(pre=[kill_aggregation_server])
+def start_aggregation_server(c, detached: bool = False):
+    """
+    Start the aggregation_server gRPC service.
+    If detached=True, run in background and log to OUTDIR/aggregation_server.out.
+    """
+    message("Starting aggregation_server…", Level.HEADER)
+
+    if not AGG_SERVER_CONFIG_TEMPLATE_FILE.exists():
+        message(f"Config not found: {AGG_SERVER_CONFIG_TEMPLATE_FILE}", Level.ERROR)
+        return
+
+    # Build environment for the server process
+    env = os.environ.copy()
+    env["AGG_SERVER_CONFIG_FILE"] = str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
+
+    # cd into the aggregation_server folder so Poetry picks up its own pyproject.toml
+    run_cmd = (
+        f"cd {AGG_SERVER_DIR!s} && " "poetry run python -m aggregation_server.server"
+    )
+
+    if detached:
+        logf = OUTDIR / "aggregation_server.out"
+        message(f"Detached mode; logging → {logf}", Level.HEADER)
+        c.run(
+            f"{run_cmd} >> {logf!s} 2>&1 &",
+            env=env,
+            pty=False,
+            disown=True,
+            warn=True,
+        )
+        message("aggregation_server started (detached).", Level.SUCCESS)
+    else:
+        c.run(
+            run_cmd,
+            env=env,
+            pty=True,
+        )
+
+
+@task
 def kill_controller(c):
     """Kill the controller service."""
     HYPERCORN_PROCESS_NAME = "[f]rom multiprocessing.spawn import spawn_main;"
@@ -970,6 +1050,7 @@ def deploy(
     install_dep=True,
     start_all=True,
     start_controller_=False,
+    start_aggregation_server_=False,
     start_workers=False,
     log_level=None,
     framework_log_level=None,
@@ -1061,6 +1142,10 @@ def deploy(
             exaflow_algorithm_folders=exaflow_algorithm_folders,
         )
 
+    if start_aggregation_server_ or start_all:
+        # start_aggregation_server(c, detached=True)
+        pass
+
     # Start CONTROLLER service
     if start_controller_ or start_all:
         start_controller(
@@ -1100,6 +1185,7 @@ def attach(c, worker=None, controller=False, db=None):
 def cleanup(c):
     """Kill all worker/controller api and remove all monetdb/rabbitmq containers."""
     kill_controller(c)
+    kill_aggregation_server(c)
     kill_worker(c, all_=True)
     rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
 

@@ -9,6 +9,9 @@ from exareme2.controller.services.exaflow import (
     get_exaflow_controller as get_exaflow_controller,
 )
 from exareme2.controller.services.exaflow.strategies import ExaflowStrategy
+from exareme2.controller.services.exaflow.strategies import (
+    ExaflowWithAggregationServerStrategy,
+)
 from exareme2.controller.services.exareme2 import (
     get_controller as get_exareme2_controller,
 )
@@ -41,7 +44,7 @@ def get_algorithm_execution_strategy(
 
 def _get_algorithm_controller(algo_type: AlgorithmType) -> ControllerI:
     controller: ControllerI
-    if algo_type in [AlgorithmType.EXAFLOW]:
+    if algo_type in [AlgorithmType.EXAFLOW, AlgorithmType.EXAFLOW_AGGREGATOR]:
         return get_exaflow_controller()
     elif algo_type == AlgorithmType.FLOWER:
         return get_flower_controller()
@@ -60,6 +63,8 @@ def _get_algorithm_strategy_type(
     strategy: AlgorithmExecutionStrategyI
     if algo_type == AlgorithmType.EXAFLOW:
         return ExaflowStrategy
+    elif algo_type == AlgorithmType.EXAFLOW_AGGREGATOR:
+        return ExaflowWithAggregationServerStrategy
     elif algo_type == AlgorithmType.FLOWER:
         return FlowerStrategy
     elif algo_type == AlgorithmType.EXAREME2:

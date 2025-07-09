@@ -40,7 +40,7 @@ def load_operation_data_to_smpc_clients(
             smpc_clients.append(
                 worker.load_data_to_smpc_client(
                     table_name=table_info.name,
-                    jobid=get_smpc_job_id(table_info._context_id, command_id, op_type),
+                    jobid=get_smpc_job_id(table_info.context_id, command_id, op_type),
                 )
             )
     return smpc_clients

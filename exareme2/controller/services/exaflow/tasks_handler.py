@@ -29,5 +29,7 @@ class ExaflowTasksHandler(TasksHandlerI):
     def tasks_timeout(self) -> int:
         return self._tasks_timeout
 
-    def queue_udf(self, udf_name, params: dict) -> WorkerTaskResult:
-        return self._worker_tasks_handler.queue_udf(self._request_id, udf_name, params)
+    def queue_udf(self, udf_registry_key, params: dict) -> WorkerTaskResult:
+        return self._worker_tasks_handler.queue_udf(
+            self._request_id, udf_registry_key, params
+        )
