@@ -75,7 +75,7 @@ class AggregationServer(AggregationServerServicer):
 
             self._compute_result_if_ready(agg_ctx, current_count)
 
-            self._wait_for_result(agg_ctx, request, context)
+        self._wait_for_result(agg_ctx, request, context)
         result = self._get_result(agg_ctx, context)
         return AggregateResponse(result=result)
 
