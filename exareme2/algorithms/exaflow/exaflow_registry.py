@@ -22,7 +22,7 @@ def get_udf_registry_key(func: Callable) -> str:
 @dataclass(frozen=True)
 class UDFInfo:
     func: "Callable"
-    with_aggregation_server: bool
+    with_aggregation_server: "bool"
 
 
 class ExaflowRegistry(metaclass=Singleton):
