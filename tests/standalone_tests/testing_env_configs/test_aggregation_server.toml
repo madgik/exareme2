@@ -1,0 +1,5 @@
+host = "172.17.0.1"
+port = 50051
+max_grpc_connections = 10
+log_level = "DEBUG"
+max_wait_for_aggregation_inputs = 10

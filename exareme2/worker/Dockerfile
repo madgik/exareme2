@@ -38,7 +38,7 @@ VOLUME $DATA_PATH
 #######################################################
 RUN pip install poetry==$POETRY_VERSION
 COPY poetry.lock pyproject.toml ./
-RUN poetry install --no-dev
+RUN poetry install --no-dev --without aggregation-server
 
 #######################################################
 # Copying the codebase

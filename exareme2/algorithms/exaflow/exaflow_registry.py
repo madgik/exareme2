@@ -1,52 +1,64 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+from dataclasses import dataclass
 from typing import Callable
 from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
 
 from exareme2.utils import Singleton
 
 
+def _hash(text: str) -> str:
+    return base64.b32encode(hashlib.sha1(text.encode()).digest())[:4].decode().lower()
+
+
+def get_udf_registry_key(func: Callable) -> str:
+    module_part = func.__module__.split(".")[-1]
+    qual = func.__qualname__.replace(".", "__")
+    return f"{qual}_{_hash(module_part)}"
+
+
+@dataclass(frozen=True)
+class UDFInfo:
+    func: "Callable"
+    with_aggregation_server: "bool"
+
+
 class ExaflowRegistry(metaclass=Singleton):
     def __init__(self) -> None:
-        self._registry: Dict[str, Callable] = {}
+        self._registry: Dict[str, UDFInfo] = {}
 
-    def _make_key(self, func: Callable) -> str:
-        """module basename + '_' + function name"""
-        return f"{func.__module__.split('.')[-1]}_{func.__name__}"
+    def register(self, func: Callable, *, with_aggregation_server: bool = False) -> str:
+        key = get_udf_registry_key(func)
+        if key in self._registry and self._registry[key].func is not func:
+            raise ValueError(f"Duplicate registration for key {key!r}")
+        self._registry[key] = UDFInfo(func, with_aggregation_server)
+        return key
 
-    def register(self, func: Callable) -> Callable:
-        key = self._make_key(func)
-        if key in self._registry:
-            # already registered – only complain if somebody tries
-            # to hijack the key with a *different* callable
-            if self._registry[key] is not func:
-                raise ValueError(
-                    f"Duplicate UDF key detected: {key} "
-                    "(existing entry refers to a different function)"
-                )
-            return func  # ← quietly accept the re-registration
-        self._registry[key] = func
-        return func
+    def aggregation_server_required(self, key: str) -> bool:
+        info = self._registry.get(key)
+        return bool(info and info.with_aggregation_server)
 
-    def resolve_key(self, item: Union[str, Callable]) -> str:
-        if callable(item):
-            key = self._make_key(item)
-            if key not in self._registry:  # first sighting → register
-                self._registry[key] = item
-            return key
+    def get_func(self, key: str) -> Callable:
+        info = self._registry.get(key)
+        return info.func
 
-    def get_udf(self, key: str) -> Optional[Callable]:
-        return self._registry.get(key)
-
-    def get_available_udfs(self) -> List[str]:
-        return list(self._registry.keys())
+    def __repr__(self) -> str:
+        return f"<ExaflowRegistry {len(self._registry)} entries>"
 
 
-# Singleton instance
 exaflow_registry = ExaflowRegistry()
 
 
-# Decorator to simplify registration
-def exaflow_udf(func):
-    return exaflow_registry.register(func)
+def exaflow_udf(
+    _func: Callable | None = None, *, with_aggregation_server: bool = False
+):
+    def decorator(func: Callable) -> Callable:
+        exaflow_registry.register(func, with_aggregation_server=with_aggregation_server)
+        return func
+
+    if _func is None:
+        return decorator
+
+    return decorator(_func)

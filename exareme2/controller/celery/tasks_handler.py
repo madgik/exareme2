@@ -365,12 +365,12 @@ class WorkerTasksHandler:
     def queue_udf(
         self,
         request_id,
-        udf_name,
+        udf_registry_key,
         params,
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["run_exaflow_udf"],
             request_id=request_id,
-            udf_name=udf_name,
+            udf_registry_key=udf_registry_key,
             params=params,
         )
