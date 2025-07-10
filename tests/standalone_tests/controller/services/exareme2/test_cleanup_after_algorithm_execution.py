@@ -10,7 +10,7 @@ from freezegun import freeze_time
 from exareme2 import AttrDict
 from exareme2 import exareme2_algorithm_classes
 from exareme2.algorithms.exareme2.algorithm import (
-    InitializationParams as AlgorithmInitParams,
+    AlgorithmInitializationParams as AlgorithmInitParams,
 )
 from exareme2.algorithms.exareme2.algorithm import Variables
 from exareme2.controller import logger as ctrl_logger
@@ -18,19 +18,27 @@ from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
-from exareme2.controller.services.exareme2.cleaner import Cleaner
-from exareme2.controller.services.exareme2.controller import Controller
-from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
-from exareme2.controller.services.exareme2.controller import (
-    _create_algorithm_execution_engine,
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    CommandIdGenerator,
 )
-from exareme2.controller.services.exareme2.controller import sanitize_request_variable
-from exareme2.controller.services.exareme2.execution_engine import CommandIdGenerator
-from exareme2.controller.services.exareme2.execution_engine import (
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Exareme2AlgorithmFlowEngineInterfaceSingleLocalWorker,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    SMPCParams,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Workers,
+)
+from exareme2.controller.services.exareme2.cleaner import Cleaner
+from exareme2.controller.services.exareme2.controller import Exareme2Controller
+from exareme2.controller.services.exareme2.data_model_views_creator import (
+    DataModelViewsCreator,
+)
+from exareme2.controller.services.exareme2.strategies import sanitize_request_variable
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
@@ -61,7 +69,7 @@ def controller_config():
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
         "worker_landscape_aggregator_update_interval": 30,
-        "flower_execution_timeout": 30,
+        "cleanup": {"execution_timeout": 30, "server_port": 8080},
         "cleanup": {
             "contextids_cleanup_folder": "/tmp/test_cleanup_entries",
             "workers_cleanup_interval": 2,
@@ -101,11 +109,11 @@ def init_background_controller_logger():
 def controller(controller_config, cleaner, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
-    controller = Controller(
+    controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=cleaner,
         logger=ctrl_logger.get_background_service_logger(),
-        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        task_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         smpc_params=SMPCParams(
             smpc_enabled=False,
@@ -307,18 +315,15 @@ def engine(
     data_model_views_and_workers,
     command_id_generator,
 ):
-    engine_init_params = EngineInitParams(
-        smpc_enabled=False,
-        smpc_optional=False,
+    initialization_params = EngineInitParams(
+        smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False, dp_params=None),
         request_id=algorithm_request_dto.request_id,
-        context_id=context_id,
         algo_flags=algorithm_request_dto.flags,
-        data_model_views=data_model_views_and_workers[0],  # data_model_views
     )
-    return _create_algorithm_execution_engine(
-        engine_init_params=engine_init_params,
+    return Exareme2AlgorithmFlowEngineInterfaceSingleLocalWorker(
+        initialization_params=initialization_params,
         command_id_generator=command_id_generator,
-        workers=data_model_views_and_workers[1],  # workers,
+        workers=data_model_views_and_workers[1],
     )
 
 

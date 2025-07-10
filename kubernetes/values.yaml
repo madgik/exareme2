@@ -1,4 +1,5 @@
 namespace: default
+managed_cluster: false
 localnodes: 2
 
 exareme2_images:
@@ -13,8 +14,6 @@ framework_log_level: ERROR
 max_concurrent_experiments: 32
 
 db:
-  localworker_location: /opt/exareme2/localworker
-  globalworker_location: /opt/exareme2/globalworker
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
@@ -22,11 +21,14 @@ db:
 controller:
   worker_landscape_aggregator_update_interval: 30
   flower_execution_timeout: 30
+  flower_server_port: 8080
   celery_tasks_timeout: 300
   workers_cleanup_interval: 60
-  cleanup_file_folder: /opt/cleanup
 
 globalworker_identifier: globalworker
+
+aggregation_server:
+  max_wait_for_aggregation_inputs: 60
 
 smpc:
   enabled: false
@@ -36,3 +38,46 @@ smpc:
   queue_image: redis:alpine3.15
   get_result_interval: 5
   get_result_max_retries: 100
+
+storage:
+  type: hostPath
+
+  hostPath:
+    controller_cleanup: "/opt/cleanup"
+    db:
+      localworker: "/opt/exareme2/localworker"
+      globalworker: "/opt/exareme2/globalworker"
+
+  cephfs:
+    storageClassName: ceph-corbo-cephfs
+
+    controller:
+      size: 1Gi
+
+    localworker:
+      db:
+        size: 4Gi
+        accessModes:
+          - ReadWriteOnce
+      csvs:
+        size: 4Gi
+        accessModes:
+          - ReadWriteMany
+      creds:
+        size: 100Mi
+        accessModes:
+          - ReadWriteMany
+
+    globalworker:
+      db:
+        size: 4Gi
+        accessModes:
+          - ReadWriteOnce
+      csvs:
+        size: 4Gi
+        accessModes:
+          - ReadWriteMany
+      creds:
+        size: 100Mi
+        accessModes:
+          - ReadWriteMany

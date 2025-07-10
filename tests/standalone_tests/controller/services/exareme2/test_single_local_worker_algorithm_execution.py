@@ -6,36 +6,49 @@ from exareme2 import AttrDict
 from exareme2 import exareme2_algorithm_classes
 from exareme2 import exareme2_algorithm_data_loaders
 from exareme2.algorithms.exareme2.algorithm import (
-    InitializationParams as AlgorithmInitParams,
+    AlgorithmInitializationParams as AlgorithmInitParams,
 )
 from exareme2.algorithms.exareme2.algorithm import Variables
-from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.controller import logger as ctrl_logger
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmInputDataDTO,
 )
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
-from exareme2.controller.services.exareme2.controller import Controller
-from exareme2.controller.services.exareme2.controller import DataModelViewsCreator
-from exareme2.controller.services.exareme2.controller import WorkersFederation
-from exareme2.controller.services.exareme2.controller import (
-    _algorithm_run_in_event_loop,
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    CommandIdGenerator,
 )
-from exareme2.controller.services.exareme2.controller import (
-    _create_algorithm_execution_engine,
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Exareme2AlgorithmFlowEngineInterfaceSingleLocalWorker,
 )
-from exareme2.controller.services.exareme2.controller import sanitize_request_variable
-from exareme2.controller.services.exareme2.execution_engine import CommandIdGenerator
-from exareme2.controller.services.exareme2.execution_engine import (
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
     InitializationParams as EngineInitParams,
 )
-from exareme2.controller.services.exareme2.execution_engine import SMPCParams
-from exareme2.controller.services.exareme2.execution_engine import Workers
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    SMPCParams,
+)
+from exareme2.controller.services.exareme2.algorithm_flow_engine_interface import (
+    Workers,
+)
+from exareme2.controller.services.exareme2.algorithm_threadpool_executor import (
+    algorithm_run_in_threadpool,
+)
+from exareme2.controller.services.exareme2.controller import Exareme2Controller
+from exareme2.controller.services.exareme2.data_model_views_creator import (
+    DataModelViewsCreator,
+)
+from exareme2.controller.services.exareme2.strategies import sanitize_request_variable
+from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHandler
+from exareme2.controller.services.exareme2.workers_federation import WorkersFederation
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
 from exareme2.controller.uid_generator import UIDGenerator
 from tests.standalone_tests.conftest import CONTROLLER_LOCALWORKER1_ADDRESSES_FILE
+from tests.standalone_tests.conftest import MONETDB_GLOBALWORKER_ADDR
+from tests.standalone_tests.conftest import MONETDB_LOCALWORKER1_ADDR
+from tests.standalone_tests.conftest import RABBITMQ_GLOBALWORKER_ADDR
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKER1_ADDR
+from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKER1_NAME
 from tests.standalone_tests.conftest import TEST_ENV_CONFIG_FOLDER
 
 
@@ -56,7 +69,10 @@ def controller_config():
         "framework_log_level": "INFO",
         "deployment_type": "LOCAL",
         "worker_landscape_aggregator_update_interval": 30,
-        "flower_execution_timeout": 30,
+        "flower": {
+            "execution_timeout": 30,
+            "server_port": 8080,
+        },
         "localworkers": {
             "config_file": path.join(
                 TEST_ENV_CONFIG_FOLDER, CONTROLLER_LOCALWORKER1_ADDRESSES_FILE
@@ -158,7 +174,6 @@ def algorithm_request_case_1(datasets):
             ],
         ),
         parameters={},
-        type=AlgorithmType.EXAREME2,
     )
 
     return (algorithm_name, algorithm_request_dto)
@@ -212,7 +227,6 @@ def algorithm_request_case_2(datasets):
             y=["alzheimerbroadcategory"],
         ),
         parameters={"positive_class": "AD"},
-        type=AlgorithmType.EXAREME2,
     )
     return (algorithm_name, algo_request_dto)
 
@@ -281,11 +295,6 @@ def algorithm_case_1(
 
     init_params = AlgorithmInitParams(
         algorithm_name=algorithm_name,
-        data_model=input_data.data_model,
-        variables=Variables(
-            x=sanitize_request_variable(input_data.x),
-            y=sanitize_request_variable(input_data.y),
-        ),
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
@@ -309,11 +318,6 @@ def algorithm_case_2(
 
     init_params = AlgorithmInitParams(
         algorithm_name=algorithm_name,
-        data_model=input_data.data_model,
-        variables=Variables(
-            x=sanitize_request_variable(input_data.x),
-            y=sanitize_request_variable(input_data.y),
-        ),
         var_filters=input_data.filters,
         algorithm_parameters=algorithm_parameters,
         datasets=algorithm_request_dto.inputdata.datasets,
@@ -355,6 +359,24 @@ def workers_case_1(
         logger=ctrl_logger.get_request_logger(
             request_id=algorithm_request_dto.request_id
         ),
+        local_worker_tasks_handlers=[
+            Exareme2TasksHandler(
+                "0",
+                f"testlocalworker1",
+                RABBITMQ_LOCALWORKER1_ADDR,
+                MONETDB_LOCALWORKER1_ADDR,
+                10,
+                10,
+            )
+        ],
+        global_worker_tasks_handler=Exareme2TasksHandler(
+            "0",
+            f"testglobalworker",
+            RABBITMQ_GLOBALWORKER_ADDR,
+            MONETDB_GLOBALWORKER_ADDR,
+            10,
+            10,
+        ),
     )
     return workers_federation.workers
 
@@ -384,6 +406,24 @@ def workers_case_2(
         logger=ctrl_logger.get_request_logger(
             request_id=algorithm_request_dto.request_id
         ),
+        local_worker_tasks_handlers=[
+            Exareme2TasksHandler(
+                "0",
+                f"testlocalworker1",
+                RABBITMQ_LOCALWORKER1_ADDR,
+                MONETDB_LOCALWORKER1_ADDR,
+                10,
+                10,
+            )
+        ],
+        global_worker_tasks_handler=Exareme2TasksHandler(
+            "0",
+            f"testglobalworker",
+            RABBITMQ_GLOBALWORKER_ADDR,
+            MONETDB_GLOBALWORKER_ADDR,
+            10,
+            10,
+        ),
     )
     return workers_federation.workers
 
@@ -392,11 +432,11 @@ def workers_case_2(
 def controller(controller_config, worker_landscape_aggregator):
     controller_config = AttrDict(controller_config)
 
-    controller = Controller(
+    controller = Exareme2Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         cleaner=None,
         logger=ctrl_logger.get_background_service_logger(),
-        tasks_timeout=controller_config.rabbitmq.celery_tasks_timeout,
+        task_timeout=controller_config.rabbitmq.celery_tasks_timeout,
         run_udf_task_timeout=controller_config.rabbitmq.celery_run_udf_task_timeout,
         smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
     )
@@ -487,13 +527,13 @@ def engine_case_1(
 ):
     algorithm_request_dto = algorithm_request_case_1[1]
 
-    engine_init_params = EngineInitParams(
+    initialization_params = EngineInitParams(
         smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
         request_id=algorithm_request_dto.request_id,
         algo_flags=algorithm_request_dto.flags,
     )
-    return _create_algorithm_execution_engine(
-        engine_init_params=engine_init_params,
+    return Exareme2AlgorithmFlowEngineInterfaceSingleLocalWorker(
+        initialization_params=initialization_params,
         command_id_generator=command_id_generator,
         workers=data_model_views_and_workers_case_1[1],
     )
@@ -508,13 +548,13 @@ def engine_case_2(
 ):
     algorithm_request_dto = algorithm_request_case_2[1]
 
-    engine_init_params = EngineInitParams(
+    initialization_params = EngineInitParams(
         smpc_params=SMPCParams(smpc_enabled=False, smpc_optional=False),
         request_id=algorithm_request_dto.request_id,
         algo_flags=algorithm_request_dto.flags,
     )
-    return _create_algorithm_execution_engine(
-        engine_init_params=engine_init_params,
+    return Exareme2AlgorithmFlowEngineInterfaceSingleLocalWorker(
+        initialization_params=initialization_params,
         command_id_generator=command_id_generator,
         workers=data_model_views_and_workers_case_2[1],
     )
@@ -544,15 +584,17 @@ async def test_single_local_worker_algorithm_execution(
     controller,
     request,
     reset_celery_app_factory,  # celery fail if this is not reset
+    get_controller_testing_logger,
 ):
     algorithm = request.getfixturevalue(algorithm)
     data_model_views = request.getfixturevalue(data_model_views_and_workers)
     metadata = request.getfixturevalue(metadata)
     try:
-        algorithm_result = await _algorithm_run_in_event_loop(
+        algorithm_result = await algorithm_run_in_threadpool(
             algorithm=algorithm,
             data_model_views=data_model_views[0],
             metadata=metadata,
+            logger=get_controller_testing_logger,
         )
     except Exception as exc:
         pytest.fail(f"Execution of the algorithm failed with {exc=}")

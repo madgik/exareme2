@@ -1,0 +1,4 @@
+port = "$PORT"
+max_grpc_connections = "$MAX_GRPC_CONNECTIONS"
+max_wait_for_aggregation_inputs = "$MAX_WAIT_FOR_AGGREGATION_INPUTS"
+log_level = "$LOG_LEVEL"

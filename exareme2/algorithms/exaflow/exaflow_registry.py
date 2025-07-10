@@ -1,46 +1,64 @@
+from __future__ import annotations
+
+import base64
+import hashlib
+from dataclasses import dataclass
+from typing import Callable
+from typing import Dict
+
 from exareme2.utils import Singleton
 
 
+def _hash(text: str) -> str:
+    return base64.b32encode(hashlib.sha1(text.encode()).digest())[:4].decode().lower()
+
+
+def get_udf_registry_key(func: Callable) -> str:
+    module_part = func.__module__.split(".")[-1]
+    qual = func.__qualname__.replace(".", "__")
+    return f"{qual}_{_hash(module_part)}"
+
+
+@dataclass(frozen=True)
+class UDFInfo:
+    func: "Callable"
+    with_aggregation_server: "bool"
+
+
 class ExaflowRegistry(metaclass=Singleton):
-    def __init__(self):
-        self._registry = {}
+    def __init__(self) -> None:
+        self._registry: Dict[str, UDFInfo] = {}
 
-    def register(self, func):
-        """
-        Registers a function into the registry with a unique key.
+    def register(self, func: Callable, *, with_aggregation_server: bool = False) -> str:
+        key = get_udf_registry_key(func)
+        if key in self._registry and self._registry[key].func is not func:
+            raise ValueError(f"Duplicate registration for key {key!r}")
+        self._registry[key] = UDFInfo(func, with_aggregation_server)
+        return key
 
-        This method generates a unique key by combining the last segment of the function's module name
-        with the function's name (formatted as "module_functionName"). It then stores the function in the
-        registry dictionary under this key, allowing for easy retrieval later.
+    def aggregation_server_required(self, key: str) -> bool:
+        info = self._registry.get(key)
+        return bool(info and info.with_aggregation_server)
 
-        Parameters:
-            func (function): The user-defined function to be registered.
+    def get_func(self, key: str) -> Callable:
+        info = self._registry.get(key)
+        return info.func
 
-        Returns:
-            function: The original function passed in, which makes this method suitable for use as a decorator.
-
-        Example:
-            @exaflow_udf
-            def my_udf(x):
-                return x * 2
-
-            # If defined in a module named "analytics", the function is registered with the key "analytics_my_udf".
-        """
-        key = f"{func.__module__.split('.')[-1]}_{func.__name__}"
-        self._registry[key] = func
-        return func
-
-    def get_udf(self, name):
-        return self._registry.get(name)
-
-    def get_available_udfs(self):
-        return list(self._registry.keys())
+    def __repr__(self) -> str:
+        return f"<ExaflowRegistry {len(self._registry)} entries>"
 
 
-# Singleton instance
 exaflow_registry = ExaflowRegistry()
 
 
-# Decorator to simplify registration
-def exaflow_udf(func):
-    return exaflow_registry.register(func)
+def exaflow_udf(
+    _func: Callable | None = None, *, with_aggregation_server: bool = False
+):
+    def decorator(func: Callable) -> Callable:
+        exaflow_registry.register(func, with_aggregation_server=with_aggregation_server)
+        return func
+
+    if _func is None:
+        return decorator
+
+    return decorator(_func)

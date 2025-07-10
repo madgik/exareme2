@@ -1,35 +1,61 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
-  name: exareme2-globalworker-deployment
+  name: exareme2-globalworker
   namespace: {{ .Values.namespace }}
   labels:
     app: exareme2-worker
     nodeType: globalworker
 spec:
+  clusterIP: None
+  selector:
+    app: exareme2-worker
+    nodeType: globalworker
+  ports:
+    - name: rabbitmq
+      port: 5672
+    - name: monetdb
+      port: 50000
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: exareme2-globalworker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: exareme2-worker
+    nodeType: globalworker
+spec:
+  serviceName: exareme2-globalworker
   replicas: 1
   selector:
     matchLabels:
       app: exareme2-worker
+      nodeType: globalworker
   template:
     metadata:
       labels:
         app: exareme2-worker
         nodeType: globalworker
     spec:
+      {{ if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
+      {{ end }}
+
+        # Choose storage backend: hostPath or dynamically provisioned CephFS PVCs
+      {{ if not .Values.managed_cluster }}
       volumes:
         - name: db-data
           hostPath:
-            path: {{ printf "%s/db" .Values.db.globalworker_location }}
+            path: {{ printf "%s/db" .Values.storage.hostPath.db.globalworker }}
         - name: csv-data
           hostPath:
-            path: {{ printf "%s/csvs" .Values.db.globalworker_location }}
+            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
         - name: credentials
           hostPath:
-            path: {{ printf "%s/credentials" .Values.db.globalworker_location }}
-
+            path: {{ printf "%s/credentials" .Values.storage.hostPath.db.globalworker }}
+      {{ end }}
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
@@ -49,7 +75,7 @@ spec:
         - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
           value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
         ports:
-          - containerPort: 50000
+        - containerPort: 50000
         volumeMounts:
         - mountPath: /home/monetdb
           name: db-data
@@ -104,7 +130,7 @@ spec:
         - name: RABBITMQ_SLEEP_BEFORE_CONFIGURATION
           value: "30"
         ports:
-          - containerPort: 5672
+        - containerPort: 5672
         startupProbe:
           exec:
             command:
@@ -202,3 +228,30 @@ spec:
               - exareme2.worker.healthcheck
           periodSeconds: 30
           timeoutSeconds: 10
+      {{ if .Values.managed_cluster }}
+      volumeClaimTemplates:
+        - metadata:
+            name: db-data
+          spec:
+            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.db.accessModes | nindent 6 }}
+            resources:
+              requests:
+                storage: {{ .Values.storage.cephfs.globalworker.db.size }}
+        - metadata:
+            name: csv-data
+          spec:
+            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
+            resources:
+              requests:
+                storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
+        - metadata:
+            name: credentials
+          spec:
+            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
+            resources:
+              requests:
+                storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
+      {{ end }}

@@ -13,10 +13,13 @@ flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flow
 exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
 
 worker_landscape_aggregator_update_interval = 300
-flower_execution_timeout = 30
 celery_tasks_timeout = 60
 celery_cleanup_task_timeout=2
 celery_run_udf_task_timeout = 120
+
+[flower]
+execution_timeout=60
+server_port=8080
 
 [controller]
 port = 5000
@@ -28,6 +31,11 @@ protect_local_data = false
 [cleanup]
 workers_cleanup_interval=30
 contextid_release_timelimit=3600 #an hour
+
+[aggregation_server]
+port = 50051
+max_grpc_connections = 10
+max_wait_for_aggregation_inputs = 10
 
 [smpc]
 enabled=false
