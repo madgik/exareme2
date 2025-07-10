@@ -67,7 +67,7 @@ class XgbClient(fl.client.Client):
     def _local_boost(self):
         # Update trees based on local training data.
         for i in range(num_local_round):
-            self.bst.update(train_dmatrix, self.bst.num_boosted_rounds())
+            self.bst.update(self.train_dmatrix, self.bst.num_boosted_rounds())
 
         # Extract the last N=num_local_round trees for sever aggregation
         bst = self.bst[
@@ -83,9 +83,9 @@ class XgbClient(fl.client.Client):
             FLOWER_LOGGER.info("Start training at round 1")
             bst = xgb.train(
                 params,
-                train_dmatrix,
+                self.train_dmatrix,
                 num_boost_round=num_local_round,
-                evals=[(valid_dmatrix, "validate"), (train_dmatrix, "train")],
+                evals=[(self.valid_dmatrix, "validate"), (self.train_dmatrix, "train")],
             )
             self.config = bst.save_config()
             self.bst = bst
@@ -114,7 +114,7 @@ class XgbClient(fl.client.Client):
 
     def evaluate(self, ins: EvaluateIns) -> EvaluateRes:
         eval_results = self.bst.eval_set(
-            evals=[(valid_dmatrix, "valid")],
+            evals=[(self.valid_dmatrix, "valid")],
             iteration=self.bst.num_boosted_rounds() - 1,
         )
         auc = round(float(eval_results.split("\t")[1].split(":")[1]), 4)
