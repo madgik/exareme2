@@ -177,7 +177,9 @@ metadata:
   name: exareme2-controller-service
   namespace: {{ .Values.namespace }}
 spec:
+  {{- if not .Values.managed_cluster }}
   type: LoadBalancer
+  {{- end }}
   selector:
     app: exareme2-controller
   ports:
