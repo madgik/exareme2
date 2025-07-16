@@ -60,7 +60,6 @@
    celery_cleanup_task_timeout=2
    celery_run_udf_task_timeout = 120
 
-
    [flower]
    execution_timeout=60
    server_port=8080

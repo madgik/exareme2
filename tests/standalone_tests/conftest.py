@@ -17,6 +17,7 @@ import psutil
 import pytest
 import sqlalchemy as sql
 import toml
+from sqlalchemy import text
 
 from exareme2 import AttrDict
 from exareme2.algorithms.exareme2.udfgen import udfio
@@ -593,10 +594,11 @@ def _create_monetdb_cursor(db_port, db_username="executor", db_password="executo
             url = (
                 f"monetdb://{db_username}:{db_password}@{COMMON_IP}:{db_port}/{dbfarm}"
             )
-            self._executor = sql.create_engine(url, echo=True)
+            self._engine = sql.create_engine(url, echo=True)
 
         def execute(self, query, *args, **kwargs):
-            return self._executor.execute(query, *args, **kwargs)
+            with self._engine.begin() as connection:
+                return connection.execute(text(query), *args, **kwargs)
 
     return MonetDBTesting()
 

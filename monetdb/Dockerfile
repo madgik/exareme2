@@ -1,4 +1,4 @@
-FROM madgik/exareme2_db_base:0.1
+FROM madgik/exareme2_db_base:0.2
 
 #######################################################
 # Download monetdb source files
@@ -9,7 +9,7 @@ RUN tar -xf /home/monetDB.tar.bz2 -C /home/
 #######################################################
 # Install monetdb
 #######################################################
-RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
+RUN pip3 install numpy==2.2.6 # Must be updated together with pyproject.toml
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.49.1
@@ -53,8 +53,8 @@ RUN chmod 444 /etc/logrotate.d/monetdb
 #######################################################
 # Install python libraries
 #######################################################
-RUN pip3 install scipy==1.10.0 # Must be updated together with pyproject.toml
-RUN pip3 install pandas==1.5.2 # Must be updated together with pyproject.toml
+RUN pip3 install scipy==1.15.3 # Must be updated together with pyproject.toml
+RUN pip3 install pandas==2.3.1 # Must be updated together with pyproject.toml
 RUN pip3 install scikit-learn==1.2.0 # Must be updated together with pyproject.toml
 RUN pip3 install statsmodels==0.13.2 # Must be updated together with pyproject.toml
 
