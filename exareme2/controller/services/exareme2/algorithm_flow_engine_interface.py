@@ -225,11 +225,13 @@ class Exareme2AlgorithmFlowEngineInterface:
 
         # Share result to global worker when necessary
         results_after_sharing_step = [
-            self._share_local_worker_data(
-                local_workers_data, self._command_id_generator.get_next_command_id()
+            (
+                self._share_local_worker_data(
+                    local_workers_data, self._command_id_generator.get_next_command_id()
+                )
+                if share
+                else local_workers_data
             )
-            if share
-            else local_workers_data
             for share, local_workers_data in zip(
                 share_to_global, all_local_workers_data
             )

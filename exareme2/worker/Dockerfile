@@ -1,4 +1,4 @@
-FROM python:3.8.19-slim-bullseye
+FROM python:3.10.18-slim-bullseye
 MAINTAINER Thanasis Karampatsis <tkarabatsis@athenarc.gr>
 
 #######################################################

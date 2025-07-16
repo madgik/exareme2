@@ -76,22 +76,24 @@ def get_numerical_records(data, numerical_vars, dataset):
         dict(
             variable=var,
             dataset=dataset,
-            data=dict(
-                num_dtps=num_dtps[var],
-                num_total=num_total,
-                num_na=num_total - num_dtps[var],
-                mean=mean[var],
-                std=std[var],
-                min=min[var],
-                max=max[var],
-                q1=q1[var] if dataset != "all datasets" else None,
-                q2=q2[var] if dataset != "all datasets" else None,
-                q3=q3[var] if dataset != "all datasets" else None,
-                sx=sx[var],
-                sxx=sxx[var],
-            )
-            if num_dtps[var] >= MIN_ROW_COUNT
-            else None,
+            data=(
+                dict(
+                    num_dtps=num_dtps[var],
+                    num_total=num_total,
+                    num_na=num_total - num_dtps[var],
+                    mean=mean[var],
+                    std=std[var],
+                    min=min[var],
+                    max=max[var],
+                    q1=q1[var] if dataset != "all datasets" else None,
+                    q2=q2[var] if dataset != "all datasets" else None,
+                    q3=q3[var] if dataset != "all datasets" else None,
+                    sx=sx[var],
+                    sxx=sxx[var],
+                )
+                if num_dtps[var] >= MIN_ROW_COUNT
+                else None
+            ),
         )
         for var in numerical_vars
     ]
@@ -105,14 +107,16 @@ def get_nominal_records(data, nominal_vars, dataset, enums):
         dict(
             variable=var,
             dataset=dataset,
-            data=dict(
-                num_dtps=num_dtps[var],
-                num_total=num_total,
-                num_na=num_total - num_dtps[var],
-                counts=data[var].value_counts().to_dict(),
-            )
-            if num_dtps[var] >= MIN_ROW_COUNT
-            else None,
+            data=(
+                dict(
+                    num_dtps=num_dtps[var],
+                    num_total=num_total,
+                    num_na=num_total - num_dtps[var],
+                    counts=data[var].value_counts().to_dict(),
+                )
+                if num_dtps[var] >= MIN_ROW_COUNT
+                else None
+            ),
         )
         for var in nominal_vars
     ]

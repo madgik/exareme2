@@ -50,12 +50,14 @@ def start_background_services():
         smpc_params=SMPCParams(
             smpc_enabled=ctrl_config.smpc.enabled or False,
             smpc_optional=ctrl_config.smpc.optional or False,
-            dp_params=DifferentialPrivacyParams(
-                sensitivity=ctrl_config.smpc.dp.sensitivity,
-                privacy_budget=ctrl_config.smpc.dp.privacy_budget,
-            )
-            if ctrl_config.smpc.dp.enabled
-            else None,
+            dp_params=(
+                DifferentialPrivacyParams(
+                    sensitivity=ctrl_config.smpc.dp.sensitivity,
+                    privacy_budget=ctrl_config.smpc.dp.privacy_budget,
+                )
+                if ctrl_config.smpc.dp.enabled
+                else None
+            ),
         ),
     )
     exareme2_controller.start_cleanup_loop()

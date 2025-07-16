@@ -1,4 +1,4 @@
-FROM python:3.8.19-slim-bullseye
+FROM python:3.10.18-slim-bullseye
 MAINTAINER Thanasis Karampatsis <tkarabatsis@athenarc.gr>
 
 #######################################################
@@ -30,9 +30,9 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==3.0.2 # Must be updated together with pyproject.toml
-RUN pip install click==8.1.2
-RUN pip install pymonetdb==1.6.3 # Must be updated together with pyproject.toml
+RUN pip install mipdb==3.0.9 # Must be updated together with pyproject.toml
+RUN pip install click==8.2.1
+RUN pip install pymonetdb==1.8.4 # Must be updated together with pyproject.toml
 
 #######################################################
 # Initializing the default users passwords
