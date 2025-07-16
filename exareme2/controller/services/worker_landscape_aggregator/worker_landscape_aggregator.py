@@ -606,9 +606,9 @@ class WorkerLandscapeAggregator:
                         cdes=cdes,
                         attributes=attributes,
                     )
-                    data_models_metadata_per_worker[
-                        worker_info.id
-                    ] = DataModelsMetadata(data_models_metadata=data_models_metadata)
+                    data_models_metadata_per_worker[worker_info.id] = (
+                        DataModelsMetadata(data_models_metadata=data_models_metadata)
+                    )
 
         return DataModelsMetadataPerWorker(
             data_models_metadata_per_worker=data_models_metadata_per_worker

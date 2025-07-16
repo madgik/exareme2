@@ -2,7 +2,7 @@
 
 ### Prerequisites
 
-1. Install [python3.8](https://www.python.org/downloads/ "python3.8")
+1. Install [python3.10](https://www.python.org/downloads/ "python3.10")
 
 1. Install [poetry](https://python-poetry.org/ "poetry")
    It is important to install `poetry` in isolation, so follow the
@@ -24,7 +24,7 @@
    poetry shell
    ```
 
-1. *Optional* To install tab completion for `invoke` run  (replacing `bash` with your shell)
+1. *Optional* To install tab completion for `invoke` run (replacing `bash` with your shell)
 
    ```
    source <(poetry run inv --print-completion-script bash)
@@ -59,7 +59,6 @@
    celery_tasks_timeout = 20
    celery_cleanup_task_timeout=2
    celery_run_udf_task_timeout = 120
-
 
    [flower]
    execution_timeout=60

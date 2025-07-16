@@ -299,9 +299,13 @@ def _get_udf_table_sharing_queries(
     queries = []
     for result in udf_results:
         if isinstance(result, UDFGenTableResult):
-            queries.append(
-                _get_table_share_query(result.table_name, public_username)
-            ) if result.share else None
+            (
+                queries.append(
+                    _get_table_share_query(result.table_name, public_username)
+                )
+                if result.share
+                else None
+            )
         elif isinstance(result, UDFGenSMPCResult):
             queries.append(
                 _get_table_share_query(result.template.table_name, public_username)
