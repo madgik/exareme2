@@ -5,7 +5,7 @@ description = "Core engine for the Medical Informatics Platform"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "~3.10.18"
+python = ">=3.10,<3.11"
 hypercorn = "~0.17"
 Quart = "~0.20"
 celery = "~5.5"

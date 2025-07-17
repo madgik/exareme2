@@ -13,10 +13,9 @@ WORKDIR /app
 # Install only aggregation-server group dependencies
 COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false \
- && poetry config installer.max-workers 1 \
- && poetry install --no-root --no-interaction --no-ansi --with aggregation-server
+ && poetry install --only aggregation-server --no-dev --no-root --no-interaction --no-ansi
 
-# Copy the app code
+
 COPY aggregation_server ./aggregation_server
 
 EXPOSE 50051
