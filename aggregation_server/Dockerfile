@@ -12,8 +12,8 @@ WORKDIR /app
 
 # Install only aggregation-server group dependencies
 COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create false \
- && poetry install --only aggregation-server --no-dev --no-root --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false
+RUN poetry install --with aggregation-server --no-root --no-interaction --no-ansi
 
 
 COPY aggregation_server ./aggregation_server

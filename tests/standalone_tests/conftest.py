@@ -682,17 +682,30 @@ def create_table_in_db(
 
 
 def insert_data_to_db(
-    table_name: str, table_values: List[List[Union[str, int, float]]], db_cursor
-):
-    row_length = len(table_values[0])
-    if all(len(row) != row_length for row in table_values):
-        raise Exception("Not all rows have the same number of values")
+    table_name: str,
+    table_values: List[List[Union[str, int, float]]],
+    db_cursor,
+) -> None:
+    if not table_values:
+        return
+
+    row_len = len(table_values[0])
+    if any(len(row) != row_len for row in table_values):
+        raise ValueError("Not all rows have the same number of values")
 
     for row in table_values:
-        values = f"{row[0]}"
-        for i in range(2, row_length):
-            values = f"{values}, {row[i]}"
-        query = f"INSERT INTO {table_name} VALUES ({values})"
+        formatted = []
+        for v in row:  # use every column in the row
+            if v is None:
+                formatted.append(str("null"))
+            elif isinstance(v, str):
+                escaped = v.replace("'", "''")  # basic SQL escaping
+                formatted.append(f"'{escaped}'")  # wrap in single quotes
+            else:
+                formatted.append(str(v))
+        values_clause = ", ".join(formatted)
+
+        query = f"INSERT INTO {table_name} VALUES ({values_clause})"
         db_cursor.execute(query)
 
 
@@ -1002,15 +1015,29 @@ def _create_worker_service(worker_config_filepath):
 
 def kill_service(proc):
     print(f"\nKilling service with process id '{proc.pid}'...")
-    psutil_proc = psutil.Process(proc.pid)
+    try:
+        psutil_proc = psutil.Process(proc.pid)
+    except psutil.NoSuchProcess:
+        print(f"Process {proc.pid} does not exist, skipping kill.")
+        return
 
     # First killing all the subprocesses, if they exist
-    for child in psutil.Process(proc.pid).children(recursive=True):
-        child.kill()
-    proc.kill()
+    for child in psutil_proc.children(recursive=True):
+        try:
+            child.kill()
+        except psutil.NoSuchProcess:
+            pass
+
+    try:
+        proc.kill()
+    except ProcessLookupError:
+        print(f"Process {proc.pid} already terminated.")
 
     for _ in range(100):
-        if psutil_proc.status() == "zombie" or psutil_proc.status() == "sleeping":
+        try:
+            if psutil_proc.status() in ("zombie", "sleeping"):
+                break
+        except psutil.NoSuchProcess:
             break
         time.sleep(0.1)
     else:
