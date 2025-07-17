@@ -1,4 +1,5 @@
 import logging
+import queue
 
 from celery import Celery
 from celery import signals
@@ -6,6 +7,14 @@ from celery import signals
 from exareme2.celery_app_conf import configure_celery_app_to_use_priority_queue
 from exareme2.worker import config as worker_config
 from exareme2.worker.utils.logger import init_logger
+
+# ----------------------- Flower1.19 workaround -----------------------
+# Flower 1.19 imports `queue.Queue` and then annotates it as Queue[Optional[str]],
+# which crashes on Python ≥3.9 because queue.Queue is not a generic type.
+if not hasattr(queue.Queue, "__class_getitem__"):
+    # make Queue[...] legal by returning the plain class
+    queue.Queue.__class_getitem__ = classmethod(lambda cls, _type: cls)
+# ----------------------------------------------------------------------
 
 rabbitmq_credentials = (
     worker_config.rabbitmq.user + ":" + worker_config.rabbitmq.password

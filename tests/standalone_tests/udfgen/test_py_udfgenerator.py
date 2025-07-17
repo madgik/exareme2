@@ -210,7 +210,8 @@ class TestUDFGenBase:
             "CREATE TABLE test_transfer_table(transfer CLOB)"
         )
         globalworker_db_cursor.execute(
-            "INSERT INTO test_transfer_table(transfer) VALUES('{\"num\":5}')"
+            "INSERT INTO test_transfer_table (transfer) VALUES (:payload)",
+            payload='{"num": 5}',
         )
 
     @pytest.fixture(scope="function")
@@ -226,11 +227,12 @@ class TestUDFGenBase:
             "CREATE TABLE test_merge_transfer_table(transfer CLOB)"
         )
         globalworker_db_cursor.execute(
-            """INSERT INTO test_merge_transfer_table
-                 (transfer)
-               VALUES
-                 ('{\"num\":5}'),
-                 ('{\"num\":10}')"""
+            "INSERT INTO test_merge_transfer_table (transfer) VALUES (:payload)",
+            payload='{"num":5}',
+        )
+        globalworker_db_cursor.execute(
+            "INSERT INTO test_merge_transfer_table (transfer) VALUES (:payload)",
+            payload='{"num":10}',
         )
 
     @pytest.fixture(scope="function")

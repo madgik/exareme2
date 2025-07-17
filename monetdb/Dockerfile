@@ -8,7 +8,14 @@ RUN tar -xf /home/monetDB.tar.bz2 -C /home/
 
 #######################################################
 # Install monetdb
-#######################################################
+##############################################################################################################
+RUN apt-get update \
+   && apt-get install -y --no-install-recommends python3-distutils curl \
+   && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --upgrade \
+   && pip3 install --upgrade setuptools wheel
+
 RUN pip3 install numpy==2.2.6 # Must be updated together with pyproject.toml
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
@@ -55,8 +62,8 @@ RUN chmod 444 /etc/logrotate.d/monetdb
 #######################################################
 RUN pip3 install scipy==1.15.3 # Must be updated together with pyproject.toml
 RUN pip3 install pandas==2.3.1 # Must be updated together with pyproject.toml
-RUN pip3 install scikit-learn==1.2.0 # Must be updated together with pyproject.toml
-RUN pip3 install statsmodels==0.13.2 # Must be updated together with pyproject.toml
+RUN pip3 install scikit-learn==1.7.0 # Must be updated together with pyproject.toml
+RUN pip3 install statsmodels==0.14.5 # Must be updated together with pyproject.toml
 
 #######################################################
 # Add /home/udflib to python path and copy

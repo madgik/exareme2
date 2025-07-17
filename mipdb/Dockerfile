@@ -30,7 +30,7 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==3.0.8 # Must be updated together with pyproject.toml
+RUN pip install mipdb==3.0.9 # Must be updated together with pyproject.toml
 RUN pip install click==8.2.1
 RUN pip install pymonetdb==1.8.4 # Must be updated together with pyproject.toml
 

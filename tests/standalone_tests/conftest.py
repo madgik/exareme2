@@ -6,7 +6,6 @@ import re
 import sqlite3
 import subprocess
 import time
-from itertools import chain
 from os import path
 from pathlib import Path
 from typing import List
@@ -598,7 +597,11 @@ def _create_monetdb_cursor(db_port, db_username="executor", db_password="executo
 
         def execute(self, query, *args, **kwargs):
             with self._engine.begin() as connection:
-                return connection.execute(text(query), *args, **kwargs)
+                stmt = text(query)
+                if kwargs:
+                    return connection.execute(stmt, kwargs)
+                else:
+                    return connection.execute(stmt)
 
     return MonetDBTesting()
 
@@ -685,12 +688,12 @@ def insert_data_to_db(
     if all(len(row) != row_length for row in table_values):
         raise Exception("Not all rows have the same number of values")
 
-    values = ", ".join(
-        "(" + ", ".join("%s" for _ in range(row_length)) + ")" for _ in table_values
-    )
-    sql_clause = f"INSERT INTO {table_name} VALUES {values}"
-
-    db_cursor.execute(sql_clause, list(chain(*table_values)))
+    for row in table_values:
+        values = f"{row[0]}"
+        for i in range(2, row_length):
+            values = f"{values}, {row[i]}"
+        query = f"INSERT INTO {table_name} VALUES ({values})"
+        db_cursor.execute(query)
 
 
 def get_table_data_from_db(

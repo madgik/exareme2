@@ -49,6 +49,7 @@ the worker service will be called 'localworker1' and should be referenced using 
 Paths are subject to change so in the following documentation the global variables will be used.
 
 """
+
 import copy
 import glob
 import itertools
@@ -221,9 +222,9 @@ def create_configs(c):
     controller_config["log_level"] = deployment_config["log_level"]
     controller_config["framework_log_level"] = deployment_config["framework_log_level"]
 
-    controller_config[
-        "worker_landscape_aggregator_update_interval"
-    ] = deployment_config["worker_landscape_aggregator_update_interval"]
+    controller_config["worker_landscape_aggregator_update_interval"] = (
+        deployment_config["worker_landscape_aggregator_update_interval"]
+    )
     controller_config["flower"]["execution_timeout"] = deployment_config["flower"][
         "execution_timeout"
     ]
