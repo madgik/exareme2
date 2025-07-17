@@ -1,4 +1,4 @@
-FROM madgik/exareme2_db_base:0.4
+FROM madgik/exareme2_db_base:0.1
 
 #######################################################
 # Download monetdb source files
