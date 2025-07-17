@@ -1,4 +1,4 @@
-FROM madgik/exareme2_db_base:0.2
+FROM madgik/exareme2_db_base:0.3
 
 #######################################################
 # Download monetdb source files
@@ -9,13 +9,6 @@ RUN tar -xf /home/monetDB.tar.bz2 -C /home/
 #######################################################
 # Install monetdb
 ##############################################################################################################
-RUN apt-get update \
-   && apt-get install -y --no-install-recommends python3-distutils curl \
-   && rm -rf /var/lib/apt/lists/*
-
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --upgrade \
-   && pip3 install --upgrade setuptools wheel
-
 RUN pip3 install numpy==2.2.6 # Must be updated together with pyproject.toml
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
