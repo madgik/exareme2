@@ -18,14 +18,18 @@ def get_worker_info(request_id: str) -> WorkerInfo:
     request_id : str
         The identifier for the logging
     """
-
+    db_ip = None
+    db_port = None
+    if worker_config.monetdb.enabled:
+        db_ip = worker_config.monetdb.ip
+        db_port = worker_config.monetdb.port
     return WorkerInfo(
         id=worker_config.identifier,
         role=worker_config.role,
         ip=worker_config.rabbitmq.ip,
         port=worker_config.rabbitmq.port,
-        db_ip=worker_config.monetdb.ip,
-        db_port=worker_config.monetdb.port,
+        db_ip=db_ip,
+        db_port=db_port,
     )
 
 

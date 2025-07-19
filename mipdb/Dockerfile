@@ -30,13 +30,14 @@ WORKDIR $DATA_PATH
 #######################################################
 # Installing dependencies
 #######################################################
-RUN pip install mipdb==3.0.9 # Must be updated together with pyproject.toml
+RUN pip install mipdb==3.1.0 # Must be updated together with pyproject.toml
 RUN pip install click==8.2.1
 RUN pip install pymonetdb==1.8.4 # Must be updated together with pyproject.toml
 
 #######################################################
 # Initializing the default users passwords
 #######################################################
+ENV MONETDB_ENABLED="True"
 ENV MONETDB_ADMIN_USERNAME="admin"
 ENV MONETDB_LOCAL_USERNAME="executor"
 ENV MONETDB_LOCAL_PASSWORD="executor"
