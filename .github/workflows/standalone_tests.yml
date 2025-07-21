@@ -111,5 +111,5 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageLocations: |
-            ./non_smpc_cov.xml:coverage.py
+            ${{ github.workspace }}/non_smpc_cov.xml:coverage.py
 #            ./smpc_cov.xml:coverage.py
