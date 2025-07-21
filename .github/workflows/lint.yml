@@ -2,29 +2,27 @@ name: Lint
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
+    branches: [master]
 
 jobs:
   black:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
-          version: "23.7.0" # Must be upgraded together with pyproject.toml
+          version: "25.1.0" # Must be upgraded together with pyproject.toml
 
   isort:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.8
-      - uses: isort/isort-action@master
+          python-version: "3.10"
+      - uses: isort/isort-action@v1
         with:
-          isortVersion: "5.12.0" # Must be upgraded together with pyproject.toml
+          isortVersion: "6.0.1" # Must be upgraded together with pyproject.toml
           configuration: "--check-only --diff --profile black --force-single-line-imports"

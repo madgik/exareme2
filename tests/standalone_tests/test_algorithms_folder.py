@@ -19,9 +19,9 @@ def test_default_algorithms_folder(set_default_algorithms_folder):
 
 @pytest.fixture
 def set_test_algorithms_folder():
-    os.environ[
-        exareme2.EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE
-    ] = TEST_ALGORITHMS_FOLDER
+    os.environ[exareme2.EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE] = (
+        TEST_ALGORITHMS_FOLDER
+    )
     yield
     del os.environ[exareme2.EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE]
 

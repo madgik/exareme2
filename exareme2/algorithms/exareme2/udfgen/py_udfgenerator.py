@@ -268,6 +268,7 @@ generate_udf_queries    Generates a pair of strings holding the UDF definition
 make_unique_func_name   Helper for creating unique function names
 ======================= ========================================================
 """
+
 import functools
 from copy import deepcopy
 from numbers import Number

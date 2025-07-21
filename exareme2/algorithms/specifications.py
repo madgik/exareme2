@@ -14,7 +14,6 @@ class AlgorithmType(Enum):
     EXAREME2 = "exareme2"
     FLOWER = "flower"
     EXAFLOW = "exaflow"
-    EXAFLOW_AGGREGATOR = "exaflow_aggregator"
 
 
 @unique
@@ -84,6 +83,12 @@ class AlgorithmName(str, Enum):
 
     def __str__(self) -> str:
         return str.__str__(self)
+
+
+@unique
+class DeploymentType(str, Enum):
+    AGGREGATION_SERVER = "AGGREGATION_SERVER"
+    MONETDB = "MONETDB"
 
 
 class ImmutableBaseModel(BaseModel):
@@ -252,6 +257,7 @@ class AlgorithmSpecification(WorkflowStepSpecification):
     inputdata: InputDataSpecifications
     parameters: Optional[Dict[str, ParameterSpecification]]
     type: AlgorithmType
+    deployment_types: Optional[List[DeploymentType]]
 
 
 class TransformerSpecification(WorkflowStepSpecification):
@@ -262,3 +268,4 @@ class TransformerSpecification(WorkflowStepSpecification):
     parameters: Optional[Dict[str, ParameterSpecification]]
     compatible_algorithms: Optional[List[str]]
     type: TransformerType
+    deployment_types: Optional[List[DeploymentType]]

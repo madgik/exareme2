@@ -270,9 +270,7 @@ class LinearRegression:
 
         # Federated computation of TSS in a single round
         # \sum_i (y_i - ymean)^2 = \sum_i yi^2 - 2 ymean \sum_i yi + n ymean^2
-        tss = (
-            sum_sq_y_test - 2 * y_mean_test * sum_y_test + n_obs_test * y_mean_test**2
-        )
+        tss = sum_sq_y_test - 2 * y_mean_test * sum_y_test + n_obs_test * y_mean_test**2
 
         transfer_ = {}
         transfer_["rss"] = rss

@@ -3,7 +3,7 @@ from string import Template
 
 import pytest
 
-pytest.skip(allow_module_level=True, msg="The tensor_ops module is deprecated.")
+pytest.skip(allow_module_level=True, reason="The tensor_ops module is deprecated.")
 
 from exareme2.algorithms.exareme2.udfgen import LiteralArg
 from exareme2.algorithms.exareme2.udfgen import TensorArg

@@ -46,17 +46,21 @@ spec:
         # Choose storage backend: hostPath or dynamically provisioned CephFS PVCs
       {{ if not .Values.managed_cluster }}
       volumes:
+        {{- if .Values.db.enabled }}
         - name: db-data
           hostPath:
             path: {{ printf "%s/db" .Values.storage.hostPath.db.globalworker }}
-        - name: csv-data
-          hostPath:
-            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
         - name: credentials
           hostPath:
             path: {{ printf "%s/credentials" .Values.storage.hostPath.db.globalworker }}
+        {{- end }}
+        - name: csv-data
+          hostPath:
+            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
+
       {{ end }}
       containers:
+      {{- if .Values.db.enabled }}
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
         # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
@@ -100,10 +104,13 @@ spec:
             - -s
             - "select 1;"
           periodSeconds: 30
+      {{ end }}
 
       - name: db-importer
         image: {{ .Values.exareme2_images.repository }}/exareme2_mipdb:{{ .Values.exareme2_images.version }}
         env:
+        - name: MONETDB_ENABLED
+          value: {{ quote .Values.db.enabled }}
         - name: DB_IP
           valueFrom:
             fieldRef:
@@ -115,8 +122,10 @@ spec:
         volumeMounts:
         - mountPath: /opt/data
           name: csv-data
+        {{- if .Values.db.enabled }}
         - mountPath: /opt/credentials
           name: credentials
+        {{ end }}
 
       - name: rabbitmq
         image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
@@ -152,8 +161,10 @@ spec:
       - name: worker
         image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
         volumeMounts:
+        {{- if .Values.db.enabled }}
         - mountPath: /opt/credentials
           name: credentials
+        {{ end }}
         - mountPath: /opt/data
           name: csv-data
         env:
@@ -185,6 +196,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.podIP
+        - name: MONETDB_ENABLED
+          value: {{ quote .Values.db.enabled }}
         - name: MONETDB_PORT
           value: "50000"
         - name: MONETDB_LOCAL_USERNAME
@@ -231,6 +244,16 @@ spec:
       {{ if .Values.managed_cluster }}
       volumeClaimTemplates:
         - metadata:
+            name: csv-data
+          spec:
+            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
+            resources:
+              requests:
+                storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
+
+        {{- if .Values.db.enabled }}
+        - metadata:
             name: db-data
           spec:
             storageClassName: {{ .Values.storage.cephfs.storageClassName }}
@@ -239,19 +262,14 @@ spec:
               requests:
                 storage: {{ .Values.storage.cephfs.globalworker.db.size }}
         - metadata:
-            name: csv-data
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
-        - metadata:
             name: credentials
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
+            spec:
+              storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+              accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
+              resources:
+                requests:
+                  storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
+        {{ end }}
+
+
       {{ end }}

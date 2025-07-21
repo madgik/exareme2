@@ -1,5 +1,3 @@
-import warnings
-
 from exareme2.algorithms.flower.process_manager import FlowerProcess
 from exareme2.worker import config as worker_config
 from exareme2.worker.utils.logger import get_logger

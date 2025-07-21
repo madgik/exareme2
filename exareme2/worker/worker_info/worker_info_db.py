@@ -64,6 +64,7 @@ def get_dataset_infos(data_model: str) -> List[DatasetInfo]:
         AND status = 'ENABLED'
         """
     )
+    warnings.warn(str(datasets_rows))
     return [
         DatasetInfo(
             code=row[0],
@@ -130,6 +131,8 @@ def get_dataset_csv_paths(data_model, datasets: List[str]) -> List[str]:
         AND status = 'ENABLED'
         """
     )
+    warnings.warn(str(datasets_rows))
+
     return [
         convert_csv_paths_to_absolute(row[0]) if row[0] is not None else None
         for row in datasets_rows

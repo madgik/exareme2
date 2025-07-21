@@ -16,7 +16,7 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
     _global_worker_tasks_handler: FlowerTasksHandler
 
     async def execute(self) -> str:
-        async with (self._controller.algorithm_execution_lock):
+        async with self._controller.algorithm_execution_lock:
             data_model = self._algorithm_request_dto.inputdata.data_model
             datasets = self._algorithm_request_dto.inputdata.datasets + (
                 self._algorithm_request_dto.inputdata.validation_datasets
