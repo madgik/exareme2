@@ -1431,10 +1431,11 @@ def controller_service_with_localworker1():
 
 
 @pytest.fixture(scope="function")
-def controller_service_with_aggregation_server_with_localworker_1_2():
-    service_port = CONTROLLER_WITH_AGGREGATION_SERVER_PORT
+def controller_service_with_aggregation_server_with_localworker_1_2(
+    aggregation_server_service,
+):
     controller_config_filepath = path.join(
-        TEST_ENV_CONFIG_FOLDER, CONTROLLER_WITH_AGGREGATION_SERVER_CONFIG_FILE
+        TEST_ENV_CONFIG_FOLDER, CONTROLLER_CONFIG_FILE
     )
     localworkers_config_filepath = path.join(
         TEST_ENV_CONFIG_FOLDER,
@@ -1442,10 +1443,10 @@ def controller_service_with_aggregation_server_with_localworker_1_2():
     )
 
     proc = _create_controller_service(
-        service_port,
+        CONTROLLER_PORT,
         controller_config_filepath,
         localworkers_config_filepath,
-        CONTROLLER_WITH_AGGREGATION_SERVER_OUTPUT_FILE,
+        CONTROLLER_OUTPUT_FILE,
     )
     yield
     kill_service(proc)
