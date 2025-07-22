@@ -1,18 +1,25 @@
-FROM madgik/exareme2_db_base:0.1
+FROM madgik/exareme2_db_base:dev
 
 #######################################################
 # Download monetdb source files
 #######################################################
-RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Dec2023/MonetDB-11.49.1.tar.bz2
+RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Mar2025-SP1/MonetDB-11.53.9.tar.bz2
 RUN tar -xf /home/monetDB.tar.bz2 -C /home/
 
 #######################################################
 # Install monetdb
 #######################################################
-RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
+RUN apt-get update \
+   && apt-get install -y --no-install-recommends python3-distutils curl \
+   && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --upgrade \
+   && pip3 install --upgrade setuptools wheel
+
+RUN pip3 install numpy==2.2.6 # Must be updated together with pyproject.toml
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.49.1
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.53.9
 RUN cmake --build .
 RUN cmake --build . --target install
 ENV PATH="/usr/local/bin/monetdb/bin:$PATH"
@@ -23,7 +30,7 @@ EXPOSE 50000
 # Installation clean up
 #######################################################
 RUN rm /home/monetDB.tar.bz2
-RUN rm -rf /home/MonetDB-11.49.1
+RUN rm -rf /home/MonetDB-11.53.9
 RUN rm -rf /home/monetdb-build
 
 #######################################################
@@ -53,10 +60,10 @@ RUN chmod 444 /etc/logrotate.d/monetdb
 #######################################################
 # Install python libraries
 #######################################################
-RUN pip3 install scipy==1.10.0 # Must be updated together with pyproject.toml
-RUN pip3 install pandas==1.5.2 # Must be updated together with pyproject.toml
-RUN pip3 install scikit-learn==1.2.0 # Must be updated together with pyproject.toml
-RUN pip3 install statsmodels==0.13.2 # Must be updated together with pyproject.toml
+RUN pip3 install scipy==1.15.3 # Must be updated together with pyproject.toml
+RUN pip3 install pandas==2.3.1 # Must be updated together with pyproject.toml
+RUN pip3 install scikit-learn==1.7.0 # Must be updated together with pyproject.toml
+RUN pip3 install statsmodels==0.14.5 # Must be updated together with pyproject.toml
 
 #######################################################
 # Add /home/udflib to python path and copy
