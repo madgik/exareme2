@@ -96,6 +96,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}/exareme2:${{ github.workspace }}
           PULL_DOCKER_IMAGES: false
+
 #      Skip due to failing SMPC
 #      - name: Run SMPC specific standalone tests after releasing previous test resources
 #        if: success() || ( failure() && steps.non_smpc_tests.outcome == 'failure' )
@@ -105,11 +106,9 @@ jobs:
 #        env:
 #          PULL_DOCKER_IMAGES: false
 
-      - name: Publish coverage on codeclimate
-        uses: paambaati/codeclimate-action@v9.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+      - name: Upload coverage to Qlty
+        uses: qltysh/qlty-action/coverage@v1
         with:
-          coverageLocations: |
-            ./non_smpc_cov.xml:coverage.py
-#            ./smpc_cov.xml:coverage.py
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: ./non_smpc_cov.xml
+#          files: ./non_smpc_cov.xml,./smpc_cov.xml
