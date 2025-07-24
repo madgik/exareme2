@@ -92,11 +92,11 @@ jobs:
 
       - name: Run all standalone tests except the SMPC
         id: non_smpc_tests
-#        run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
-        run: poetry run pytest -s -m "not slow" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+        run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
         env:
           PYTHONPATH: ${{ github.workspace }}/exareme2:${{ github.workspace }}
           PULL_DOCKER_IMAGES: false
+
 #      Skip due to failing SMPC
 #      - name: Run SMPC specific standalone tests after releasing previous test resources
 #        if: success() || ( failure() && steps.non_smpc_tests.outcome == 'failure' )
@@ -110,6 +110,5 @@ jobs:
         uses: qltysh/qlty-action/coverage@v1
         with:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
-          format: cobertura
           files: ./non_smpc_cov.xml
-#         files: ./non_smpc_cov.xml,./smpc_cov.xml
+#          files: ./non_smpc_cov.xml,./smpc_cov.xml

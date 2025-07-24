@@ -39,7 +39,7 @@ black = "25.1.0" # Must be upgraded together with github actions and pre-commit 
 isort = "6.0.1" # Must be upgraded together with github actions and pre-commit configuration
 pre-commit = "~4.2"
 termcolor = "~3.1"
-coverage = {extras = ["toml"], version = "*"}
+coverage = {extras = ["toml"], version = "^7.9.2"}
 pytest-cov = "~6.2"
 pylint = "~3.3"
 rope = "~1.14"
