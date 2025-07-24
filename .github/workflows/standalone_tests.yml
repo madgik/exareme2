@@ -92,7 +92,8 @@ jobs:
 
       - name: Run all standalone tests except the SMPC
         id: non_smpc_tests
-        run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+#        run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+        run: poetry run pytest -s -m "not slow" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
         env:
           PYTHONPATH: ${{ github.workspace }}/exareme2:${{ github.workspace }}
           PULL_DOCKER_IMAGES: false
@@ -105,11 +106,10 @@ jobs:
 #        env:
 #          PULL_DOCKER_IMAGES: false
 
-      - name: Publish coverage on codeclimate
-        uses: paambaati/codeclimate-action@v9.0.0
-        env:
-          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+      - name: Upload coverage to Qlty
+        uses: qltysh/qlty-action/coverage@v1
         with:
-          coverageLocations: |
-            ./non_smpc_cov.xml:coverage.py
-#            ./smpc_cov.xml:coverage.py
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          format: cobertura
+          files: ./non_smpc_cov.xml
+#         files: ./non_smpc_cov.xml,./smpc_cov.xml

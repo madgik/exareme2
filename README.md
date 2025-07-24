@@ -1,4 +1,4 @@
-# Exareme2 [![Maintainability](https://api.codeclimate.com/v1/badges/48216c43e4acff2fd7eb/maintainability)](https://codeclimate.com/github/madgik/exareme2/maintainability) [![Test Coverage](https://api.codeclimate.com/v1/badges/48216c43e4acff2fd7eb/test_coverage)](https://codeclimate.com/github/madgik/exareme2/test_coverage)
+# Exareme2 [![Maintainability](https://qlty.sh/gh/madgik/projects/MIP-Engine/maintainability.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine) [![Code Coverage](https://qlty.sh/gh/madgik/projects/MIP-Engine/coverage.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine)
 
 ### Prerequisites
 
