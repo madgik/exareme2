@@ -3,7 +3,7 @@ FROM madgik/exareme2_db_base:dev
 #######################################################
 # Download monetdb source files
 #######################################################
-RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Mar2025-SP1/MonetDB-11.53.9.tar.bz2
+RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Aug2024/MonetDB-11.51.3.tar.bz2
 RUN tar -xf /home/monetDB.tar.bz2 -C /home/
 
 #######################################################
@@ -19,7 +19,7 @@ RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --upgrade \
 RUN pip3 install numpy==2.2.6 # Must be updated together with pyproject.toml
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.53.9
+RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.51.3
 RUN cmake --build .
 RUN cmake --build . --target install
 ENV PATH="/usr/local/bin/monetdb/bin:$PATH"
@@ -30,7 +30,7 @@ EXPOSE 50000
 # Installation clean up
 #######################################################
 RUN rm /home/monetDB.tar.bz2
-RUN rm -rf /home/MonetDB-11.53.9
+RUN rm -rf /home/MonetDB-11.51.3
 RUN rm -rf /home/monetdb-build
 
 #######################################################
@@ -70,8 +70,8 @@ RUN pip3 install statsmodels==0.14.5 # Must be updated together with pyproject.t
 # necessary tools
 #######################################################
 COPY exareme2/algorithms/exareme2/udfgen/udfio.py /home/udflib/
-ENV PYTHONPATH "/home/udflib/"
-ENV LOG_LEVEL "INFO"
+ENV PYTHONPATH="/home/udflib/"
+ENV LOG_LEVEL="INFO"
 
 #######################################################
 # Initializing the default users passwords, that will be configured with configure_users.sh
