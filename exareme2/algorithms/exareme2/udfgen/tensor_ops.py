@@ -9,6 +9,7 @@ WARNING These operations are now deprecated and this module shouldn't be used as
 it might be completely removed in the future. If you need to perform operations
 on tensors you should use numpy within UDFs.
 """
+
 import operator
 import warnings
 from enum import Enum

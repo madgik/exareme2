@@ -24,6 +24,7 @@ The privacy restriction is as follows: if some record has a number of datapoints
 less  than  MIN_ROW_COUNT  then  no data is returned for this record. Thus, this
 particular variable/dataset pair doesn't contribute to the global computation.
 """
+
 import math
 import warnings
 from collections import Counter

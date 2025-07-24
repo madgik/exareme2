@@ -5,63 +5,62 @@ description = "Core engine for the Medical Informatics Platform"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
-python = "~3.8"
-hypercorn = "^0.14.4"
-Quart = "~0.18"
-celery = "~5.3.1"
-asgiref = "~3.7"
-pymonetdb = "1.6.3" # Must be updated together with mipdb Dockerfile
+python = ">=3.10,<3.11"
+hypercorn = "~0.17"
+Quart = "~0.20"
+celery = "~5.5"
+asgiref = "~3.9"
+pymonetdb = "1.8.4" # Must be updated together with mipdb Dockerfile
 astor = "~0.8"
-numpy = "1.24.1" # Must be updated together with monetdb Dockerfile
-scipy = "1.10.0" # Must be updated together with monetdb Dockerfile
-pandas = "1.5.2" # Must be updated together with monetdb Dockerfile
-scikit-learn = "1.2.0"  # Must be updated together with monetdb Dockerfile
-dnspython = "~2.3.0" # TODO upgrade this when: https://github.com/rthalley/dnspython/issues/957
+numpy = "2.2.6" # Must be updated together with monetdb Dockerfile
+scipy = "1.15.3" # Must be updated together with monetdb Dockerfile
+pandas = "2.3.1" # Must be updated together with monetdb Dockerfile
+scikit-learn = "1.7.0"  # Must be updated together with monetdb Dockerfile
+dnspython = "~2.7"
 pydantic = "~1.10"
 envtoml = "~0.1"
-requests = "~2.31"
+requests = "~2.32"
 eventlet = "~0.33"
 patsy = "~0.5.3"
-flwr = "1.7.0"
-psutil = "^5.9.8"
+flwr = "^1.19.0"
+psutil = "~5.9"
 xgboost-cpu = "^2.1.1"
 
 [tool.poetry.dev-dependencies]
-pytest = "~7.4"
-pytest-xdist = "~3.3"
-pytest-asyncio="~0.21"
-pytest-mock="~3.11"
+pytest = "~8.4"
+pytest-xdist = "~3.8"
+pytest-asyncio="~1.1"
+pytest-mock="~3.14"
 pytest-assume="~2.4"
-ipython = "~8.12"
-pdbpp = "~0.10"
+ipython = "~8.37"
+pdbpp = "~0.11"
 invoke = "~2.2"
-black = "23.7.0" # Must be upgraded together with github actions and pre-commit configuration
-isort = "5.12.0" # Must be upgraded together with github actions and pre-commit configuration
-pre-commit = "~3.3"
-termcolor = "~2.3"
-coverage = {extras = ["toml"], version = "~7.2"}
-pytest-cov = "~4.1"
-pylint = "~2.17"
-rope = "~1.9"
-devtools="~0.11"
-docker = "~6.1"
-tqdm = "~4.65"
-SQLAlchemy = "~1.3.0" # TODO https://team-1617704806227.atlassian.net/browse/MIP-740
-statsmodels = "0.13.2" # Must be updated together with monetdb Dockerfile
+black = "25.1.0" # Must be upgraded together with github actions and pre-commit configuration
+isort = "6.0.1" # Must be upgraded together with github actions and pre-commit configuration
+pre-commit = "~4.2"
+termcolor = "~3.1"
+coverage = {extras = ["toml"], version = "^7.9.2"}
+pytest-cov = "~6.2"
+pylint = "~3.3"
+rope = "~1.14"
+devtools="~0.12"
+docker = "~7.1"
+tqdm = "~4.67"
+SQLAlchemy = "~2.0"
+statsmodels = "0.14.5" # Must be updated together with monetdb Dockerfile
 psutil = "~5.9"
-pytest-subtests = "~0.11"
-freezegun = "~1.2"
-hypothesis = "~6.81"
-pytest-rerunfailures = "~12.0"
+pytest-subtests = "~0.14"
+freezegun = "~1.5"
+hypothesis = "~6.135"
+pytest-rerunfailures = "~15.1"
 
 [tool.poetry.group.dev.dependencies]
-mipdb = "3.0.2" # Must be updated together with mipdb Dockerfile
-
+mipdb = "3.0.9" # Must be updated together with mipdb Dockerfile
 
 [tool.poetry.group.aggregation-server.dependencies]
-grpcio = "^1.70.0"
-tomli = "^2.0"
-grpcio-health-checking = "^1.59.3"
+grpcio = "~1.73"
+tomli = "~2.2"
+grpcio-health-checking = "~1.62"
 
 [tool.pytest.ini_options]
 markers = [
@@ -84,7 +83,3 @@ show_missing = true
 
 [tool.coverage.html]
 show_contexts = true
-
-[build-system]
-requires = ["poetry-core>=1.4"]
-build-backend = "poetry.core.masonry.api"

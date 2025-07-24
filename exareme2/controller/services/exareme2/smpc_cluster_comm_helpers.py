@@ -182,15 +182,27 @@ def wait_for_smpc_results_to_be_ready(
     min_op: bool,
     max_op: bool,
 ):
-    wait_for_smpc_result_to_be_ready(
-        logger, context_id, command_id, SMPCRequestType.SUM
-    ) if sum_op else None
-    wait_for_smpc_result_to_be_ready(
-        logger, context_id, command_id, SMPCRequestType.MIN
-    ) if min_op else None
-    wait_for_smpc_result_to_be_ready(
-        logger, context_id, command_id, SMPCRequestType.MAX
-    ) if max_op else None
+    (
+        wait_for_smpc_result_to_be_ready(
+            logger, context_id, command_id, SMPCRequestType.SUM
+        )
+        if sum_op
+        else None
+    )
+    (
+        wait_for_smpc_result_to_be_ready(
+            logger, context_id, command_id, SMPCRequestType.MIN
+        )
+        if min_op
+        else None
+    )
+    (
+        wait_for_smpc_result_to_be_ready(
+            logger, context_id, command_id, SMPCRequestType.MAX
+        )
+        if max_op
+        else None
+    )
 
 
 def get_smpc_results(
