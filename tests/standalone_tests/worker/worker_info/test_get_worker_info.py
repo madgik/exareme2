@@ -31,7 +31,9 @@ worker_info_per_worker = {
 
 @pytest.mark.slow
 def test_get_worker_info(
+    monetdb_localworker1,
     localworker1_worker_service,
+    monetdb_globalworker,
     globalworker_worker_service,
     localworker1_celery_app,
     globalworker_celery_app,

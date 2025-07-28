@@ -4,6 +4,7 @@
     "label":"",
     "enabled":true,
     "type": "exareme2",
+    "deployment_types": ["MONETDB"],
     "inputdata":
     {
         "x":{

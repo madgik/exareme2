@@ -3,6 +3,7 @@
     "desc":"longitudinal_transform",
     "label":"Longitudinal Transformer",
     "enabled":true,
+    "deployment_types": ["MONETDB"],
     "type": "exareme2_transformer",
     "parameters":{
         "visit1": {

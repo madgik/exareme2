@@ -55,7 +55,7 @@ hypothesis = "~6.135"
 pytest-rerunfailures = "~15.1"
 
 [tool.poetry.group.dev.dependencies]
-mipdb = "3.0.9" # Must be updated together with mipdb Dockerfile
+mipdb = "3.1.0" # Must be updated together with mipdb Dockerfile
 
 [tool.poetry.group.aggregation-server.dependencies]
 grpcio = "~1.73"

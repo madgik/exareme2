@@ -39,9 +39,11 @@ def test_remote_table_properly_mirrors_data(
     request_id,
     context_id,
     localworker1_db_cursor,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     globalworker_db_cursor,
+    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_celery_app,
 ):
@@ -94,9 +96,11 @@ def test_remote_table_error_on_non_published_table(
     request_id,
     context_id,
     localworker1_db_cursor,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     globalworker_db_cursor,
+    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_celery_app,
 ):

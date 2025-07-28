@@ -37,18 +37,22 @@ spec:
       # HostPath volumes if hostPath selected
       {{ if not .Values.managed_cluster }}
       volumes:
+        {{- if .Values.db.enabled }}
         - name: db-data
           hostPath:
             path: {{ printf "%s/db" .Values.storage.hostPath.db.localworker }}
-        - name: csv-data
-          hostPath:
-            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.localworker }}
         - name: credentials
           hostPath:
             path: {{ printf "%s/credentials" .Values.storage.hostPath.db.localworker }}
+        {{- end }}
+        - name: csv-data
+          hostPath:
+            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.localworker }}
+
       {{ end }}
 
       containers:
+      {{- if .Values.db.enabled }}
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
         # LIMITS REMOVED DUE TO MONETDB NOT SEEING THEM PROPERLY
@@ -92,10 +96,13 @@ spec:
             - -s
             - "select 1;"
           periodSeconds: 30
+      {{- end }}
 
       - name: db-importer
         image: {{ .Values.exareme2_images.repository }}/exareme2_mipdb:{{ .Values.exareme2_images.version }}
         env:
+        - name: MONETDB_ENABLED
+          value: {{ quote .Values.db.enabled }}
         - name: DB_IP
           valueFrom:
             fieldRef:
@@ -109,8 +116,10 @@ spec:
         volumeMounts:
         - mountPath: /opt/data
           name: csv-data
+        {{- if .Values.db.enabled }}
         - mountPath: /opt/credentials
           name: credentials
+        {{ end }}
 
       - name: rabbitmq
         image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
@@ -146,8 +155,10 @@ spec:
       - name: worker
         image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
         volumeMounts:
+        {{- if .Values.db.enabled }}
         - mountPath: /opt/credentials
           name: credentials
+        {{ end }}
         - mountPath: /opt/data
           name: csv-data
         env:
@@ -177,6 +188,8 @@ spec:
               fieldPath: status.podIP
         - name: RABBITMQ_PORT
           value: "5672"
+        - name: MONETDB_ENABLED
+          value: {{ quote .Values.db.enabled }}
         - name: MONETDB_IP
           valueFrom:
             fieldRef:
@@ -262,6 +275,7 @@ spec:
 
   {{ if .Values.managed_cluster }}
   volumeClaimTemplates:
+    {{- if .Values.db.enabled }}
     - metadata:
         name: db-data
       spec:
@@ -272,15 +286,6 @@ spec:
           requests:
             storage: {{ .Values.storage.cephfs.localworker.db.size }}
     - metadata:
-        name: csv-data
-      spec:
-        storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-        accessModes:
-          - {{ index .Values.storage.cephfs.localworker.csvs.accessModes 0 }}
-        resources:
-          requests:
-            storage: {{ .Values.storage.cephfs.localworker.csvs.size }}
-    - metadata:
         name: credentials
       spec:
         storageClassName: {{ .Values.storage.cephfs.storageClassName }}
@@ -289,6 +294,18 @@ spec:
         resources:
           requests:
             storage: {{ .Values.storage.cephfs.localworker.creds.size }}
+    {{ end }}
+
+    - metadata:
+        name: csv-data
+      spec:
+        storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+        accessModes:
+          - {{ index .Values.storage.cephfs.localworker.csvs.accessModes 0 }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.cephfs.localworker.csvs.size }}
+
   {{ end }}
 #---  # Used for SMPC cluster debugging
 #

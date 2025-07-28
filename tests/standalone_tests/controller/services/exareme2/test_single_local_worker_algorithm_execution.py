@@ -99,7 +99,10 @@ def controller_config():
 
 @pytest.fixture(scope="function")
 def worker_landscape_aggregator(
-    controller_config, localworker1_worker_service, load_data_localworker1
+    controller_config,
+    monetdb_localworker1,
+    localworker1_worker_service,
+    load_data_localworker1_with_monetdb,
 ):
     controller_config = AttrDict(controller_config)
 
