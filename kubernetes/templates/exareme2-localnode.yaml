@@ -144,7 +144,7 @@ spec:
           timeoutSeconds: 10
 
       - name: worker
-        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
+        image: madgik/exareme2_worker:removed_worker_id_limitation
         volumeMounts:
         - mountPath: /opt/credentials
           name: credentials
