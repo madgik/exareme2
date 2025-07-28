@@ -76,9 +76,13 @@
    contextid_release_timelimit=3600 #an hour
 
    [aggregation_server]
+   enabled = true
    port = 50051
    max_grpc_connections = 10
    max_wait_for_aggregation_inputs = 10
+
+   [monetdb]
+   enabled = true
 
    [smpc]
    enabled=false

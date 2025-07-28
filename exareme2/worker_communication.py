@@ -178,8 +178,8 @@ class WorkerInfo(BaseModel):
     role: WorkerRole
     ip: IPv4Address
     port: int
-    db_ip: IPv4Address
-    db_port: int
+    db_ip: Optional[IPv4Address]
+    db_port: Optional[int]
 
     @property
     def socket_addr(self):

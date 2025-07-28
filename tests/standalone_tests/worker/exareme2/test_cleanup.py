@@ -35,6 +35,7 @@ def context_id(request_id):
 def test_create_and_find_tables(
     request_id,
     context_id,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
 ):

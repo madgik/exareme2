@@ -1,7 +1,4 @@
-import json
-import logging
 from abc import ABC
-from pathlib import Path
 from typing import Any
 from typing import Dict
 from typing import List
@@ -9,9 +6,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from exareme2 import EXAFLOW_ALGORITHM_FOLDERS
-from exareme2 import EXAREME2_ALGORITHM_FOLDERS
-from exareme2 import FLOWER_ALGORITHM_FOLDERS
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import AlgorithmType
 from exareme2.algorithms.specifications import InputDataSpecification
@@ -23,10 +17,10 @@ from exareme2.algorithms.specifications import ParameterEnumType
 from exareme2.algorithms.specifications import ParameterSpecification
 from exareme2.algorithms.specifications import ParameterType
 from exareme2.algorithms.specifications import TransformerSpecification
-from exareme2.algorithms.specifications import TransformerType
 from exareme2.controller.services.api.algorithm_request_dtos import (
     AlgorithmRequestSystemFlags,
 )
+from exareme2.controller.services.specifications import specifications
 
 
 class ImmutableBaseModel(BaseModel, ABC):
@@ -285,85 +279,6 @@ def _get_algorithm_specifications_dtos(
         ]
     )
 
-
-class Specifications:
-    enabled_algorithms: Dict[str, AlgorithmSpecification]
-    enabled_transformers: Dict[str, TransformerSpecification]
-
-    def __init__(self):
-        (
-            self.enabled_algorithms,
-            self.enabled_transformers,
-        ) = self.load_and_parse_specifications()
-
-    def load_and_parse_specifications(self):
-        all_algorithms, all_transformers = {}, {}
-        for specs_path in self.get_specs_paths():
-            self.parse_specifications(specs_path, all_algorithms, all_transformers)
-        return self.filter_enabled_specifications(all_algorithms, all_transformers)
-
-    @staticmethod
-    def get_specs_paths():
-        return [
-            Path(specs_path.strip())
-            for specs_path in EXAREME2_ALGORITHM_FOLDERS.split(",")
-            + FLOWER_ALGORITHM_FOLDERS.split(",")
-            + EXAFLOW_ALGORITHM_FOLDERS.split(",")
-        ]
-
-    def parse_specifications(self, specs_path, all_algorithms, all_transformers):
-        for spec_property_path in specs_path.glob("*.json"):
-            self.process_spec_file(spec_property_path, all_algorithms, all_transformers)
-
-    def process_spec_file(self, spec_property_path, all_algorithms, all_transformers):
-        try:
-            spec_content = self.read_spec_file(spec_property_path)
-            self.process_spec_content(
-                spec_content, spec_property_path.name, all_algorithms, all_transformers
-            )
-        except Exception as error:
-            logging.error(f"Error processing {spec_property_path.name}: {error}")
-            raise
-
-    @staticmethod
-    def read_spec_file(spec_property_path):
-        with open(spec_property_path, "r") as specifications_file:
-            return specifications_file.read()
-
-    @staticmethod
-    def process_spec_content(spec_content, spec_name, all_algorithms, all_transformers):
-        try:
-            spec_json = json.loads(spec_content)
-            spec_type = spec_json["type"]
-            if TransformerType.EXAREME2_TRANSFORMER.value in spec_type:
-                transformer_spec = TransformerSpecification.parse_raw(spec_content)
-                if transformer_spec.name in all_transformers.keys():
-                    raise ValueError(
-                        f"The transformer name '{transformer_spec.name}' exists more than once in the transformer specifications."
-                    )
-                all_transformers[transformer_spec.name] = transformer_spec
-            else:
-                algorithm_specification = AlgorithmSpecification.parse_raw(spec_content)
-                if algorithm_specification.name in all_algorithms.keys():
-                    raise ValueError(
-                        f"The algorithm name '{algorithm_specification.name}' exists more than once in the algorithm specifications."
-                    )
-                all_algorithms[algorithm_specification.name] = algorithm_specification
-        except KeyError as e:
-            logging.error(f"Missing key {e} in {spec_name}")
-            raise
-
-    @staticmethod
-    def filter_enabled_specifications(all_algorithms, all_transformers):
-        enabled_algorithms = {k: v for k, v in all_algorithms.items() if v.enabled}
-        enabled_transformers = {k: v for k, v in all_transformers.items() if v.enabled}
-        return enabled_algorithms, enabled_transformers
-
-    def get_algorithm_type(self, algo_name: str):
-        return self.enabled_algorithms[algo_name].type
-
-
-specifications = Specifications()
 
 algorithm_specifications_dtos = _get_algorithm_specifications_dtos(
     list(specifications.enabled_algorithms.values()),

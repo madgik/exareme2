@@ -33,13 +33,18 @@ workers_cleanup_interval=30
 contextid_release_timelimit=3600 #an hour
 
 [aggregation_server]
+enabled = false
 port = 50051
 max_grpc_connections = 10
 max_wait_for_aggregation_inputs = 10
 
+[monetdb]
+enabled = true
+
 [smpc]
 enabled=false
 optional=false
+
 [smpc.dp]
 enabled = false
 

@@ -32,6 +32,12 @@ celery_tasks_interval_start = 0
 celery_tasks_interval_step = 0.2
 celery_tasks_interval_max = 0.5
 
+[aggregation_server]
+enabled = false
+
+[monetdb]
+enabled = true
+
 [smpc]
 enabled = true
 optional = false

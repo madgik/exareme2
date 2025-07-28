@@ -3,6 +3,7 @@
     "desc": "Multiple Histograms",
     "label": "Multiple Histograms",
     "enabled": true,
+    "deployment_types": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {
