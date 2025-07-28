@@ -1,3 +1,4 @@
+import re
 from typing import Any
 from typing import Dict
 from typing import List
@@ -25,6 +26,14 @@ from exareme2.worker_communication import TablesNotFound
 from exareme2.worker_communication import TableType
 
 
+def _to_alnum(value: str) -> str:
+    """Keep only ASCII letters and digits."""
+    cleaned = re.compile(r"[^0-9A-Za-z]").sub("", value)
+    if not cleaned:
+        raise ValueError(f"'{value}' becomes empty after stripping non-alphanumerics.")
+    return cleaned
+
+
 def create_table_name(
     table_type: TableType,
     worker_id: str,
@@ -38,8 +47,6 @@ def create_table_name(
 
     Underscores are not allowed in any parameter provided.
     """
-    if not worker_id.isalnum():
-        raise ValueError(f"'worker_id' is not alphanumeric. Value: '{worker_id}'")
     if not context_id.isalnum():
         raise ValueError(f"'context_id' is not alphanumeric. Value: '{context_id}'")
     if not command_id.isalnum():
@@ -50,7 +57,9 @@ def create_table_name(
     if table_type not in {TableType.NORMAL, TableType.VIEW, TableType.MERGE}:
         raise TypeError(f"Table type is not acceptable: {table_type} .")
 
-    return f"{table_type}_{worker_id}_{context_id}_{command_id}_{result_id}".lower()
+    alphanumeric_worker_id = _to_alnum(worker_id)
+
+    return f"{table_type}_{alphanumeric_worker_id}_{context_id}_{command_id}_{result_id}".lower()
 
 
 @sql_injection_guard(table_type=None, context_id=str.isalnum)

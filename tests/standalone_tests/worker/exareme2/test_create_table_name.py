@@ -43,13 +43,6 @@ def get_test_create_table_name_with_bad_parameters_cases():
     test_create_table_name_with_bad_parameters_cases = [
         (
             TableType.NORMAL,
-            "workerid_1",
-            "contextid2",
-            "commandid3",
-            "commandsubid4",
-        ),
-        (
-            TableType.NORMAL,
             "workerid1",
             "contextid_2",
             "commandid3",
