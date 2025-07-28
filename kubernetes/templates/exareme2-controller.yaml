@@ -1,5 +1,5 @@
 # PVC for cleanup-file (only if using CephFS PVC)
-{{ if .Values.managed_cluster }}
+{{- if .Values.managed_cluster }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -12,9 +12,7 @@ spec:
     requests:
       storage: {{ .Values.storage.cephfs.controller.size }}
   storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-
-{{ end }}
-
+{{- end }}
 ---
 
 apiVersion: apps/v1
@@ -34,26 +32,26 @@ spec:
       labels:
         app: exareme2-controller
     spec:
-      {{ if not .Values.managed_cluster }}
+      {{- if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
-      {{ end }}
+      {{- end }}
 
       volumes:
       - name: cleanup-file
-        {{ if .Values.managed_cluster }}
+        {{- if .Values.managed_cluster }}
         persistentVolumeClaim:
           claimName: cleanup-file-pvc
-        {{ else }}
+        {{- else }}
         hostPath:
           path: {{ .Values.storage.hostPath.controller_cleanup }}
-        {{ end }}
+        {{- end }}
 
       containers:
       - name: controller
         image: {{ .Values.exareme2_images.repository }}/exareme2_controller:{{ .Values.exareme2_images.version }}
         ports:
-          - containerPort: 5000
+        - containerPort: 5000
         volumeMounts:
         - mountPath: /opt/cleanup
           name: cleanup-file
@@ -88,7 +86,7 @@ spec:
           value: "5672"
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
-        {{ if .Values.smpc.enabled }}
+        {{- if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
         - name: SMPC_COORDINATOR_IP
@@ -101,7 +99,7 @@ spec:
           value: {{ quote .Values.smpc.get_result_interval }}
         - name: SMPC_GET_RESULT_MAX_RETRIES
           value: {{ quote .Values.smpc.get_result_max_retries }}
-        {{ end }}
+        {{- end }}
         startupProbe:
           httpGet:
             path: /healthcheck
@@ -119,9 +117,9 @@ spec:
       ### --- SMPC components ---
       {{ if .Values.smpc.enabled }}
       - name: smpc-db
-        image: {{ .Values.smpc.db_image}}
+        image: {{ .Values.smpc.db_image }}
         ports:
-          - containerPort: 27017
+        - containerPort: 27017
         env:
         - name: MONGO_INITDB_ROOT_USERNAME
           value: "sysadmin"
@@ -129,10 +127,10 @@ spec:
           value: "123qwe"
 
       - name: smpc-queue
-        image: {{ .Values.smpc.queue_image}}
+        image: {{ .Values.smpc.queue_image }}
         command: ["redis-server", "--requirepass", "agora"]
         ports:
-          - containerPort: 6379
+        - containerPort: 6379
         env:
         - name: REDIS_REPLICATION_MODE
           value: "master"
@@ -141,7 +139,7 @@ spec:
         image: {{ .Values.smpc.image }}
         command: ["python", "coordinator.py"]
         ports:
-          - containerPort: 12314
+        - containerPort: 12314
         env:
         - name: POD_IP
           valueFrom:
@@ -171,25 +169,28 @@ spec:
           value: exareme2-smpc-player2-service
         - name: PLAYER_REPO_2
           value: "http://$(PLAYER_IP_2):7002"
-      {{ end }}
-
+      {{- end }}
 ---
 
+# Controller LoadBalancer Service
 apiVersion: v1
 kind: Service
 metadata:
   name: exareme2-controller-service
   namespace: {{ .Values.namespace }}
 spec:
+  {{- if not .Values.managed_cluster }}
   type: LoadBalancer
+  {{- end }}
   selector:
     app: exareme2-controller
   ports:
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
-      nodePort: 30000
-
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+    {{- if not .Values.managed_cluster }}
+    nodePort: 30000
+    {{- end }}
 ---
 
 apiVersion: v1
@@ -202,15 +203,14 @@ spec:
   selector:
     app: exareme2-worker
   ports:
-    - protocol: TCP
-      port: 5672
-      targetPort: 5672
+  - protocol: TCP
+    port: 5672
+    targetPort: 5672
 
-
-{{ if .Values.smpc.enabled }}
+{{- if .Values.smpc.enabled }}
 ---
 
-### --- SMPC Coordinator Service ---
+# SMPC Coordinator Service
 apiVersion: v1
 kind: Service
 metadata:

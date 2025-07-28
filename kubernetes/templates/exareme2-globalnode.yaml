@@ -12,10 +12,10 @@ spec:
     app: exareme2-worker
     nodeType: globalworker
   ports:
-    - name: rabbitmq
-      port: 5672
-    - name: monetdb
-      port: 50000
+  - name: rabbitmq
+    port: 5672
+  - name: monetdb
+    port: 50000
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -38,24 +38,23 @@ spec:
         app: exareme2-worker
         nodeType: globalworker
     spec:
-      {{ if not .Values.managed_cluster }}
+      {{- if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
-      {{ end }}
-
-        # Choose storage backend: hostPath or dynamically provisioned CephFS PVCs
-      {{ if not .Values.managed_cluster }}
+      {{- end }}
+      {{- if not .Values.managed_cluster }}
+      # Use hostPath storage on unmanaged clusters
       volumes:
-        - name: db-data
-          hostPath:
-            path: {{ printf "%s/db" .Values.storage.hostPath.db.globalworker }}
-        - name: csv-data
-          hostPath:
-            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
-        - name: credentials
-          hostPath:
-            path: {{ printf "%s/credentials" .Values.storage.hostPath.db.globalworker }}
-      {{ end }}
+      - name: db-data
+        hostPath:
+          path: {{ printf "%s/db" .Values.storage.hostPath.db.globalworker }}
+      - name: csv-data
+        hostPath:
+          path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
+      - name: credentials
+        hostPath:
+          path: {{ printf "%s/credentials" .Values.storage.hostPath.db.globalworker }}
+      {{- end }}
       containers:
       - name: monetdb
         image: {{ .Values.exareme2_images.repository }}/exareme2_db:{{ .Values.exareme2_images.version }}
@@ -68,39 +67,30 @@ spec:
           value: {{ .Values.log_level }}
         - name: MONETDB_NCLIENTS
           value: {{ mul .Values.max_concurrent_experiments .Values.localnodes | quote }}
-        - name: MAX_MEMORY   # Value in bytes
-          value: {{ mul .Values.db.max_memory 1048576 | quote }} # Conversion to bytes
-        - name: SOFT_RESTART_MEMORY_LIMIT   # Value in megabytes
-          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
-        - name: HARD_RESTART_MEMORY_LIMIT   # Value in megabytes
-          value: {{ div  (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
+        - name: MAX_MEMORY   # bytes
+          value: {{ mul .Values.db.max_memory 1048576 | quote }}
+        - name: SOFT_RESTART_MEMORY_LIMIT   # MB
+          value: {{ div (mul .Values.db.max_memory .Values.db.percentage_soft_memory_limit) 100 | quote }}
+        - name: HARD_RESTART_MEMORY_LIMIT   # MB
+          value: {{ div (mul .Values.db.max_memory .Values.db.percentage_hard_memory_limit) 100 | quote }}
         ports:
         - containerPort: 50000
         volumeMounts:
-        - mountPath: /home/monetdb
-          name: db-data
-        - mountPath: /opt/data
-          name: csv-data
-        - mountPath: /opt/credentials
-          name: credentials
+        - name: db-data
+          mountPath: /home/monetdb
+        - name: csv-data
+          mountPath: /opt/data
+        - name: credentials
+          mountPath: /opt/credentials
         startupProbe:
           exec:
-            command:
-            - mclient
-            - db
-            - -s
-            - "select 1;"
+            command: ["mclient", "db", "-s", "select 1;"]
           initialDelaySeconds: 10
           periodSeconds: 30
         livenessProbe:
           exec:
-            command:
-            - mclient
-            - db
-            - -s
-            - "select 1;"
+            command: ["mclient", "db", "-s", "select 1;"]
           periodSeconds: 30
-
       - name: db-importer
         image: {{ .Values.exareme2_images.repository }}/exareme2_mipdb:{{ .Values.exareme2_images.version }}
         env:
@@ -113,11 +103,10 @@ spec:
         - name: DB_PORT
           value: "50000"
         volumeMounts:
-        - mountPath: /opt/data
-          name: csv-data
-        - mountPath: /opt/credentials
-          name: credentials
-
+        - name: csv-data
+          mountPath: /opt/data
+        - name: credentials
+          mountPath: /opt/credentials
       - name: rabbitmq
         image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
         env:
@@ -133,29 +122,22 @@ spec:
         - containerPort: 5672
         startupProbe:
           exec:
-            command:
-              - rabbitmq-diagnostics
-              - -q
-              - check_port_connectivity
+            command: ["rabbitmq-diagnostics", "-q", "check_port_connectivity"]
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
         livenessProbe:
           exec:
-            command:
-              - rabbitmq-diagnostics
-              - -q
-              - check_port_connectivity
+            command: ["rabbitmq-diagnostics", "-q", "check_port_connectivity"]
           periodSeconds: 30
           timeoutSeconds: 10
-
       - name: worker
         image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
         volumeMounts:
-        - mountPath: /opt/credentials
-          name: credentials
-        - mountPath: /opt/data
-          name: csv-data
+        - name: credentials
+          mountPath: /opt/credentials
+        - name: csv-data
+          mountPath: /opt/data
         env:
         - name: WORKER_IDENTIFIER
           value: {{ .Values.globalworker_identifier }}
@@ -172,7 +154,7 @@ spec:
         - name: CONTROLLER_PORT
           value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_PORT)
         - name: PROTECT_LOCAL_DATA
-          value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
+          value: "false"
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: RABBITMQ_IP
@@ -199,7 +181,7 @@ spec:
           value: {{ .Values.globalworker_identifier }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
-        {{ if .Values.smpc.enabled }}
+        {{- if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
         - name: SMPC_CLIENT_ID
@@ -210,48 +192,42 @@ spec:
           value: exareme2-smpc-coordinator-service
         - name: SMPC_COORDINATOR_ADDRESS
           value: "http://$(SMPC_COORDINATOR_IP):12314"
-        {{ end }}
+        {{- end }}
         startupProbe:
           exec:
-            command:
-              - python
-              - -m
-              - exareme2.worker.healthcheck
+            command: ["python", "-m", "exareme2.worker.healthcheck"]
           initialDelaySeconds: 30
           periodSeconds: 30
           timeoutSeconds: 10
         livenessProbe:
           exec:
-            command:
-              - python
-              - -m
-              - exareme2.worker.healthcheck
+            command: ["python", "-m", "exareme2.worker.healthcheck"]
           periodSeconds: 30
           timeoutSeconds: 10
-      {{ if .Values.managed_cluster }}
-      volumeClaimTemplates:
-        - metadata:
-            name: db-data
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.db.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.db.size }}
-        - metadata:
-            name: csv-data
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
-        - metadata:
-            name: credentials
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
-      {{ end }}
+  {{- if .Values.managed_cluster }}
+  volumeClaimTemplates:
+  - metadata:
+      name: db-data
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.db.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.db.size }}
+  - metadata:
+      name: csv-data
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
+  - metadata:
+      name: credentials
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
+  {{- end }}
