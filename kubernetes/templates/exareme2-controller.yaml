@@ -49,7 +49,7 @@ spec:
 
       containers:
       - name: controller
-        image: {{ .Values.exareme2_images.repository }}/exareme2_controller:{{ .Values.exareme2_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_controller:hybrid3
         ports:
         - containerPort: 5000
         volumeMounts:
@@ -81,7 +81,7 @@ spec:
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: LOCALWORKERS_DNS
-          value: "exareme2-workers-service"
+          value: {{ quote .Values.controller.workers_dns }}
         - name: LOCALWORKERS_PORT
           value: "5672"
         - name: SMPC_ENABLED

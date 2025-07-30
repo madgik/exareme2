@@ -1,6 +1,7 @@
 import json
 from abc import ABC
 from abc import abstractmethod
+from itertools import chain
 from typing import List
 
 import dns.resolver
@@ -26,11 +27,15 @@ class LocalWorkersAddresses(WorkersAddresses):
 
 class DNSWorkersAddresses(WorkersAddresses):
     def __init__(self, localworkers_configs):
-        localworker_ips = dns.resolver.resolve(
-            localworkers_configs.dns, "A", search=True
-        )
+        dns_names = [
+            n.strip() for n in localworkers_configs.dns.split(",") if n.strip()
+        ]
+        ip_lists = (dns.resolver.resolve(name, "A", search=True) for name in dns_names)
+
+        # flatten the iterator‑of‑iterators and de‑duplicate
+        uniq_ips = {rr.address for rr in chain.from_iterable(ip_lists)}
         self._socket_addresses = [
-            f"{ip}:{localworkers_configs.port}" for ip in localworker_ips
+            f"{ip}:{localworkers_configs.port}" for ip in uniq_ips
         ]
 
 
