@@ -1,3 +1,4 @@
+{{- if gt (int .Values.localnodes) 0 }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -306,3 +307,4 @@ spec:
 #      port: 9000
 #      targetPort: 9000
 #      nodePort: 32000
+{{- end }}
