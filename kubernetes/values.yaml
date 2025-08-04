@@ -51,7 +51,7 @@ storage:
       globalworker: "/opt/exareme2/globalworker"
 
   cephfs:
-    storageClassName: ceph-corbo-cephfs
+    storageClassName: ceph-corbo-cephfs-retain
 
     controller:
       size: 1Gi
