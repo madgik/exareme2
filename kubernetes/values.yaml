@@ -1,6 +1,6 @@
 namespace: default
 managed_cluster: false
-localnodes: 2
+localnodes: 1
 
 exareme2_images:
   repository: madgik
@@ -18,68 +18,9 @@ db:
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
 
-controller:
-  workers_dns: "exareme2-workers-service"
-  worker_landscape_aggregator_update_interval: 30
-  flower_execution_timeout: 30
-  flower_server_port: 8080
-  celery_tasks_timeout: 300
-  workers_cleanup_interval: 60
-
-globalworker_identifier: globalworker
-
-aggregation_server:
-  enabled: false
-  max_wait_for_aggregation_inputs: 60
-
-smpc:
-  enabled: false
-  optional: false
-  image: gpikra/coordinator:v7.0.7.4
-  db_image: mongo:5.0.8
-  queue_image: redis:alpine3.15
-  get_result_interval: 5
-  get_result_max_retries: 100
-
 storage:
   type: hostPath
 
   hostPath:
-    controller_cleanup: "/opt/cleanup"
     db:
       localworker: "/opt/exareme2/localworker"
-      globalworker: "/opt/exareme2/globalworker"
-
-  cephfs:
-    storageClassName: ceph-corbo-cephfs-retain
-
-    controller:
-      size: 1Gi
-
-    localworker:
-      db:
-        size: 4Gi
-        accessModes:
-          - ReadWriteOnce
-      csvs:
-        size: 4Gi
-        accessModes:
-          - ReadWriteMany
-      creds:
-        size: 100Mi
-        accessModes:
-          - ReadWriteMany
-
-    globalworker:
-      db:
-        size: 4Gi
-        accessModes:
-          - ReadWriteOnce
-      csvs:
-        size: 4Gi
-        accessModes:
-          - ReadWriteMany
-      creds:
-        size: 100Mi
-        accessModes:
-          - ReadWriteMany

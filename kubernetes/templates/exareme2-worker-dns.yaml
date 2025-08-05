@@ -1,0 +1,15 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: exareme2-remote-worker-service
+  namespace: {{ .Values.namespace }}
+spec:
+  clusterIP: None
+  selector:
+    app: exareme2-worker
+  ports:
+  - protocol: TCP
+    port: 5672
+    targetPort: 5672
