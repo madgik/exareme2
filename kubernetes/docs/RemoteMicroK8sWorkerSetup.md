@@ -52,7 +52,8 @@ ______________________________________________________________________
 Clone (or copy) the Exareme2 Helm chart and run:
 
 ```bash
-cd /path/to/exareme2/helm/worker
+cd exareme2/kubernetes
+git checkout remote-node
 microk8s helm3 install exareme2-worker .
 ```
 
