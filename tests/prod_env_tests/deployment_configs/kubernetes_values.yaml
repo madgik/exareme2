@@ -16,7 +16,7 @@ aggregation_server:
   enabled: false
   max_wait_for_aggregation_inputs: 60
 
-db:
+monetdb:
   enabled: true
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
