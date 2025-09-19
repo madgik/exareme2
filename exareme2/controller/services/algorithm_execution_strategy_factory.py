@@ -68,10 +68,7 @@ def _get_algorithm_strategy_type(
 ) -> Type[AlgorithmExecutionStrategyI]:
     strategy: AlgorithmExecutionStrategyI
     if algo_type == AlgorithmType.EXAFLOW:
-        if (
-            algo_component_types
-            and ComponentType.AGGREGATION_SERVER in algo_component_types
-        ):
+        if ComponentType.AGGREGATION_SERVER in algo_component_types:
             return ExaflowWithAggregationServerStrategy
         return ExaflowStrategy
     elif algo_type == AlgorithmType.FLOWER:
