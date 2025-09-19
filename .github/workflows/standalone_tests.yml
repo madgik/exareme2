@@ -131,11 +131,6 @@ jobs:
           done
           docker images | grep madgik || true
 
-      # (Optional) free some disk if your tests are heavy
-      - name: Free some disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
-          df -h
 
       - name: Run all standalone tests except SMPC
         id: non_smpc_tests
