@@ -129,7 +129,8 @@ def get_test_cases_get_data_model_cdes():
 def test_get_data_model_cdes(
     data_model,
     expected_data_model_cdes,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,

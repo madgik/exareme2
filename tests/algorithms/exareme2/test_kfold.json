@@ -4,6 +4,7 @@
     "label":"",
     "enabled":true,
     "type": "exareme2",
+    "components": ["MONETDB"],
     "inputdata":
     {
         "x":{

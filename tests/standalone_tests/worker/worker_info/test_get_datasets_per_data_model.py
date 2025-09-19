@@ -67,6 +67,7 @@ test_cases_get_worker_info_datasets = [
 )
 def test_get_worker_datasets_per_data_model(
     expected_datasets_per_data_model,
+    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_celery_app,
     use_globalworker_database,

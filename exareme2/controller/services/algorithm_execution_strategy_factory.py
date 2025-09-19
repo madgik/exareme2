@@ -1,6 +1,8 @@
+from typing import List
 from typing import Type
 
 from exareme2.algorithms.specifications import AlgorithmType
+from exareme2.algorithms.specifications import ComponentType
 from exareme2.algorithms.specifications import TransformerName
 from exareme2.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exareme2.controller.services.api.algorithm_spec_dtos import specifications
@@ -36,15 +38,18 @@ def get_algorithm_execution_strategy(
         algorithm_request_dto.request_id = UIDGenerator().get_a_uid()
 
     algo_type = specifications.get_algorithm_type(algorithm_name)
+    components = specifications.get_component_types(algorithm_name)
     controller = _get_algorithm_controller(algo_type)
-    strategy_type = _get_algorithm_strategy_type(algo_type, algorithm_request_dto)
+    strategy_type = _get_algorithm_strategy_type(
+        algo_type, components, algorithm_request_dto
+    )
 
     return strategy_type(controller, algorithm_name, algorithm_request_dto)
 
 
 def _get_algorithm_controller(algo_type: AlgorithmType) -> ControllerI:
     controller: ControllerI
-    if algo_type in [AlgorithmType.EXAFLOW, AlgorithmType.EXAFLOW_AGGREGATOR]:
+    if algo_type in [AlgorithmType.EXAFLOW]:
         return get_exaflow_controller()
     elif algo_type == AlgorithmType.FLOWER:
         return get_flower_controller()
@@ -58,13 +63,14 @@ def _get_algorithm_controller(algo_type: AlgorithmType) -> ControllerI:
 
 def _get_algorithm_strategy_type(
     algo_type: AlgorithmType,
+    algo_component_types: List[ComponentType],
     algorithm_request_dto: AlgorithmRequestDTO,
 ) -> Type[AlgorithmExecutionStrategyI]:
     strategy: AlgorithmExecutionStrategyI
     if algo_type == AlgorithmType.EXAFLOW:
+        if ComponentType.AGGREGATION_SERVER in algo_component_types:
+            return ExaflowWithAggregationServerStrategy
         return ExaflowStrategy
-    elif algo_type == AlgorithmType.EXAFLOW_AGGREGATOR:
-        return ExaflowWithAggregationServerStrategy
     elif algo_type == AlgorithmType.FLOWER:
         return FlowerStrategy
     elif algo_type == AlgorithmType.EXAREME2:

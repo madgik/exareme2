@@ -13,17 +13,22 @@ max_concurrent_experiments: 32
 globalworker_identifier: globalworker
 
 aggregation_server:
-  max_grpc_connections: 10
+  enabled: false
   max_wait_for_aggregation_inputs: 60
-db:
+
+monetdb:
+  enabled: true
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
 
+flower:
+  enabled: true
+  execution_timeout: 30
+  server_port: 8080
+
 controller:
   worker_landscape_aggregator_update_interval: 20
-  flower_execution_timeout: 20
-  flower_server_port: 8080
   celery_tasks_timeout: 120
   workers_cleanup_interval: 60
 

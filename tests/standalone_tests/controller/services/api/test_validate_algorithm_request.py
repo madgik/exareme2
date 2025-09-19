@@ -4,6 +4,7 @@ import pytest
 
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import AlgorithmType
+from exareme2.algorithms.specifications import ComponentType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -141,6 +142,7 @@ def algorithms_specs():
             label="algorithm_with_y_int",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="features",
@@ -158,6 +160,7 @@ def algorithms_specs():
             label="algorithm_with_y_int_and_validation",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="features",
@@ -176,6 +179,7 @@ def algorithms_specs():
             label="algorithm_with_x_int_and_y_text",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
                     label="features",
@@ -201,6 +205,7 @@ def algorithms_specs():
             label="algorithm_with_y_text_multiple_true",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="target",
@@ -218,6 +223,7 @@ def algorithms_specs():
             label="algorithm_with_y_text_categ",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="target",
@@ -235,6 +241,7 @@ def algorithms_specs():
             label="algorithm_with_y_text_non_categ",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="target",
@@ -252,6 +259,7 @@ def algorithms_specs():
             label="algorithm_with_variable_enumslen",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="target",
@@ -270,6 +278,7 @@ def algorithms_specs():
             label="algorithm_with_y_and_x_optional",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
                     label="features",
@@ -295,6 +304,7 @@ def algorithms_specs():
             label="algorithm_with_required_param",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="features",
@@ -328,6 +338,7 @@ def algorithms_specs():
             label="algorithm_with_many_params",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 x=InputDataSpecification(
                     label="x",
@@ -466,6 +477,7 @@ def algorithms_specs():
             label="algorithm_with_transformer",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="y",
@@ -488,6 +500,7 @@ def transformers_specs():
             desc="transformer_with_real_param",
             label="transformer_with_real_param",
             type=TransformerType.EXAREME2_TRANSFORMER,
+            components=[ComponentType.MONETDB],
             enabled=True,
             parameters={
                 "required_real_param": ParameterSpecification(
@@ -512,6 +525,7 @@ def transformers_specs():
             desc="transformer_compatible_with_all_algorithms",
             label="transformer_compatible_with_all_algorithms",
             type=TransformerType.EXAREME2_TRANSFORMER,
+            components=[ComponentType.MONETDB],
             enabled=True,
         ),
     }

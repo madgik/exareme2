@@ -1522,25 +1522,25 @@ files = [
 
 [[package]]
 name = "mipdb"
-version = "3.0.9"
+version = "3.1.0"
 description = ""
 optional = false
 python-versions = "<3.11,>=3.10"
 files = [
-    {file = "mipdb-3.0.9-py3-none-any.whl", hash = "sha256:e43f2b8ddff03cd99019aa11d8852230212050e789011a32be66b6195b42e88c"},
-    {file = "mipdb-3.0.9.tar.gz", hash = "sha256:ce805f12246c64adb4c5784b4d3e5a07ed94f9dc008113fbb84f3fec6e31f12b"},
+    {file = "mipdb-3.1.0-py3-none-any.whl", hash = "sha256:8e671e488661efe7c82f2ea91409e6993e9533bd10bb60d986a7d4fefeabcdbd"},
+    {file = "mipdb-3.1.0.tar.gz", hash = "sha256:b86d71a593c308cf186e8dae7b1cca8bf98c815aa77e5e31a9ddeb651b678c00"},
 ]
 
 [package.dependencies]
-click = ">=8,<9"
-numpy = ">=2,<3"
-pandas = ">=2,<3"
-pandera = ">=0,<1"
-pymonetdb = ">=1,<2"
-setuptools = ">=80,<81"
-SQLAlchemy = ">=2,<3"
-sqlalchemy_monetdb = ">=2,<3"
-toml = ">=0,<1"
+click = ">=8.1,<8.2"
+numpy = ">=2.2,<2.3"
+pandas = ">=2.3,<2.4"
+pandera = ">=0.25,<0.26"
+pymonetdb = ">=1.8,<1.9"
+setuptools = ">=80.9,<80.10"
+SQLAlchemy = ">=2.0,<2.1"
+sqlalchemy_monetdb = ">=2.0,<2.1"
+toml = ">=0.10,<0.11"
 
 [[package]]
 name = "mypy-extensions"
@@ -3237,4 +3237,4 @@ scikit-learn = ["scikit-learn"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
-content-hash = "2be139ab05b9f3541d086a20abc6a860fd2af327828de5771b1b4184518ae894"
+content-hash = "4c9e55b7d3be756791ffea9767f5de5583fd05fec1393da7f44c95a63a7f7353"

@@ -91,15 +91,13 @@ jobs:
         run: poetry run inv create-configs
 
       - name: Deploy all api
-        run: poetry run inv deploy --no-install-dep --no-start-all
+        run: poetry run inv deploy --no-install-dep
 
       - name: Load data into DBs
         run: poetry run inv load-data
 
-      - name: Start api after data loading
-        run: |
-          poetry run inv start-worker --all
-          poetry run inv start-controller --detached
+      - name: Run Worker Landscape Aggregator update
+        run: curl -X POST "http://172.17.0.1:5000/wla"
 
       - name: Controller logs
         run: cat /tmp/exareme2/controller.out
@@ -216,15 +214,13 @@ jobs:
         run: poetry run inv create-configs
 
       - name: Deploy all api
-        run: poetry run inv deploy --no-install-dep --no-start-all
+        run: poetry run inv deploy --no-install-dep
 
       - name: Load data into DBs
         run: poetry run inv load-data
 
-      - name: Start api after data loading
-        run: |
-          poetry run inv start-worker --all
-          poetry run inv start-controller --detached
+      - name: Run Worker Landscape Aggregator update
+        run: curl -X POST "http://172.17.0.1:5000/wla"
 
       - name: Controller logs
         run: cat /tmp/exareme2/controller.out

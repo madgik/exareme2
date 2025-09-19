@@ -16,6 +16,7 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     _log_worker_changes,
 )
+from exareme2.worker_communication import MonetDBConfig
 from exareme2.worker_communication import WorkerInfo
 from tests.standalone_tests.conftest import MONETDB_LOCALWORKERTMP_PORT
 from tests.standalone_tests.conftest import TEST_DATA_FOLDER
@@ -53,8 +54,7 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
                 role="LOCALWORKER",
                 ip="172.17.0.1",
                 port=60001,
-                db_ip="172.17.0.1",
-                db_port=61001,
+                monetdb_configs=MonetDBConfig(port=61001, ip="172.17.0.1"),
             )
         ],
         new_workers=[
@@ -63,8 +63,7 @@ def test_show_controller_audit_entries(patch_controller_logger_config, capsys):
                 role="LOCALWORKER",
                 ip="172.17.0.1",
                 port=60002,
-                db_ip="172.17.0.1",
-                db_port=61002,
+                monetdb_configs=MonetDBConfig(port=61002, ip="172.17.0.1"),
             )
         ],
         logger=logger,

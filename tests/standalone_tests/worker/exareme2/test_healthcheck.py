@@ -34,6 +34,7 @@ def request_id():
 @pytest.mark.slow
 def test_healthcheck_task(
     request_id,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
 ):
@@ -111,6 +112,7 @@ def worker_landscape_aggregator(controller_config):
 @pytest.mark.slow
 def test_healthcheck_success(
     patch_workers_addresses,
+    monetdb_localworker1,
     localworker1_worker_service,
     worker_landscape_aggregator,
 ):

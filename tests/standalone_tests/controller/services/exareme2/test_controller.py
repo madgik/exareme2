@@ -22,6 +22,7 @@ from exareme2.controller.services.exareme2.tasks_handler import Exareme2TasksHan
 from exareme2.controller.services.exareme2.workers import LocalWorker
 from exareme2.controller.services.exareme2.workers_federation import WorkersFederation
 from exareme2.worker_communication import InsufficientDataError
+from exareme2.worker_communication import MonetDBConfig
 from exareme2.worker_communication import TableInfo
 from exareme2.worker_communication import TableSchema
 from exareme2.worker_communication import TableType
@@ -60,8 +61,6 @@ class TestWorkersFederation:
             self.id = worker_id
             self.ip = ""
             self.port = ""
-            self.db_ip = ""
-            self.db_port = ""
 
     class WorkerLandscapeAggregatorMock:
         @property

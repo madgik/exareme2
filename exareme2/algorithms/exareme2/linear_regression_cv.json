@@ -3,6 +3,7 @@
     "desc": "Method used to evaluate the performance of a linear regression model. It involves splitting the data into training and validation sets and testing the model's ability to generalize to new data by using the validation set.",
     "label": "Linear Regression Cross-validation",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

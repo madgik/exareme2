@@ -2,8 +2,9 @@
   "name": "smpc_standard_deviation",
   "desc": "Standard Deviation of a column, using SMPC",
   "label": "SMPC Standard Deviation",
-  "type": "exareme2",
   "enabled": true,
+  "components": ["MONETDB"],
+  "type": "exareme2",
   "inputdata": {
     "y": {
       "name": "y",
