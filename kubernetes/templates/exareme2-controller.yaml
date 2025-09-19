@@ -80,10 +80,12 @@ spec:
           value: "KUBERNETES"
         - name: WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL
           value: {{ quote .Values.controller.worker_landscape_aggregator_update_interval }}
+        - name: FLOWER_ENABLED
+          value: {{ quote .Values.flower.enabled }}
         - name: FLOWER_EXECUTION_TIMEOUT
-          value: {{ quote .Values.controller.flower_execution_timeout }}
+          value: {{ quote .Values.flower.execution_timeout }}
         - name: FLOWER_SERVER_PORT
-          value: {{ quote .Values.controller.flower_server_port }}
+          value: {{ quote .Values.flower.server_port }}
         - name: WORKERS_CLEANUP_INTERVAL
           value: {{ quote .Values.controller.workers_cleanup_interval }}
         - name: WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
