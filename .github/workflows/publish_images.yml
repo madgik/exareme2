@@ -4,284 +4,128 @@ on:
   release:
     types: [published]
 
+env:
+  DOCKERHUB_ORG: madgik
+  HARBOR_REGISTRY: docker-registry.ebrains.eu
+  HARBOR_NAMESPACE: medical-informatics-platform
+
 jobs:
-  build_and_push_monetdb:
-    name: Build MONETDB image and push to dockerhub
+  build-and-push:
+    name: Build & push (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MONETDB
+            file: monetdb/Dockerfile
+            image_basename: exareme2_db
+            cache_scope: exareme2_db
+            hashpaths: monetdb/**
+          - name: MIPDB
+            file: mipdb/Dockerfile
+            image_basename: exareme2_mipdb
+            cache_scope: exareme2_mipdb
+            hashpaths: mipdb/**
+          - name: RABBITMQ
+            file: rabbitmq/Dockerfile
+            image_basename: exareme2_rabbitmq
+            cache_scope: exareme2_rabbitmq
+            hashpaths: rabbitmq/**
+          - name: CONTROLLER
+            file: exareme2/controller/Dockerfile
+            image_basename: exareme2_controller
+            cache_scope: exareme2_controller
+            hashpaths: exareme2/**
+          - name: WORKER
+            file: exareme2/worker/Dockerfile
+            image_basename: exareme2_worker
+            cache_scope: exareme2_worker
+            hashpaths: exareme2/**
+
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
+      # Log in to Docker Hub
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Log in to EBRAINS Harbor
       - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
-          registry: docker-registry.ebrains.eu
+          registry: ${{ env.HARBOR_REGISTRY }}
           username: ${{ secrets.HARBOR_USERNAME }}
           password: ${{ secrets.HARBOR_PASSWORD }}
 
-# TODO Disabled due to https://team-1617704806227.atlassian.net/browse/MIP-631
-#      - name: Build and Push MONETDB_base docker image to dockerhub
-#        uses: docker/build-push-action@v3
+      # Compose the two image names (Docker Hub + Harbor)
+      - name: Set image names
+        id: names
+        run: |
+          echo "IMAGE_DH=${{ env.DOCKERHUB_ORG }}/${{ matrix.image_basename }}" >> $GITHUB_OUTPUT
+          echo "IMAGE_HR=${{ env.HARBOR_REGISTRY }}/${{ env.HARBOR_NAMESPACE }}/${{ matrix.image_basename }}" >> $GITHUB_OUTPUT
+
+      # Automatically generate tags & labels from the release tag
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ steps.names.outputs.IMAGE_DH }}
+            ${{ steps.names.outputs.IMAGE_HR }}
+          # Use the release tag as-is, and also a "sanitized" variant without a leading 'v'
+          # plus "latest" for convenience.
+          tags: |
+            type=ref,event=tag
+            type=raw,value={{tag}},enable=true
+            type=raw,value={{tag}},prefix=,suffix=,enable=false
+            type=raw,value={{version}},enable=true
+            type=raw,value=latest,enable=true
+          flavor: |
+            latest=true
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Enable GHA cache (no manual move/rename needed)
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+          # Uncomment for multi-arch
+          # platforms: linux/amd64,linux/arm64
+
+      # Optional: only rebuild when relevant paths change (speeds things up)
+      # You can uncomment this block to skip builds if nothing changed for a component
+      # - name: Skip if component paths unchanged
+      #   if: ${{ hashFiles(matrix.hashpaths) == '' }}
+      #   run: echo "No changes detected for ${{ matrix.name }}; skipping."
+
+# --- Optional: MONETDB base image (kept disabled as in your original) ---
+#  build-and-push-monetdb-base:
+#    name: Build MONETDB base image
+#    runs-on: ubuntu-latest
+#    if: false  # keep disabled
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_PASSWORD }}
+#      - uses: docker/build-push-action@v6
 #        with:
 #          context: .
 #          file: monetdb/DockerfileBaseImage
 #          push: true
 #          tags: madgik/exareme2_db_base:latest
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            madgik/exareme2_db
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_db
-
-      - name: Build and Push MONETDB docker image to dockerhub
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: monetdb/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-  build_and_push_mipdb:
-    name: Build MIPDB container image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            madgik/exareme2_mipdb
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_mipdb
-
-      - name: Load MIPDB cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/mipdb
-          key: ${{ runner.os }}-buildx-mipdb-${{hashFiles( 'mipdb/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-mipdb-
-
-      - name: Build and Push MIPDB docker image to dockerhub
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: mipdb/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/mipdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  build_and_push_rabbitmq:
-    name: Build RABBITMQ image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            madgik/exareme2_rabbitmq
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_rabbitmq
-
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  build_and_push_controller:
-    name: Build CONTROLLER image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            madgik/exareme2_controller
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_controller
-
-      - name: Load CONTROLLER service cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-controller-
-
-      - name: Build CONTROLLER service docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: exareme2/controller/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/controller
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  build_and_push_worker:
-    name: Build WORKER image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: |
-            madgik/exareme2_worker
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_worker
-
-      - name: Load WORKER service cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/worker
-          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exareme2/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-worker-
-
-      - name: Build WORKER service docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: exareme2/worker/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/worker
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

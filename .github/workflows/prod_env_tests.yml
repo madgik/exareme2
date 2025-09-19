@@ -6,15 +6,108 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-env-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERHUB_ORG: madgik
+  DEV_TAG: dev
+
 jobs:
-  run_tests:
+  build-images:
+    name: Build (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MONETDB
+            file: monetdb/Dockerfile
+            image_basename: exareme2_db
+            cache_scope: exareme2_db
+          - name: MIPDB
+            file: mipdb/Dockerfile
+            image_basename: exareme2_mipdb
+            cache_scope: exareme2_mipdb
+          - name: RABBITMQ
+            file: rabbitmq/Dockerfile
+            image_basename: exareme2_rabbitmq
+            cache_scope: exareme2_rabbitmq
+          - name: CONTROLLER
+            file: exareme2/controller/Dockerfile
+            image_basename: exareme2_controller
+            cache_scope: exareme2_controller
+          - name: WORKER
+            file: exareme2/worker/Dockerfile
+            image_basename: exareme2_worker
+            cache_scope: exareme2_worker
+          - name: AGGREGATION_SERVER
+            file: aggregation_server/Dockerfile
+            image_basename: exareme2_aggregation_server
+            cache_scope: exareme2_aggregation_server
 
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up python
+      - name: Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compose image name
+        id: names
+        run: |
+          echo "IMAGE=${{ env.DOCKERHUB_ORG }}/${{ matrix.image_basename }}" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.names.outputs.IMAGE }}
+          tags: |
+            type=raw,value=${{ env.DEV_TAG }}
+            type=sha,format=short,prefix=${{ env.DEV_TAG }}-
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+
+      # Build once, export a docker-archive TAR so we can load it in another job
+      - name: Build image (docker archive)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: false
+          # we output a TAR because the next job runs in a fresh VM
+          outputs: type=docker,dest=/tmp/${{ matrix.image_basename }}.tar
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+
+      - name: Upload image tar
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.image_basename }}
+          path: /tmp/${{ matrix.image_basename }}.tar
+          retention-days: 5
+
+  test:
+    name: Kind deploy & tests
+    runs-on: ubuntu-latest
+    needs: build-images
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Python + Poetry
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -26,152 +119,51 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
-      - name: Load cached venv
-        id: cached-poetry-dependencies
+      - name: Cache venv
+        id: venv-cache
         uses: actions/cache@v3
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          key: venv-${{ runner.os }}-py${{ steps.setup-python.outputs.python-version || '3.10' }}-${{ hashFiles('poetry.lock') }}
 
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Install deps (poetry)
+        if: steps.venv-cache.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Load MONETDB cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-3-monetdb-
-
-      - name: Build MONETDB docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: monetdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_db:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
-
-      - name: Load MIPDB container cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/mipdb
-          key: ${{ runner.os }}-buildx-mipdb-${{hashFiles('mipdb/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-mipdb-
-
-      - name: Build MIPDB container docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: mipdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_mipdb:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/mipdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
-
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_rabbitmq:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
-      - name: Load WORKER service cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/worker
-          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exareme2/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-worker-
-
-      - name: Build WORKER service docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: exareme2/worker/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_worker:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/worker
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
-
-      - name: Load CONTROLLER service cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-controller-
-
-      - name: Build CONTROLLER service docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: exareme2/controller/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_controller:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/controller
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
-
-      - name: Load AGGREGATION SERVER cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/aggregation_server
-          key: ${{ runner.os }}-buildx-aggregation-server-${{ hashFiles('exareme2/**') }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-aggregation-server-
-
-      - name: Build AGGREGATION SERVER docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: aggregation_server/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_aggregation_server:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/aggregation-server
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/aggregation-server
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
+      # Create Kind cluster early to have Docker-in-Docker networking set
       - name: Create k8s Kind Cluster
-        uses: helm/kind-action@v1.5.0
+        uses: helm/kind-action@v1.10.0
         with:
           cluster_name: kind
           config: tests/prod_env_tests/deployment_configs/kind_configuration/kind_cluster.yaml
 
       - name: Install Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
-          version: 3.9.1
-        id: install
+          version: v3.14.4
+
+      # Download all built images
+      - name: Download images
+        uses: actions/download-artifact@v4
+        with:
+          pattern: image-*
+          path: /tmp/images
+          merge-multiple: true
+
+      # Load images into Kind (we rely on the :dev tag in charts/values)
+      - name: Load images into Kind
+        shell: bash
+        run: |
+          for tar in /tmp/images/*.tar; do
+            echo "Loading $tar into kind..."
+            kind load image-archive "$tar"
+          done
+
+      # Optional space freeing — keep but run earlier than big steps
+      - name: Free some disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
+          df -h
 
       - name: Taint Nodes
         run: |
@@ -180,116 +172,87 @@ jobs:
           kubectl label node localworker1 worker=true
           kubectl label node localworker2 worker=true
 
-      - name: Get container disk space
-        run: df -h
-
-      - name: Free up space, by removing dotnet, android and haskell unused libs.
-        run: |
-          rm -rf /usr/share/dotnet
-          rm -rf /opt/ghc
-          sudo rm -rf /usr/local/lib/android
-
-      - name: Get container disk space
-        run: df -h
-
-      - name: Load docker images to kind containers and delete them locally
-        run: |
-
-          kind load docker-image madgik/exareme2_worker:dev
-          docker image rm madgik/exareme2_worker:dev
-          kind load docker-image madgik/exareme2_controller:dev --nodes kind-control-plane
-          docker image rm madgik/exareme2_controller:dev
-          kind load docker-image madgik/exareme2_db:dev
-          docker image rm madgik/exareme2_db:dev
-          kind load docker-image madgik/exareme2_mipdb:dev
-          docker image rm madgik/exareme2_mipdb:dev
-          kind load docker-image madgik/exareme2_rabbitmq:dev
-          docker image rm madgik/exareme2_rabbitmq:dev
-          kind load docker-image madgik/exareme2_aggregation_server:dev --nodes kind-control-plane
-          docker image rm madgik/exareme2_aggregation_server:dev
-
-
-      - name: Get container disk space
-        run: df -h
-
       - name: Copy prod_env_tests values.yaml
         run: cp -r tests/prod_env_tests/deployment_configs/kubernetes_values.yaml kubernetes/values.yaml
 
-      - name: Print Helm Templates
+      - name: Helm template (sanity)
         run: helm template kubernetes/
 
       - name: Deploy Helm
         run: helm install exareme2 kubernetes/ --debug
 
-      - name: Wait for pods to get healthy
+      - name: Wait for pods to get healthy (5 min timeout)
+        shell: bash
         run: |
-          timeout 300 bash -c '
-          while true; do
-            if kubectl get pods --no-headers | awk '\''{if ($2 != "1/1" && $2 != "2/2" && $2 != "3/3" && $2 != "4/4") exit 1;}'\''; then
-              echo "All pods are ready!";
-              break;
-            else
-              kubectl get pods -o wide;
-              kubectl get pods -o wide;
-
-              aggregator_pod=$(kubectl get pods -l app=exareme2-aggregation-server -o jsonpath="{.items[0].metadata.name}");
-              echo "Describing aggregation server pod: $aggregation_server_pod";
-              kubectl describe pod "$aggregator_pod";
-              echo "Logs from aggregation-server pod:";
-              kubectl logs "$aggregation_server_pod" ;
-
-              sleep 20;
+          set -e
+          end=$((SECONDS+300))
+          while (( SECONDS < end )); do
+            NOT_READY=$(kubectl get pods --no-headers 2>/dev/null | awk '{print $2}' | grep -Ev '^(1/1|2/2|3/3|4/4)$' || true)
+            if [[ -z "$NOT_READY" ]]; then
+              echo "All pods are ready."
+              break
             fi
-          done'
+            echo "Pods not ready yet, showing status..."
+            kubectl get pods -o wide
+            # Aggregation server diagnostics (if present)
+            aggregator_pod=$(kubectl get pods -l app=exareme2-aggregation-server -o jsonpath="{.items[0].metadata.name}" 2>/dev/null || true)
+            if [[ -n "$aggregator_pod" ]]; then
+              echo "Describing $aggregator_pod"
+              kubectl describe pod "$aggregator_pod" || true
+              echo "Logs from $aggregator_pod"
+              kubectl logs "$aggregator_pod" || true
+            fi
+            sleep 15
+          done
 
       - name: Load data models into localworkers and globalworker
+        shell: bash
         run: |
-          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name')
-          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name')
-          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r ".items[0].metadata.name")
+          set -e
+          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name' | head -n1)
+          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name' | head -n1)
+          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
 
           for POD in $LOCALWORKER1 $LOCALWORKER2 $GLOBALWORKER; do
-            kubectl exec $POD -c db-importer -- sh -c 'mipdb init'
+            [[ -z "$POD" ]] && continue
+            kubectl exec "$POD" -c db-importer -- sh -c 'mipdb init'
             for model in dementia_v_0_1 tbi_v_0_1 longitudinal_dementia_v_0_1; do
-              kubectl exec $POD -c db-importer -- sh -c "mipdb add-data-model /opt/data/${model}/CDEsMetadata.json"
+              kubectl exec "$POD" -c db-importer -- sh -c "mipdb add-data-model /opt/data/${model}/CDEsMetadata.json"
             done
           done
 
-      - name: Load Dataset CSVs into Localworkers and Globalworker
+      - name: Load Dataset CSVs into workers
+        shell: bash
         run: |
-          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name')
-          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name')
-          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r ".items[0].metadata.name")
+          set -e
+          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name' | head -n1)
+          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name' | head -n1)
+          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r '.items[0].metadata.name')
 
           for model in dementia_v_0_1 tbi_v_0_1 longitudinal_dementia_v_0_1; do
-            for filepath in $(kubectl exec $GLOBALWORKER -c db-importer -- ls /opt/data/${model}); do
+            for filepath in $(kubectl exec "$GLOBALWORKER" -c db-importer -- ls /opt/data/${model}); do
               filepath=/opt/data/${model}/${filepath}
               if [[ $filepath == *test.csv ]]; then
                 echo "Loading file: $filepath at $GLOBALWORKER"
-                kubectl exec $GLOBALWORKER -c db-importer -- mipdb add-dataset $filepath -d ${model%_v_*} -v 0.1
+                kubectl exec "$GLOBALWORKER" -c db-importer -- mipdb add-dataset "$filepath" -d ${model%_v_*} -v 0.1
               elif [[ $filepath == *.csv ]]; then
-                filename=$(basename $filepath)
-                suffix=$(echo $filename | grep -o '[0-9]*' | tail -1)
-                if (( suffix % 2 == 0 )); then
-                  POD_NAME=$LOCALWORKER2
-                else
-                  POD_NAME=$LOCALWORKER1
-                fi
+                filename=$(basename "$filepath")
+                suffix=$(echo "$filename" | grep -o '[0-9]*' | tail -1)
+                if (( suffix % 2 == 0 )); then POD_NAME=$LOCALWORKER2; else POD_NAME=$LOCALWORKER1; fi
                 echo "Loading file: $filepath at $POD_NAME"
-                kubectl exec $POD_NAME -c db-importer -- mipdb add-dataset $filepath -d ${model%_v_*} -v 0.1
+                kubectl exec "$POD_NAME" -c db-importer -- mipdb add-dataset "$filepath" -d ${model%_v_*} -v 0.1
               fi
             done
           done
 
-
       - name: Controller logs
-        run: kubectl logs -l app=exareme2-controller --tail -1
+        run: kubectl logs -l app=exareme2-controller --tail -1 || true
 
       - name: Globalnode logs
-        run: kubectl logs -l nodeType=globalworker -c worker --tail -1
+        run: kubectl logs -l nodeType=globalworker -c worker --tail -1 || true
 
       - name: Localnode logs
-        run: kubectl logs -l nodeType=localworker -c worker --tail -1
+        run: kubectl logs -l nodeType=localworker -c worker --tail -1 || true
 
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
@@ -307,13 +270,10 @@ jobs:
           run: kubectl logs -l nodeType=localworker -c worker --tail -1
 
       - name: Run Worker Landscape Aggregator update
-        run: curl -X POST "http://172.17.0.1:5000/wla"
+        run: curl -sS -X POST "http://172.17.0.1:5000/wla"
 
       - name: Run Healthcheck
-        run: curl "http://172.17.0.1:5000/healthcheck"
-
-      - name: Update WorkerLandscapeAggregator
-        run: curl -X POST "http://172.17.0.1:5000/wla"
+        run: curl -sS "http://172.17.0.1:5000/healthcheck"
 
       - name: Run production env tests
         run: poetry run pytest tests/prod_env_tests --verbosity=4

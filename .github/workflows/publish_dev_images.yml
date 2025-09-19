@@ -4,10 +4,38 @@ on:
   push:
     branches: [master]
 
+env:
+  DOCKERHUB_ORG: madgik
+
 jobs:
-  build_and_push_monetdb:
-    name: Build MONETDB image and push to dockerhub
+  build-and-push:
+    name: Build & push (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MONETDB
+            file: monetdb/Dockerfile
+            image_basename: exareme2_db
+            cache_scope: exareme2_db
+          - name: MIPDB
+            file: mipdb/Dockerfile
+            image_basename: exareme2_mipdb
+            cache_scope: exareme2_mipdb
+          - name: RABBITMQ
+            file: rabbitmq/Dockerfile
+            image_basename: exareme2_rabbitmq
+            cache_scope: exareme2_rabbitmq
+          - name: CONTROLLER
+            file: exareme2/controller/Dockerfile
+            image_basename: exareme2_controller
+            cache_scope: exareme2_controller
+          - name: WORKER
+            file: exareme2/worker/Dockerfile
+            image_basename: exareme2_worker
+            cache_scope: exareme2_worker
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -21,187 +49,55 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-# TODO Disabled due to https://team-1617704806227.atlassian.net/browse/MIP-631
-#      - name: Build and Push MONETDB_base docker image to dockerhub
-#        uses: docker/build-push-action@v3
+      # Compose image name
+      - name: Set image name
+        id: names
+        run: |
+          echo "IMAGE=${{ env.DOCKERHUB_ORG }}/${{ matrix.image_basename }}" >> $GITHUB_OUTPUT
+
+      # Generate dev tags & OCI labels
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.names.outputs.IMAGE }}
+          tags: |
+            # stable "dev" tag
+            type=raw,value=dev
+            # dev-<short-sha> (e.g. dev-a1b2c3d)
+            type=sha,format=short,prefix=dev-
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
+          # Uncomment for multi-arch:
+          # platforms: linux/amd64,linux/arm64
+
+# --- Optional: MONETDB base image (kept disabled like your original) ---
+#  build-and-push-monetdb-base:
+#    if: false
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v4
+#      - uses: docker/setup-buildx-action@v3
+#      - uses: docker/login-action@v3
+#        with:
+#          username: ${{ secrets.DOCKER_USERNAME }}
+#          password: ${{ secrets.DOCKER_PASSWORD }}
+#      - uses: docker/build-push-action@v6
 #        with:
 #          context: .
 #          file: monetdb/DockerfileBaseImage
 #          push: true
-#          tags: madgik/exareme2_db_base:latest
-
-      - name: Build and Push MONETDB image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: monetdb/Dockerfile
-          push: true
-          tags: madgik/exareme2_db:dev
-
-
-  build_and_push_mipdb:
-    name: Build MIPDB container image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Load MIPDB cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/mipdb
-          key: ${{ runner.os }}-buildx-mipdb-${{hashFiles( 'mipdb/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-mipdb-
-
-      - name: Build and Push MIPDB docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: mipdb/Dockerfile
-          push: true
-          tags: madgik/exareme2_mipdb:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/mipdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  build_and_push_rabbitmq:
-    name: Build RABBITMQ image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Cache RabbitMQ layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: true
-          tags: madgik/exareme2_rabbitmq:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  build_and_push_controller:
-    name: Build CONTROLLER image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Cache Controller layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-controller-
-
-      - name: Build CONTROLLER service docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: exareme2/controller/Dockerfile
-          push: true
-          tags: madgik/exareme2_controller:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/controller
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-  build_and_push_worker:
-    name: Build WORKER image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Load WORKER service cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/worker
-          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exareme2/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-worker-
-
-      - name: Build WORKER service docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: exareme2/worker/Dockerfile
-          push: true
-          tags: madgik/exareme2_worker:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/worker
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+#          tags: madgik/exareme2_db_base:dev

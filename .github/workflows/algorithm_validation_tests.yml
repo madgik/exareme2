@@ -6,138 +6,111 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: algovalidation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOCKERHUB_ORG: madgik
+
 jobs:
-  run_tests_in_one_node:
+  # Build the images once (parallel), export as tarballs for test jobs
+  build-images:
+    name: Build (${{ matrix.name }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MONETDB
+            file: monetdb/Dockerfile
+            image_basename: exareme2_db
+            cache_scope: exareme2_db
+            tag: testing
+          - name: RABBITMQ
+            file: rabbitmq/Dockerfile
+            image_basename: exareme2_rabbitmq
+            cache_scope: exareme2_rabbitmq
+            tag: testing
+
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 1.8.2
-          virtualenvs-create: true
-          virtualenvs-in-project: true
-
-      - name: Load cached venv
-        id: cached-poetry-dependencies
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
-
-      - name: Install dependencies (if cache missed)
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-ansi --no-root
-
-      - name: Set up Docker Buildx
+      - name: Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Load MONETDB cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-3-monetdb-
+      - name: Set image name
+        id: names
+        run: echo "IMAGE=${{ env.DOCKERHUB_ORG }}/${{ matrix.image_basename }}" >> $GITHUB_OUTPUT
 
-      - name: Build MONETDB docker image
-        uses: docker/build-push-action@v5
+      - name: Metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          context: .
-          file: monetdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_db:testing
-          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
+          images: ${{ steps.names.outputs.IMAGE }}
+          tags: |
+            type=raw,value=${{ matrix.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
 
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{ hashFiles('rabbitmq/**') }}
-          restore-keys: ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v5
+      - name: Build image (docker archive)
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: rabbitmq/Dockerfile
+          file: ${{ matrix.file }}
           push: false
-          load: true
-          tags: madgik/exareme2_rabbitmq:testing
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
+          outputs: type=docker,dest=/tmp/${{ matrix.image_basename }}.tar
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.cache_scope }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.cache_scope }}
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-      - name: Copy .deployment.toml file
-        run: cp ./tests/algorithm_validation_tests/one_node_deployment_template.toml .deployment.toml
-
-      - name: Create config files
-        run: poetry run inv create-configs
-
-      - name: Deploy all api
-        run: poetry run inv deploy --no-install-dep --no-start-all
-
-      - name: Load data into DBs
-        run: poetry run inv load-data
-
-      - name: Start api after data loading
-        run: |
-          poetry run inv start-worker --all
-          poetry run inv start-controller --detached
-
-      - name: Controller logs
-        run: cat /tmp/exareme2/controller.out
-
-      - name: Globalworker logs
-        run: cat /tmp/exareme2/globalworker.out
-
-      - name: Localworker logs
-        run: cat /tmp/exareme2/localworker1.out
-
-      - name: Controller logs (post run)
-        uses: webiny/action-post-run@3.0.0
+      - name: Upload image tar
+        uses: actions/upload-artifact@v4
         with:
-          run: cat /tmp/exareme2/controller.out
+          name: image-${{ matrix.image_basename }}
+          path: /tmp/${{ matrix.image_basename }}.tar
+          retention-days: 5
 
-      - name: Globalworker logs (post run)
-        uses: webiny/action-post-run@3.0.0
-        with:
-          run: cat /tmp/exareme2/globalworker.out
-
-      - name: Localworker logs (post run)
-        uses: webiny/action-post-run@3.0.0
-        with:
-          run: cat /tmp/exareme2/localworker1.out
-
-      - name: Run Flower algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/flower/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
-
-      - name: Run Exareme2 algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/exareme2 --verbosity=4 -n 16 --reruns 3 --reruns-delay 5
-
-  run_tests_in_five_nodes:
+  # Matrix for the two topologies
+  algo-tests:
+    name: ${{ matrix.pretty }}
     runs-on: ubuntu-latest
+    needs: build-images
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pretty: One-node validation
+            deploy_template: tests/algorithm_validation_tests/one_node_deployment_template.toml
+            flower_cmd: >-
+              poetry run pytest tests/algorithm_validation_tests/flower/
+              --verbosity=4 -n 2 --reruns 6 --reruns-delay 5
+            exareme2_cmd: >-
+              poetry run pytest tests/algorithm_validation_tests/exareme2
+              --verbosity=4 -n 16 --reruns 3 --reruns-delay 5
+          - pretty: Five-nodes validation
+            deploy_template: tests/algorithm_validation_tests/five_node_deployment_template.toml
+            flower_cmd: >-
+              poetry run pytest tests/algorithm_validation_tests/flower
+              -n 2 --verbosity=4 --reruns=6 --reruns-delay=5 -k 'not mnist'
+            exareme2_cmd: >-
+              poetry run pytest tests/algorithm_validation_tests/exareme2/
+              --verbosity=4 -n 16 -k 'input1 and not input1-'
+
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up python
+      # Python + Poetry (cached venv)
+      - name: Setup Python
+        id: py
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -149,73 +122,42 @@ jobs:
           virtualenvs-create: true
           virtualenvs-in-project: true
 
-      - name: Load cached venv
-        id: cached-poetry-dependencies
+      - name: Cache venv
+        id: venv-cache
         uses: actions/cache@v3
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+          key: venv-${{ runner.os }}-py${{ steps.py.outputs.python-version }}-${{ hashFiles('poetry.lock') }}
 
-      - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --no-interaction --no-root
+      - name: Install deps (poetry)
+        if: steps.venv-cache.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-ansi --no-root
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Load MONETDB cached image
-        uses: actions/cache@v3
+      # Bring in images built in the previous job and load them locally
+      - name: Download images
+        uses: actions/download-artifact@v4
         with:
-          path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-3-monetdb-
+          pattern: image-*
+          path: /tmp/images
+          merge-multiple: true
 
-      - name: Build MONETDB docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: monetdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_db:testing
-          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
-
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_rabbitmq:testing
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
+      - name: Load images into Docker
+        shell: bash
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          for tar in /tmp/images/*.tar; do
+            echo "Loading $tar..."
+            docker load -i "$tar"
+          done
+          docker images | grep madgik || true
 
-      - name: Copy .deployment.toml file
-        run: cp ./tests/algorithm_validation_tests/five_node_deployment_template.toml .deployment.toml
+      # Deploy local stack via invoke tasks
+      - name: Copy deployment template
+        run: cp "${{ matrix.deploy_template }}" ./.deployment.toml
 
       - name: Create config files
         run: poetry run inv create-configs
 
-      - name: Deploy all api
+      - name: Deploy all api (no install/start)
         run: poetry run inv deploy --no-install-dep --no-start-all
 
       - name: Load data into DBs
@@ -226,38 +168,42 @@ jobs:
           poetry run inv start-worker --all
           poetry run inv start-controller --detached
 
+            # Logs (pre)
       - name: Controller logs
-        run: cat /tmp/exareme2/controller.out
-
+        shell: bash
+        run: cat /tmp/exareme2/controller.out || true
       - name: Globalworker logs
-        run: cat /tmp/exareme2/globalworker.out
-
+        shell: bash
+        run: cat /tmp/exareme2/globalworker.out || true
       - name: Localworker logs
-        run: cat /tmp/exareme2/localworker1.out
+        shell: bash
+        run: cat /tmp/exareme2/localworker1.out || true
 
-      - name: Controller logs (post run)
-        uses: webiny/action-post-run@3.0.0
-        with:
-          run: cat /tmp/exareme2/controller.out
+      # Replace the 3 webiny post-run steps with one "always" step
+      - name: Collect logs (always)
+        if: always()
+        shell: bash
+        run: |
+          echo "=== Dumping /tmp/exareme2/*.out (if present) ==="
+          for f in /tmp/exareme2/*.out; do
+            [[ -e "$f" ]] || continue
+            echo "----- $f -----"
+            cat "$f" || true
+            echo
+          done
 
-      - name: Globalworker logs (post run)
-        uses: webiny/action-post-run@3.0.0
+      # Optional: also upload the logs as an artifact for easy download
+      - name: Upload logs artifact (always)
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          run: cat /tmp/exareme2/globalworker.out
+          name: exareme2-logs-${{ matrix.pretty }}
+          path: /tmp/exareme2/*.out
+          if-no-files-found: ignore
 
-      - name: Localworker logs (post run)
-        uses: webiny/action-post-run@3.0.0
-        with:
-          run: cat /tmp/exareme2/localworker1.out
+      # Test runs (matrix-provided commands)
+      - name: Run Flower algorithm validation tests
+        run: ${{ matrix.flower_cmd }}
 
       - name: Run Exareme2 algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/exareme2/ --verbosity=4  -n 16  -k "input1 and not input1-" # run tests 10-19
-
-      - name: Run Flower algorithm validation tests
-        run: |
-          poetry run pytest tests/algorithm_validation_tests/flower \
-            -n 2 \
-            --verbosity=4 \
-            --reruns=6 \
-            --reruns-delay=5 \
-            -k 'not mnist'
+        run: ${{ matrix.exareme2_cmd }}
