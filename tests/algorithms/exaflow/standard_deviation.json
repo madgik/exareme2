@@ -2,7 +2,8 @@
     "name":"standard_deviation_exaflow_aggregator",
     "desc":"Standard Deviation of a column",
     "label":"Standard Deviation",
-    "type": "exaflow_aggregator",
+    "type": "exaflow",
+    "components": ["AGGREGATION_SERVER"],
     "enabled":true,
     "inputdata":
     {

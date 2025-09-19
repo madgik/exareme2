@@ -11,6 +11,7 @@ from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_a
 from exareme2.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerRegistry,
 )
+from exareme2.worker_communication import MonetDBConfig
 from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerRole
 
@@ -42,32 +43,28 @@ def mocked_wla():
                 role=WorkerRole.GLOBALWORKER,
                 ip=mocked_worker_addresses[0].split(":")[0],
                 port=mocked_worker_addresses[0].split(":")[1],
-                db_ip="127.0.0.1",
-                db_port=50000,
+                monetdb_configs=MonetDBConfig(port=50000, ip="127.0.0.1"),
             ),
             WorkerInfo(
                 id="localworker1",
                 role=WorkerRole.LOCALWORKER,
                 ip=mocked_worker_addresses[1].split(":")[0],
                 port=mocked_worker_addresses[1].split(":")[1],
-                db_ip="127.0.0.1",
-                db_port=50001,
+                monetdb_configs=MonetDBConfig(port=50001, ip="127.0.0.1"),
             ),
             WorkerInfo(
                 id="localworker2",
                 role=WorkerRole.LOCALWORKER,
                 ip=mocked_worker_addresses[2].split(":")[0],
                 port=mocked_worker_addresses[2].split(":")[1],
-                db_ip="127.0.0.1",
-                db_port=50002,
+                monetdb_configs=MonetDBConfig(port=50002, ip="127.0.0.1"),
             ),
             WorkerInfo(
                 id="localworker3",
                 role=WorkerRole.LOCALWORKER,
                 ip=mocked_worker_addresses[2].split(":")[0],
                 port=mocked_worker_addresses[2].split(":")[1],
-                db_ip="127.0.0.1",
-                db_port=50003,
+                monetdb_configs=MonetDBConfig(port=50003, ip="127.0.0.1"),
             ),
         ]
     )
@@ -107,7 +104,7 @@ def test_get_worker_info(mocked_wla):
     worker_info = mocked_wla.get_worker_info(expected_id)
     assert worker_info.id == expected_id
     assert worker_info.role == WorkerRole.LOCALWORKER
-    assert worker_info.db_port == 50001
+    assert worker_info.monetdb_configs.port == 50001
 
 
 def test_empty_initialization():

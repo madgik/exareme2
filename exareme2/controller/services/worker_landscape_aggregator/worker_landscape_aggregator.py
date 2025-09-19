@@ -585,12 +585,11 @@ class WorkerLandscapeAggregator:
         for worker_info in workers:
             data_models_metadata = {}
 
-            worker_socket_addr = _get_worker_socket_addr(worker_info)
+            worker_socket_addr = worker_info.socket_addr
             datasets_per_data_model = self._get_worker_datasets_per_data_model(
                 worker_socket_addr
             )
             if datasets_per_data_model:
-                worker_socket_addr = _get_worker_socket_addr(worker_info)
                 for (
                     data_model,
                     dataset_infos,

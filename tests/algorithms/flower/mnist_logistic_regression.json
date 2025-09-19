@@ -4,6 +4,7 @@
     "label": "Logistic Regression on Flower that runs on the mnist dataset",
     "enabled": true,
     "type": "flower",
+    "components": ["FLOWER"],
     "inputdata": {
         "y": {
             "label": "Variable (dependent)",

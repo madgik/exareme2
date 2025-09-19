@@ -344,11 +344,13 @@ def get_parametrization_list_success_cases():
 )
 def test_post_smpc_algorithm(
     smpc_cluster,
+    monetdb_smpc_globalworker,
     smpc_globalworker_worker_service,
+    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
-    load_data_smpc_localworker1,
+    load_data_smpc_localworker1_with_monetdb,
     smpc_localworker2_worker_service,
-    load_data_smpc_localworker2,
+    load_data_smpc_localworker2_with_monetdb,
     smpc_controller_service,
     algorithm_name,
     request_dict,
@@ -449,11 +451,14 @@ def get_parametrization_list_exception_cases():
     get_parametrization_list_exception_cases(),
 )
 def test_post_smpc_algorithm_exception(
+    monetdb_smpc_globalworker,
     smpc_globalworker_worker_service,
+    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
-    load_data_smpc_localworker1,
+    load_data_smpc_localworker1_with_monetdb,
+    monetdb_smpc_localworker2,
     smpc_localworker2_worker_service,
-    load_data_smpc_localworker2,
+    load_data_smpc_localworker2_with_monetdb,
     smpc_controller_service,
     algorithm_name,
     request_dict,

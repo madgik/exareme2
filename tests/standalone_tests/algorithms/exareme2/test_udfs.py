@@ -89,6 +89,7 @@ def create_non_existing_remote_table(celery_app, request_id) -> TableInfo:
 
 @pytest.mark.slow
 def test_run_udf_state_and_transfer_output(
+    monetdb_localworker1,
     localworker1_worker_service,
     use_localworker1_database,
     localworker1_db_cursor,
@@ -161,6 +162,7 @@ def test_run_udf_state_and_transfer_output(
 
 @pytest.mark.slow
 def test_run_udf_with_remote_state_table_passed_as_normal_table(
+    monetdb_localworker1,
     localworker1_worker_service,
     use_localworker1_database,
     localworker1_db_cursor,

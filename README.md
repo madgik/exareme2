@@ -61,8 +61,9 @@
    celery_run_udf_task_timeout = 120
 
    [flower]
-   execution_timeout=60
-   server_port=8080
+   enabled = true
+   execution_timeout = 60
+   server_port = 8080
 
    [controller]
    port = 5000
@@ -76,9 +77,13 @@
    contextid_release_timelimit=3600 #an hour
 
    [aggregation_server]
+   enabled = true
    port = 50051
    max_grpc_connections = 10
    max_wait_for_aggregation_inputs = 10
+
+   [monetdb]
+   enabled = true
 
    [smpc]
    enabled=false

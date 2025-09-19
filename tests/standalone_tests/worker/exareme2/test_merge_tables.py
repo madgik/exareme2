@@ -78,6 +78,7 @@ def create_three_column_table_with_data(db_cursor, table_name):
 def test_create_and_get_merge_table(
     request_id,
     context_id,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -122,6 +123,7 @@ def test_create_and_get_merge_table(
 def test_merge_table_incompatible_schemas(
     request_id,
     context_id,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -160,6 +162,7 @@ def test_merge_table_incompatible_schemas(
 def test_merge_table_cannot_find_table(
     request_id,
     context_id,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -201,14 +204,17 @@ def test_merge_table_cannot_find_table(
 def test_create_merge_table_on_top_of_remote_tables(
     request_id,
     context_id,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
     use_localworker1_database,
+    monetdb_localworker2,
     localworker2_worker_service,
     localworker2_celery_app,
     localworker2_db_cursor,
     use_localworker2_database,
+    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_celery_app,
     globalworker_db_cursor,

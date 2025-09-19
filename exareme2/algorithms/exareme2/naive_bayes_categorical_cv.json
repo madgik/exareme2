@@ -3,6 +3,7 @@
     "desc": "Uses Bayes' theorem to calculate the probability of each class given a set of nominal features assuming independence between features. It then classifies data points based on the class with the highest probability.",
     "label": "Categorical Naive Bayes classifier with cross-validation",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

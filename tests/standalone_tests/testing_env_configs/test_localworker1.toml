@@ -27,6 +27,7 @@ password = "password"
 vhost = "user_vhost"
 
 [monetdb]
+enabled = true
 ip = "172.17.0.1"
 port = 61001
 database = "db"
@@ -34,6 +35,9 @@ local_username = "executor"
 local_password = "executor"
 public_username = "guest"
 public_password = "guest"
+
+[aggregation_server]
+enabled = false
 
 [smpc]
 enabled = false

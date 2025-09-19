@@ -64,8 +64,7 @@ def test_exaflow_algorithms(
     load_data_localworker2,
     globalworker_worker_service,
     init_data_globalworker,
-    controller_service_with_localworker_1_2,
-    aggregation_server_service,
+    controller_service_with_aggregation_server_with_localworker_1_2,
 ):
     algorithm_url = ALGORITHMS_URL + "/" + algorithm_name
     headers = {"Content-type": "application/json", "Accept": "text/plain"}

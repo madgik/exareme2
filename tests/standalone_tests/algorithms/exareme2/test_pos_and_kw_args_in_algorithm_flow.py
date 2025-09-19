@@ -45,8 +45,10 @@ def get_parametrization_list_success_cases():
 def test_pos_and_kw_args_in_algorithm_flow(
     algorithm_name,
     request_dict,
+    monetdb_localworker1,
     localworker1_worker_service,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_globalworker,
     globalworker_worker_service,
     controller_service_with_localworker1,
 ):

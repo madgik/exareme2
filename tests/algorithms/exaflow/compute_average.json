@@ -3,6 +3,7 @@
     "desc": "Compute the average value of a column",
     "label": "Compute Average",
     "type": "exaflow",
+    "components": [],
     "enabled": true,
     "inputdata": {
         "y": {

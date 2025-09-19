@@ -117,9 +117,11 @@ def worker_landscape_aggregator(controller_config):
 @pytest.mark.slow
 def test_update_loop_data_properly_added(
     patch_workers_addresses,
+    monetdb_globalworker,
     globalworker_worker_service,
+    monetdb_localworker1,
     localworker1_worker_service,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
     worker_landscape_aggregator,
 ):
     worker_landscape_aggregator.update()
@@ -135,7 +137,10 @@ def test_update_loop_data_properly_added(
 
 @pytest.mark.slow
 def test_update_loop_get_worker_info_fail(
-    patch_workers_addresses, globalworker_worker_service, worker_landscape_aggregator
+    patch_workers_addresses,
+    monetdb_globalworker,
+    globalworker_worker_service,
+    worker_landscape_aggregator,
 ):
     patch_workers_addresses.side_effect = get_custom_workers_addresses_global_and_tmp
     worker_landscape_aggregator.update()
@@ -158,11 +163,14 @@ def test_update_loop_get_worker_info_fail(
 @pytest.mark.slow
 def test_update_loop_workers_properly_added(
     patch_workers_addresses,
+    monetdb_globalworker,
     globalworker_worker_service,
+    monetdb_localworker1,
     localworker1_worker_service,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker2,
     localworker2_worker_service,
-    load_data_localworker2,
+    load_data_localworker2_with_monetdb,
     worker_landscape_aggregator,
 ):
     localworker1_worker_id = get_localworker1_worker_id()

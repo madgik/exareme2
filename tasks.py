@@ -155,15 +155,29 @@ def create_configs(c):
         worker_config["framework_log_level"] = deployment_config["framework_log_level"]
         worker_config["controller"]["ip"] = deployment_config["ip"]
         worker_config["controller"]["port"] = deployment_config["controller"]["port"]
-
+        worker_config["aggregation_server"]["enabled"] = deployment_config[
+            "aggregation_server"
+        ]["enabled"]
         worker_config["sqlite"]["db_name"] = worker["id"]
-        worker_config["monetdb"]["ip"] = deployment_config["ip"]
-        worker_config["monetdb"]["port"] = worker["monetdb_port"]
-        worker_config["monetdb"]["local_username"] = worker["local_monetdb_username"]
-        worker_config["monetdb"]["local_password"] = worker["local_monetdb_password"]
-        worker_config["monetdb"]["public_username"] = worker["public_monetdb_username"]
-        worker_config["monetdb"]["public_password"] = worker["public_monetdb_password"]
-        worker_config["monetdb"]["public_password"] = worker["public_monetdb_password"]
+        worker_config["monetdb"]["enabled"] = deployment_config["monetdb"]["enabled"]
+        if worker_config["monetdb"]["enabled"]:
+            worker_config["monetdb"]["ip"] = deployment_config["ip"]
+            worker_config["monetdb"]["port"] = worker["monetdb_port"]
+            worker_config["monetdb"]["local_username"] = worker[
+                "local_monetdb_username"
+            ]
+            worker_config["monetdb"]["local_password"] = worker[
+                "local_monetdb_password"
+            ]
+            worker_config["monetdb"]["public_username"] = worker[
+                "public_monetdb_username"
+            ]
+            worker_config["monetdb"]["public_password"] = worker[
+                "public_monetdb_password"
+            ]
+            worker_config["monetdb"]["public_password"] = worker[
+                "public_monetdb_password"
+            ]
 
         worker_config["rabbitmq"]["ip"] = deployment_config["ip"]
         worker_config["rabbitmq"]["port"] = worker["rabbitmq_port"]
@@ -225,12 +239,17 @@ def create_configs(c):
     controller_config["worker_landscape_aggregator_update_interval"] = (
         deployment_config["worker_landscape_aggregator_update_interval"]
     )
+    controller_config["flower"]["enabled"] = deployment_config["flower"]["enabled"]
     controller_config["flower"]["execution_timeout"] = deployment_config["flower"][
         "execution_timeout"
     ]
     controller_config["flower"]["server_port"] = deployment_config["flower"][
         "server_port"
     ]
+    controller_config["aggregation_server"]["enabled"] = deployment_config[
+        "aggregation_server"
+    ]["enabled"]
+    controller_config["monetdb"]["enabled"] = deployment_config["monetdb"]["enabled"]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]
@@ -299,10 +318,15 @@ def create_configs(c):
     with open(CONTROLLER_LOCALWORKERS_CONFIG_FILE, "w+") as fp:
         json.dump(localworkers_addresses, fp)
 
-    # Create the aggrcd egator config file
+    # Create the aggregation_server config file
+    if not deployment_config["aggregation_server"]["enabled"]:
+        return
     with open(AGG_SERVER_CONFIG_TEMPLATE_FILE) as fp:
         template_aggregation_server_config = toml.load(fp)
     aggregation_server_config = copy.deepcopy(template_aggregation_server_config)
+    aggregation_server_config["enabled"] = deployment_config["aggregation_server"][
+        "enabled"
+    ]
     aggregation_server_config["port"] = deployment_config["aggregation_server"]["port"]
     aggregation_server_config["max_grpc_connections"] = deployment_config[
         "aggregation_server"
@@ -434,7 +458,7 @@ def init_system_tables(c, worker):
             f"Initializing system tables on sqlite with mipdb on worker: {worker}...",
             Level.HEADER,
         )
-        cmd = f"""poetry run mipdb init {get_sqlite_path(worker)}"""
+        cmd = f"""poetry run mipdb  {get_sqlite_path(worker)} init"""
         run(c, cmd)
 
 
@@ -534,10 +558,10 @@ def load_data(c, use_sockets=False, worker=None):
         # Main loop for loading data models with retries
         for worker_id, port in worker_id_and_ports:
             message(
-                f"Loading data model '{data_model_code}:{data_model_version}' metadata in MonetDB at port {port}...",
+                f"Loading data model '{data_model_code}:{data_model_version}' metadata for worker: {worker_id}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-data-model {cdes_file} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-data-model {cdes_file}"
 
             # Try running the command with retries
             run_with_retries(c, cmd)
@@ -569,10 +593,16 @@ def load_data(c, use_sockets=False, worker=None):
                 if file.endswith(".csv") and not file.endswith("test.csv"):
                     csv = os.path.join(dirpath, file)
                     message(
-                        f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                        f"Loading dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
                         Level.HEADER,
                     )
-                    cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+
+                    cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+                    if (
+                        get_deployment_config("monetdb", subconfig="enabled")
+                        and use_sockets
+                    ):
+                        cmd += "--no-copy"
                     run(c, cmd)
             return
 
@@ -587,10 +617,12 @@ def load_data(c, use_sockets=False, worker=None):
         for csv in first_worker_csvs:
             worker_id, port = worker_id_and_ports[0]
             message(
-                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                f"Loading dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+            if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
+                cmd += "--no-copy"
             run(c, cmd)
 
         # Load the remaining CSVs into the remaining workers in a round-robin fashion
@@ -607,10 +639,12 @@ def load_data(c, use_sockets=False, worker=None):
         for csv in remaining_csvs:
             worker_id, port = next(worker_id_and_ports_cycle)
             message(
-                f"Loading dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                f"Loading dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+            if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
+                cmd += "--no-copy"
             run(c, cmd)
 
     def load_test_datasets(
@@ -639,10 +673,12 @@ def load_data(c, use_sockets=False, worker=None):
         for csv in test_csvs:
             worker_id, port = worker_id_and_ports[0]
             message(
-                f"Loading test dataset {pathlib.PurePath(csv).name} in MonetDB at port {port}...",
+                f"Loading test dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb add-dataset {csv} -d {data_model_code} -v {data_model_version} --copy_from_file {not use_sockets} {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}"
+            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}  add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+            if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
+                cmd += "--no-copy"
             run(c, cmd)
 
     # Retrieve and filter worker configurations for local workers
@@ -706,16 +742,19 @@ def load_data(c, use_sockets=False, worker=None):
 
 
 def get_sqlite_path(worker_id):
-    return f"--sqlite_db_path {TEST_DATA_FOLDER}/{worker_id}.db"
+    return f"--sqlite {TEST_DATA_FOLDER}/{worker_id}.db"
 
 
 def get_monetdb_configs_in_mipdb_format(port):
+    if not get_deployment_config("monetdb", subconfig="enabled"):
+        return "--no-monetdb "
     return (
+        f"--monetdb "
         f"--ip 127.0.0.1 "
         f"--port {port} "
         f"--username admin "
         f"--password executor "
-        f"--db_name db"
+        f"--db-name db"
     )
 
 
@@ -929,13 +968,13 @@ def kill_aggregation_server(c):
     """
     res = c.run("ps aux | grep '[a]ggregation_server.server'", warn=True, hide="both")
     if res.ok and res.stdout.strip():
-        message("Killing existing aggregation_server…", Level.HEADER)
+        message("Killing existing aggregation_server ...", Level.HEADER)
         c.run(
             "ps aux | grep '[a]ggregation_server.server' "
             "| awk '{print $2}' | xargs kill -9",
             warn=True,
         )
-        message("aggregation_server processes killed.", Level.SUCCESS)
+        message("Ok", Level.SUCCESS)
     else:
         message("No aggregation_server process found.", Level.HEADER)
 
@@ -963,7 +1002,6 @@ def start_aggregation_server(c, detached: bool = False):
 
     if detached:
         logf = OUTDIR / "aggregation_server.out"
-        message(f"Detached mode; logging → {logf}", Level.HEADER)
         c.run(
             f"{run_cmd} >> {logf!s} 2>&1 &",
             env=env,
@@ -971,7 +1009,7 @@ def start_aggregation_server(c, detached: bool = False):
             disown=True,
             warn=True,
         )
-        message("aggregation_server started (detached).", Level.SUCCESS)
+        message("Ok.", Level.SUCCESS)
     else:
         c.run(
             run_cmd,
@@ -1049,10 +1087,6 @@ def start_controller(
 def deploy(
     c,
     install_dep=True,
-    start_all=True,
-    start_controller_=False,
-    start_aggregation_server_=False,
-    start_workers=False,
     log_level=None,
     framework_log_level=None,
     monetdb_image=None,
@@ -1066,15 +1100,13 @@ def deploy(
     Install dependencies, (re)create all the containers and (re)start all the api.
 
     :param install_dep: Install dependencies or not.
-    :param start_all: Start all worker/controller api flag.
-    :param start_controller_: Start controller api flag.
-    :param start_workers: Start all workers flag.
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param monetdb_nclients: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param exareme2_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param exaflow_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
@@ -1084,6 +1116,7 @@ def deploy(
     if not framework_log_level:
         framework_log_level = get_deployment_config("framework_log_level")
 
+    start_monetdb = get_deployment_config("monetdb", subconfig="enabled")
     if not monetdb_image:
         monetdb_image = get_deployment_config("monetdb_image")
 
@@ -1098,6 +1131,10 @@ def deploy(
 
     if not exaflow_algorithm_folders:
         exaflow_algorithm_folders = get_deployment_config("exaflow_algorithm_folders")
+
+    start_aggregation_server_ = get_deployment_config(
+        "aggregation_server", subconfig="enabled"
+    )
 
     if smpc is None:
         smpc = get_deployment_config("smpc", subconfig="enabled")
@@ -1121,41 +1158,38 @@ def deploy(
         worker_ids.append(worker_config["identifier"])
 
     worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
-
-    create_monetdb(
-        c,
-        worker=worker_ids,
-        image=monetdb_image,
-        log_level=log_level,
-        nclients=monetdb_nclients,
-    )
+    if start_monetdb:
+        create_monetdb(
+            c,
+            worker=worker_ids,
+            image=monetdb_image,
+            log_level=log_level,
+            nclients=monetdb_nclients,
+        )
     init_system_tables(c, worker=worker_ids)
     create_rabbitmq(c, worker=worker_ids)
 
-    if start_workers or start_all:
-        start_worker(
-            c,
-            all_=True,
-            framework_log_level=framework_log_level,
-            detached=True,
-            exareme2_algorithm_folders=exareme2_algorithm_folders,
-            flower_algorithm_folders=flower_algorithm_folders,
-            exaflow_algorithm_folders=exaflow_algorithm_folders,
-        )
+    start_worker(
+        c,
+        all_=True,
+        framework_log_level=framework_log_level,
+        detached=True,
+        exareme2_algorithm_folders=exareme2_algorithm_folders,
+        flower_algorithm_folders=flower_algorithm_folders,
+        exaflow_algorithm_folders=exaflow_algorithm_folders,
+    )
 
-    if start_aggregation_server_ or start_all:
-        # start_aggregation_server(c, detached=True)
-        pass
+    if start_aggregation_server_:
+        start_aggregation_server(c, detached=True)
 
     # Start CONTROLLER service
-    if start_controller_ or start_all:
-        start_controller(
-            c,
-            detached=True,
-            exareme2_algorithm_folders=exareme2_algorithm_folders,
-            flower_algorithm_folders=flower_algorithm_folders,
-            exaflow_algorithm_folders=exaflow_algorithm_folders,
-        )
+    start_controller(
+        c,
+        detached=True,
+        exareme2_algorithm_folders=exareme2_algorithm_folders,
+        flower_algorithm_folders=flower_algorithm_folders,
+        exaflow_algorithm_folders=exaflow_algorithm_folders,
+    )
 
     if smpc and not get_deployment_config("smpc", subconfig="coordinator_ip"):
         deploy_smpc(c)

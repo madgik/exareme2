@@ -3,6 +3,7 @@
     "desc": "Descriptive statistics",
     "label": "Descriptive statistics",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

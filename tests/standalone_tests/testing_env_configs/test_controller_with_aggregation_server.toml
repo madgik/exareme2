@@ -7,9 +7,9 @@ deployment_type = "LOCAL"
 worker_landscape_aggregator_update_interval = 30
 
 [flower]
-enabled=true
-execution_timeout=60
-server_port=8080
+enabled = true
+execution_timeout = 30
+server_port = 8080
 
 [cleanup]
 contextids_cleanup_folder = "/tmp"
@@ -34,14 +34,16 @@ celery_tasks_interval_step = 0.2
 celery_tasks_interval_max = 0.5
 
 [aggregation_server]
-enabled = false
+enabled = true
 
 [monetdb]
-enabled = true
+enabled = false
 
 [smpc]
-enabled = true
+enabled = false
 optional = false
 coordinator_address = "http://172.17.0.1:12314"
-get_result_interval = 5
+get_result_interval = 2
 get_result_max_retries = 100
+[smpc.dp]
+enabled = false

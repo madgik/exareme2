@@ -13,7 +13,8 @@ framework_log_level: ERROR
 
 max_concurrent_experiments: 32
 
-db:
+monetdb:
+  enabled: true
   max_memory: 1024    # k8s memory limit in megabytes
   percentage_soft_memory_limit: 65
   percentage_hard_memory_limit: 85
@@ -28,6 +29,7 @@ controller:
 globalworker_identifier: globalworker
 
 aggregation_server:
+  enabled: false
   max_wait_for_aggregation_inputs: 60
 
 smpc:

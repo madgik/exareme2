@@ -7,6 +7,7 @@ deployment_type = "LOCAL"
 worker_landscape_aggregator_update_interval = 30
 
 [flower]
+enabled = true
 execution_timeout=60
 server_port=8080
 
@@ -31,6 +32,12 @@ celery_tasks_max_retries = 3
 celery_tasks_interval_start = 0
 celery_tasks_interval_step = 0.2
 celery_tasks_interval_max = 0.5
+
+[aggregation_server]
+enabled = false
+
+[monetdb]
+enabled = true
 
 [smpc]
 enabled = true

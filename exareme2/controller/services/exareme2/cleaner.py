@@ -269,7 +269,12 @@ class Cleaner:
         return _WorkerInfoDTO(
             worker_id=worker_info.id,
             queue_address=":".join([str(worker_info.ip), str(worker_info.port)]),
-            db_address=":".join([str(worker_info.db_ip), str(worker_info.db_port)]),
+            db_address=":".join(
+                [
+                    str(worker_info.monetdb_configs.ip),
+                    str(worker_info.monetdb_configs.port),
+                ]
+            ),
             cleanup_task_timeout=self._celery_cleanup_task_timeout,
             run_udf_task_timeout=self._celery_run_udf_task_timeout,
         )

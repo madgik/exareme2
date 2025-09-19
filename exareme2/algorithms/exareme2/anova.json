@@ -3,6 +3,7 @@
     "desc": "Test the difference in the means of the dependent variable between two or more groups, when there are two independent covariates.",
     "label": "Two-way ANOVA",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

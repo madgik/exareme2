@@ -95,7 +95,8 @@ def five_rows_data_model_view_generating_params():
 def test_view_without_filters(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -142,7 +143,8 @@ def test_view_without_filters(
 def test_view_with_filters(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,
@@ -206,7 +208,8 @@ def test_view_with_filters(
 def test_data_model_view(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -265,7 +268,8 @@ def test_data_model_view(
 def test_data_model_view_dataset_constraint(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -302,7 +306,8 @@ def test_data_model_view_dataset_constraint(
 def test_data_model_view_null_constraints(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,
@@ -372,7 +377,8 @@ def test_data_model_view_null_constraints(
 def test_insufficient_data_error_raised_when_data_model_view_generated_with_zero_rows(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,
@@ -399,7 +405,8 @@ def test_insufficient_data_error_raised_when_data_model_view_generated_with_zero
 def test_insufficient_data_error_raised_when_data_model_view_generated_with_fewer_rows_than_limit(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,
@@ -428,7 +435,8 @@ def test_insufficient_data_error_raised_when_data_model_view_generated_with_fewe
 def test_data_model_view_with_data_model_unavailable_exception(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,
@@ -462,7 +470,8 @@ def test_data_model_view_with_data_model_unavailable_exception(
 def test_data_model_view_with_dataset_unavailable_exception(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,
@@ -496,7 +505,8 @@ def test_data_model_view_with_dataset_unavailable_exception(
 def test_multiple_data_model_views(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     use_localworker1_database,
@@ -570,7 +580,8 @@ def test_multiple_data_model_views(
 def test_multiple_data_model_views_null_constraints(
     request_id,
     context_id,
-    load_data_localworker1,
+    load_data_localworker1_with_monetdb,
+    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
     localworker1_db_cursor,

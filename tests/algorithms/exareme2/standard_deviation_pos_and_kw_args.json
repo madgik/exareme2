@@ -3,6 +3,7 @@
     "desc": "Standard Deviation of a column",
     "label": "SMPC Standard Deviation",
     "type": "exareme2",
+    "components": ["MONETDB"],
     "enabled": true,
     "inputdata":{
         "y": {

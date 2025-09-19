@@ -42,7 +42,9 @@ class Exareme2Controller(ControllerI):
             request_id=request_id,
             worker_id=worker_info.id,
             worker_queue_addr=str(worker_info.ip) + ":" + str(worker_info.port),
-            worker_db_addr=str(worker_info.db_ip) + ":" + str(worker_info.db_port),
+            worker_db_addr=str(worker_info.monetdb_configs.ip)
+            + ":"
+            + str(worker_info.monetdb_configs.port),
             tasks_timeout=self.task_timeout,
             run_udf_task_timeout=self.run_udf_task_timeout,
         )

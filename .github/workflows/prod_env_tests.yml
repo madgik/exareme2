@@ -230,14 +230,6 @@ jobs:
               break;
             else
               kubectl get pods -o wide;
-              kubectl get pods -o wide;
-
-              aggregator_pod=$(kubectl get pods -l app=exareme2-aggregation-server -o jsonpath="{.items[0].metadata.name}");
-              echo "Describing aggregation server pod: $aggregation_server_pod";
-              kubectl describe pod "$aggregator_pod";
-              echo "Logs from aggregation-server pod:";
-              kubectl logs "$aggregation_server_pod" ;
-
               sleep 20;
             fi
           done'
@@ -311,9 +303,6 @@ jobs:
 
       - name: Run Healthcheck
         run: curl "http://172.17.0.1:5000/healthcheck"
-
-      - name: Update WorkerLandscapeAggregator
-        run: curl -X POST "http://172.17.0.1:5000/wla"
 
       - name: Run production env tests
         run: poetry run pytest tests/prod_env_tests --verbosity=4

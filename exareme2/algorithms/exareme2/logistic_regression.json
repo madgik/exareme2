@@ -3,6 +3,7 @@
     "desc": "Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
     "label": "Logistic Regression",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

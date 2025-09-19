@@ -212,9 +212,13 @@ def algorithm_name():
 @pytest.fixture(scope="function")
 def worker_landscape_aggregator(
     controller_config,
+    monetdb_globalworker,
     globalworker_worker_service,
+    monetdb_localworker1,
     localworker1_worker_service,
+    monetdb_localworker2,
     localworker2_worker_service,
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
 ):
     controller_config = AttrDict(controller_config)
@@ -553,6 +557,7 @@ def test_cleanup_triggered_by_release_timelimit(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_cleanup_after_rabbitmq_restart(
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
     context_id,
     cleaner,
@@ -639,6 +644,7 @@ def test_cleanup_after_rabbitmq_restart(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_cleanup_after_worker_service_restart(
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
     context_id,
     cleaner,

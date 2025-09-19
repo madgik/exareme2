@@ -1,5 +1,6 @@
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import AlgorithmType
+from exareme2.algorithms.specifications import ComponentType
 from exareme2.algorithms.specifications import InputDataSpecification
 from exareme2.algorithms.specifications import InputDataSpecifications
 from exareme2.algorithms.specifications import InputDataStatType
@@ -46,6 +47,7 @@ def test_convert_algorithm_specification_to_dto():
         label="sample_algorithm",
         enabled=True,
         type=AlgorithmType.EXAREME2,
+        components=[ComponentType.MONETDB],
         inputdata=InputDataSpecifications(
             y=InputDataSpecification(
                 label="y",
@@ -153,6 +155,7 @@ def test_convert_transformer_specification_to_dto():
         desc="sample_transformer",
         label="sample_transformer",
         type=TransformerType.EXAREME2_TRANSFORMER,
+        components=[ComponentType.MONETDB],
         enabled=True,
         parameters={
             "sample_param": ParameterSpecification(
@@ -203,6 +206,7 @@ def test_get_algorithm_specifications_dtos_compatible_algorithms():
             label="sample_algorithm",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="y",
@@ -222,6 +226,7 @@ def test_get_algorithm_specifications_dtos_compatible_algorithms():
             desc="sample_transformer",
             label="sample_transformer",
             type=TransformerType.EXAREME2_TRANSFORMER,
+            components=[ComponentType.MONETDB],
             enabled=True,
             parameters={
                 "sample_param": ParameterSpecification(
@@ -259,6 +264,7 @@ def test_get_algorithm_specifications_dtos_empty_compatible_algorithms():
             label="sample_algorithm",
             enabled=True,
             type=AlgorithmType.EXAREME2,
+            components=[ComponentType.MONETDB],
             inputdata=InputDataSpecifications(
                 y=InputDataSpecification(
                     label="y",
@@ -279,6 +285,7 @@ def test_get_algorithm_specifications_dtos_empty_compatible_algorithms():
             label="sample_transformer",
             enabled=True,
             type=TransformerType.EXAREME2_TRANSFORMER,
+            components=[ComponentType.MONETDB],
             parameters={
                 "sample_param": ParameterSpecification(
                     label="sample_param",

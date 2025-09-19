@@ -26,7 +26,9 @@ class FlowerController(ControllerI):
         self, request_id, worker_info: WorkerInfo
     ) -> FlowerTasksHandler:
         worker_addr = f"{worker_info.ip}:{worker_info.port}"
-        worker_db_addr = f"{worker_info.db_ip}:{worker_info.db_port}"
+        worker_db_addr = (
+            f"{worker_info.monetdb_configs.ip}:{worker_info.monetdb_configs.port}"
+        )
         return FlowerTasksHandler(
             request_id,
             worker_id=worker_info.id,

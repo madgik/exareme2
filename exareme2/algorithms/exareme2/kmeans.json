@@ -3,6 +3,7 @@
     "desc": "K-Means",
     "label": "K-Means",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

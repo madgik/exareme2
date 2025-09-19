@@ -92,6 +92,7 @@ def queue_slow_udf(cel_app, db_cursor, logger):
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_executing_task(
+    monetdb_globalworker,
     globalworker_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -112,6 +113,7 @@ def test_celery_app_is_the_same_after_executing_task(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
+    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_db_cursor,
     reset_celery_app_factory,
@@ -138,6 +140,7 @@ def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_result_with_exception(
+    monetdb_globalworker,
     globalworker_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -220,6 +223,7 @@ def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_res_with_worker_down(
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
     localworkertmp_db_cursor,
     reset_celery_app_factory,
@@ -251,6 +255,7 @@ def test_celery_app_is_the_same_after_get_task_res_with_worker_down(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_task_when_worker_restarted(
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -277,6 +282,7 @@ def test_celery_app_is_the_same_after_getting_task_when_worker_restarted(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -327,6 +333,7 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_when_rabbitmq_restarted(
+    monetdb_localworkertmp,
     localworkertmp_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,

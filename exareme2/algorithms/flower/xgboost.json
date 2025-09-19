@@ -4,6 +4,7 @@
     "label": "XGBoost on Flower",
     "enabled": true,
     "type": "flower",
+    "components": ["FLOWER"],
     "inputdata": {
         "y": {
             "label": "Variable (dependent)",

@@ -3,6 +3,7 @@
     "desc": "Divide datasets into classes to find a maximum marginal hyperplane.",
     "label": "SVM",
     "enabled": true,
+    "components": ["MONETDB"],
     "type": "exareme2",
     "inputdata": {
         "y": {

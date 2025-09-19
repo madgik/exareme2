@@ -52,6 +52,7 @@ def queue_one_second_udf(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_worker_info_tasks_have_higher_priority_over_other_tasks(
+    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_db_cursor,
     reset_celery_app_factory,
