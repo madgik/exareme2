@@ -23,9 +23,9 @@ flower:
   enabled: true
   execution_timeout: 30
   server_port: 8080
+
 controller:
   worker_landscape_aggregator_update_interval: 30
-
   celery_tasks_timeout: 300
   workers_cleanup_interval: 60
 
