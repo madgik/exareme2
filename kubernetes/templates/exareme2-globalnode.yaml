@@ -38,13 +38,10 @@ spec:
         app: exareme2-worker
         nodeType: globalworker
     spec:
-      {{ if not .Values.managed_cluster }}
+      {{- if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
-      {{ end }}
-
-        # Choose storage backend: hostPath or dynamically provisioned CephFS PVCs
-      {{ if not .Values.managed_cluster }}
+      # Use hostPath storage on unmanaged clusters
       volumes:
         {{- if .Values.monetdb.enabled }}
         - name: db-data
@@ -58,7 +55,7 @@ spec:
           hostPath:
             path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
 
-      {{ end }}
+      {{- end }}
       containers:
       {{- if .Values.monetdb.enabled }}
       - name: monetdb
@@ -81,12 +78,14 @@ spec:
         ports:
         - containerPort: 50000
         volumeMounts:
-        - mountPath: /home/monetdb
-          name: db-data
-        - mountPath: /opt/data
-          name: csv-data
-        - mountPath: /opt/credentials
-          name: credentials
+        {{- if .Values.monetdb.enabled }}
+        - name: db-data
+          mountPath: /home/monetdb
+        - name: credentials
+          mountPath: /opt/credentials
+        {{- end }}
+        - name: csv-data
+          mountPath: /opt/data
         startupProbe:
           exec:
             command:
@@ -104,7 +103,7 @@ spec:
             - -s
             - "select 1;"
           periodSeconds: 30
-      {{ end }}
+      {{- end }}
 
       - name: db-importer
         image: {{ .Values.exareme2_images.repository }}/exareme2_mipdb:{{ .Values.exareme2_images.version }}
@@ -125,7 +124,7 @@ spec:
         {{- if .Values.monetdb.enabled }}
         - mountPath: /opt/credentials
           name: credentials
-        {{ end }}
+        {{- end }}
 
       - name: rabbitmq
         image: {{ .Values.exareme2_images.repository }}/exareme2_rabbitmq:{{ .Values.exareme2_images.version }}
@@ -164,7 +163,7 @@ spec:
         {{- if .Values.monetdb.enabled }}
         - mountPath: /opt/credentials
           name: credentials
-        {{ end }}
+        {{- end }}
         - mountPath: /opt/data
           name: csv-data
         env:
@@ -212,7 +211,7 @@ spec:
           value: {{ .Values.globalworker_identifier }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
-        {{ if .Values.smpc.enabled }}
+        {{- if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
         - name: SMPC_CLIENT_ID
@@ -223,7 +222,7 @@ spec:
           value: exareme2-smpc-coordinator-service
         - name: SMPC_COORDINATOR_ADDRESS
           value: "http://$(SMPC_COORDINATOR_IP):12314"
-        {{ end }}
+        {{- end }}
         startupProbe:
           exec:
             command:
@@ -241,35 +240,41 @@ spec:
               - exareme2.worker.healthcheck
           periodSeconds: 30
           timeoutSeconds: 10
-      {{ if .Values.managed_cluster }}
-      volumeClaimTemplates:
-        - metadata:
-            name: csv-data
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
-
-        {{- if .Values.monetdb.enabled }}
-        - metadata:
-            name: db-data
-          spec:
-            storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-            accessModes: {{ toYaml .Values.storage.cephfs.globalworker.db.accessModes | nindent 6 }}
-            resources:
-              requests:
-                storage: {{ .Values.storage.cephfs.globalworker.db.size }}
-        - metadata:
-            name: credentials
-            spec:
-              storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-              accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
-              resources:
-                requests:
-                  storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
-        {{ end }}
-
-
-      {{ end }}
+  {{- if .Values.managed_cluster }}
+  volumeClaimTemplates:
+  - metadata:
+      name: csv-data
+      annotations:
+        # tells Argo CD: do not prune (delete) this resource
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
+  {{- if .Values.monetdb.enabled }}
+  - metadata:
+      name: db-data
+      annotations:
+        # tells Argo CD: do not prune (delete) this resource
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.db.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.db.size }}
+  - metadata:
+      name: credentials
+      annotations:
+        # tells Argo CD: do not prune (delete) this resource
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.creds.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.creds.size }}
+  {{- end }}
+  {{- end }}

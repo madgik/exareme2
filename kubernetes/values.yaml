@@ -25,6 +25,7 @@ flower:
   server_port: 8080
 
 controller:
+  workers_dns: "exareme2-workers-service"
   worker_landscape_aggregator_update_interval: 30
   celery_tasks_timeout: 300
   workers_cleanup_interval: 60
@@ -54,7 +55,7 @@ storage:
       globalworker: "/opt/exareme2/globalworker"
 
   cephfs:
-    storageClassName: ceph-corbo-cephfs
+    storageClassName: ceph-corbo-cephfs-retain
 
     controller:
       size: 1Gi

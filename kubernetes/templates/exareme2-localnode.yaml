@@ -1,3 +1,4 @@
+{{- if gt (int .Values.localnodes) 0 }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -108,9 +109,13 @@ spec:
             fieldRef:
               fieldPath: status.podIP
         - name: SQLITE_DB_NAME
+          {{- if .Values.managed_cluster }}
+          value: "data_models"
+          {{- else}}
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+          {{- end }}
         - name: DB_PORT
           value: "50000"
         volumeMounts:
@@ -153,7 +158,11 @@ spec:
           timeoutSeconds: 10
 
       - name: worker
-        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
+        {{- if .Values.managed_cluster }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:removed_worker_id_limitation
+        {{- else}}
+        image: {{ .Values.exareme2_images.repository }}/{{ .Values.exareme2_images.version }}
+        {{- end }}
         volumeMounts:
         {{- if .Values.monetdb.enabled }}
         - mountPath: /opt/credentials
@@ -205,9 +214,13 @@ spec:
         - name: MONETDB_PUBLIC_PASSWORD
           value: "guest"
         - name: SQLITE_DB_NAME
+          {{- if .Values.managed_cluster }}
+          value: "data_models"
+          {{- else}}
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+          {{- end }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{ if .Values.smpc.enabled }}
@@ -273,11 +286,14 @@ spec:
           value: "http://$(PLAYER_IP_2):7002"
       {{ end }}
 
-  {{ if .Values.managed_cluster }}
+  {{- if .Values.managed_cluster }}
   volumeClaimTemplates:
     {{- if .Values.monetdb.enabled }}
     - metadata:
         name: db-data
+        annotations:
+          # tells Argo CD: do not prune (delete) this resource
+          argocd.argoproj.io/sync-options: Delete=false,Prune=false
       spec:
         storageClassName: {{ .Values.storage.cephfs.storageClassName }}
         accessModes:
@@ -287,6 +303,9 @@ spec:
             storage: {{ .Values.storage.cephfs.localworker.db.size }}
     - metadata:
         name: credentials
+        annotations:
+          # tells Argo CD: do not prune (delete) this resource
+          argocd.argoproj.io/sync-options: Delete=false,Prune=false
       spec:
         storageClassName: {{ .Values.storage.cephfs.storageClassName }}
         accessModes:
@@ -294,10 +313,13 @@ spec:
         resources:
           requests:
             storage: {{ .Values.storage.cephfs.localworker.creds.size }}
-    {{ end }}
+    {{- end }}
 
     - metadata:
         name: csv-data
+        annotations:
+          # tells Argo CD: do not prune (delete) this resource
+          argocd.argoproj.io/sync-options: Delete=false,Prune=false
       spec:
         storageClassName: {{ .Values.storage.cephfs.storageClassName }}
         accessModes:
@@ -306,7 +328,7 @@ spec:
           requests:
             storage: {{ .Values.storage.cephfs.localworker.csvs.size }}
 
-  {{ end }}
+  {{- end }}
 #---  # Used for SMPC cluster debugging
 #
 #apiVersion: v1
@@ -323,3 +345,4 @@ spec:
 #      port: 9000
 #      targetPort: 9000
 #      nodePort: 32000
+{{- end }}
