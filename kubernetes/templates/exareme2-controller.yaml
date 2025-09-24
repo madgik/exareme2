@@ -1,11 +1,14 @@
 # PVC for cleanup-file (only if using CephFS PVC)
-{{ if .Values.managed_cluster }}
+{{- if .Values.managed_cluster }}
 {{- if .Values.monetdb.enabled }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: cleanup-file-pvc
   namespace: {{ .Values.namespace }}
+  annotations:
+    # tells Argo CD: do not prune (delete) this resource
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,7 +17,7 @@ spec:
       storage: {{ .Values.storage.cephfs.controller.size }}
   storageClassName: {{ .Values.storage.cephfs.storageClassName }}
 {{- end }}
-{{ end }}
+{{- end }}
 
 ---
 
@@ -35,21 +38,21 @@ spec:
       labels:
         app: exareme2-controller
     spec:
-      {{ if not .Values.managed_cluster }}
+      {{- if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
-      {{ end }}
+      {{- end }}
 
       {{- if .Values.monetdb.enabled }}
       volumes:
         - name: cleanup-file
-        {{ if .Values.managed_cluster }}
+        {{- if .Values.managed_cluster }}
           persistentVolumeClaim:
             claimName: cleanup-file-pvc
-        {{ else }}
+        {{- else }}
           hostPath:
             path: {{ .Values.storage.hostPath.controller_cleanup }}
-        {{ end }}
+        {{- end }}
       {{- end }}
 
 
@@ -93,14 +96,14 @@ spec:
         - name: CELERY_TASKS_TIMEOUT
           value: {{ quote .Values.controller.celery_tasks_timeout }}
         - name: LOCALWORKERS_DNS
-          value: "exareme2-workers-service"
+          value: {{ quote .Values.controller.workers_dns }}
         - name: LOCALWORKERS_PORT
           value: "5672"
         - name: MONETDB_ENABLED
           value: {{ quote .Values.monetdb.enabled }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
-        {{ if .Values.smpc.enabled }}
+        {{- if .Values.smpc.enabled }}
         - name: SMPC_OPTIONAL
           value: {{ quote .Values.smpc.optional }}
         - name: SMPC_COORDINATOR_IP
@@ -113,7 +116,7 @@ spec:
           value: {{ quote .Values.smpc.get_result_interval }}
         - name: SMPC_GET_RESULT_MAX_RETRIES
           value: {{ quote .Values.smpc.get_result_max_retries }}
-        {{ end }}
+        {{- end }}
         startupProbe:
           httpGet:
             path: /healthcheck
@@ -141,7 +144,7 @@ spec:
           value: "123qwe"
 
       - name: smpc-queue
-        image: {{ .Values.smpc.queue_image}}
+        image: {{ .Values.smpc.queue_image }}
         command: ["redis-server", "--requirepass", "agora"]
         ports:
           - containerPort: 6379
@@ -183,8 +186,7 @@ spec:
           value: exareme2-smpc-player2-service
         - name: PLAYER_REPO_2
           value: "http://$(PLAYER_IP_2):7002"
-      {{ end }}
-
+      {{- end }}
 ---
 
 apiVersion: v1
@@ -193,14 +195,18 @@ metadata:
   name: exareme2-controller-service
   namespace: {{ .Values.namespace }}
 spec:
+  {{- if not .Values.managed_cluster }}
   type: LoadBalancer
+  {{- end }}
   selector:
     app: exareme2-controller
   ports:
     - protocol: TCP
       port: 5000
       targetPort: 5000
+      {{- if not .Values.managed_cluster }}
       nodePort: 30000
+      {{- end }}
 
 ---
 
@@ -219,7 +225,7 @@ spec:
       targetPort: 5672
 
 
-{{ if .Values.smpc.enabled }}
+{{- if .Values.smpc.enabled }}
 ---
 
 ### --- SMPC Coordinator Service ---
