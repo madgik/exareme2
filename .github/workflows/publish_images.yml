@@ -4,49 +4,65 @@ on:
   release:
     types: [published]
 
+env:
+  HARBOR_REGISTRY: docker-registry.ebrains.eu
+  DOCKER_BUILDKIT: 1
+  DOCKER_CLIENT_TIMEOUT: 300
+  COMPOSE_HTTP_TIMEOUT: 300
+  RETRY_ATTEMPTS: "4"
+  RETRY_SLEEP: "10"
+
 jobs:
   build_and_push_monetdb:
     name: Build MONETDB image and push to dockerhub
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      # Optional but helpful if the runner picks a flaky IPv6 path
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
-
-# TODO Disabled due to https://team-1617704806227.atlassian.net/browse/MIP-631
-#      - name: Build and Push MONETDB_base docker image to dockerhub
-#        uses: docker/build-push-action@v3
-#        with:
-#          context: .
-#          file: monetdb/DockerfileBaseImage
-#          push: true
-#          tags: madgik/exareme2_db_base:latest
+      - name: Log in to EBRAINS HARBOR (retry)
+        run: |
+          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
+            echo "${{ secrets.HARBOR_PASSWORD }}" | \
+            docker login ${{ env.HARBOR_REGISTRY }} \
+              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
+            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
+            sleep ${{ env.RETRY_SLEEP }}
+          done
+          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
+          exit 1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             madgik/exareme2_db
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_db
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_db
 
-      - name: Build and Push MONETDB docker image to dockerhub
-        uses: docker/build-push-action@v3
+      - name: Build and Push MONETDB docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: monetdb/Dockerfile
@@ -59,42 +75,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Log in to EBRAINS HARBOR (retry)
+        run: |
+          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
+            echo "${{ secrets.HARBOR_PASSWORD }}" | \
+            docker login ${{ env.HARBOR_REGISTRY }} \
+              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
+            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
+            sleep ${{ env.RETRY_SLEEP }}
+          done
+          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
+          exit 1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             madgik/exareme2_mipdb
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_mipdb
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_mipdb
 
       - name: Load MIPDB cached image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache/mipdb
-          key: ${{ runner.os }}-buildx-mipdb-${{hashFiles( 'mipdb/**' )}}
+          key: ${{ runner.os }}-buildx-mipdb-${{ hashFiles('mipdb/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-mipdb-
 
-      - name: Build and Push MIPDB docker image to dockerhub
-        uses: docker/build-push-action@v3
+      - name: Build and Push MIPDB docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: mipdb/Dockerfile
@@ -104,9 +136,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/mipdb
           cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
       - name: Move Docker images cache
         run: |
           rm -rf /tmp/.buildx-cache
@@ -117,42 +146,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Log in to EBRAINS HARBOR (retry)
+        run: |
+          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
+            echo "${{ secrets.HARBOR_PASSWORD }}" | \
+            docker login ${{ env.HARBOR_REGISTRY }} \
+              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
+            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
+            sleep ${{ env.RETRY_SLEEP }}
+          done
+          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
+          exit 1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             madgik/exareme2_rabbitmq
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_rabbitmq
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_rabbitmq
 
       - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
+          key: ${{ runner.os }}-buildx-rabbitmq-${{ hashFiles('rabbitmq/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-rabbitmq-
 
       - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: rabbitmq/Dockerfile
@@ -162,9 +207,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
           cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
       - name: Move Docker images cache
         run: |
           rm -rf /tmp/.buildx-cache
@@ -175,42 +217,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Log in to EBRAINS HARBOR (retry)
+        run: |
+          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
+            echo "${{ secrets.HARBOR_PASSWORD }}" | \
+            docker login ${{ env.HARBOR_REGISTRY }} \
+              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
+            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
+            sleep ${{ env.RETRY_SLEEP }}
+          done
+          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
+          exit 1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             madgik/exareme2_controller
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_controller
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_controller
 
       - name: Load CONTROLLER service cached image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
+          key: ${{ runner.os }}-buildx-controller-${{ hashFiles('exareme2/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-controller-
 
       - name: Build CONTROLLER service docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: exareme2/controller/Dockerfile
@@ -220,9 +278,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/controller
           cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
       - name: Move Docker images cache
         run: |
           rm -rf /tmp/.buildx-cache
@@ -233,42 +288,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
+
+      - name: Harbor connectivity probe
+        run: |
+          set -x
+          getent hosts ${{ env.HARBOR_REGISTRY }} || true
+          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
+
+      - name: Disable IPv6 (job-scoped)
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Log in to EBRAINS HARBOR
-        uses: docker/login-action@v2
-        with:
-          registry: docker-registry.ebrains.eu
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
+      - name: Log in to EBRAINS HARBOR (retry)
+        run: |
+          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
+            echo "${{ secrets.HARBOR_PASSWORD }}" | \
+            docker login ${{ env.HARBOR_REGISTRY }} \
+              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
+            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
+            sleep ${{ env.RETRY_SLEEP }}
+          done
+          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
+          exit 1
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: |
             madgik/exareme2_worker
-            docker-registry.ebrains.eu/medical-informatics-platform/exareme2_worker
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_worker
 
       - name: Load WORKER service cached image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache/worker
-          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exareme2/**')}}
+          key: ${{ runner.os }}-buildx-worker-${{ hashFiles('exareme2/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-worker-
 
       - name: Build WORKER service docker image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: exareme2/worker/Dockerfile
@@ -278,9 +349,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache/worker
           cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
 
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
       - name: Move Docker images cache
         run: |
           rm -rf /tmp/.buildx-cache
