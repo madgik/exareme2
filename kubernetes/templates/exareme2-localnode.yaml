@@ -161,7 +161,7 @@ spec:
         {{- if .Values.managed_cluster }}
         image: {{ .Values.exareme2_images.repository }}/exareme2_worker:removed_worker_id_limitation
         {{- else}}
-        image: {{ .Values.exareme2_images.repository }}/{{ .Values.exareme2_images.version }}
+        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
         {{- end }}
         volumeMounts:
         {{- if .Values.monetdb.enabled }}
