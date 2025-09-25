@@ -4,7 +4,7 @@ localnodes: 2
 
 exareme2_images:
   repository: madgik
-  version: latest
+  version: 0.27.0
 
 federation: dementia
 
