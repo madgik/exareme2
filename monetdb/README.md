@@ -1,4 +1,4 @@
-## Monetdb 11.45.13 (Sep2022) dockerized
+## Monetdb 11.49.1 (Dec2023) dockerized
 
 ### Build the base image
 

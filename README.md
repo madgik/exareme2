@@ -130,7 +130,6 @@
    public_monetdb_username="guest"
    public_monetdb_password="guest"
    smpc_client_port=9002
-
    ```
 
    and then run the following command to create the config files that the worker services will use
