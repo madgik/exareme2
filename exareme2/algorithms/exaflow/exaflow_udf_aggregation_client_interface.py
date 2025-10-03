@@ -1,5 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
+from typing import Iterable
 from typing import List
 
 from exareme2.aggregation_clients import AggregationType
@@ -19,3 +20,8 @@ class ExaflowUDFAggregationClientI(ABC):
 
     def max(self, values: List[float]) -> List[float]:
         return self.aggregate(AggregationType.MAX, [max(values)])
+
+    @abstractmethod
+    def fed_weighted_avg(
+        self, array: Iterable[float], weight: float
+    ) -> Iterable[float]: ...

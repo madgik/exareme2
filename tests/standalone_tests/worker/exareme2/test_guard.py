@@ -3,6 +3,7 @@ from collections import namedtuple
 import pytest
 
 from exareme2.worker.exareme2.monetdb.guard import InvalidSQLParameter
+from exareme2.worker.exareme2.monetdb.guard import are_datasets
 from exareme2.worker.exareme2.monetdb.guard import is_datamodel
 from exareme2.worker.exareme2.monetdb.guard import is_list_of_identifiers
 from exareme2.worker.exareme2.monetdb.guard import is_primary_data_table
@@ -98,6 +99,12 @@ def test_is_primary_data_table_invalid(string):
 def test_is_list_of_identifiers():
     assert is_list_of_identifiers(["name_1", "name_2"])
     assert not is_list_of_identifiers(["name.1", "name_2"])
+
+
+def test_are_datasets():
+    assert are_datasets(["desd-synthdata8", "ppmi0"])
+    assert not are_datasets(["desd synthdata8"])
+    assert not are_datasets("desd-synthdata8")
 
 
 def test_is_valid_filter():

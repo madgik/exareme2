@@ -116,6 +116,8 @@ sqlidentifier_re = r"[a-z_][a-z0-9_]*"
 datatable_ptrn = re.compile(rf'"{datamodel_re}"\.("\w+"|{sqlidentifier_re})', re.A)
 uuid_re = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 uuid_ptrn = re.compile(uuid_re, re.A | re.I)
+dataset_code_re = r"[A-Za-z_][A-Za-z0-9_-]*"
+dataset_code_ptrn = re.compile(dataset_code_re, re.A)
 
 
 def is_socket_address(string):
@@ -130,6 +132,14 @@ def is_socket_address(string):
 
 def is_datamodel(string):
     return bool(datamodel_ptrn.fullmatch(string))
+
+
+def are_datasets(lst):
+    if not isinstance(lst, list):
+        return False
+    return all(
+        isinstance(item, str) and dataset_code_ptrn.fullmatch(item) for item in lst
+    )
 
 
 def is_primary_data_table(string):

@@ -123,6 +123,9 @@ jobs:
         with:
           run: cat /tmp/exareme2/localworker1.out
 
+      - name: Run Exaflow algorithm validation tests
+        run: poetry run pytest tests/algorithm_validation_tests/exaflow/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
+
       - name: Run Flower algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests/flower/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
 
@@ -245,6 +248,9 @@ jobs:
         uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/exareme2/localworker1.out
+
+      - name: Run Exaflow algorithm validation tests
+        run: poetry run pytest tests/algorithm_validation_tests/exaflow/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
 
       - name: Run Exareme2 algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests/exareme2/ --verbosity=4  -n 16  -k "input1 and not input1-" # run tests 10-19

@@ -67,6 +67,7 @@ class AlgorithmName(str, Enum):
     DESCRIPTIVE_STATS = "descriptive_stats"
     LINEAR_REGRESSION = "linear_regression"
     LINEAR_REGRESSION_CV = "linear_regression_cv"
+    EXAFLOW_LOGISTIC_REGRESSION = "exaflow_logistic_regression"
     LOGISTIC_REGRESSION = "logistic_regression"
     LOGISTIC_REGRESSION_CV = "logistic_regression_cv"
     LOGISTIC_REGRESSION_CV_FEDAVERAGE = "logistic_regression_cv_fedaverage"

@@ -4,8 +4,8 @@ from typing import Dict
 from typing import List
 
 from exareme2.worker import config as worker_config
+from exareme2.worker.exareme2.monetdb.guard import are_datasets
 from exareme2.worker.exareme2.monetdb.guard import is_datamodel
-from exareme2.worker.exareme2.monetdb.guard import is_list_of_identifiers
 from exareme2.worker.exareme2.monetdb.guard import sql_injection_guard
 from exareme2.worker.worker_info import sqlite
 from exareme2.worker_communication import CommonDataElement
@@ -109,7 +109,7 @@ def convert_csv_paths_to_absolute(dataset_path: str) -> str:
     return f"{worker_config.data_path}/{relative_path}"
 
 
-@sql_injection_guard(data_model=is_datamodel, datasets=is_list_of_identifiers)
+@sql_injection_guard(data_model=is_datamodel, datasets=are_datasets)
 def get_dataset_csv_paths(data_model, datasets: List[str]) -> List[str]:
     """
     Retrieves the enabled dataset csv_paths.
