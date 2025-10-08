@@ -91,6 +91,7 @@ CONTROLLER_CONFIG_TEMPLATE_FILE = (
 )
 AGG_SERVER_DIR = PROJECT_ROOT / "aggregation_server"
 AGG_SERVER_CONFIG_TEMPLATE_FILE = AGG_SERVER_DIR / "config.toml"
+AGG_SERVER_CONFIG_FILE = AGG_SERVER_CONFIG_DIR / "aggregation_server.toml"
 OUTDIR = Path("/tmp/exareme2/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
@@ -337,8 +338,7 @@ def create_configs(c):
     aggregation_server_config["log_level"] = deployment_config["log_level"]
 
     AGG_SERVER_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    aggregation_server_config_file = AGG_SERVER_CONFIG_DIR / "aggregation_server.toml"
-    with open(aggregation_server_config_file, "w+") as fp:
+    with open(AGG_SERVER_CONFIG_FILE, "w+") as fp:
         toml.dump(aggregation_server_config, fp)
 
 
@@ -993,12 +993,13 @@ def start_aggregation_server(c, detached: bool = False):
 
     # Build environment for the server process
     env = os.environ.copy()
-    env["AGG_SERVER_CONFIG_FILE"] = str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
-
-    # cd into the aggregation_server folder so Poetry picks up its own pyproject.toml
-    run_cmd = (
-        f"cd {AGG_SERVER_DIR!s} && " "poetry run python -m aggregation_server.server"
+    env["AGG_SERVER_CONFIG_FILE"] = (
+        str(AGG_SERVER_CONFIG_FILE)
+        if AGG_SERVER_CONFIG_FILE.exists()
+        else str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
     )
+
+    run_cmd = "poetry run python -m aggregation_server.server"
 
     if detached:
         logf = OUTDIR / "aggregation_server.out"
