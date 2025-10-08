@@ -108,6 +108,9 @@ jobs:
       - name: Localworker logs
         run: cat /tmp/exareme2/localworker1.out
 
+      - name: Aggregation server logs
+        run: cat /tmp/exareme2/aggregation_server.out || echo "aggregation_server.out not found"
+
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
@@ -122,6 +125,11 @@ jobs:
         uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/exareme2/localworker1.out
+
+      - name: Aggregation server logs (post run)
+        uses: webiny/action-post-run@3.0.0
+        with:
+          run: cat /tmp/exareme2/aggregation_server.out || echo "aggregation_server.out not found"
 
       - name: Run Exaflow algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests/exaflow/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
@@ -234,6 +242,9 @@ jobs:
       - name: Localworker logs
         run: cat /tmp/exareme2/localworker1.out
 
+      - name: Aggregation server logs
+        run: cat /tmp/exareme2/aggregation_server.out || echo "aggregation_server.out not found"
+
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
@@ -248,6 +259,11 @@ jobs:
         uses: webiny/action-post-run@3.0.0
         with:
           run: cat /tmp/exareme2/localworker1.out
+
+      - name: Aggregation server logs (post run)
+        uses: webiny/action-post-run@3.0.0
+        with:
+          run: cat /tmp/exareme2/aggregation_server.out || echo "aggregation_server.out not found"
 
       - name: Run Exaflow algorithm validation tests
         run: poetry run pytest tests/algorithm_validation_tests/exaflow/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
