@@ -51,14 +51,18 @@ Paths are subject to change so in the following documentation the global variabl
 """
 
 import copy
+import csv
 import glob
 import itertools
 import json
 import os
 import pathlib
 import shutil
+import subprocess
 import sys
 import time
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from contextlib import contextmanager
 from enum import Enum
@@ -465,7 +469,15 @@ def init_system_tables(c, worker):
 @task
 def update_wla(c):
     url = "http://localhost:5000/wla"
-    response = requests.post(url)
+    try:
+        response = requests.post(url, timeout=10)
+    except requests.RequestException as exc:
+        message(
+            f"Warning: failed to update wla ({exc}); controller may still be starting.",
+            Level.WARNING,
+        )
+        return
+
     if response.status_code != 200:
         raise Exception("Failed to update the wla")
     print("Successfully updated wla.")
@@ -519,167 +531,247 @@ def load_data(c, use_sockets=False, worker=None):
             and config["role"] == node_type
         ]
 
-    def load_data_model_metadata(c, cdes_file, worker_id_and_ports):
-        """
-        Load the data model metadata into MonetDB for each worker.
+    def read_data_model_metadata(cdes_file):
+        """Read the data model metadata definition."""
 
-        :param c: The context object.
-        :param cdes_file: Path to the CDEsMetadata.json file.
-        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
-        :return: The data model code and version.
-        """
         with open(cdes_file) as data_model_metadata_file:
             data_model_metadata = json.load(data_model_metadata_file)
+
         data_model_code = data_model_metadata["code"]
         data_model_version = data_model_metadata["version"]
 
-        def run_with_retries(c, cmd, retries=5, wait_seconds=1):
-            """Attempts to run a command, retrying in case of failure."""
-            attempt = 0
-            while attempt < retries:
-                try:
-                    run(c, cmd)  # Try to run the command
-                    return  # Exit if successful
-                except Exception as e:
-                    attempt += 1
-                    if attempt < retries:
-                        message(
-                            f"Attempt {attempt} failed. Retrying in {wait_seconds} seconds...",
-                            Level.WARNING,
-                        )
-                        time.sleep(wait_seconds)  # Wait before retrying
-                    else:
-                        message(
-                            f"All {retries} attempts failed. Error: {str(e)}",
-                            Level.ERROR,
-                        )
-                        raise e  # Re-raise the last exception after all retries
-
-        # Main loop for loading data models with retries
-        for worker_id, port in worker_id_and_ports:
-            message(
-                f"Loading data model '{data_model_code}:{data_model_version}' metadata for worker: {worker_id}...",
-                Level.HEADER,
-            )
-            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-data-model {cdes_file}"
-
-            # Try running the command with retries
-            run_with_retries(c, cmd)
         return data_model_code, data_model_version
 
-    def load_datasets(
-        c,
-        dirpath,
-        filenames,
-        data_model_code,
-        data_model_version,
-        worker_id_and_ports,
-        use_sockets,
-    ):
-        """
-        Load datasets into MonetDB for each worker in a round-robin fashion.
+    def calculate_dataset_distribution(dirpath, filenames, worker_id_and_ports):
+        """Map datasets to workers following the existing allocation rules."""
+        dataset_distribution = {worker_id: [] for worker_id, _ in worker_id_and_ports}
 
-        :param c: The context object.
-        :param dirpath: Directory path of the current dataset.
-        :param filenames: List of filenames in the current directory.
-        :param data_model_code: The data model code.
-        :param data_model_version: The data model version.
-        :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
-        :param use_sockets: Flag to determine if data will be loaded via sockets.
-        """
+        if not worker_id_and_ports:
+            return dataset_distribution
+
         if len(worker_id_and_ports) == 1:
-            worker_id, port = worker_id_and_ports[0]
-            for file in filenames:
-                if file.endswith(".csv") and not file.endswith("test.csv"):
-                    csv = os.path.join(dirpath, file)
-                    message(
-                        f"Loading dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
-                        Level.HEADER,
-                    )
+            worker_id = worker_id_and_ports[0][0]
+            dataset_distribution[worker_id] = sorted(
+                [
+                    os.path.join(dirpath, file)
+                    for file in filenames
+                    if file.endswith(".csv") and not file.endswith("test.csv")
+                ]
+            )
+            return dataset_distribution
 
-                    cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-dataset {csv} -d {data_model_code} -v {data_model_version} "
-                    if (
-                        get_deployment_config("monetdb", subconfig="enabled")
-                        and use_sockets
-                    ):
-                        cmd += "--no-copy"
-                    run(c, cmd)
-            return
-
-        # Load the first set of CSVs into the first worker
+        first_worker_id = worker_id_and_ports[0][0]
         first_worker_csvs = sorted(
             [
-                f"{dirpath}/{file}"
+                os.path.join(dirpath, file)
                 for file in filenames
                 if file.endswith("0.csv") and not file.endswith("10.csv")
             ]
         )
-        for csv in first_worker_csvs:
-            worker_id, port = worker_id_and_ports[0]
-            message(
-                f"Loading dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
-                Level.HEADER,
-            )
-            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-dataset {csv} -d {data_model_code} -v {data_model_version} "
-            if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
-                cmd += "--no-copy"
-            run(c, cmd)
+        dataset_distribution[first_worker_id].extend(first_worker_csvs)
 
-        # Load the remaining CSVs into the remaining workers in a round-robin fashion
         remaining_csvs = sorted(
             [
-                f"{dirpath}/{file}"
+                os.path.join(dirpath, file)
                 for file in filenames
                 if file.endswith(".csv")
                 and not file.endswith("0.csv")
                 and not file.endswith("test.csv")
             ]
         )
-        worker_id_and_ports_cycle = itertools.cycle(worker_id_and_ports[1:])
-        for csv in remaining_csvs:
-            worker_id, port = next(worker_id_and_ports_cycle)
-            message(
-                f"Loading dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
-                Level.HEADER,
-            )
-            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)} add-dataset {csv} -d {data_model_code} -v {data_model_version} "
-            if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
-                cmd += "--no-copy"
-            run(c, cmd)
+        worker_cycle = itertools.cycle(worker_id_and_ports[1:])
+        for csv_path in remaining_csvs:
+            worker_id, _ = next(worker_cycle)
+            dataset_distribution[worker_id].append(csv_path)
 
-    def load_test_datasets(
-        c,
-        dirpath,
-        filenames,
-        data_model_code,
-        data_model_version,
-        worker_id_and_ports,
-        use_sockets,
-    ):
+        return dataset_distribution
+
+    def calculate_test_dataset_distribution(dirpath, filenames, worker_id_and_ports):
         """
-        Load datasets ending with 'test' into the global worker.
+        Calculate the distribution for datasets ending with 'test'.
 
-        :param c: The context object.
         :param dirpath: Directory path of the current dataset.
         :param filenames: List of filenames in the current directory.
-        :param data_model_code: The data model code.
-        :param data_model_version: The data model version.
         :param worker_id_and_ports: A list of tuples containing worker identifiers and ports.
-        :param use_sockets: Flag to determine if data will be loaded via sockets.
         """
+        dataset_distribution = {worker_id: [] for worker_id, _ in worker_id_and_ports}
         test_csvs = sorted(
-            [f"{dirpath}/{file}" for file in filenames if file.endswith("test.csv")]
+            [
+                os.path.join(dirpath, file)
+                for file in filenames
+                if file.endswith("test.csv")
+            ]
         )
-        for csv in test_csvs:
-            worker_id, port = worker_id_and_ports[0]
+
+        if not worker_id_and_ports:
+            return dataset_distribution
+
+        worker_id, _ = worker_id_and_ports[0]
+        for csv_path in test_csvs:
+            dataset_distribution[worker_id].append(csv_path)
+
+        return dataset_distribution
+
+    def concatenate_csv_files(csv_paths, destination_path):
+        """Concatenate CSV files using the canonical header order."""
+        if not csv_paths:
+            return
+
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        csv_paths = sorted(csv_paths)
+
+        canonical_header = None
+
+        with open(destination_path, "w", newline="") as destination_file:
+            writer = None
+            for csv_path in csv_paths:
+                with open(csv_path, newline="") as source_file:
+                    reader = csv.DictReader(source_file)
+                    if reader.fieldnames is None:
+                        continue
+
+                    if canonical_header is None:
+                        canonical_header = reader.fieldnames
+                        writer = csv.DictWriter(
+                            destination_file, fieldnames=canonical_header
+                        )
+                        writer.writeheader()
+                    else:
+                        if set(reader.fieldnames) != set(canonical_header):
+                            message(
+                                "Inconsistent headers detected while concatenating datasets.",
+                                Level.ERROR,
+                            )
+                            raise ValueError(
+                                "Dataset headers do not match the canonical data model header."
+                            )
+
+                    for row in reader:
+                        writer.writerow(
+                            {field: row.get(field, "") for field in canonical_header}
+                        )
+
+    def create_combined_datasets(worker_dataset_structure, worker_ids):
+        """Create combined dataset folders per worker and data model."""
+
+        combined_root = TEST_DATA_FOLDER / "__combined"
+        if combined_root.exists():
+            shutil.rmtree(combined_root)
+        combined_root.mkdir(exist_ok=True)
+
+        combined_folder_structure = defaultdict(dict)
+        worker_directories = {}
+
+        for worker_id in worker_ids:
+            worker_dir = combined_root / worker_id
+            worker_dir.mkdir(exist_ok=True)
+            worker_directories[worker_id] = worker_dir
+
+            data_models = worker_dataset_structure.get(worker_id, {})
+
+            for data_model_key in sorted(data_models.keys()):
+                data_model_entry = data_models[data_model_key]
+                dataset_paths = sorted(set(data_model_entry.get("datasets", [])))
+                metadata_path = data_model_entry.get("metadata")
+
+                if not dataset_paths or not metadata_path:
+                    continue
+
+                if not os.path.exists(metadata_path):
+                    message(
+                        f"Skipping data model '{data_model_key[0]}:{data_model_key[1]}' for worker {worker_id} (metadata missing).",
+                        Level.WARNING,
+                    )
+                    continue
+
+                data_model_code, data_model_version = data_model_key
+                data_model_dir = worker_dir / f"{data_model_code}_{data_model_version}"
+                data_model_dir.mkdir(exist_ok=True)
+
+                metadata_destination = data_model_dir / "CDEsMetadata.json"
+                shutil.copyfile(metadata_path, metadata_destination)
+
+                combined_csv_path = data_model_dir / f"{data_model_code}.csv"
+                concatenate_csv_files(dataset_paths, combined_csv_path)
+
+                combined_folder_structure[worker_id][data_model_key] = {
+                    "folder": str(data_model_dir),
+                    "metadata": str(metadata_destination),
+                    "combined_csv": str(combined_csv_path),
+                    "source_datasets": [str(path) for path in dataset_paths],
+                }
+
+        return combined_root, worker_directories, combined_folder_structure
+
+    def load_combined_folders(worker_dirs, port_lookup, use_sockets):
+        """Load combined folders into MonetDB for each worker in parallel."""
+
+        load_jobs = []
+        for worker_id, port in port_lookup.items():
+            worker_dir = worker_dirs.get(worker_id)
+            if not worker_dir or not worker_dir.exists():
+                continue
+
+            if not any(worker_dir.iterdir()):
+                message(
+                    f"No combined datasets found for worker: {worker_id}. Skipping load-folder command.",
+                    Level.WARNING,
+                )
+                continue
+
+            load_jobs.append((worker_id, port, worker_dir))
+
+        if not load_jobs:
+            return
+
+        max_workers = min(len(load_jobs), max(os.cpu_count() or 1, 1))
+
+        def execute_load_folder(worker_id, port, worker_dir):
             message(
-                f"Loading test dataset {pathlib.PurePath(csv).name} for worker: {worker_id}...",
+                f"Loading combined datasets for worker: {worker_id} from {worker_dir}...",
                 Level.HEADER,
             )
-            cmd = f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} {get_sqlite_path(worker_id)}  add-dataset {csv} -d {data_model_code} -v {data_model_version} "
+            cmd = (
+                f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} "
+                f"{get_sqlite_path(worker_id)} load-folder {worker_dir}"
+            )
             if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
-                cmd += "--no-copy"
-            run(c, cmd)
+                cmd += " --no-copy"
+
+            completed_process = subprocess.run(
+                cmd,
+                shell=True,
+                check=False,
+                text=True,
+            )
+            if completed_process.returncode != 0:
+                message(
+                    f"Failed to load combined datasets for worker: {worker_id} (exit code {completed_process.returncode}).",
+                    Level.ERROR,
+                )
+                raise UnexpectedExit(
+                    f"load-folder failed for worker {worker_id} with exit code {completed_process.returncode}"
+                )
+
+        errors = []
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(execute_load_folder, worker_id, port, worker_dir)
+                for worker_id, port, worker_dir in load_jobs
+            ]
+
+            for future in futures:
+                try:
+                    future.result()
+                except Exception as exc:  # noqa: BLE001
+                    errors.append(exc)
+
+        if errors:
+            raise RuntimeError(
+                "One or more load-folder operations failed. Check the logs above for details."
+            )
+
+    worker_dataset_structure = defaultdict(dict)
 
     # Retrieve and filter worker configurations for local workers
     worker_configs = get_worker_configs()
@@ -690,27 +782,38 @@ def load_data(c, use_sockets=False, worker=None):
     if not local_worker_id_and_ports:
         raise Exception("Local worker config files cannot be loaded.")
 
+    all_worker_ids = {worker_id for worker_id, _ in local_worker_id_and_ports}
+    worker_port_lookup = {
+        worker_id: port for worker_id, port in local_worker_id_and_ports
+    }
+
     # Process each dataset in the TEST_DATA_FOLDER for local workers
     for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+        if "__combined" in dirnames:
+            dirnames.remove("__combined")
         if "CDEsMetadata.json" not in filenames:
             continue
         cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
 
-        # Load data model metadata
-        data_model_code, data_model_version = load_data_model_metadata(
-            c, cdes_file, local_worker_id_and_ports
+        data_model_code, data_model_version = read_data_model_metadata(cdes_file)
+        data_model_key = (data_model_code, data_model_version)
+
+        dataset_distribution = calculate_dataset_distribution(
+            dirpath, filenames, local_worker_id_and_ports
         )
 
-        # Load datasets
-        load_datasets(
-            c,
-            dirpath,
-            filenames,
-            data_model_code,
-            data_model_version,
-            local_worker_id_and_ports,
-            use_sockets,
-        )
+        for worker_id, csv_paths in dataset_distribution.items():
+            if not csv_paths:
+                continue
+
+            entry = worker_dataset_structure[worker_id].get(data_model_key)
+            if not entry:
+                entry = {"metadata": cdes_file, "datasets": []}
+                worker_dataset_structure[worker_id][data_model_key] = entry
+
+            if not entry.get("metadata"):
+                entry["metadata"] = cdes_file
+            entry["datasets"].extend(csv_paths)
 
     # Retrieve and filter worker configurations for global worker
     global_worker_id_and_ports = filter_worker_configs(
@@ -720,25 +823,60 @@ def load_data(c, use_sockets=False, worker=None):
     if not global_worker_id_and_ports:
         raise Exception("Global worker config files cannot be loaded.")
 
+    all_worker_ids.update(worker_id for worker_id, _ in global_worker_id_and_ports)
+    worker_port_lookup.update(
+        {worker_id: port for worker_id, port in global_worker_id_and_ports}
+    )
+
     # Process each dataset in the TEST_DATA_FOLDER for global worker
     for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
+        if "__combined" in dirnames:
+            dirnames.remove("__combined")
         if "CDEsMetadata.json" not in filenames:
             continue
         cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
 
-        # Load data model metadata
-        data_model_code, data_model_version = load_data_model_metadata(
-            c, cdes_file, global_worker_id_and_ports
-        )
-        load_test_datasets(
-            c,
+        data_model_code, data_model_version = read_data_model_metadata(cdes_file)
+        data_model_key = (data_model_code, data_model_version)
+
+        test_dataset_distribution = calculate_test_dataset_distribution(
             dirpath,
             filenames,
-            data_model_code,
-            data_model_version,
             global_worker_id_and_ports,
-            use_sockets,
         )
+
+        for worker_id, csv_paths in test_dataset_distribution.items():
+            if not csv_paths:
+                continue
+
+            entry = worker_dataset_structure[worker_id].get(data_model_key)
+            if not entry:
+                entry = {"metadata": cdes_file, "datasets": []}
+                worker_dataset_structure[worker_id][data_model_key] = entry
+
+            if not entry.get("metadata"):
+                entry["metadata"] = cdes_file
+            entry["datasets"].extend(csv_paths)
+
+    if all_worker_ids:
+        (
+            combined_root,
+            worker_directories,
+            combined_folder_structure,
+        ) = create_combined_datasets(worker_dataset_structure, sorted(all_worker_ids))
+
+        message(
+            f"Combined dataset folders prepared at: {combined_root}",
+            Level.BODY,
+        )
+
+        for worker_id, data_models in combined_folder_structure.items():
+            message(
+                f"  Worker {worker_id} -> {len(data_models)} data model(s) combined",
+                Level.BODY,
+            )
+
+        load_combined_folders(worker_directories, worker_port_lookup, use_sockets)
 
 
 def get_sqlite_path(worker_id):
@@ -792,6 +930,17 @@ def create_rabbitmq(c, worker, rabbitmq_image=None):
         )
         cmd = f"docker run -d -p {queue_port} -p {api_port} --name {container_name} {rabbitmq_image}"
         run(c, cmd)
+
+
+@task(iterable=["worker"])
+def verify_rabbitmq(c, worker):
+    """Ensure RabbitMQ containers are healthy for the provided worker ids."""
+
+    if not worker:
+        message("Please specify a worker using --worker <worker>", Level.WARNING)
+        sys.exit(1)
+
+    worker_ids = worker
 
     for worker_id in worker_ids:
         container_name = f"rabbitmq-{worker_id}"
@@ -1157,6 +1306,8 @@ def deploy(
             worker_config = toml.load(fp)
         worker_ids.append(worker_config["identifier"])
 
+    create_rabbitmq(c, worker=worker_ids)
+
     worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
     if start_monetdb:
         create_monetdb(
@@ -1167,7 +1318,11 @@ def deploy(
             nclients=monetdb_nclients,
         )
     init_system_tables(c, worker=worker_ids)
-    create_rabbitmq(c, worker=worker_ids)
+
+    if start_aggregation_server_:
+        start_aggregation_server(c, detached=True)
+
+    verify_rabbitmq(c, worker=worker_ids)
 
     start_worker(
         c,
@@ -1178,9 +1333,6 @@ def deploy(
         flower_algorithm_folders=flower_algorithm_folders,
         exaflow_algorithm_folders=exaflow_algorithm_folders,
     )
-
-    if start_aggregation_server_:
-        start_aggregation_server(c, detached=True)
 
     # Start CONTROLLER service
     start_controller(
@@ -1230,6 +1382,19 @@ def cleanup(c):
     # Delete each .db file
     for sqlite_path in glob.glob(pattern):
         clean_sqlite(sqlite_path)
+
+    combined_root_path = TEST_DATA_FOLDER / "__combined"
+    if combined_root_path.exists():
+        try:
+            message(f"Removing {combined_root_path}...", level=Level.HEADER)
+
+            shutil.rmtree(combined_root_path)
+        except OSError:
+            message(
+                f"Failed to remove combined dataset directory {combined_root_path}",
+                Level.WARNING,
+            )
+
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
