@@ -787,34 +787,6 @@ def load_data(c, use_sockets=False, worker=None):
         worker_id: port for worker_id, port in local_worker_id_and_ports
     }
 
-    # Process each dataset in the TEST_DATA_FOLDER for local workers
-    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
-        if "__combined" in dirnames:
-            dirnames.remove("__combined")
-        if "CDEsMetadata.json" not in filenames:
-            continue
-        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
-
-        data_model_code, data_model_version = read_data_model_metadata(cdes_file)
-        data_model_key = (data_model_code, data_model_version)
-
-        dataset_distribution = calculate_dataset_distribution(
-            dirpath, filenames, local_worker_id_and_ports
-        )
-
-        for worker_id, csv_paths in dataset_distribution.items():
-            if not csv_paths:
-                continue
-
-            entry = worker_dataset_structure[worker_id].get(data_model_key)
-            if not entry:
-                entry = {"metadata": cdes_file, "datasets": []}
-                worker_dataset_structure[worker_id][data_model_key] = entry
-
-            if not entry.get("metadata"):
-                entry["metadata"] = cdes_file
-            entry["datasets"].extend(csv_paths)
-
     # Retrieve and filter worker configurations for global worker
     global_worker_id_and_ports = filter_worker_configs(
         worker_configs, worker, "GLOBALWORKER"
@@ -827,8 +799,7 @@ def load_data(c, use_sockets=False, worker=None):
     worker_port_lookup.update(
         {worker_id: port for worker_id, port in global_worker_id_and_ports}
     )
-
-    # Process each dataset in the TEST_DATA_FOLDER for global worker
+    # Process each dataset in the TEST_DATA_FOLDER for local workers
     for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
         if "__combined" in dirnames:
             dirnames.remove("__combined")
@@ -839,24 +810,32 @@ def load_data(c, use_sockets=False, worker=None):
         data_model_code, data_model_version = read_data_model_metadata(cdes_file)
         data_model_key = (data_model_code, data_model_version)
 
-        test_dataset_distribution = calculate_test_dataset_distribution(
-            dirpath,
-            filenames,
-            global_worker_id_and_ports,
+        def merge_distribution(distribution):
+            for worker_id, csv_paths in distribution.items():
+                if not csv_paths:
+                    continue
+
+                entry = worker_dataset_structure[worker_id].setdefault(
+                    data_model_key, {"metadata": cdes_file, "datasets": []}
+                )
+
+                if not entry.get("metadata"):
+                    entry["metadata"] = cdes_file
+                entry["datasets"].extend(csv_paths)
+
+        merge_distribution(
+            calculate_dataset_distribution(
+                dirpath, filenames, local_worker_id_and_ports
+            )
         )
 
-        for worker_id, csv_paths in test_dataset_distribution.items():
-            if not csv_paths:
-                continue
-
-            entry = worker_dataset_structure[worker_id].get(data_model_key)
-            if not entry:
-                entry = {"metadata": cdes_file, "datasets": []}
-                worker_dataset_structure[worker_id][data_model_key] = entry
-
-            if not entry.get("metadata"):
-                entry["metadata"] = cdes_file
-            entry["datasets"].extend(csv_paths)
+        merge_distribution(
+            calculate_test_dataset_distribution(
+                dirpath,
+                filenames,
+                global_worker_id_and_ports,
+            )
+        )
 
     if all_worker_ids:
         (
