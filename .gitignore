@@ -152,3 +152,4 @@ pyrightconfig.json
 /smpc_configs
 .stored_data/
 *.db
+/tests/test_data/__combined/
