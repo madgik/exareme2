@@ -37,6 +37,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
         algorithm = algorithm_cls(
             inputdata=self._algorithm_request_dto.inputdata,
             engine=engine,
+            parameters=self._algorithm_request_dto.parameters,
         )
         log_experiment_execution(
             self._logger,
