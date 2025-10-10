@@ -1,0 +1,36 @@
+{
+    "name": "exaflow_chi_squared",
+    "desc": "Perform a chi-squared test of independence between two categorical variables, returning the chi-square statistic, p-value, degrees of freedom, and expected frequencies.",
+    "label": "Chi-Squared Test",
+    "enabled": true,
+    "components": ["AGGREGATION_SERVER"],
+    "type": "exaflow",
+    "inputdata": {
+        "y": {
+            "label": "Outcome",
+            "desc": "Categorical outcome variable (dependent variable).",
+            "types": [
+                "text",
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Factor",
+            "desc": "Categorical factor variable (independent variable).",
+            "types": [
+                "text",
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

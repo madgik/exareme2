@@ -1034,6 +1034,7 @@ def start_worker(
     :param detached: If set to True, it will start the service in the background.
     :param exareme2_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param exaflow_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
 
     The containers related to the api remain unchanged.
     """
