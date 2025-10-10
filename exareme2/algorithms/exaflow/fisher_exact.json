@@ -1,0 +1,36 @@
+{
+    "name": "exaflow_fisher_exact",
+    "desc": "Perform Fisher's exact test on a 2x2 contingency table built from two categorical variables, returning the odds ratio and p-value.",
+    "label": "Fisher's Exact Test",
+    "enabled": true,
+    "components": ["AGGREGATION_SERVER"],
+    "type": "exaflow",
+    "inputdata": {
+        "y": {
+            "label": "Outcome",
+            "desc": "Categorical outcome variable with two categories.",
+            "types": [
+                "text",
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Factor",
+            "desc": "Categorical factor variable with two categories.",
+            "types": [
+                "text",
+                "int"
+            ],
+            "stattypes": [
+                "nominal"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

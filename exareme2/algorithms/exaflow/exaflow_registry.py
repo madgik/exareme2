@@ -14,9 +14,10 @@ def _hash(text: str) -> str:
 
 
 def get_udf_registry_key(func: Callable) -> str:
-    module_part = func.__module__.split(".")[-1]
+    module_name = func.__module__
+    module_part = module_name.split(".")[-1]
     qual = func.__qualname__.replace(".", "__")
-    return f"{qual}_{_hash(module_part)}"
+    return f"{module_part}__{qual}_{_hash(module_name)}"
 
 
 @dataclass(frozen=True)
@@ -31,8 +32,22 @@ class ExaflowRegistry(metaclass=Singleton):
 
     def register(self, func: Callable, *, with_aggregation_server: bool = False) -> str:
         key = get_udf_registry_key(func)
-        if key in self._registry and self._registry[key].func is not func:
-            raise ValueError(f"Duplicate registration for key {key!r}")
+        existing = self._registry.get(key)
+
+        if existing is not None:
+            if existing.func is func:
+                return key
+
+            same_definition = (
+                existing.func.__module__ == func.__module__
+                and existing.func.__qualname__ == func.__qualname__
+            )
+
+            if not same_definition:
+                raise ValueError(f"Duplicate registration for key {key!r}")
+
+            # Module reloads recreate function objects, so refresh the registry entry.
+
         self._registry[key] = UDFInfo(func, with_aggregation_server)
         return key
 
