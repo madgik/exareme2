@@ -49,6 +49,18 @@ async def get_datasets_locations() -> dict:
     }
 
 
+@algorithms.route("/datasets_variables", methods=["GET"])
+async def get_datasets_variables() -> dict:
+    return {
+        data_model: {
+            dataset: variables for dataset, variables in datasets_variables.items()
+        }
+        for data_model, datasets_variables in get_worker_landscape_aggregator()
+        .get_datasets_variables()
+        .datasets_variables.items()
+    }
+
+
 @algorithms.route("/cdes_metadata", methods=["GET"])
 async def get_cdes_metadata() -> dict:
     cdes_per_data_model = get_worker_landscape_aggregator().get_cdes_per_data_model()

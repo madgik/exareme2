@@ -11,6 +11,7 @@ from typing import Union
 
 import pandas as pd
 from pydantic import BaseModel
+from pydantic import Field
 from pydantic import validator
 
 from exareme2 import DType
@@ -257,6 +258,24 @@ class TableInfo(ImmutableBaseModel):
         )
 
 
+class DatasetProperties(ImmutableBaseModel):
+    tags: List
+    properties: Dict[str, List[str]]
+
+    @validator("properties")
+    def validate_variables(cls, properties: Dict[str, List[str]]):
+        variables = properties.get("variables")
+        if not isinstance(variables, list):
+            raise ValueError("Dataset properties must include a 'variables' list.")
+        if not all(isinstance(variable, str) for variable in variables):
+            raise ValueError("Dataset variables must be strings.")
+        return properties
+
+    @property
+    def variables(self) -> List[str]:
+        return self.properties["variables"]
+
+
 class DataModelAttributes(ImmutableBaseModel):
     tags: List
     properties: Dict
@@ -265,6 +284,7 @@ class DataModelAttributes(ImmutableBaseModel):
 class DatasetInfo(ImmutableBaseModel):
     code: str
     label: str
+    variables: List[str] = Field(default_factory=list)
 
 
 class DatasetsInfoPerDataModel(ImmutableBaseModel):

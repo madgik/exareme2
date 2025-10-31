@@ -2692,6 +2692,60 @@ def test_data_model_registry_missing_data_model_attributes(worker_landscape_aggr
     )
 
 
+def test_crunch_data_model_registry_data_includes_datasets_variables(
+    worker_landscape_aggregator,
+):
+    data_models_metadata_per_worker = DataModelsMetadataPerWorker(
+        data_models_metadata_per_worker={
+            "localworker1": DataModelsMetadata(
+                data_models_metadata={
+                    "data_model:1": DataModelMetadata(
+                        dataset_infos=[
+                            DatasetInfo(
+                                code="dataset1",
+                                label="DATASET1",
+                                variables=["var1", "var2"],
+                            )
+                        ],
+                        cdes=CommonDataElements(
+                            values={
+                                "dataset": CommonDataElement(
+                                    code="dataset",
+                                    label="Dataset",
+                                    sql_type="text",
+                                    is_categorical=True,
+                                    enumerations={"dataset1": "DATASET1"},
+                                ),
+                                "var1": CommonDataElement(
+                                    code="var1",
+                                    label="Variable 1",
+                                    sql_type="text",
+                                    is_categorical=False,
+                                ),
+                                "var2": CommonDataElement(
+                                    code="var2",
+                                    label="Variable 2",
+                                    sql_type="text",
+                                    is_categorical=False,
+                                ),
+                            }
+                        ),
+                        attributes=DataModelAttributes(tags=[], properties={}),
+                    ),
+                }
+            )
+        }
+    )
+
+    dmr = _crunch_data_model_registry_data(
+        data_models_metadata_per_worker, worker_landscape_aggregator._logger
+    )
+
+    assert dmr.datasets_variables.datasets_variables == {
+        "data_model:1": {"dataset1": ["var1", "var2"]}
+    }
+
+
 @pytest.mark.slow
 def test_get_workers_info_properly_handles_errors(worker_landscape_aggregator):
     workers_info = worker_landscape_aggregator._get_workers_info(
