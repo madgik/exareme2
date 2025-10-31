@@ -3,6 +3,8 @@ import warnings
 from typing import Dict
 from typing import List
 
+from pydantic import ValidationError
+
 from exareme2.worker import config as worker_config
 from exareme2.worker.exareme2.monetdb.guard import is_datamodel
 from exareme2.worker.exareme2.monetdb.guard import is_list_of_identifiers
@@ -12,6 +14,7 @@ from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
 from exareme2.worker_communication import DatasetInfo
+from exareme2.worker_communication import DatasetProperties
 
 HEALTHCHECK_VALIDATION_STRING = "HEALTHCHECK"
 
@@ -52,7 +55,7 @@ def get_dataset_infos(data_model: str) -> List[DatasetInfo]:
 
     datasets_rows = sqlite.execute_and_fetchall(
         f"""
-        SELECT code, label
+        SELECT code, label, properties
         FROM datasets
         WHERE data_model_id =
         (
@@ -68,9 +71,26 @@ def get_dataset_infos(data_model: str) -> List[DatasetInfo]:
         DatasetInfo(
             code=row[0],
             label=row[1],
+            variables=_extract_variables_from_properties(row[2]),
         )
         for row in datasets_rows
     ]
+
+
+def _extract_variables_from_properties(properties_json) -> List[str]:
+    if not properties_json:
+        return []
+
+    try:
+        dataset_properties = DatasetProperties.parse_raw(properties_json)
+    except (TypeError, ValidationError):
+        warnings.warn(
+            "Failed to parse dataset properties JSON; returning empty variables list.",
+            RuntimeWarning,
+        )
+        return []
+
+    return dataset_properties.variables
 
 
 def convert_csv_paths_to_absolute(dataset_path: str) -> str:

@@ -194,6 +194,7 @@ def test_high_concurrency_and_reset():
     ctrl.close()
 
 
+@pytest.mark.slow
 def test_worker_timeout(agg_client):
     df = pd.DataFrame({"col": [1, 2, 3]})
 
@@ -203,6 +204,7 @@ def test_worker_timeout(agg_client):
     assert exc_info.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
 
 
+@pytest.mark.slow
 def test_mixed_computation_types(agg_client):
     df = pd.DataFrame({"col": [1, 2, 3]})
 
@@ -220,6 +222,7 @@ def test_mixed_computation_types(agg_client):
     assert len(errors) == 1, "Exactly one call should fail due to mixed types."
 
 
+@pytest.mark.slow
 def test_error_propagation_on_unsupported_type():
     ctrl, worker = _make_pair("error-propagation")
 

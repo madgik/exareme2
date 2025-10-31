@@ -82,10 +82,21 @@ class DatasetsLocations(ImmutableBaseModel):
     datasets_locations: Optional[Dict[str, Dict[str, str]]] = {}
 
 
+class DatasetsVariables(ImmutableBaseModel):
+    """
+    A dictionary representation of the available variables per dataset in the federation.
+    Key values are data models because a dataset may be available in multiple data_models.
+    Values are dictionaries where the keys are dataset codes and the values are lists of variables.
+    """
+
+    datasets_variables: Optional[Dict[str, Dict[str, List[str]]]] = {}
+
+
 class DataModelRegistry(ImmutableBaseModel):
     data_models_attributes: Optional[DataModelsAttributes] = DataModelsAttributes()
     data_models_cdes: Optional[DataModelsCDES] = DataModelsCDES()
     datasets_locations: Optional[DatasetsLocations] = DatasetsLocations()
+    datasets_variables: Optional[DatasetsVariables] = DatasetsVariables()
 
     class Config:
         allow_mutation = False
@@ -500,6 +511,9 @@ class WorkerLandscapeAggregator:
     def get_datasets_locations(self) -> DatasetsLocations:
         return self._registries.data_model_registry.datasets_locations
 
+    def get_datasets_variables(self) -> DatasetsVariables:
+        return self._registries.data_model_registry.datasets_variables
+
     def get_training_and_validation_datasets(
         self, data_model: str
     ) -> Tuple[List[str], List[str]]:
@@ -635,10 +649,14 @@ def _crunch_data_model_registry_data(
     datasets_locations = _extract_datasets_locations(
         cleaned_data_models_metadata_per_worker
     )
+    datasets_variables = _extract_datasets_variables(
+        cleaned_data_models_metadata_per_worker
+    )
     return DataModelRegistry(
         data_models_cdes=data_models_cdes,
         datasets_locations=datasets_locations,
         data_models_attributes=data_models_attributes,
+        datasets_variables=datasets_variables,
     )
 
 
@@ -784,6 +802,28 @@ def _extract_datasets_locations(
             for dataset in model_metadata.dataset_infos:
                 datasets_locations_dict[data_model][dataset.code] = worker_id
     return DatasetsLocations(datasets_locations=datasets_locations_dict)
+
+
+def _extract_datasets_variables(
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker,
+) -> DatasetsVariables:
+    datasets_variables_dict = defaultdict(lambda: defaultdict(list))
+
+    for (
+        _,
+        data_models_metadata,
+    ) in data_models_metadata_per_worker.data_models_metadata_per_worker.items():
+        for (
+            data_model,
+            model_metadata,
+        ) in data_models_metadata.data_models_metadata.items():
+            for dataset in model_metadata.dataset_infos:
+                variables = getattr(dataset, "variables", None)
+                datasets_variables_dict[data_model][dataset.code] = (
+                    list(variables) if variables else []
+                )
+
+    return DatasetsVariables(datasets_variables=datasets_variables_dict)
 
 
 def _get_updated_properties(data_model, data_models_attributes, properties_to_be_added):
