@@ -1,18 +1,30 @@
-FROM madgik/exareme2_db_base:0.1
+FROM madgik/exareme2_db_base:0.3
 
 #######################################################
 # Download monetdb source files
 #######################################################
-RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate https://www.monetdb.org/downloads/sources/Dec2023/MonetDB-11.49.1.tar.bz2
+ARG MONETDB_VERSION=11.53.13
+ARG MONETDB_RELEASE=Mar2025-SP2
+ENV MONETDB_VERSION=${MONETDB_VERSION}
+ENV MONETDB_RELEASE=${MONETDB_RELEASE}
+ENV MONETDB_DOWNLOAD_URL=https://www.monetdb.org/downloads/sources/${MONETDB_RELEASE}/MonetDB-${MONETDB_VERSION}.tar.bz2
+RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate "$MONETDB_DOWNLOAD_URL"
 RUN tar -xf /home/monetDB.tar.bz2 -C /home/
 
 #######################################################
 # Install monetdb
 #######################################################
-RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
+RUN apt-get update \
+   && apt-get install -y --no-install-recommends python3-distutils curl gdb \
+   && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --upgrade \
+   && pip3 install --upgrade setuptools wheel
+
+RUN pip3 install numpy==2.2.6 # Must be updated together with pyproject.toml
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
-RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-11.49.1
+RUN cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb -DCMAKE_SUMMARY=ON -DPython3_EXECUTABLE=/usr/bin/python3.10 /home/MonetDB-${MONETDB_VERSION}
 RUN cmake --build .
 RUN cmake --build . --target install
 ENV PATH="/usr/local/bin/monetdb/bin:$PATH"
@@ -23,7 +35,7 @@ EXPOSE 50000
 # Installation clean up
 #######################################################
 RUN rm /home/monetDB.tar.bz2
-RUN rm -rf /home/MonetDB-11.49.1
+RUN rm -rf /home/MonetDB-${MONETDB_VERSION}
 RUN rm -rf /home/monetdb-build
 
 #######################################################
@@ -53,18 +65,18 @@ RUN chmod 444 /etc/logrotate.d/monetdb
 #######################################################
 # Install python libraries
 #######################################################
-RUN pip3 install scipy==1.10.0 # Must be updated together with pyproject.toml
-RUN pip3 install pandas==1.5.2 # Must be updated together with pyproject.toml
-RUN pip3 install scikit-learn==1.2.0 # Must be updated together with pyproject.toml
-RUN pip3 install statsmodels==0.13.2 # Must be updated together with pyproject.toml
+RUN pip3 install scipy==1.15.3 # Must be updated together with pyproject.toml
+RUN pip3 install pandas==2.3.1 # Must be updated together with pyproject.toml
+RUN pip3 install scikit-learn==1.7.0 # Must be updated together with pyproject.toml
+RUN pip3 install statsmodels==0.14.5 # Must be updated together with pyproject.toml
 
 #######################################################
 # Add /home/udflib to python path and copy
 # necessary tools
 #######################################################
 COPY exareme2/algorithms/exareme2/udfgen/udfio.py /home/udflib/
-ENV PYTHONPATH "/home/udflib/"
-ENV LOG_LEVEL "INFO"
+ENV PYTHONPATH="/home/udflib/"
+ENV LOG_LEVEL="INFO"
 
 #######################################################
 # Initializing the default users passwords, that will be configured with configure_users.sh

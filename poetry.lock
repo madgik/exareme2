@@ -1603,13 +1603,13 @@ files = [
 
 [[package]]
 name = "mipdb"
-version = "4.0.0"
+version = "4.0.2.1"
 description = ""
 optional = false
 python-versions = "<3.11,>=3.10"
 files = [
-    {file = "mipdb-4.0.0-py3-none-any.whl", hash = "sha256:91e616cab2ebb8c73a436df268a9a4b8e20fcf8ef26978d68f2b3c0c6a40c7e7"},
-    {file = "mipdb-4.0.0.tar.gz", hash = "sha256:a4000e8e89e89f0fd797ef60e8be8fb6b50e795a40bbf8bd47e4afb6f1fec4c4"},
+    {file = "mipdb-4.0.2.1-py3-none-any.whl", hash = "sha256:c84679dc5ba5d324f8001539bf93756b979193032f156b2cd7b50b19a6f40caa"},
+    {file = "mipdb-4.0.2.1.tar.gz", hash = "sha256:781d0c3d2b42f971197e99cfde94a14c3fb54ae0a5481980f8610e1b2cc50837"},
 ]
 
 [package.dependencies]
@@ -3345,4 +3345,8 @@ scikit-learn = ["scikit-learn"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.11"
+<<<<<<< HEAD
 content-hash = "d856a77653b59461184c04afb16c52145fdb70efa9893cb5f3e54a8c9e97e9bb"
+=======
+content-hash = "7a0918454b1248b5a8eb7cf5f46ef4fffe3a41f94705a0afaa335cff439ef7f1"
+>>>>>>> feat: Upgrade monetdb python version to 3.10
