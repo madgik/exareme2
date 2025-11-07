@@ -27,7 +27,7 @@ RUN pip3 install cffi
 WORKDIR /home/YeSQL/functions
 RUN export LD_LIBRARY_PATH="$MONETDB_FOLDER/udfs/;$MONETDB_FOLDER/pypy3.10-v7.3.13-linux64/bin;$MONETDB_FOLDER/YeSQL/functions/"
 RUN export PYTHONPATH="$MONETDB_FOLDER/YeSQL/functions;$MONETDB_FOLDER;$MONETDB_FOLDER/YeSQL/"
-RUN /home/pypy3.10-v7.3.13-linux64/bin/pypy wrappers.py libwrappedudfs2.so
+#RUN /home/pypy3.10-v7.3.13-linux64/bin/pypy wrappers.py libwrappedudfs2.so
 RUN python3.10 wrappers.py libwrappedudfs.so
 
 RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
