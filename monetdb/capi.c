@@ -332,54 +332,6 @@ static void blob_initialize(struct cudf_data_struct_blob *self,
                         bat_data->data = (tpe *)Tloc(b, 0);                                \
         }
 
-/*#define GENERATE_BAT_INPUT(b, tpe)                                             \
-	{                                                                          \
-		//char *mprotect_retval;                                                 \
-		GENERATE_BAT_INPUT_BASE(tpe);                                          \
-		bat_data->count = BATcount(b);                                         \
-		bat_data->null_value = tpe##_nil;                                      \
-		if (BATtdense(b)) {					\
-			size_t it = 0;                                                     \
-			tpe val = b->tseqbase;                                             \
-			/* bat is dense, materialize it */                                 \
-	/*		bat_data->data = GDKmalloc(                        \
-				bat_data->count * sizeof(bat_data->null_value));               \
-			if (!bat_data->data) {                                             \
-				msg = createException(MAL, "cudf.eval", MAL_MALLOC_FAIL);      \
-				goto wrapup;                                                   \
-			}                                                                  \
-			bat_data->alloced = true; 										   \
-			for (it = 0; it < bat_data->count; it++) {                         \
-				bat_data->data[it] = val++;                                    \
-			}                                                                  \
-		/*} else if (can_mprotect_region(Tloc(b, 0))) {                          \
-			bat_data->data = (tpe *)Tloc(b, 0);                                \
-			mprotect_retval = mprotect_region(                                 \
-				bat_data->data,                                                \
-				bat_data->count * sizeof(bat_data->null_value), &regions);     \
-			if (mprotect_retval) {                                             \
-				msg = createException(MAL, "cudf.eval",                        \
-									  "Failed to mprotect region: %s",         \
-									  mprotect_retval);                        \
-				goto wrapup;                                                   \
-			}
-                */                                                                 \
-	/*	} else /*{                                                               \
-			/* cannot mprotect bat region, copy data */                        \
-			/*bat_data->data = GDKmalloc(                        \
-				bat_data->count * sizeof(bat_data->null_value));               \
-			if (bat_data->count > 0 && !bat_data->data) {                      \
-				msg = createException(MAL, "cudf.eval", MAL_MALLOC_FAIL);      \
-				goto wrapup;                                                   \
-			}                                                                  \
-			bat_data->alloced = true; 										   \
-			memcpy(bat_data->data, Tloc(b, 0),                                 \
-				bat_data->count * sizeof(bat_data->null_value));                \
-		}   */ //yesql version
-         /*                bat_data->data = (tpe *)Tloc(b, 0);                                                                   \
-	}
-*/
-
 #define GENERATE_BAT_OUTPUT_BASE(tpe)                                          \
 	struct cudf_data_struct_##tpe *bat_data =                                  \
 		GDKzalloc(sizeof(struct cudf_data_struct_##tpe));                      \
@@ -899,10 +851,6 @@ static str CUDFeval(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci,
 		}
 		ATTEMPT_TO_WRITE_TO_FILE(f, "\nchar* ");
 		ATTEMPT_TO_WRITE_TO_FILE(f, funcname);
-		/*ATTEMPT_TO_WRITE_TO_FILE(f, "(void** __inputs, void** __outputs, "
-									"malloc_function_ptr malloc, free_function_ptr free) {\n");
-                */
-                //yesql_version
                 ATTEMPT_TO_WRITE_TO_FILE(f, "(int paramsnum, int myinputs, int outputsnum, void** __inputs, void** __outputs, "
                                                                 "malloc_function_ptr malloc, free_function_ptr free) {\n");
 		// now we convert the input arguments from void** to the proper
@@ -992,8 +940,6 @@ static str CUDFeval(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci,
 		error_buffer_position = 0;
 		error_buf[0] = '\0';
 
-		/*snprintf(buf, sizeof(buf), "%s %s %s -shared -o %s 2>&1 >/dev/null", c_compiler,
-			extra_ldflags ? extra_ldflags : "", oname, libname);*/
                 //yesql_version
                 snprintf(buf, sizeof(buf), "%s -shared -o %s %s %s 2>&1 >/dev/null",
                                                                    c_compiler, libname, oname, extra_ldflags ? extra_ldflags : "");
@@ -1113,9 +1059,7 @@ static str CUDFeval(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci,
 				goto wrapup;
 			}
 			if (BATcount(input_bats[index]) == 0) {
-				/* empty input, generate trivial return */
-				/* I expect all inputs to have the same size,
-				   so this should be safe */
+
 				msg = empty_return(mb, stk, pci, output_count,
 								   input_bats[index]->hseqbase);
 				goto wrapup;
@@ -1176,37 +1120,8 @@ static str CUDFeval(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci,
 			{
    				bat_data->data[j] = (char *)BUNtvar(li, p);
                                 j++;
-				/*char *t = (char *)BUNtvar(li, p);
-				if (strNil(t)) {
-					bat_data->data[j] = NULL;
-				} else {
-					if (can_mprotect_varheap) {
-						bat_data->data[j] = t;
-					} else {
-						bat_data->data[j] = GDKmalloc(strlen(t) + 1);
-						if (!bat_data->data[j]) {
-							bat_iterator_end(&li);
-							msg = createException(MAL, "cudf.eval", MAL_MALLOC_FAIL);
-							goto wrapup;
-						}
-						strcpy(bat_data->data[j], t);
-					}
-				}
-				j++;*/
 			}
 			bat_iterator_end(&li);
-			/*if (can_mprotect_varheap) {
-				// mprotect the varheap of the BAT to prevent modification of input strings
-				mprotect_retval =
-					mprotect_region(input_bats[index]->tvheap->base,
-									input_bats[index]->tvheap->size, &regions);
-				if (mprotect_retval) {
-					msg = createException(MAL, "cudf.eval",
-										  "Failed to mprotect region: %s",
-										  mprotect_retval);
-					goto wrapup;
-				}
-			}*/
 		} else if (bat_type == TYPE_date) {
 			date *baseptr;
 			GENERATE_BAT_INPUT_BASE(date);
@@ -1577,17 +1492,7 @@ static str CUDFeval(Client cntxt, MalBlkPtr mb, MalStkPtr stk, InstrPtr pci,
 				BATsetcount(b, count);
 				GDKfree(data);
 			} else if (bat_type == TYPE_str) {
-				/*char **source_base = (char **)data;
-				for (j = 0; j < count; j++) {
-					const char *ptr = source_base[j];
-					if (!ptr) {
-						ptr = str_nil;
-					}
-					if (BUNappend(b, ptr, false) != GDK_SUCCEED) {
-						msg = createException(MAL, "cudf.eval", MAL_MALLOC_FAIL);
-						goto wrapup;
-					}
-				}*/
+
  				//yesql_version
 				BATsetcount(b, count);
                                 for (j=0;j<count;j++){
