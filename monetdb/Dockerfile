@@ -21,17 +21,14 @@ COPY monetdb/cheader.text.h /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
 COPY ./monetdb/YeSQL/ /home/YeSQL
 COPY ./monetdb/pypy3.10-v7.3.13-linux64/ /home/pypy3.10-v7.3.13-linux64
 RUN ls -lah /home
-RUN if [ -e /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 ]; then \
-      mkdir -p /lib64 && ln -sf /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2; \
-    fi
 RUN export MONETDB_FOLDER="/home"
 RUN export CURRENT=/home
 RUN pip3 install cffi
 WORKDIR /home/YeSQL/functions
-RUN /home/pypy3.10-v7.3.13-linux64/bin/pypy wrappers.py libwrappedudfs2.so
-RUN python3.10 wrappers.py libwrappedudfs.so
 RUN export LD_LIBRARY_PATH="$MONETDB_FOLDER/udfs/;$MONETDB_FOLDER/pypy3.10-v7.3.13-linux64/bin;$MONETDB_FOLDER/YeSQL/functions/"
 RUN export PYTHONPATH="$MONETDB_FOLDER/YeSQL/functions;$MONETDB_FOLDER;$MONETDB_FOLDER/YeSQL/"
+RUN /home/pypy3.10-v7.3.13-linux64/bin/pypy wrappers.py libwrappedudfs2.so
+RUN python3.10 wrappers.py libwrappedudfs.so
 
 RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
 
