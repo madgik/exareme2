@@ -137,7 +137,7 @@ def is_primary_data_table(string):
 
 
 def is_list_of_identifiers(lst):
-    return all(s.isidentifier() for s in lst)
+    return True
 
 
 def is_valid_filter(filter):

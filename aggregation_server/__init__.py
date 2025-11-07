@@ -43,7 +43,20 @@ config = _load_config()
 from .aggregation_server_pb2 import *
 from .aggregation_server_pb2_grpc import *
 from .constants import AggregationType
-from .server import serve
+
+try:
+    from .server import serve as _serve
+except ModuleNotFoundError as exc:  # pragma: no cover - executed only when deps missing
+    _missing_dependency_error = exc
+
+    def serve(*_args, **_kwargs):  # type: ignore[override]
+        raise ModuleNotFoundError(
+            "aggregation_server.server dependencies are missing. "
+            "Install optional requirements like 'grpcio-health-checking' to run the server."
+        ) from _missing_dependency_error
+
+else:
+    serve = _serve
 
 __all__ = [
     "config",

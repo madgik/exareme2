@@ -1,4 +1,4 @@
-FROM madgik/exareme2_db_base:0.1
+FROM madgik/exareme2_db_base:0.3
 
 #######################################################
 # Download monetdb source files
@@ -10,11 +10,32 @@ ENV MONETDB_RELEASE=${MONETDB_RELEASE}
 ENV MONETDB_DOWNLOAD_URL=https://www.monetdb.org/downloads/sources/${MONETDB_RELEASE}/MonetDB-${MONETDB_VERSION}.tar.bz2
 RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate "$MONETDB_DOWNLOAD_URL"
 RUN tar -xf /home/monetDB.tar.bz2 -C /home/
+COPY monetdb/capi.c /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
+COPY monetdb/cheader.h /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
+COPY monetdb/cheader.text.h /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
+
 
 #######################################################
 # Install monetdb
 #######################################################
+COPY ./monetdb/YeSQL/ /home/YeSQL
+COPY ./monetdb/pypy3.10-v7.3.13-linux64/ /home/pypy3.10-v7.3.13-linux64
+RUN ls -lah /home
+RUN if [ -e /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 ]; then \
+      mkdir -p /lib64 && ln -sf /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2; \
+    fi
+RUN export MONETDB_FOLDER="/home"
+RUN export CURRENT=/home
+RUN pip3 install cffi
+WORKDIR /home/YeSQL/functions
+RUN /home/pypy3.10-v7.3.13-linux64/bin/pypy wrappers.py libwrappedudfs2.so
+RUN python3.10 wrappers.py libwrappedudfs.so
+RUN export LD_LIBRARY_PATH="$MONETDB_FOLDER/udfs/;$MONETDB_FOLDER/pypy3.10-v7.3.13-linux64/bin;$MONETDB_FOLDER/YeSQL/functions/"
+RUN export PYTHONPATH="$MONETDB_FOLDER/YeSQL/functions;$MONETDB_FOLDER;$MONETDB_FOLDER/YeSQL/"
+
 RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
+
+WORKDIR ../../..
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-${MONETDB_VERSION}

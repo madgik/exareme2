@@ -1,4 +1,5 @@
 import re
+import warnings
 from contextlib import contextmanager
 from functools import wraps
 from math import log2
@@ -180,6 +181,7 @@ def _execute_and_fetchall(db_execution_dto) -> List:
     'parameters' option to provide the functionality of bind-parameters.
     """
     with _cursor(use_public_user=db_execution_dto.use_public_user) as cur:
+        warnings.warn(f"{db_execution_dto.query}= {db_execution_dto.parameters=}")
         cur.execute(db_execution_dto.query, db_execution_dto.parameters)
         result = cur.fetchall()
     return result
@@ -269,6 +271,10 @@ def _execute(db_execution_dto: _DBExecutionDTO, lock):
                 use_public_user=db_execution_dto.use_public_user,
                 commit=True,
             ) as cur:
+                warnings.warn(
+                    f"{db_execution_dto.query}= {db_execution_dto.parameters=}"
+                )
+
                 cur.execute(db_execution_dto.query, db_execution_dto.parameters)
     except TimeoutError:
         error_msg = f"""

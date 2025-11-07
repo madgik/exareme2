@@ -20,7 +20,7 @@ then
   monetdb set nclients=$MONETDB_NCLIENTS db
   monetdb set vmmaxsize=$MAX_MEMORY db
   monetdb set memmaxsize=$MAX_MEMORY db
-  monetdb set embedpy3=true db
+#  monetdb set embedpy3=true db
   # 'monetdb set mal_for_all=yes db' is needed to be able to access tables on a remote database with user that is not the master user.
   monetdb set mal_for_all=yes db
   monetdb release db

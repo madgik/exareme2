@@ -1,21 +1,30 @@
 from abc import ABC
 from abc import abstractmethod
-from typing import List
+from typing import Sequence
+from typing import Union
+
+import numpy as np
 
 from exareme2.aggregation_clients import AggregationType
+
+ArrayInput = Union[
+    Sequence[float],
+    Sequence[Sequence[float]],
+    np.ndarray,
+]
 
 
 class ExaflowUDFAggregationClientI(ABC):
     @abstractmethod
     def aggregate(
-        self, aggregation_type: AggregationType, values: List[float]
-    ) -> List[float]: ...
+        self, aggregation_type: AggregationType, values: ArrayInput
+    ) -> np.ndarray: ...
 
-    def sum(self, values: List[float]) -> List[float]:
-        return self.aggregate(AggregationType.SUM, [sum(values)])
+    def sum(self, values: ArrayInput) -> np.ndarray:
+        return self.aggregate(AggregationType.SUM, values)
 
-    def min(self, values: List[float]) -> List[float]:
-        return self.aggregate(AggregationType.MIN, [min(values)])
+    def min(self, values: ArrayInput) -> np.ndarray:
+        return self.aggregate(AggregationType.MIN, values)
 
-    def max(self, values: List[float]) -> List[float]:
-        return self.aggregate(AggregationType.MAX, [max(values)])
+    def max(self, values: ArrayInput) -> np.ndarray:
+        return self.aggregate(AggregationType.MAX, values)
