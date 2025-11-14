@@ -157,7 +157,7 @@ def fetch_data(inputdata: Inputdata, csv_paths: List[str]) -> pd.DataFrame:
 
     # Gather filtered chunks from all CSV files
     chunks = []
-    for path in csv_paths:
+    for path in set(csv_paths):
         chunks.extend(list(_read_filtered_chunks(path, needed_columns, inputdata)))
 
     return (
