@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 MAINTAINER Thanasis Karampatsis <tkarabatsis@athenarc.gr>
 
 ENV LANG=C.UTF-8
@@ -17,9 +17,9 @@ RUN apt update && apt install -y software-properties-common
 RUN apt update && apt install -y cmake
 RUN apt update && apt install -y bison
 RUN add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt update && apt install -y python3.8-dev
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
+RUN apt update && apt install -y python3.10-dev
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 RUN apt update && apt install -y libssl-dev libpcre3 libpcre3-dev pkg-config uuid-dev libxml2 libxml2-dev unixodbc-dev build-essential logrotate
 RUN apt update && apt install -y python3-pip
