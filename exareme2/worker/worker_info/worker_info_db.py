@@ -156,6 +156,30 @@ def get_dataset_csv_paths(data_model, datasets: List[str]) -> List[str]:
     ]
 
 
+@sql_injection_guard(data_model=is_datamodel, datasets=is_list_of_identifiers)
+def get_datasets(data_model, datasets: List[str]) -> List[str]:
+    """
+    Retrieves the enabled datasets.
+    """
+    data_model_code, data_model_version = data_model.split(":")
+    datasets_rows = sqlite.execute_and_fetchall(
+        f"""
+        SELECT code
+        FROM datasets
+        WHERE data_model_id =
+        (
+            SELECT data_model_id
+            FROM data_models
+            WHERE code = '{data_model_code}'
+            AND version = '{data_model_version}'
+        )
+        AND code IN ({', '.join("'" + str(value) + "'" for value in datasets)})
+        AND status = 'ENABLED'
+        """
+    )
+    return [row[0] for row in datasets_rows]
+
+
 @sql_injection_guard(data_model=is_datamodel)
 def get_data_model_cdes(data_model: str) -> CommonDataElements:
     """

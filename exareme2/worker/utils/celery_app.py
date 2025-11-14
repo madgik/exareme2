@@ -41,6 +41,7 @@ app = Celery(
         "exareme2.worker.flower.starter.starter_api",
         "exareme2.worker.flower.cleanup.cleanup_api",
         "exareme2.worker.exaflow.udf.udf_api",
+        "exareme2.worker.exaflow.yesql.yesql_api",
     ],
 )
 worker_logger.info("Celery app created.")

@@ -40,6 +40,7 @@ TASK_SIGNATURES: Final = {
     "stop_flower_client": "exareme2.worker.flower.cleanup.cleanup_api.stop_flower_client",
     "garbage_collect": "exareme2.worker.flower.cleanup.cleanup_api.garbage_collect",
     "run_exaflow_udf": "exareme2.worker.exaflow.udf.udf_api.run_udf",
+    "run_yesql": "exareme2.worker.exaflow.yesql.yesql_api.run_yesql",
 }
 
 
@@ -370,6 +371,19 @@ class WorkerTasksHandler:
     ) -> WorkerTaskResult:
         return self._queue_task(
             task_signature=TASK_SIGNATURES["run_exaflow_udf"],
+            request_id=request_id,
+            udf_registry_key=udf_registry_key,
+            params=params,
+        )
+
+    def queue_yesql(
+        self,
+        request_id,
+        udf_registry_key,
+        params,
+    ) -> WorkerTaskResult:
+        return self._queue_task(
+            task_signature=TASK_SIGNATURES["run_yesql"],
             request_id=request_id,
             udf_registry_key=udf_registry_key,
             params=params,

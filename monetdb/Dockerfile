@@ -1,4 +1,4 @@
-FROM madgik/exareme2_db_base:0.1
+FROM madgik/exareme2_db_base:0.3
 
 #######################################################
 # Download monetdb source files
@@ -10,11 +10,20 @@ ENV MONETDB_RELEASE=${MONETDB_RELEASE}
 ENV MONETDB_DOWNLOAD_URL=https://www.monetdb.org/downloads/sources/${MONETDB_RELEASE}/MonetDB-${MONETDB_VERSION}.tar.bz2
 RUN wget --output-document=/home/monetDB.tar.bz2 --no-check-certificate "$MONETDB_DOWNLOAD_URL"
 RUN tar -xf /home/monetDB.tar.bz2 -C /home/
+COPY monetdb/capi.c /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
+COPY monetdb/cheader.h /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
+COPY monetdb/cheader.text.h /home/MonetDB-11.53.13/sql/backends/monet5/UDF/capi/
 
 #######################################################
 # Install monetdb
 #######################################################
 RUN pip3 install numpy==1.24.1 # Must be updated together with pyproject.toml
+RUN pip3 install pymonetdb
+RUN pip3 install grpcio==1.70.0
+RUN pip3 install protobuf
+RUN python3 -m pip install cffi
+
+
 RUN mkdir /home/monetdb-build
 WORKDIR /home/monetdb-build
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DASSERT=ON -DSTRICT=ON -DCMAKE_INSTALL_PREFIX=/usr/local/bin/monetdb /home/MonetDB-${MONETDB_VERSION}

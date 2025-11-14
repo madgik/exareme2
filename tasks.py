@@ -1048,14 +1048,14 @@ def start_worker(
             # Build and run the command based on the detached/all_ flags
             if detached or all_:
                 cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT}: poetry run celery "
+                    f"PYTHONPATH=/home/YeSQL/YeSQL:{PROJECT_ROOT}: poetry run celery "
                     f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
                     f"--pool=eventlet --purge 2>&1"
                 )
                 run(c, cmd, wait=False)
             else:
                 cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
+                    f"PYTHONPATH=/home/YeSQL/YeSQL:{PROJECT_ROOT} poetry run celery -A "
                     f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
                 )
                 run(c, cmd, attach_=True)
