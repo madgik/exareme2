@@ -67,17 +67,14 @@ test_cases_get_worker_info_datasets = [
 )
 def test_get_worker_datasets_per_data_model(
     expected_datasets_per_data_model,
-    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_celery_app,
     use_globalworker_database,
-    globalworker_sqlite_db_cursor,
+    globalworker_duckdb_cursor,
     init_data_globalworker,
 ):
     request_id = "test_worker_info_" + uuid.uuid4().hex + "_request"
-    setup_data_table_in_db(
-        expected_datasets_per_data_model, globalworker_sqlite_db_cursor
-    )
+    setup_data_table_in_db(expected_datasets_per_data_model, globalworker_duckdb_cursor)
     task_signature = get_celery_task_signature("get_worker_datasets_per_data_model")
     async_result = globalworker_celery_app.queue_task(
         task_signature=task_signature,

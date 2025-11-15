@@ -10,8 +10,6 @@ nodes:
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/globalworker/csvs
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/master/monetdb_password.sh
-    containerPath: /opt/exareme2/globalworker/credentials/monetdb_password.sh
 
 - role: worker
   extraMounts:
@@ -19,8 +17,6 @@ nodes:
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/localworker/csvs
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker1/monetdb_password.sh
-    containerPath: /opt/exareme2/localworker/credentials/monetdb_password.sh
 
 - role: worker
   extraMounts:
@@ -28,5 +24,3 @@ nodes:
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
     containerPath: /opt/exareme2/localworker/csvs
-  - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker2/monetdb_password.sh
-    containerPath: /opt/exareme2/localworker/credentials/monetdb_password.sh

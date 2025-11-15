@@ -7,7 +7,6 @@ from exareme2.worker.worker_info.worker_info_db import get_dataset_infos
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
 from exareme2.worker_communication import DatasetsInfoPerDataModel
-from exareme2.worker_communication import MonetDBConfig
 from exareme2.worker_communication import WorkerInfo
 
 
@@ -20,17 +19,13 @@ def get_worker_info(request_id: str) -> WorkerInfo:
         The identifier for the logging
     """
 
-    monetdb_configs = (
-        MonetDBConfig(port=worker_config.monetdb.port, ip=worker_config.monetdb.ip)
-        if worker_config.monetdb.enabled
-        else None
-    )
     return WorkerInfo(
         id=worker_config.identifier,
         role=worker_config.role,
         ip=worker_config.rabbitmq.ip,
         port=worker_config.rabbitmq.port,
-        monetdb_configs=monetdb_configs,
+        data_folder=worker_config.data_loader.folder,
+        auto_load_data=worker_config.data_loader.auto_load,
     )
 
 

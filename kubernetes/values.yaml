@@ -13,12 +13,6 @@ framework_log_level: ERROR
 
 max_concurrent_experiments: 32
 
-monetdb:
-  enabled: true
-  max_memory: 1024    # k8s memory limit in megabytes
-  percentage_soft_memory_limit: 65
-  percentage_hard_memory_limit: 85
-
 flower:
   enabled: true
   execution_timeout: 30

@@ -104,24 +104,22 @@ def _apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
 
     x_columns = inputdata.x if inputdata.x is not None else []
     y_columns = inputdata.y if inputdata.y is not None else []
-    columns = x_columns + y_columns
+    # Remove duplicates while preserving order to mirror the behaviour of the
+    # SQL views used in the original algorithms.
+    columns = list(dict.fromkeys(x_columns + y_columns))
 
     if not columns:
         raise ValueError("Both 'x' and 'y' columns are missing or empty in inputdata.")
 
-    # Select only the required columns.
-    df = df[columns]
-
-    # Identify columns that are not completely empty.
-    non_empty_columns = [col for col in columns if not df[col].isna().all()]
-
-    # Only drop rows with missing values in columns that have some data.
-    if non_empty_columns:
-        df = df.dropna(subset=non_empty_columns)
-    else:
-        warnings.warn(
-            "All selected columns are empty. Returning the original dataframe slice."
-        )
+    dataset_column = "dataset"
+    select_columns = columns + (
+        [dataset_column] if dataset_column in df.columns else []
+    )
+    # Select only the required columns (keep dataset column if available for downstream grouping).
+    df = df[select_columns]
+    # Drop rows with missing values in any of the requested columns.
+    # This matches the SQL `IS NOT NULL` filters that the non-exaflow algorithms use.
+    df = df.dropna(subset=columns)
 
     return df
 

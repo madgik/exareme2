@@ -8,12 +8,8 @@ from tests.standalone_tests.conftest import ALGORITHMS_URL
 
 @pytest.mark.slow
 def test_pos_and_kw_args_in_algorithm_flow(
-    monetdb_globalworker,
     globalworker_worker_service,
-    monetdb_localworker1,
     localworker1_worker_service,
-    load_data_localworker1_with_monetdb,
-    load_test_data_globalworker_with_monetdb,
     controller_service_with_localworker1,
 ):
     algorithm_name = "logistic_regression_fedaverage_flower"

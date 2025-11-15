@@ -88,7 +88,6 @@ class AlgorithmName(str, Enum):
 @unique
 class ComponentType(str, Enum):
     AGGREGATION_SERVER = "AGGREGATION_SERVER"
-    MONETDB = "MONETDB"
     FLOWER = "FLOWER"
 
 

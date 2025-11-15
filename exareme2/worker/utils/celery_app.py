@@ -33,14 +33,10 @@ app = Celery(
     backend="rpc://",
     include=[
         "exareme2.worker.worker_info.worker_info_api",
-        "exareme2.worker.exareme2.views.views_api",
-        "exareme2.worker.exareme2.tables.tables_api",
-        "exareme2.worker.exareme2.udfs.udfs_api",
-        "exareme2.worker.exareme2.smpc.smpc_api",
-        "exareme2.worker.exareme2.cleanup.cleanup_api",
         "exareme2.worker.flower.starter.starter_api",
         "exareme2.worker.flower.cleanup.cleanup_api",
         "exareme2.worker.exaflow.udf.udf_api",
+        "exareme2.worker.data_management.data_loader_api",
     ],
 )
 worker_logger.info("Celery app created.")

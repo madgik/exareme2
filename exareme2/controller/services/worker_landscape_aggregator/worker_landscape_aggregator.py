@@ -274,6 +274,7 @@ class WorkerLandscapeAggregator:
         self._registries = _wlaRegistries()
         self._keep_updating = True
         self._update_loop_thread = None
+        self._loaded_workers = set()
 
     def update(self):
         """
@@ -585,24 +586,94 @@ class WorkerLandscapeAggregator:
             .socket_addresses
         )
         workers_info = self._get_workers_info(workers_addresses)
+        cached_datasets = self._ensure_workers_data_loaded(workers_info)
         data_models_metadata_per_worker = self._get_data_models_metadata_per_worker(
-            workers_info
+            workers_info, cached_datasets
         )
         return workers_info, data_models_metadata_per_worker
+
+    def _ensure_workers_data_loaded(
+        self, workers: List[WorkerInfo]
+    ) -> Dict[str, DatasetsInfoPerDataModel]:
+        cached_datasets: Dict[str, DatasetsInfoPerDataModel] = {}
+        for worker_info in workers:
+            if not worker_info.auto_load_data:
+                continue
+            if worker_info.id in self._loaded_workers:
+                continue
+            try:
+                handler = WorkerInfoTasksHandler(
+                    worker_queue_addr=worker_info.socket_addr,
+                    tasks_timeout=self._worker_info_tasks_timeout,
+                    request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+                )
+                datasets_per_data_model = (
+                    handler.get_worker_datasets_per_data_model_task()
+                )
+                if (
+                    datasets_per_data_model
+                    and datasets_per_data_model.datasets_info_per_data_model
+                ):
+                    cached_datasets[worker_info.id] = datasets_per_data_model
+                    self._loaded_workers.add(worker_info.id)
+                    continue
+                handler.load_worker_data(worker_info.data_folder)
+                self._loaded_workers.add(worker_info.id)
+                try:
+                    datasets_per_data_model = (
+                        handler.get_worker_datasets_per_data_model_task()
+                    )
+                    if (
+                        datasets_per_data_model
+                        and datasets_per_data_model.datasets_info_per_data_model
+                    ):
+                        cached_datasets[worker_info.id] = datasets_per_data_model
+                except Exception:
+                    self._logger.debug(
+                        "Failed to fetch datasets after loading data for worker %s",
+                        worker_info.id,
+                        exc_info=True,
+                    )
+            except Exception:
+                self._logger.error(
+                    "Failed to auto-load data for worker %s", worker_info.id
+                )
+                self._logger.debug(traceback.format_exc())
+        return cached_datasets
+
+    def reload_worker_data(self, worker_id: str, folder: str | None = None):
+        worker = self._registries.worker_registry.workers_per_id.get(worker_id)
+        if not worker:
+            raise ValueError(f"Worker '{worker_id}' is not registered")
+        handler = WorkerInfoTasksHandler(
+            worker_queue_addr=worker.socket_addr,
+            tasks_timeout=self._worker_info_tasks_timeout,
+            request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
+        )
+        handler.load_worker_data(folder or worker.data_folder)
+        self._loaded_workers.add(worker_id)
+
+    def reload_all_workers_data(self):
+        for worker in self.get_workers():
+            self.reload_worker_data(worker.id, worker.data_folder)
 
     def _get_data_models_metadata_per_worker(
         self,
         workers: List[WorkerInfo],
+        cached_datasets: Optional[Dict[str, DatasetsInfoPerDataModel]] = None,
     ) -> DataModelsMetadataPerWorker:
+        cached_datasets = cached_datasets or {}
         data_models_metadata_per_worker = {}
 
         for worker_info in workers:
             data_models_metadata = {}
 
             worker_socket_addr = worker_info.socket_addr
-            datasets_per_data_model = self._get_worker_datasets_per_data_model(
-                worker_socket_addr
-            )
+            datasets_per_data_model = cached_datasets.get(worker_info.id)
+            if not datasets_per_data_model:
+                datasets_per_data_model = self._get_worker_datasets_per_data_model(
+                    worker_socket_addr
+                )
             if datasets_per_data_model:
                 for (
                     data_model,
@@ -983,5 +1054,6 @@ def _log_incompatible_data_models(workers, data_model, conflicting_cdes, logger)
 
 def _log_duplicated_dataset(workers, data_model, dataset, logger):
     logger.info(
-        f"""Dataset '{dataset}' of the data_model: '{data_model}' is not unique in the federation. Workers that contain the dataset: '[{", ".join(workers)}]'"""
+        f"Dataset '{dataset.code}' of the data_model: '{data_model}' is not unique in the federation. "
+        f"Workers that contain the dataset: '[{', '.join(workers)}]'"
     )

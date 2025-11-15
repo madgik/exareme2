@@ -2,7 +2,6 @@ import uuid
 
 import pytest
 
-from exareme2.worker_communication import MonetDBConfig
 from exareme2.worker_communication import WorkerInfo
 from tests.standalone_tests.conftest import TASKS_TIMEOUT
 from tests.standalone_tests.controller.workers_communication_helper import (
@@ -16,23 +15,19 @@ worker_info_per_worker = {
         role="GLOBALWORKER",
         ip="172.17.0.1",
         port=60000,
-        monetdb_configs=MonetDBConfig(port=61000, ip="172.17.0.1"),
     ),
     "testlocalworker1": WorkerInfo(
         id="testlocalworker1",
         role="LOCALWORKER",
         ip="172.17.0.1",
         port=60001,
-        monetdb_configs=MonetDBConfig(port=61001, ip="172.17.0.1"),
     ),
 }
 
 
 @pytest.mark.slow
 def test_get_worker_info(
-    monetdb_localworker1,
     localworker1_worker_service,
-    monetdb_globalworker,
     globalworker_worker_service,
     localworker1_celery_app,
     globalworker_celery_app,

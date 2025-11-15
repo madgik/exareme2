@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 from exareme2.algorithms.exaflow.algorithm import Algorithm
 from exareme2.algorithms.exaflow.exaflow_registry import exaflow_udf
-from exareme2.algorithms.exaflow.library.stats.stats import pca
 
 ALGORITHM_NAME = "pca_exaflow_aggregator"
 
@@ -38,8 +37,6 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 @exaflow_udf(with_aggregation_server=True)
 def local_step(inputdata, csv_paths, agg_client):
-    from exareme2.algorithms.utils.inputdata_utils import fetch_data
+    from exareme2.worker.exaflow.duckdb import pca as duckdb_pca
 
-    data = fetch_data(inputdata, csv_paths)
-
-    return pca(agg_client, data[inputdata.y])
+    return duckdb_pca.run_pca(inputdata, agg_client)

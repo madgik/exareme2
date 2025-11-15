@@ -27,21 +27,12 @@ user = "user"
 password = "password"
 vhost = "user_vhost"
 
-[sqlite]
-db_name = "$SQLITE_DB_NAME"
-
-[monetdb]
-enabled = "$MONETDB_ENABLED"
-ip = "$MONETDB_IP"
-port = "$MONETDB_PORT"
-database = "db"
-local_username = "$MONETDB_LOCAL_USERNAME"
-local_password = "$MONETDB_LOCAL_PASSWORD"
-public_username = "$MONETDB_PUBLIC_USERNAME"
-public_password = "$MONETDB_PUBLIC_PASSWORD"
-
 [aggregation_server]
 enabled = "$AGGREGATION_SERVER_ENABLED"
+
+[data_loader]
+folder = "$DATA_LOADER_FOLDER"
+auto_load = "$DATA_LOADER_AUTO_LOAD"
 
 [smpc]
 enabled = "$SMPC_ENABLED"

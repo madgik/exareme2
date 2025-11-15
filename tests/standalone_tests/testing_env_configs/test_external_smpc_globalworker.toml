@@ -3,7 +3,6 @@ federation = "standalone_tests"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 role = "GLOBALWORKER"
-monetdb_nclients = 64
 data_path = "$DATA_PATH"
 
 [controller]
@@ -25,9 +24,6 @@ port = 60004
 user = "user"
 password = "password"
 vhost = "user_vhost"
-
-[monetdb]
-enabled = true
 
 ip = "172.17.0.1"
 port = 61004

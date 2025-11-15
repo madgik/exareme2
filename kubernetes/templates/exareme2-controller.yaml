@@ -1,26 +1,3 @@
-# PVC for cleanup-file (only if using CephFS PVC)
-{{- if .Values.managed_cluster }}
-{{- if .Values.monetdb.enabled }}
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: cleanup-file-pvc
-  namespace: {{ .Values.namespace }}
-  annotations:
-    # tells Argo CD: do not prune (delete) this resource
-    argocd.argoproj.io/sync-options: Delete=false,Prune=false
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: {{ .Values.storage.cephfs.controller.size }}
-  storageClassName: {{ .Values.storage.cephfs.storageClassName }}
-{{- end }}
-{{- end }}
-
----
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -43,30 +20,11 @@ spec:
         master: "true"
       {{- end }}
 
-      {{- if .Values.monetdb.enabled }}
-      volumes:
-        - name: cleanup-file
-        {{- if .Values.managed_cluster }}
-          persistentVolumeClaim:
-            claimName: cleanup-file-pvc
-        {{- else }}
-          hostPath:
-            path: {{ .Values.storage.hostPath.controller_cleanup }}
-        {{- end }}
-      {{- end }}
-
-
       containers:
       - name: controller
         image: {{ .Values.exareme2_images.repository }}/exareme2_controller:{{ .Values.exareme2_images.version }}
         ports:
           - containerPort: 5000
-
-        {{- if .Values.monetdb.enabled }}
-        volumeMounts:
-          - mountPath: /opt/cleanup
-            name: cleanup-file
-        {{- end }}
 
         env:
         - name: NODE_IDENTIFIER
@@ -99,8 +57,6 @@ spec:
           value: {{ quote .Values.controller.workers_dns }}
         - name: LOCALWORKERS_PORT
           value: "5672"
-        - name: MONETDB_ENABLED
-          value: {{ quote .Values.monetdb.enabled }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{- if .Values.smpc.enabled }}

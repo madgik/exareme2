@@ -57,7 +57,6 @@ class DType(Enum):
             cls.INT: "INT",
             cls.FLOAT: "DOUBLE",
             cls.STR: f"VARCHAR({VARCHAR_SIZE})",
-            cls.JSON: "CLOB",  # (BUG) A MonetDB udf cannot return a JSON type.
             cls.BINARY: "BLOB",
         }
 
@@ -74,7 +73,6 @@ class DType(Enum):
     def sql2dtype(cls):
         mapping = {val: key for key, val in cls.dtype2sql().items()}
         # Add here items for many-to-one mapping
-        mapping["VARCHAR"] = cls.STR  # MonetDB returns VARCHAR instead of VARCHAR(50)
         return mapping
 
     def __repr__(self):

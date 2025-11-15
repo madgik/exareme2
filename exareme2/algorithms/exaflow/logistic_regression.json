@@ -1,0 +1,39 @@
+{
+    "name": "logistic_regression_exaflow_aggregator",
+    "desc": "Statistical method modeling the relationship between a binary dependent variable and independent variables using logistic regression.",
+    "label": "Logistic Regression (Exaflow)",
+    "enabled": true,
+    "components": ["AGGREGATION_SERVER"],
+    "type": "exaflow",
+    "inputdata": {
+        "y": {
+            "label": "Variable (dependent)",
+            "desc": "A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes.",
+            "types": ["int", "text"],
+            "stattypes": ["nominal"],
+            "notblank": true,
+            "multiple": false
+        },
+        "x": {
+            "label": "Covariates (independent)",
+            "desc": "One or more variables. Can be numerical or nominal. For nominal variables dummy encoding is used.",
+            "types": ["real", "int", "text"],
+            "stattypes": ["numerical", "nominal"],
+            "notblank": true,
+            "multiple": true
+        }
+    },
+    "parameters": {
+        "positive_class": {
+            "label": "Positive class",
+            "desc": "Positive class of y. All other classes are considered negative.",
+            "types": ["text", "int"],
+            "notblank": true,
+            "multiple": false,
+            "enums": {
+                "type": "input_var_CDE_enums",
+                "source": ["y"]
+            }
+        }
+    }
+}

@@ -174,17 +174,13 @@ class ImmutableBaseModel(BaseModel, ABC):
         allow_mutation = False
 
 
-class MonetDBConfig(BaseModel):
-    ip: IPv4Address
-    port: int
-
-
 class WorkerInfo(BaseModel):
     id: str
     role: WorkerRole
     ip: IPv4Address
     port: int
-    monetdb_configs: Optional[MonetDBConfig] = None
+    data_folder: Optional[str] = None
+    auto_load_data: bool = False
 
     @property
     def socket_addr(self) -> str:

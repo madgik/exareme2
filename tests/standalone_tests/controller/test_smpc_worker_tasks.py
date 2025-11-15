@@ -163,7 +163,6 @@ def validate_table_data_match_expected(
 
 @pytest.mark.slow
 def test_secure_transfer_output_with_smpc_off(
-    monetdb_localworker1,
     localworker1_worker_service,
     use_localworker1_database,
     localworker1_celery_app,
@@ -210,7 +209,6 @@ def test_secure_transfer_output_with_smpc_off(
 
 @pytest.mark.slow
 def test_secure_transfer_input_with_smpc_off(
-    monetdb_localworker1,
     localworker1_worker_service,
     use_localworker1_database,
     localworker1_celery_app,
@@ -259,7 +257,6 @@ def test_secure_transfer_input_with_smpc_off(
 @pytest.mark.very_slow
 @pytest.mark.smpc
 def test_validate_smpc_templates_match(
-    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
     use_smpc_localworker1_database,
     smpc_localworker1_celery_app,
@@ -288,7 +285,6 @@ def test_validate_smpc_templates_match(
 @pytest.mark.very_slow
 @pytest.mark.smpc
 def test_validate_smpc_templates_dont_match(
-    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
     use_smpc_localworker1_database,
     smpc_localworker1_celery_app,
@@ -316,7 +312,6 @@ def test_validate_smpc_templates_dont_match(
 @pytest.mark.very_slow
 @pytest.mark.smpc
 def test_secure_transfer_run_udf_flow_with_smpc_on(
-    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
     use_smpc_localworker1_database,
     smpc_localworker1_celery_app,
@@ -405,7 +400,6 @@ def test_secure_transfer_run_udf_flow_with_smpc_on(
 @pytest.mark.very_slow
 @pytest.mark.smpc
 def test_load_data_to_smpc_client_from_globalworker_fails(
-    monetdb_smpc_globalworker,
     smpc_globalworker_worker_service,
     smpc_globalworker_celery_app,
 ):
@@ -476,7 +470,6 @@ def test_load_data_to_smpc_client(
 @pytest.mark.very_slow
 @pytest.mark.smpc
 def test_get_smpc_result_from_localworker_fails(
-    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
     smpc_localworker1_celery_app,
 ):
@@ -498,9 +491,7 @@ def test_get_smpc_result_from_localworker_fails(
 @pytest.mark.smpc
 @pytest.mark.smpc_cluster
 def test_get_smpc_result(
-    monetdb_smpc_globalworker,
     smpc_globalworker_worker_service,
-    use_smpc_globalworker_database,
     smpc_globalworker_celery_app,
     globalworker_smpc_db_cursor,
     smpc_cluster,
@@ -575,14 +566,9 @@ def test_get_smpc_result(
 @pytest.mark.smpc
 @pytest.mark.smpc_cluster
 def test_orchestrate_SMPC_between_two_localworkers_and_the_globalworker(
-    monetdb_smpc_globalworker,
     smpc_globalworker_worker_service,
-    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
     smpc_localworker2_worker_service,
-    use_smpc_globalworker_database,
-    use_smpc_localworker1_database,
-    use_smpc_localworker2_database,
     smpc_globalworker_celery_app,
     smpc_localworker1_celery_app,
     smpc_localworker2_celery_app,
@@ -676,23 +662,15 @@ def test_orchestrate_SMPC_between_two_localworkers_and_the_globalworker(
     localworker1_config = get_worker_config_by_id(LOCALWORKER1_SMPC_CONFIG_FILE)
     localworker2_config = get_worker_config_by_id(LOCALWORKER2_SMPC_CONFIG_FILE)
 
-    localworker_1_monetdb_sock_address = (
-        f"{str(localworker1_config.monetdb.ip)}:{localworker1_config.monetdb.port}"
-    )
-    localworker_2_monetdb_sock_address = (
-        f"{str(localworker2_config.monetdb.ip)}:{localworker2_config.monetdb.port}"
-    )
     create_remote_table_task_globalworker.delay(
         request_id=request_id,
         table_name=local_1_smpc_result.value.template.name,
         table_schema_json=local_1_smpc_result.value.template.schema_.json(),
-        monetdb_socket_address=localworker_1_monetdb_sock_address,
     ).get()
     create_remote_table_task_globalworker.delay(
         request_id=request_id,
         table_name=local_2_smpc_result.value.template.name,
         table_schema_json=local_2_smpc_result.value.template.schema_.json(),
-        monetdb_socket_address=localworker_2_monetdb_sock_address,
     ).get()
     globalworker_template_tableinfo = TableInfo.parse_raw(
         create_merge_table_task_globalworker.delay(

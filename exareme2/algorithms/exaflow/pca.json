@@ -3,7 +3,7 @@
     "desc": "Computes the principal components of a set of correlated variables. The principal components can then be used to represent the original data with reduced dimensions.",
     "label": "Principal Component Analysis (PCA)",
     "enabled": true,
-    "components": ["AGGREGATION_SERVER", "MONETDB"],
+    "components": ["AGGREGATION_SERVER"],
     "type": "exaflow",
     "inputdata": {
         "y": {

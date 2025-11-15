@@ -6,10 +6,7 @@ from typing import List
 from pydantic import ValidationError
 
 from exareme2.worker import config as worker_config
-from exareme2.worker.exareme2.monetdb.guard import is_datamodel
-from exareme2.worker.exareme2.monetdb.guard import is_list_of_identifiers
-from exareme2.worker.exareme2.monetdb.guard import sql_injection_guard
-from exareme2.worker.worker_info import sqlite
+from exareme2.worker.worker_info import duckdb_adapter as metadata_db
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
 from exareme2.worker_communication import DataModelAttributes
@@ -29,7 +26,7 @@ def get_data_models() -> List[str]:
         The data_models.
     """
 
-    data_models_code_and_version = sqlite.execute_and_fetchall(
+    data_models_code_and_version = metadata_db.execute_and_fetchall(
         f"""SELECT code, version
             FROM data_models
             WHERE status = 'ENABLED'
@@ -41,7 +38,6 @@ def get_data_models() -> List[str]:
     return data_models
 
 
-@sql_injection_guard(data_model=is_datamodel)
 def get_dataset_infos(data_model: str) -> List[DatasetInfo]:
     """
     Retrieves the enabled dataset, for a specific data_model.
@@ -53,7 +49,7 @@ def get_dataset_infos(data_model: str) -> List[DatasetInfo]:
     """
     data_model_code, data_model_version = data_model.split(":")
 
-    datasets_rows = sqlite.execute_and_fetchall(
+    datasets_rows = metadata_db.execute_and_fetchall(
         f"""
         SELECT code, label, properties
         FROM datasets
@@ -129,13 +125,12 @@ def convert_csv_paths_to_absolute(dataset_path: str) -> str:
     return f"{worker_config.data_path}/{relative_path}"
 
 
-@sql_injection_guard(data_model=is_datamodel, datasets=is_list_of_identifiers)
 def get_dataset_csv_paths(data_model, datasets: List[str]) -> List[str]:
     """
     Retrieves the enabled dataset csv_paths.
     """
     data_model_code, data_model_version = data_model.split(":")
-    datasets_rows = sqlite.execute_and_fetchall(
+    datasets_rows = metadata_db.execute_and_fetchall(
         f"""
         SELECT csv_path
         FROM datasets
@@ -156,7 +151,6 @@ def get_dataset_csv_paths(data_model, datasets: List[str]) -> List[str]:
     ]
 
 
-@sql_injection_guard(data_model=is_datamodel)
 def get_data_model_cdes(data_model: str) -> CommonDataElements:
     """
     Retrieves the cdes of the specific data_model.
@@ -167,12 +161,10 @@ def get_data_model_cdes(data_model: str) -> CommonDataElements:
         A CommonDataElements object
     """
     data_model_code, data_model_version = data_model.split(":")
-
-    cdes_rows = sqlite.execute_and_fetchall(
-        f"""
-        SELECT code, metadata FROM "{data_model_code}:{data_model_version}_variables_metadata"
-        """
-    )
+    sanitized = _sanitize_table_name(f"{data_model_code}:{data_model_version}")
+    table_name = f"{sanitized}_variables_metadata"
+    query = f'SELECT code, metadata FROM "{table_name}"'
+    cdes_rows = metadata_db.execute_and_fetchall(query)
 
     cdes = CommonDataElements(
         values={
@@ -183,7 +175,6 @@ def get_data_model_cdes(data_model: str) -> CommonDataElements:
     return cdes
 
 
-@sql_injection_guard(data_model=is_datamodel)
 def get_data_model_attributes(data_model: str) -> DataModelAttributes:
     """
     Retrieves the attributes, for a specific data_model.
@@ -194,18 +185,13 @@ def get_data_model_attributes(data_model: str) -> DataModelAttributes:
     """
     data_model_code, data_model_version = data_model.split(":")
 
-    attributes = sqlite.execute_and_fetchall(
-        f"""
-        SELECT properties
-        FROM data_models
-        WHERE code = '{data_model_code}'
-        AND version = '{data_model_version}'
-        """
+    rows = metadata_db.execute_and_fetchall(
+        f"SELECT properties FROM data_models WHERE code = '{data_model_code}' AND version = '{data_model_version}'"
     )
-
-    attributes = json.loads(attributes[0][0])
+    raw = json.loads(rows[0][0]) if rows else {}
     return DataModelAttributes(
-        tags=attributes["tags"], properties=attributes["properties"]
+        tags=raw.get("tags", []),
+        properties=raw.get("properties", raw),
     )
 
 
@@ -213,5 +199,14 @@ def check_database_connection():
     """
     Check that the connection with the database is working.
     """
-    result = sqlite.execute_and_fetchall(f"SELECT '{HEALTHCHECK_VALIDATION_STRING}'")
+    result = metadata_db.execute_and_fetchall(
+        f"SELECT '{HEALTHCHECK_VALIDATION_STRING}'"
+    )
     assert result[0][0] == HEALTHCHECK_VALIDATION_STRING
+
+
+def _sanitize_table_name(name: str) -> str:
+    sanitized = name
+    for ch in (":", "-", "."):
+        sanitized = sanitized.replace(ch, "_")
+    return sanitized

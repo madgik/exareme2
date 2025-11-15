@@ -45,13 +45,8 @@
    federation = "dementia"
    log_level = "DEBUG"
    framework_log_level ="INFO"
-   monetdb_image = "madgik/exareme2_db:dev"
    rabbitmq_image = "madgik/exareme2_rabbitmq:dev"
 
-   monetdb_nclients = 128
-   monetdb_memory_limit = 2048 # MB
-
-   exareme2_algorithm_folders = "./exareme2/algorithms/exareme2,./tests/algorithms/exareme2"
    flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
    exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
 
@@ -82,9 +77,6 @@
    max_grpc_connections = 10
    max_wait_for_aggregation_inputs = 10
 
-   [monetdb]
-   enabled = true
-
    [smpc]
    enabled=false
    optional=false
@@ -102,33 +94,17 @@
    id = "globalworker"
    role = "GLOBALWORKER"
    rabbitmq_port=5670
-   monetdb_port=50000
-   monetdb_password="executor"
-   local_monetdb_username="executor"
-   local_monetdb_password="executor"
-   public_monetdb_username="guest"
-   public_monetdb_password="guest"
 
    [[workers]]
    id = "localworker1"
    role = "LOCALWORKER"
    rabbitmq_port=5671
-   monetdb_port=50001
-   local_monetdb_username="executor"
-   local_monetdb_password="executor"
-   public_monetdb_username="guest"
-   public_monetdb_password="guest"
    smpc_client_port=9001
 
    [[workers]]
    id = "localworker2"
    role = "LOCALWORKER"
    rabbitmq_port=5672
-   monetdb_port=50002
-   local_monetdb_username="executor"
-   local_monetdb_password="executor"
-   public_monetdb_username="guest"
-   public_monetdb_password="guest"
    smpc_client_port=9002
 
    ```
@@ -173,12 +149,6 @@
 #### Local Deployment (without single configuration file)
 
 1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exareme2/worker/config.toml` template.
-
-1. Install dependencies, start the containers and then the services with
-
-   ```
-   inv deploy --monetdb-image madgik/exareme2_db:dev1.2 --celery-log-level info
-   ```
 
 #### Start monitoring tools
 

@@ -37,13 +37,9 @@ def algorithm_request():
 @pytest.mark.smpc_cluster
 def test_dp_vs_nondp_algorithm_execution(
     smpc_cluster,
-    monetdb_smpc_globalworker,
     smpc_globalworker_worker_service,
-    monetdb_smpc_localworker1,
     smpc_localworker1_worker_service,
-    load_data_smpc_localworker1_with_monetdb,
     smpc_localworker2_worker_service,
-    load_data_smpc_localworker2_with_monetdb,
     smpc_controller_service,
     algorithm_request,
 ):

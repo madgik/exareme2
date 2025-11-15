@@ -1,0 +1,274 @@
+from __future__ import annotations
+
+import csv
+import json
+from pathlib import Path
+
+import duckdb
+
+from exareme2.worker import config as worker_config
+from exareme2.worker.utils.logger import init_logger
+
+LOGGER = init_logger("WORKER DATA LOADER")
+
+
+def _resolve_folder(folder: str | None) -> Path:
+    configured_path = folder or worker_config.data_loader.folder
+    path = Path(configured_path).expanduser()
+    return path
+
+
+def _sanitize_name(name: str) -> str:
+    sanitized = name
+    for ch in (":", "-", "."):
+        sanitized = sanitized.replace(ch, "_")
+    return sanitized
+
+
+def _reset_metadata_tables(conn: duckdb.DuckDBPyConnection):
+    tables = [row[0] for row in conn.execute("SHOW TABLES").fetchall()]
+    for table in tables:
+        conn.execute(f'DROP TABLE IF EXISTS "{table}"')
+
+    conn.execute(
+        """
+        CREATE TABLE data_models (
+            data_model_id INTEGER,
+            code TEXT,
+            version TEXT,
+            label TEXT,
+            status TEXT,
+            properties TEXT
+        )
+        """
+    )
+
+    conn.execute(
+        """
+        CREATE TABLE datasets (
+            dataset_id INTEGER,
+            data_model_id INTEGER,
+            code TEXT,
+            label TEXT,
+            status TEXT,
+            csv_path TEXT,
+            properties TEXT
+        )
+        """
+    )
+
+
+def _collect_all_variables(metadata: dict) -> list[dict]:
+    def _walk(node: dict) -> list[dict]:
+        collected = list(node.get("variables", []) or [])
+        for group in node.get("groups", []) or []:
+            collected.extend(_walk(group))
+        return collected
+
+    return _walk(metadata)
+
+
+def _load_variables_metadata(
+    conn: duckdb.DuckDBPyConnection, table_prefix: str, metadata: dict
+):
+    table_name = f"{table_prefix}_variables_metadata"
+    conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+    conn.execute(f'CREATE TABLE "{table_name}" (code TEXT, metadata TEXT)')
+    for variable in _collect_all_variables(metadata):
+        conn.execute(
+            f'INSERT INTO "{table_name}" VALUES (?, ?)',
+            [variable["code"], json.dumps(_reformat_metadata(variable))],
+        )
+
+
+def _reformat_metadata(metadata: dict) -> dict:
+    new_key_assign = {
+        "isCategorical": "is_categorical",
+        "minValue": "min",
+        "maxValue": "max",
+    }
+    reformatted = dict(metadata)
+    for old_key, new_key in new_key_assign.items():
+        if old_key in reformatted:
+            reformatted[new_key] = reformatted.pop(old_key)
+
+    if "enumerations" in reformatted and isinstance(reformatted["enumerations"], list):
+        reformatted["enumerations"] = {
+            enumeration.get("code", ""): enumeration.get("label", "")
+            for enumeration in reformatted["enumerations"]
+        }
+
+    return reformatted
+
+
+def _create_primary_data_table(
+    conn: duckdb.DuckDBPyConnection, table_prefix: str, csv_paths: list[Path]
+):
+    if not csv_paths:
+        raise ValueError("No CSV files provided to create the primary data table.")
+
+    table_name = f"{table_prefix}__primary_data"
+    conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+
+    select_statements = []
+    params: list[str] = []
+    for csv_path in csv_paths:
+        select_statements.append(
+            "SELECT * FROM read_csv_auto(?, HEADER=TRUE, UNION_BY_NAME=TRUE)"
+        )
+        params.append(str(csv_path))
+
+    query = " UNION ALL ".join(select_statements)
+    conn.execute(f'CREATE TABLE "{table_name}" AS {query}', params)
+
+
+def _read_data_model_csvs(data_model_dir: Path) -> list[Path]:
+    return sorted(
+        csv_path for csv_path in data_model_dir.glob("*.csv") if csv_path.is_file()
+    )
+
+
+def _dataset_codes_from_csv(csv_path: Path) -> set[str]:
+    with csv_path.open(newline="") as csv_file:
+        reader = csv.DictReader(csv_file)
+        fieldnames = reader.fieldnames or []
+        if "dataset" not in fieldnames:
+            LOGGER.warning(
+                "CSV file %s is missing a 'dataset' column. Skipping it when deriving assigned datasets.",
+                csv_path,
+            )
+            return set()
+
+        dataset_codes: set[str] = set()
+        for row in reader:
+            value = (row.get("dataset") or "").strip()
+            if value:
+                dataset_codes.add(value)
+
+    if dataset_codes:
+        return dataset_codes
+
+    LOGGER.warning(
+        "CSV file %s does not contain any non-empty 'dataset' values.", csv_path
+    )
+    return set()
+
+
+def _datasets_from_csv_files(csv_paths: list[Path]) -> dict[str, Path]:
+    datasets: dict[str, Path] = {}
+    for csv_path in csv_paths:
+        dataset_codes = _dataset_codes_from_csv(csv_path)
+        if not dataset_codes:
+            continue
+        for dataset_code in dataset_codes:
+            if dataset_code in datasets and datasets[dataset_code] != csv_path:
+                raise ValueError(
+                    f"Dataset '{dataset_code}' is defined in multiple CSV files inside {csv_path.parent}"
+                )
+            datasets[dataset_code] = csv_path
+    return datasets
+
+
+def _dataset_codes_from_metadata(metadata: dict) -> list[str]:
+    dataset_var = next(
+        (var for var in metadata.get("variables", []) if var.get("code") == "dataset"),
+        None,
+    )
+    if dataset_var and "enumerations" in dataset_var:
+        return [enum.get("code", "dataset") for enum in dataset_var["enumerations"]]
+    return [metadata.get("code", "dataset")]
+
+
+def _load_assigned_datasets(data_model_dir: Path) -> list[str]:
+    datasets_file = data_model_dir / "datasets.json"
+    if not datasets_file.exists():
+        return []
+    with open(datasets_file) as fp:
+        data = json.load(fp)
+    if isinstance(data, list):
+        return data
+    return []
+
+
+def load_data_folder(request_id: str, folder: str | None = None) -> str:
+    db_path = worker_config.duckdb.path
+    folder_path = _resolve_folder(folder)
+    if not folder_path.exists():
+        raise FileNotFoundError(f"Data folder '{folder_path}' does not exist")
+
+    LOGGER.info(
+        "[%s] Loading data folder %s into DuckDB %s",
+        request_id,
+        folder_path,
+        db_path,
+    )
+    conn = duckdb.connect(str(db_path), read_only=False)
+    try:
+        _reset_metadata_tables(conn)
+        data_model_id = 0
+        dataset_id = 0
+
+        for data_model_dir in sorted(folder_path.glob("*/")):
+            meta_path = Path(data_model_dir) / "CDEsMetadata.json"
+            if not meta_path.exists():
+                continue
+
+            with open(meta_path) as fp:
+                metadata = json.load(fp)
+
+            code = metadata.get("code")
+            version = metadata.get("version")
+            if not code or not version:
+                continue
+
+            csv_paths = _read_data_model_csvs(data_model_dir)
+            if not csv_paths:
+                continue
+
+            data_model_id += 1
+            table_prefix = _sanitize_name(f"{code}:{version}")
+
+            _create_primary_data_table(conn, table_prefix, csv_paths)
+            _load_variables_metadata(conn, table_prefix, metadata)
+
+            conn.execute(
+                "INSERT INTO data_models VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    data_model_id,
+                    code,
+                    version,
+                    metadata.get("label", code),
+                    "ENABLED",
+                    json.dumps(metadata),
+                ],
+            )
+
+            dataset_properties = json.dumps(metadata)
+
+            dataset_csv_map = _datasets_from_csv_files(csv_paths)
+            if dataset_csv_map:
+                assigned_datasets = sorted(dataset_csv_map.keys())
+            else:
+                assigned_datasets = _load_assigned_datasets(data_model_dir)
+                if not assigned_datasets:
+                    assigned_datasets = _dataset_codes_from_metadata(metadata)
+
+            for dataset_code in assigned_datasets:
+                dataset_id += 1
+                conn.execute(
+                    "INSERT INTO datasets VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    [
+                        dataset_id,
+                        data_model_id,
+                        dataset_code,
+                        dataset_code,
+                        "ENABLED",
+                        str(dataset_csv_map.get(dataset_code, csv_paths[0])),
+                        dataset_properties,
+                    ],
+                )
+    finally:
+        conn.close()
+
+    LOGGER.info("[%s] Data folder %s loaded", request_id, folder_path)
+    return "Folder import finished"

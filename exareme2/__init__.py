@@ -7,19 +7,12 @@ from types import ModuleType
 from typing import Dict
 
 from exareme2.algorithms.exaflow.algorithm import Algorithm as ExaflowAlgorithm
-from exareme2.algorithms.exareme2.algorithm import Algorithm as Exareme2Algorithm
-from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
 from exareme2.datatypes import DType
 from exareme2.utils import AttrDict
 
 __all__ = [
     "DType",
     "AttrDict",
-    "EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE",
-    "EXAREME2_ALGORITHM_FOLDERS",
-    "exareme2_algorithm_classes",
-    "exareme2_algorithm_data_loaders",
-    "DATA_TABLE_PRIMARY_KEY",
     "flower_algorithm_folder_paths",
     "FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE",
     "FLOWER_ALGORITHM_FOLDERS",
@@ -29,11 +22,6 @@ __all__ = [
 ]
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
-
-EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME2_ALGORITHM_FOLDERS"
-EXAREME2_ALGORITHM_FOLDERS = os.getenv(
-    EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exareme2/algorithms/exareme2"
-)
 
 
 class AlgorithmNamesMismatchError(Exception):
@@ -89,29 +77,12 @@ def import_algorithm_modules(algorithm_folders: str) -> Dict[str, ModuleType]:
     return all_modules
 
 
-def get_exareme2_algorithm_classes() -> Dict[str, type]:
-    import_algorithm_modules(EXAREME2_ALGORITHM_FOLDERS)
-    return {cls.algname: cls for cls in Exareme2Algorithm.__subclasses__()}
-
-
-def get_exareme2_algorithm_data_loaders() -> Dict[str, type]:
-    return {cls.algname: cls for cls in AlgorithmDataLoader.__subclasses__()}
-
-
 def _check_algo_naming_matching(algo_classes: dict, algo_data_loaders: dict):
     algo_classes_set = set(algo_classes.keys())
     algo_data_loaders_set = set(algo_data_loaders.keys())
     sym_diff = algo_classes_set.symmetric_difference(algo_data_loaders_set)
     if sym_diff:
         raise AlgorithmNamesMismatchError(sym_diff, algo_classes, algo_data_loaders)
-
-
-exareme2_algorithm_classes = get_exareme2_algorithm_classes()
-exareme2_algorithm_data_loaders = get_exareme2_algorithm_data_loaders()
-_check_algo_naming_matching(
-    algo_classes=exareme2_algorithm_classes,
-    algo_data_loaders=exareme2_algorithm_data_loaders,
-)
 
 
 def find_flower_algorithm_folder_paths(algorithm_folders):

@@ -48,3 +48,9 @@ class WorkerInfoTasksHandler:
             request_id=self._request_id,
             check_db=check_db,
         ).get(self._tasks_timeout)
+
+    def load_worker_data(self, folder: str | None = None):
+        return self._worker_tasks_handler.queue_load_data_folder_task(
+            request_id=self._request_id,
+            folder=folder,
+        ).get(self._tasks_timeout)

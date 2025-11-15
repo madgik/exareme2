@@ -20,11 +20,11 @@ message ConfigureResponse {
 message AggregateRequest {
   string request_id = 1;
   string aggregation_type = 2;
-  repeated float vectors = 3;
+  repeated double vectors = 3;
 }
 
 message AggregateResponse {
-  repeated float result = 1;
+  repeated double result = 1;
 }
 
 message CleanupRequest {

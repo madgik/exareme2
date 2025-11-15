@@ -24,10 +24,8 @@ def get_data_model():
 )
 def test_get_data_model_attributes(
     data_model,
-    monetdb_localworker1,
     localworker1_worker_service,
     localworker1_celery_app,
-    load_data_localworker1_with_monetdb,
 ):
     request_id = "test_attributes_" + uuid.uuid4().hex + "_request"
 

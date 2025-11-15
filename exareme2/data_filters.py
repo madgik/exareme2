@@ -1,7 +1,5 @@
 from typing import Dict
 
-import pymonetdb.sql.monetize as monetize
-
 from exareme2 import DType
 from exareme2.worker_communication import CommonDataElement
 
@@ -89,11 +87,16 @@ def validate_filter(data_model: str, rules: dict, cdes: Dict[str, CommonDataElem
 
 
 def _format_value_if_string(column_type, val):
-    if column_type == "string":
-        if isinstance(val, list):
-            return [monetize.convert(item) for item in val]
-        return monetize.convert(val)
-    return val
+    if column_type != "string":
+        return val
+
+    def _quote(value):
+        escaped = str(value).replace("'", "''")
+        return f"'{escaped}'"
+
+    if isinstance(val, list):
+        return [_quote(item) for item in val]
+    return _quote(val)
 
 
 def _check_filter_type(rules):

@@ -8,7 +8,6 @@ from typing import Type
 from typing import Union
 
 from exareme2 import EXAFLOW_ALGORITHM_FOLDERS
-from exareme2 import EXAREME2_ALGORITHM_FOLDERS
 from exareme2 import FLOWER_ALGORITHM_FOLDERS
 from exareme2.algorithms.specifications import AlgorithmSpecification
 from exareme2.algorithms.specifications import AlgorithmType
@@ -22,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 def find_spec_paths() -> List[Path]:
     folders = (
-        EXAREME2_ALGORITHM_FOLDERS,
         FLOWER_ALGORITHM_FOLDERS,
         EXAFLOW_ALGORITHM_FOLDERS,
     )
@@ -52,7 +50,6 @@ class Specifications:
         self.enabled_algorithms = {}
         self.enabled_transformers = {}
         self._flags = {
-            ComponentType.MONETDB: ctrl_config.monetdb.enabled,
             ComponentType.AGGREGATION_SERVER: ctrl_config.aggregation_server.enabled,
             ComponentType.FLOWER: ctrl_config.flower.enabled,
         }

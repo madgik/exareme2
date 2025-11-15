@@ -5,7 +5,6 @@ import pytest
 from celery import Celery
 from celery.result import AsyncResult
 
-from exareme2.algorithms.exareme2.udfgen import make_unique_func_name
 from exareme2.controller.celery.app import CeleryAppFactory
 from exareme2.controller.celery.app import CeleryConnectionError
 from exareme2.controller.celery.app import CeleryTaskTimeoutException
@@ -14,10 +13,6 @@ from exareme2.worker_communication import WorkerInfo
 from exareme2.worker_communication import WorkerTableDTO
 from exareme2.worker_communication import WorkerUDFKeyArguments
 from exareme2.worker_communication import WorkerUDFPosArguments
-from tests.algorithms.exareme2.orphan_udfs import five_seconds_udf
-from tests.standalone_tests.algorithms.exareme2.test_udfs import (
-    create_table_with_one_column_and_ten_rows,
-)
 from tests.standalone_tests.conftest import RABBITMQ_GLOBALWORKER_ADDR
 from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_ADDR
 from tests.standalone_tests.conftest import RABBITMQ_LOCALWORKERTMP_NAME
@@ -92,7 +87,6 @@ def queue_slow_udf(cel_app, db_cursor, logger):
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_executing_task(
-    monetdb_globalworker,
     globalworker_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -113,7 +107,6 @@ def test_celery_app_is_the_same_after_executing_task(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
-    monetdb_globalworker,
     globalworker_worker_service,
     globalworker_db_cursor,
     reset_celery_app_factory,
@@ -140,7 +133,6 @@ def test_celery_app_is_the_same_after_getting_slow_task_result_causing_timeout(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_result_with_exception(
-    monetdb_globalworker,
     globalworker_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -223,7 +215,6 @@ def test_celery_app_is_different_after_get_task_res_when_rabbitmq_is_down(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_get_task_res_with_worker_down(
-    monetdb_localworkertmp,
     localworkertmp_worker_service,
     localworkertmp_db_cursor,
     reset_celery_app_factory,
@@ -255,7 +246,6 @@ def test_celery_app_is_the_same_after_get_task_res_with_worker_down(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_the_same_after_getting_task_when_worker_restarted(
-    monetdb_localworkertmp,
     localworkertmp_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -282,7 +272,6 @@ def test_celery_app_is_the_same_after_getting_task_when_worker_restarted(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
-    monetdb_localworkertmp,
     localworkertmp_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,
@@ -333,7 +322,6 @@ def test_celery_app_is_different_after_get_result_when_rabbitmq_restarted(
 @pytest.mark.slow
 @pytest.mark.very_slow
 def test_celery_app_didnt_change_too_many_times_after_parallel_get_task_result_when_rabbitmq_restarted(
-    monetdb_localworkertmp,
     localworkertmp_worker_service,
     reset_celery_app_factory,
     get_controller_testing_logger,

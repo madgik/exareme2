@@ -35,9 +35,6 @@ celery_tasks_interval_start=0
 celery_tasks_interval_step=0.2
 celery_tasks_interval_max=0.5
 
-[monetdb]
-enabled = "$MONETDB_ENABLED"
-
 [aggregation_server]
 enabled = "$AGGREGATION_SERVER_ENABLED"
 

@@ -14,14 +14,6 @@ from exareme2.controller.services.exaflow.strategies import ExaflowStrategy
 from exareme2.controller.services.exaflow.strategies import (
     ExaflowWithAggregationServerStrategy,
 )
-from exareme2.controller.services.exareme2 import (
-    get_controller as get_exareme2_controller,
-)
-from exareme2.controller.services.exareme2.strategies import (
-    Exareme2AlgorithmExecutionStrategy,
-)
-from exareme2.controller.services.exareme2.strategies import LongitudinalStrategy
-from exareme2.controller.services.exareme2.strategies import SingleAlgorithmStrategy
 from exareme2.controller.services.flower import (
     get_flower_controller as get_flower_controller,
 )
@@ -53,8 +45,6 @@ def _get_algorithm_controller(algo_type: AlgorithmType) -> ControllerI:
         return get_exaflow_controller()
     elif algo_type == AlgorithmType.FLOWER:
         return get_flower_controller()
-    elif algo_type == AlgorithmType.EXAREME2:
-        return get_exareme2_controller()
 
     raise NotImplementedError(
         f"Could not get algorithm controller. Unsupported algorithm type: {algo_type}"
@@ -73,20 +63,7 @@ def _get_algorithm_strategy_type(
         return ExaflowStrategy
     elif algo_type == AlgorithmType.FLOWER:
         return FlowerStrategy
-    elif algo_type == AlgorithmType.EXAREME2:
-        return _get_exareme2_algorithm_strategy_type(algorithm_request_dto)
 
     raise NotImplementedError(
         f"Could not get algorithm strategy type. Unsupported algorithm type: {algo_type}"
     )
-
-
-def _get_exareme2_algorithm_strategy_type(
-    algorithm_request_dto: AlgorithmRequestDTO,
-) -> Type[Exareme2AlgorithmExecutionStrategy]:
-    if algorithm_request_dto.preprocessing and algorithm_request_dto.preprocessing.get(
-        TransformerName.LONGITUDINAL_TRANSFORMER
-    ):
-        return LongitudinalStrategy
-    else:
-        return SingleAlgorithmStrategy

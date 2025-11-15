@@ -1,0 +1,85 @@
+from pydantic import BaseModel
+
+from exareme2.algorithms.exaflow.algorithm import Algorithm
+from exareme2.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exareme2.algorithms.exaflow.library.stats.stats import ttest_independent
+
+ALGORITHM_NAME = "ttest_independent_exaflow_aggregator"
+DEFAULT_ALPHA = 0.05
+DEFAULT_ALT = "two-sided"
+
+
+class TTestResult(BaseModel):
+    t_stat: float
+    df: int
+    p: float
+    mean_diff: float
+    se_diff: float
+    ci_upper: str
+    ci_lower: str
+    cohens_d: float
+
+
+class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    def run(self, metadata):
+        alpha = self.parameters.get("alpha", DEFAULT_ALPHA)
+        alternative = self.parameters.get("alt_hypothesis", DEFAULT_ALT)
+        group_a = self.parameters.get("groupA")
+        group_b = self.parameters.get("groupB")
+
+        if group_a is None or group_b is None:
+            raise ValueError(
+                "Independent t-test requires 'groupA' and 'groupB' parameters."
+            )
+
+        results = self.engine.run_algorithm_udf(
+            func=local_step,
+            positional_args={
+                "inputdata": self.inputdata.json(),
+                "alpha": alpha,
+                "alternative": alternative,
+                "group_a": group_a,
+                "group_b": group_b,
+            },
+        )
+        result = results[0]
+
+        return TTestResult(
+            t_stat=result["t_stat"],
+            df=result["df"],
+            p=result["p_value"],
+            mean_diff=result["mean_diff"],
+            se_diff=result["se_diff"],
+            ci_upper=result["ci_upper"],
+            ci_lower=result["ci_lower"],
+            cohens_d=result["cohens_d"],
+        )
+
+
+@exaflow_udf(with_aggregation_server=True)
+def local_step(inputdata, csv_paths, agg_client, alpha, alternative, group_a, group_b):
+    from exareme2.algorithms.utils.inputdata_utils import fetch_data
+
+    if not inputdata.x or not inputdata.y:
+        raise ValueError(
+            "Independent t-test requires both grouping ('x') and measurement ('y') variables."
+        )
+
+    group_var = inputdata.x[0]
+    value_var = inputdata.y[0]
+
+    data = fetch_data(inputdata, csv_paths)
+
+    grouping = data[group_var]
+    values = data[value_var]
+
+    sample_a = values[grouping == group_a].to_numpy(dtype=float, copy=False)
+    sample_b = values[grouping == group_b].to_numpy(dtype=float, copy=False)
+
+    return ttest_independent(
+        agg_client=agg_client,
+        sample_a=sample_a,
+        sample_b=sample_b,
+        alpha=alpha,
+        alternative=alternative,
+    )

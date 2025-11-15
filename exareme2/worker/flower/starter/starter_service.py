@@ -15,11 +15,6 @@ def start_flower_client(
     execution_timeout,
 ) -> int:
     env_vars = {
-        "MONETDB_IP": worker_config.monetdb.ip,
-        "MONETDB_PORT": worker_config.monetdb.port,
-        "MONETDB_USERNAME": worker_config.monetdb.local_username,
-        "MONETDB_PASSWORD": worker_config.monetdb.local_password,
-        "MONETDB_DB": worker_config.monetdb.database,
         "REQUEST_ID": request_id,
         "FEDERATION": worker_config.federation,
         "WORKER_IDENTIFIER": worker_config.identifier,
@@ -27,7 +22,6 @@ def start_flower_client(
         "LOG_LEVEL": worker_config.log_level,
         "FRAMEWORK_LOG_LEVEL": worker_config.framework_log_level,
         "SERVER_ADDRESS": server_address,
-        "NUMBER_OF_CLIENTS": worker_config.monetdb.database,
         "CONTROLLER_IP": worker_config.controller.ip,
         "CONTROLLER_PORT": worker_config.controller.port,
         "DATA_PATH": worker_config.data_path,

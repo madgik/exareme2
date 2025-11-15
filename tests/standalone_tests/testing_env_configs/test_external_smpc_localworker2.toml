@@ -3,7 +3,6 @@ federation = "standalone_tests"
 log_level = "DEBUG"
 framework_log_level = "INFO"
 role = "LOCALWORKER"
-monetdb_nclients = 64
 data_path = "$DATA_PATH"
 
 [controller]
@@ -25,16 +24,6 @@ port = 60006
 user = "user"
 password = "password"
 vhost = "user_vhost"
-
-[monetdb]
-enabled = true
-ip = "172.17.0.1"
-port = 61006
-database = "db"
-local_username = "executor"
-local_password = "executor"
-public_username = "guest"
-public_password = "guest"
 
 [aggregation_server]
 enabled = false

@@ -20,24 +20,20 @@ You can either create the files manually or using a '.deployment.toml' file with
 ip = "172.17.0.1"
 log_level = "INFO"
 framework_log_level ="INFO"
-monetdb_image = "madgik/exareme2_db:dev1.3"
 
 [controller]
 port = 5000
 
 [[workers]]
 id = "globalworker"
-monetdb_port=50000
 rabbitmq_port=5670
 
 [[workers]]
 id = "localworker1"
-monetdb_port=50001
 rabbitmq_port=5671
 
 [[workers]]
 id = "localworker2"
-monetdb_port=50002
 rabbitmq_port=5672
 ```
 
@@ -62,7 +58,6 @@ import subprocess
 import sys
 import time
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from contextlib import contextmanager
 from enum import Enum
@@ -78,8 +73,6 @@ import toml
 from invoke import UnexpectedExit
 from invoke import task
 from termcolor import colored
-
-from exareme2.algorithms.exareme2.udfgen import udfio
 
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
@@ -105,13 +98,61 @@ if not CLEANUP_DIR.exists():
 
 TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
-EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME2_ALGORITHM_FOLDERS"
 FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
 EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
 EXAREME2_AGG_SERVER_CONFIG_FILE = "EXAREME2_AGG_SERVER_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
+
+
+def _expand_path(path_value) -> Path:
+    """Expand environment variables and user symbols inside *path_value*."""
+
+    return Path(os.path.expanduser(os.path.expandvars(str(path_value))))
+
+
+def _duckdb_path_for_worker(worker_id: str) -> Path:
+    duckdb_path = TEST_DATA_FOLDER / f"{worker_id}.duckdb"
+    duckdb_path.parent.mkdir(parents=True, exist_ok=True)
+    return duckdb_path
+
+
+def _resolve_data_loader_folder(config: dict) -> Path:
+    data_loader_cfg = config.get("data_loader", {})
+    folder = data_loader_cfg.get("folder")
+    if folder:
+        target = _expand_path(folder)
+    else:
+        target = TEST_DATA_FOLDER / ".combined" / config["identifier"]
+    target.mkdir(parents=True, exist_ok=True)
+    return target
+
+
+def _load_worker_config(worker_id: str) -> dict | None:
+    config_path = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+    if not config_path.exists():
+        return None
+    with open(config_path) as fp:
+        return toml.load(fp)
+
+
+def _duckdb_path_from_config(worker_id: str) -> Path:
+    worker_config = _load_worker_config(worker_id)
+    if worker_config:
+        duckdb_section = worker_config.get("duckdb", {})
+        path_override = duckdb_section.get("path")
+        if path_override:
+            expanded = _expand_path(path_override)
+            expanded.parent.mkdir(parents=True, exist_ok=True)
+            return expanded
+        db_name = duckdb_section.get("db_name")
+        if db_name:
+            duckdb_path = TEST_DATA_FOLDER / f"{db_name}.duckdb"
+            duckdb_path.parent.mkdir(parents=True, exist_ok=True)
+            return duckdb_path
+    return _duckdb_path_for_worker(worker_id)
+
 
 SMPC_COORDINATOR_PORT = 12314
 SMPC_COORDINATOR_DB_PORT = 27017
@@ -162,26 +203,6 @@ def create_configs(c):
         worker_config["aggregation_server"]["enabled"] = deployment_config[
             "aggregation_server"
         ]["enabled"]
-        worker_config["sqlite"]["db_name"] = worker["id"]
-        worker_config["monetdb"]["enabled"] = deployment_config["monetdb"]["enabled"]
-        if worker_config["monetdb"]["enabled"]:
-            worker_config["monetdb"]["ip"] = deployment_config["ip"]
-            worker_config["monetdb"]["port"] = worker["monetdb_port"]
-            worker_config["monetdb"]["local_username"] = worker[
-                "local_monetdb_username"
-            ]
-            worker_config["monetdb"]["local_password"] = worker[
-                "local_monetdb_password"
-            ]
-            worker_config["monetdb"]["public_username"] = worker[
-                "public_monetdb_username"
-            ]
-            worker_config["monetdb"]["public_password"] = worker[
-                "public_monetdb_password"
-            ]
-            worker_config["monetdb"]["public_password"] = worker[
-                "public_monetdb_password"
-            ]
 
         worker_config["rabbitmq"]["ip"] = deployment_config["ip"]
         worker_config["rabbitmq"]["port"] = worker["rabbitmq_port"]
@@ -227,6 +248,15 @@ def create_configs(c):
                         "client_address"
                     ] = f"http://{deployment_config['ip']}:{worker['smpc_client_port']}"
 
+        worker_config["duckdb"] = {
+            "path": str(_duckdb_path_for_worker(worker_config["identifier"]))
+        }
+
+        worker_config["data_loader"] = {
+            "folder": str(TEST_DATA_FOLDER / ".combined" / worker_config["identifier"]),
+            "auto_load": True,
+        }
+
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker['id']}.toml"
         with open(worker_config_file, "w+") as fp:
             toml.dump(worker_config, fp)
@@ -253,7 +283,6 @@ def create_configs(c):
     controller_config["aggregation_server"]["enabled"] = deployment_config[
         "aggregation_server"
     ]["enabled"]
-    controller_config["monetdb"]["enabled"] = deployment_config["monetdb"]["enabled"]
     controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
         "celery_tasks_timeout"
     ]
@@ -270,14 +299,6 @@ def create_configs(c):
     )
     controller_config["localworkers"]["dns"] = ""
     controller_config["localworkers"]["port"] = ""
-
-    controller_config["cleanup"]["contextids_cleanup_folder"] = str(CLEANUP_DIR)
-    controller_config["cleanup"]["workers_cleanup_interval"] = deployment_config[
-        "cleanup"
-    ]["workers_cleanup_interval"]
-    controller_config["cleanup"]["contextid_release_timelimit"] = deployment_config[
-        "cleanup"
-    ]["contextid_release_timelimit"]
 
     controller_config["smpc"]["enabled"] = deployment_config["smpc"]["enabled"]
     if controller_config["smpc"]["enabled"]:
@@ -355,20 +376,17 @@ def install_dependencies(c):
 
 
 @task
-def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=False):
+def rm_containers(c, container_name=None, rabbitmq=False, smpc=False):
     """
     Remove the specified docker containers, either by container or relative name.
 
     :param container_name: If set, removes the container with the specified name.
-    :param monetdb: If True, it will remove all monetdb containers.
     :param rabbitmq: If True, it will remove all rabbitmq containers.
     :param smpc: If True, it will remove all smpc related containers.
 
     If nothing is set, nothing is removed.
     """
     names = []
-    if monetdb:
-        names.append("monetdb")
     if rabbitmq:
         names.append("rabbitmq")
     if smpc:
@@ -377,7 +395,7 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=Fa
         names.append(container_name)
     if not names:
         message(
-            "You must specify at least one container family to remove (monetdb or/and rabbitmq)",
+            "You must specify at least one container family to remove (rabbitmq and/or smpc)",
             level=Level.WARNING,
         )
     for name in names:
@@ -390,80 +408,21 @@ def rm_containers(c, container_name=None, monetdb=False, rabbitmq=False, smpc=Fa
             message(f"No {name} container to remove.", level=Level.HEADER)
 
 
-@task(iterable=["worker"])
-def create_monetdb(
-    c, worker, image=None, log_level=None, nclients=None, monetdb_memory_limit=None
-):
-    """
-    (Re)Create MonetDB container(s) for given worker(s). If the container exists, it will remove it and create it again.
+@task(iterable=["worker"], name="create-duckdb")
+def create_duckdb(c, worker):
+    """Prepare DuckDB files for the specified workers."""
 
-    :param worker: A list of workers for which it will create the monetdb containers.
-    :param image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
-    :param log_level: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
-    :param nclients: If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
-
-    If an image is not provided it will use the 'monetdb_image' field from
-    the 'DEPLOYMENT_CONFIG_FILE' ex. monetdb_image = "madgik/exareme2_db:dev1.2"
-
-    The data of the monetdb container are not persisted. If the container is recreated, all data will be lost.
-    """
     if not worker:
         message("Please specify a worker using --worker <worker>", Level.WARNING)
         sys.exit(1)
 
-    if not image:
-        image = get_deployment_config("monetdb_image")
-
-    if not log_level:
-        log_level = get_deployment_config("log_level")
-
-    if not nclients:
-        nclients = get_deployment_config("monetdb_nclients")
-
-    if not monetdb_memory_limit:
-        monetdb_memory_limit = get_deployment_config("monetdb_memory_limit")
-
-    get_docker_image(c, image)
-
-    udfio_full_path = path.abspath(udfio.__file__)
-
-    worker_ids = worker
-    for worker_id in worker_ids:
-        container_name = f"monetdb-{worker_id}"
-        rm_containers(c, container_name=container_name)
-
-        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
-        with open(worker_config_file) as fp:
-            worker_config = toml.load(fp)
-        monetdb_nclient_env_var = ""
-        if worker_config["role"] == "GLOBALWORKER":
-            monetdb_nclient_env_var = f"-e MONETDB_NCLIENTS={nclients}"
-        container_ports = f"{worker_config['monetdb']['port']}:50000"
+    for worker_id in worker:
+        duckdb_path = _duckdb_path_from_config(worker_id)
+        clean_duckdb(duckdb_path)
         message(
-            f"Starting container {container_name} on ports {container_ports}...",
+            f"Reset DuckDB file for worker: {worker_id} at {duckdb_path}.",
             Level.HEADER,
         )
-        cmd = f"""docker run -d -P -p {container_ports} -e SOFT_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.7} -e HARD_RESTART_MEMORY_LIMIT={monetdb_memory_limit * 0.85}  -e LOG_LEVEL={log_level} {monetdb_nclient_env_var} -e MAX_MEMORY={monetdb_memory_limit*1048576} {monetdb_nclient_env_var} -v {udfio_full_path}:/home/udflib/udfio.py -v {TEST_DATA_FOLDER}:{TEST_DATA_FOLDER} --name {container_name} --memory={monetdb_memory_limit}m {image}"""
-        run(c, cmd)
-
-
-@task(iterable=["worker"])
-def init_system_tables(c, worker):
-    """
-    Initialize Sqlite with the system tables using mipdb.
-
-    :param worker: A list of workers that will be initialized.
-    """
-    workers = worker
-    for worker in workers:
-        sqlite_path = f"{TEST_DATA_FOLDER}/{worker}.db"
-        clean_sqlite(sqlite_path)
-        message(
-            f"Initializing system tables on sqlite with mipdb on worker: {worker}...",
-            Level.HEADER,
-        )
-        cmd = f"""poetry run mipdb  {get_sqlite_path(worker)} init"""
-        run(c, cmd)
 
 
 @task
@@ -483,13 +442,11 @@ def update_wla(c):
     print("Successfully updated wla.")
 
 
-@task(iterable=["port"])
-def load_data(c, use_sockets=False, worker=None):
+def _structure_data(worker=None):
     """
     Load data into the specified DB from the 'TEST_DATA_FOLDER'.
 
     :param port: A list of ports, in which it will load the data. If not set, it will use the `WORKERS_CONFIG_DIR` files.
-    :param use_sockets: Flag that determines if the data will be loaded via sockets or not.
     """
 
     def get_worker_configs():
@@ -525,7 +482,7 @@ def load_data(c, use_sockets=False, worker=None):
         :return: A list of tuples containing worker identifiers and ports.
         """
         return [
-            (config["identifier"], config["monetdb"]["port"])
+            config["identifier"]
             for config in worker_configs
             if (not worker or config["identifier"] == worker)
             and config["role"] == node_type
@@ -544,15 +501,13 @@ def load_data(c, use_sockets=False, worker=None):
 
     def get_datasets_per_localworker(dirpath, filenames, worker_id_and_ports):
         """Using round robin returns the csv paths per worker per data-model"""
-        datasets_per_localworker = {
-            worker_id: [] for worker_id, _ in worker_id_and_ports
-        }
+        datasets_per_localworker = {worker_id: [] for worker_id in worker_id_and_ports}
 
         if not worker_id_and_ports:
             return datasets_per_localworker
 
         if len(worker_id_and_ports) == 1:
-            worker_id = worker_id_and_ports[0][0]
+            worker_id = worker_id_and_ports[0]
             datasets_per_localworker[worker_id] = sorted(
                 [
                     os.path.join(dirpath, file)
@@ -562,7 +517,7 @@ def load_data(c, use_sockets=False, worker=None):
             )
             return datasets_per_localworker
 
-        first_worker_id = worker_id_and_ports[0][0]
+        first_worker_id = worker_id_and_ports[0]
         first_worker_csvs = sorted(
             [
                 os.path.join(dirpath, file)
@@ -583,7 +538,7 @@ def load_data(c, use_sockets=False, worker=None):
         )
         worker_cycle = itertools.cycle(worker_id_and_ports[1:])
         for csv_path in remaining_csvs:
-            worker_id, _ = next(worker_cycle)
+            worker_id = next(worker_cycle)
             datasets_per_localworker[worker_id].append(csv_path)
 
         return datasets_per_localworker
@@ -670,6 +625,13 @@ def load_data(c, use_sockets=False, worker=None):
                 combined_csv_path = data_model_dir / f"{data_model_code}.csv"
                 concatenate_csv_files(dataset_paths, combined_csv_path)
 
+                dataset_codes = sorted(
+                    {Path(path).stem for path in dataset_paths if path.endswith(".csv")}
+                )
+                datasets_file = data_model_dir / "datasets.json"
+                with open(datasets_file, "w", encoding="utf-8") as fp:
+                    json.dump(dataset_codes, fp)
+
                 combined_folder_structure[worker_id][data_model_key] = {
                     "folder": str(data_model_dir),
                     "metadata": str(metadata_destination),
@@ -679,76 +641,7 @@ def load_data(c, use_sockets=False, worker=None):
 
         return combined_root, worker_directories, combined_folder_structure
 
-    def load_combined_folders(worker_dirs, port_lookup, use_sockets):
-        """Load combined folders into MonetDB for each worker in parallel."""
-
-        load_jobs = []
-        for worker_id, port in port_lookup.items():
-            worker_dir = worker_dirs.get(worker_id)
-            if not worker_dir or not worker_dir.exists():
-                continue
-
-            if not any(worker_dir.iterdir()):
-                message(
-                    f"No combined datasets found for worker: {worker_id}. Skipping load-folder command.",
-                    Level.WARNING,
-                )
-                continue
-
-            load_jobs.append((worker_id, port, worker_dir))
-
-        if not load_jobs:
-            return
-
-        max_workers = min(len(load_jobs), max(os.cpu_count() or 1, 1))
-
-        def execute_load_folder(worker_id, port, worker_dir):
-            message(
-                f"Loading combined datasets for worker: {worker_id} from {worker_dir}...",
-                Level.HEADER,
-            )
-            cmd = (
-                f"poetry run mipdb {get_monetdb_configs_in_mipdb_format(port)} "
-                f"{get_sqlite_path(worker_id)} load-folder {worker_dir}"
-            )
-            if get_deployment_config("monetdb", subconfig="enabled") and use_sockets:
-                cmd += " --no-copy"
-
-            completed_process = subprocess.run(
-                cmd,
-                shell=True,
-                check=False,
-                text=True,
-            )
-            if completed_process.returncode != 0:
-                message(
-                    f"Failed to load combined datasets for worker: {worker_id} (exit code {completed_process.returncode}).",
-                    Level.ERROR,
-                )
-                raise UnexpectedExit(
-                    f"load-folder failed for worker {worker_id} with exit code {completed_process.returncode}"
-                )
-
-        errors = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = [
-                executor.submit(execute_load_folder, worker_id, port, worker_dir)
-                for worker_id, port, worker_dir in load_jobs
-            ]
-
-            for future in futures:
-                try:
-                    future.result()
-                except Exception as exc:  # noqa: BLE001
-                    errors.append(exc)
-
-        if errors:
-            raise RuntimeError(
-                "One or more load-folder operations failed. Check the logs above for details."
-            )
-
     worker_dataset_structure = defaultdict(dict)
-
     # Retrieve and filter worker configurations for local workers
     worker_configs = get_worker_configs()
     local_worker_id_and_ports = filter_worker_configs(
@@ -758,10 +651,7 @@ def load_data(c, use_sockets=False, worker=None):
     if not local_worker_id_and_ports:
         raise Exception("Local worker config files cannot be loaded.")
 
-    all_worker_ids = {worker_id for worker_id, _ in local_worker_id_and_ports}
-    worker_port_lookup = {
-        worker_id: port for worker_id, port in local_worker_id_and_ports
-    }
+    all_worker_ids = {worker_id for worker_id in local_worker_id_and_ports}
 
     # Retrieve and filter worker configurations for global worker
     global_worker_id_and_ports = filter_worker_configs(
@@ -771,10 +661,7 @@ def load_data(c, use_sockets=False, worker=None):
     if not global_worker_id_and_ports:
         raise Exception("Global worker config files cannot be loaded.")
 
-    all_worker_ids.update(worker_id for worker_id, _ in global_worker_id_and_ports)
-    worker_port_lookup.update(
-        {worker_id: port for worker_id, port in global_worker_id_and_ports}
-    )
+    all_worker_ids.update(worker_id for worker_id in global_worker_id_and_ports)
     # Process each dataset in the TEST_DATA_FOLDER for local workers
     for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
         if ".combined" in dirnames:
@@ -821,30 +708,10 @@ def load_data(c, use_sockets=False, worker=None):
             Level.BODY,
         )
 
-        for worker_id, data_models in combined_folder_structure.items():
-            message(
-                f"  Worker {worker_id} -> {len(data_models)} data model(s) combined",
-                Level.BODY,
-            )
 
-        load_combined_folders(worker_directories, worker_port_lookup, use_sockets)
-
-
-def get_sqlite_path(worker_id):
-    return f"--sqlite {TEST_DATA_FOLDER}/{worker_id}.db"
-
-
-def get_monetdb_configs_in_mipdb_format(port):
-    if not get_deployment_config("monetdb", subconfig="enabled"):
-        return "--no-monetdb "
-    return (
-        f"--monetdb "
-        f"--ip 127.0.0.1 "
-        f"--port {port} "
-        f"--username admin "
-        f"--password executor "
-        f"--db-name db"
-    )
+@task(iterable=["port"])
+def structure_data(c, worker=None):
+    _structure_data(worker)
 
 
 @task(iterable=["worker"])
@@ -993,7 +860,6 @@ def start_worker(
     all_=False,
     framework_log_level=None,
     detached=False,
-    exareme2_algorithm_folders=None,
     flower_algorithm_folders=None,
     exaflow_algorithm_folders=None,
 ):
@@ -1004,7 +870,6 @@ def start_worker(
     :param all_: If set, the workers of which the configuration file exists, will be started.
     :param framework_log_level: If not provided, it will look into the `DEPLOYMENT_CONFIG_FILE`.
     :param detached: If set to True, it will start the service in the background.
-    :param exareme2_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
 
     The containers related to the api remain unchanged.
@@ -1014,9 +879,6 @@ def start_worker(
         framework_log_level = get_deployment_config("framework_log_level")
 
     # Validate algorithm folders
-    exareme2_algorithm_folders = validate_algorithm_folders(
-        exareme2_algorithm_folders, "exareme2_algorithm_folders"
-    )
     flower_algorithm_folders = validate_algorithm_folders(
         flower_algorithm_folders, "flower_algorithm_folders"
     )
@@ -1034,7 +896,6 @@ def start_worker(
 
         # Build environment variables dictionary
         env_vars = {
-            EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme2_algorithm_folders,
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
             EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
             EXAREME2_WORKER_CONFIG_FILE: worker_config_file,
@@ -1135,7 +996,6 @@ def kill_controller(c):
 def start_controller(
     c,
     detached=False,
-    exareme2_algorithm_folders=None,
     flower_algorithm_folders=None,
     exaflow_algorithm_folders=None,
 ):
@@ -1144,9 +1004,6 @@ def start_controller(
     """
 
     # Validate algorithm folders
-    exareme2_algorithm_folders = validate_algorithm_folders(
-        exareme2_algorithm_folders, "exareme2_algorithm_folders"
-    )
     flower_algorithm_folders = validate_algorithm_folders(
         flower_algorithm_folders, "flower_algorithm_folders"
     )
@@ -1160,7 +1017,6 @@ def start_controller(
 
     # Build a dictionary of environment variables for the controller
     env_vars = {
-        EXAREME2_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme2_algorithm_folders,
         FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
         EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
         EXAREME2_CONTROLLER_CONFIG_FILE: controller_config_file,
@@ -1189,9 +1045,6 @@ def deploy(
     install_dep=True,
     log_level=None,
     framework_log_level=None,
-    monetdb_image=None,
-    monetdb_nclients=None,
-    exareme2_algorithm_folders=None,
     flower_algorithm_folders=None,
     exaflow_algorithm_folders=None,
     smpc=None,
@@ -1202,9 +1055,6 @@ def deploy(
     :param install_dep: Install dependencies or not.
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param monetdb_image: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param monetdb_nclients: Used for the db containers. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param exareme2_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param exaflow_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
@@ -1215,16 +1065,6 @@ def deploy(
 
     if not framework_log_level:
         framework_log_level = get_deployment_config("framework_log_level")
-
-    start_monetdb = get_deployment_config("monetdb", subconfig="enabled")
-    if not monetdb_image:
-        monetdb_image = get_deployment_config("monetdb_image")
-
-    if not monetdb_nclients:
-        monetdb_nclients = get_deployment_config("monetdb_nclients")
-
-    if not exareme2_algorithm_folders:
-        exareme2_algorithm_folders = get_deployment_config("exareme2_algorithm_folders")
 
     if not flower_algorithm_folders:
         flower_algorithm_folders = get_deployment_config("flower_algorithm_folders")
@@ -1256,20 +1096,10 @@ def deploy(
         with open(worker_config_file) as fp:
             worker_config = toml.load(fp)
         worker_ids.append(worker_config["identifier"])
-
+    _structure_data()
     create_rabbitmq(c, worker=worker_ids)
 
     worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
-    if start_monetdb:
-        create_monetdb(
-            c,
-            worker=worker_ids,
-            image=monetdb_image,
-            log_level=log_level,
-            nclients=monetdb_nclients,
-        )
-    init_system_tables(c, worker=worker_ids)
-
     if start_aggregation_server_:
         start_aggregation_server(c, detached=True)
 
@@ -1280,7 +1110,6 @@ def deploy(
         all_=True,
         framework_log_level=framework_log_level,
         detached=True,
-        exareme2_algorithm_folders=exareme2_algorithm_folders,
         flower_algorithm_folders=flower_algorithm_folders,
         exaflow_algorithm_folders=exaflow_algorithm_folders,
     )
@@ -1289,7 +1118,6 @@ def deploy(
     start_controller(
         c,
         detached=True,
-        exareme2_algorithm_folders=exareme2_algorithm_folders,
         flower_algorithm_folders=flower_algorithm_folders,
         exaflow_algorithm_folders=exaflow_algorithm_folders,
     )
@@ -1321,18 +1149,31 @@ def attach(c, worker=None, controller=False, db=None):
 
 @task
 def cleanup(c):
-    """Kill all worker/controller api and remove all monetdb/rabbitmq containers."""
+    """Stop worker/controller services, remove RabbitMQ containers, and delete DuckDB files."""
     kill_controller(c)
     kill_aggregation_server(c)
     kill_worker(c, all_=True)
-    rm_containers(c, monetdb=True, rabbitmq=True, smpc=True)
+    rm_containers(c, rabbitmq=True, smpc=True)
 
-    # Create a pattern for .db files
-    pattern = os.path.join(TEST_DATA_FOLDER, "*.db")
+    # Create a pattern for DuckDB files inside the default test data folder
+    pattern = os.path.join(TEST_DATA_FOLDER, "*.duckdb")
 
-    # Delete each .db file
-    for sqlite_path in glob.glob(pattern):
-        clean_sqlite(sqlite_path)
+    # Delete each DuckDB file
+    for duckdb_path in glob.glob(pattern):
+        clean_duckdb(duckdb_path)
+
+    # Remove any DuckDB files referenced in worker configs (in case they live elsewhere)
+    if WORKERS_CONFIG_DIR.exists():
+        config_defined_paths = set()
+        for config_file in WORKERS_CONFIG_DIR.glob("*.toml"):
+            with open(config_file) as fp:
+                worker_config = toml.load(fp)
+            duckdb_path = worker_config.get("duckdb", {}).get("path")
+            if duckdb_path:
+                config_defined_paths.add(_expand_path(duckdb_path))
+
+        for duckdb_path in config_defined_paths:
+            clean_duckdb(duckdb_path)
 
     combined_root_path = TEST_DATA_FOLDER / ".combined"
     if combined_root_path.exists():
@@ -1360,14 +1201,15 @@ def cleanup(c):
         message("Ok", level=Level.SUCCESS)
 
 
-def clean_sqlite(sqlite_path):
+def clean_duckdb(duckdb_path):
+    duckdb_path = _expand_path(duckdb_path)
     try:
-        if os.path.exists(sqlite_path):
-            message(f"Removing {sqlite_path}...", level=Level.HEADER)
-            os.remove(sqlite_path)
+        if duckdb_path.exists():
+            message(f"Removing {duckdb_path}...", level=Level.HEADER)
+            duckdb_path.unlink()
             message("Ok", level=Level.SUCCESS)
-    except Exception as e:
-        print(f"Error deleting {sqlite_path}: {e}")
+    except Exception as e:  # noqa: BLE001
+        print(f"Error deleting {duckdb_path}: {e}")
 
 
 @task
@@ -1621,34 +1463,6 @@ def deploy_smpc(c, ip=None, smpc_image=None, smpc_db_image=None, smpc_queue_imag
     start_smpc_coordinator(c, ip, smpc_image, smpc_db_image, smpc_queue_image)
     start_smpc_players(c, ip, smpc_image)
     start_smpc_clients(c, ip, smpc_image)
-
-
-@task(iterable=["db"])
-def reload_udfio(c, db):
-    """
-    Used for reloading the udfio module inside the monetdb containers.
-
-    :param db: The names of the monetdb containers.
-    """
-    dbs = db
-    for db in dbs:
-        sql_reload_query = """
-CREATE OR REPLACE FUNCTION
-reload_udfio()
-RETURNS
-INT
-LANGUAGE PYTHON
-{
-    import udfio
-    import importlib
-    importlib.reload(udfio)
-    return 0
-};
-
-SELECT reload_udfio();
-        """
-        command = f'docker exec -t {db} mclient db --statement "{sql_reload_query}"'
-        run(c, command)
 
 
 def run(
