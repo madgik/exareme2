@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import Counter
 from functools import reduce
 from typing import Dict
@@ -110,7 +108,12 @@ def local_step(inputdata, csv_paths, numerical_vars, nominal_vars):
     from exareme2.worker import config as worker_config
 
     min_row_count = worker_config.privacy.minimum_row_count
-    data = fetch_data(inputdata, csv_paths)
+    data = fetch_data(inputdata, csv_paths, dropna=False)
+    data = data.loc[:, ~data.columns.duplicated()]
+    if "dataset" in data.columns:
+        ds = data["dataset"]
+        if isinstance(ds, pd.DataFrame):
+            data["dataset"] = ds.iloc[:, 0]
 
     return _compute_local_stats(data, numerical_vars, nominal_vars, min_row_count)
 
@@ -181,12 +184,12 @@ def _compute_local_stats(data, numerical_vars, nominal_vars, min_row_count):
         ]
         return numerical_recs + nominal_recs
 
-    datasets = list(data.dataset.unique()) if "dataset" in data.columns else ["unknown"]
+    datasets = set(data["dataset"]) if "dataset" in data.columns else ["unknown"]
 
     recs_varbased = [
         stats
         for dataset in datasets
-        for stats in compute_records(data[data.dataset == dataset], dataset)
+        for stats in compute_records(data[data["dataset"] == dataset], dataset)
     ]
     data_nona = data.dropna()
     recs_modbased = [

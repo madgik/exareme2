@@ -96,7 +96,11 @@ class AggregationServer(AggregationServerServicer):
     def _get_aggregation_context(self, request_id, context) -> AggregationContext:
         with self.global_lock:
             if request_id not in self.aggregation_contexts:
-                msg = f"Request ID '{request_id}' not configured."
+                available = ", ".join(self.aggregation_contexts.keys()) or "none"
+                msg = (
+                    f"Request ID '{request_id}' not configured. "
+                    f"Available contexts: {available}"
+                )
                 logger.error(f"[AGGREGATE] {msg}")
                 context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
             return self.aggregation_contexts[request_id]

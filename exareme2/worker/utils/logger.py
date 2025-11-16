@@ -1,16 +1,17 @@
 import inspect
 import logging
 import time
+from contextvars import ContextVar
 from functools import wraps
-
-from celery import current_task
 
 from exareme2.worker import config as worker_config
 from exareme2.worker_communication import RequestIDNotFound
 
 LOGGING_ID_TASK_PARAM = "request_id"
 
-task_loggers = {}
+_request_logger: ContextVar[logging.Logger | None] = ContextVar(
+    "_request_logger", default=None
+)
 
 
 def init_logger(request_id):
@@ -33,7 +34,10 @@ def init_logger(request_id):
 
 
 def get_logger():
-    return task_loggers[current_task.request.id]
+    logger = _request_logger.get()
+    if not logger:
+        raise RequestIDNotFound()
+    return logger
 
 
 def initialise_logger(func):
@@ -50,10 +54,12 @@ def initialise_logger(func):
         else:
             raise RequestIDNotFound()
 
-        task_loggers[current_task.request.id] = init_logger(request_id)
-        function = func(*args, **kwargs)
-        del task_loggers[current_task.request.id]
-        return function
+        logger = init_logger(request_id)
+        token = _request_logger.set(logger)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            _request_logger.reset(token)
 
     return wrapper
 

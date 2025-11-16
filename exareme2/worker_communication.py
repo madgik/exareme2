@@ -18,20 +18,11 @@ from exareme2 import DType
 
 """
 !!!!!!!!!!!!!!!!!!!!!! ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!
-In some cases an exception thrown by the WORKER(celery) will be received
-in the CONTROLLER(celery get method) as a generic Exception and catching
-it by its definition won't be possible.
-
-This is happening due to a celery problem: https://github.com/celery/celery/issues/3586
-
-There are some workarounds possible that are case specific.
-
-For example in the DataModelUnavailable using the `super().__init__(self.message)`
-was creating many problems in deserializing the exception.
-
-When adding a new exception, the task throwing it should be tested:
-1) That you can catch the exception by its name,
-2) the contained message, if exists, is shown properly.
+When exceptions are propagated from workers through the asynchronous RPC layer
+they may arrive wrapped as generic exceptions. In those cases catching them by
+their original definition might not be possible. Always verify that any newly
+introduced exception is still serialised/deserialised correctly across the
+controller <-> worker boundary and that the message survives the roundtrip.
 """
 
 

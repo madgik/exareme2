@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -147,6 +145,7 @@ def _numerical_histogram(
     bins,
     min_row_count,
 ):
+    bins = max(1, int(round(bins)))
     values = data[y_var].to_numpy(dtype=float, copy=False)
     n_obs = int(values.size)
     total_n_obs = agg_client.sum([float(n_obs)])[0]

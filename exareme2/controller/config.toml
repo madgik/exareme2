@@ -23,17 +23,14 @@ config_file="$LOCALWORKERS_CONFIG_FILE"
 dns="$LOCALWORKERS_DNS"
 port="$LOCALWORKERS_PORT"
 
-[rabbitmq]
-user = "user"
-password = "password"
-vhost = "user_vhost"
-celery_tasks_timeout="$CELERY_TASKS_TIMEOUT"
-celery_cleanup_task_timeout="$CELERY_TASKS_TIMEOUT"
-celery_run_udf_task_timeout="$CELERY_TASKS_TIMEOUT"
-celery_tasks_max_retries=3
-celery_tasks_interval_start=0
-celery_tasks_interval_step=0.2
-celery_tasks_interval_max=0.5
+[grpc]
+tasks_timeout="$WORKER_TASKS_TIMEOUT"
+cleanup_task_timeout="$WORKER_CLEANUP_TASK_TIMEOUT"
+run_udf_task_timeout="$WORKER_RUN_UDF_TASK_TIMEOUT"
+tasks_max_retries=3
+tasks_interval_start=0
+tasks_interval_step=0.2
+tasks_interval_max=0.5
 
 [aggregation_server]
 enabled = "$AGGREGATION_SERVER_ENABLED"

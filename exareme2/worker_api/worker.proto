@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package exareme2.worker.api;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/wrappers.proto";
+
+service WorkerService {
+  rpc GetWorkerInfo(GetWorkerInfoRequest) returns (GetWorkerInfoResponse);
+  rpc ListDatasetsPerDataModel(ListDatasetsPerDataModelRequest)
+      returns (ListDatasetsPerDataModelResponse);
+  rpc GetDataModelCdes(GetDataModelRequest) returns (GetDataModelCdesResponse);
+  rpc GetDataModelAttributes(GetDataModelRequest)
+      returns (GetDataModelAttributesResponse);
+  rpc Healthcheck(HealthcheckRequest) returns (HealthcheckResponse);
+
+  rpc StartFlowerClient(StartFlowerClientRequest)
+      returns (StartFlowerClientResponse);
+  rpc StartFlowerServer(StartFlowerServerRequest)
+      returns (StartFlowerServerResponse);
+  rpc StopFlowerClient(StopFlowerProcessRequest)
+      returns (StopFlowerProcessResponse);
+  rpc StopFlowerServer(StopFlowerProcessRequest)
+      returns (StopFlowerProcessResponse);
+  rpc GarbageCollect(GarbageCollectRequest) returns (GarbageCollectResponse);
+
+  rpc RunUdf(RunUdfRequest) returns (RunUdfResponse);
+  rpc LoadDataFolder(LoadDataFolderRequest) returns (LoadDataFolderResponse);
+}
+
+enum WorkerRole {
+  WORKER_ROLE_UNSPECIFIED = 0;
+  GLOBALWORKER = 1;
+  LOCALWORKER = 2;
+}
+
+message WorkerInfo {
+  string id = 1;
+  WorkerRole role = 2;
+  string ip = 3;
+  int32 port = 4;
+  string data_folder = 5;
+  bool auto_load_data = 6;
+}
+
+message GetWorkerInfoRequest {
+  string request_id = 1;
+}
+
+message GetWorkerInfoResponse {
+  WorkerInfo worker = 1;
+}
+
+message ListDatasetsPerDataModelRequest {
+  string request_id = 1;
+}
+
+message ListDatasetsPerDataModelResponse {
+  repeated DatasetsInfoPerDataModel datasets_info = 1;
+}
+
+message DatasetsInfoPerDataModel {
+  string data_model = 1;
+  repeated DatasetInfo datasets = 2;
+}
+
+message DatasetInfo {
+  string code = 1;
+  string label = 2;
+  repeated string variables = 3;
+}
+
+message GetDataModelRequest {
+  string request_id = 1;
+  string data_model = 2;
+}
+
+message GetDataModelCdesResponse {
+  CommonDataElements cdes = 1;
+}
+
+message CommonDataElements {
+  map<string, CommonDataElement> values = 1;
+}
+
+message CommonDataElement {
+  string code = 1;
+  string label = 2;
+  string sql_type = 3;
+  bool is_categorical = 4;
+  map<string, string> enumerations = 5;
+  google.protobuf.DoubleValue min = 6;
+  google.protobuf.DoubleValue max = 7;
+  repeated string enumerations_order = 8;
+}
+
+message GetDataModelAttributesResponse {
+  DataModelAttributes attributes = 1;
+}
+
+message DataModelAttributes {
+  repeated string tags = 1;
+  google.protobuf.Struct properties = 2;
+}
+
+message HealthcheckRequest {
+  string request_id = 1;
+  bool check_db = 2;
+}
+
+message HealthcheckResponse {
+  bool ok = 1;
+}
+
+message StartFlowerClientRequest {
+  string request_id = 1;
+  string algorithm_folder_path = 2;
+  string server_address = 3;
+  string data_model = 4;
+  repeated string datasets = 5;
+  int32 execution_timeout = 6;
+}
+
+message StartFlowerClientResponse {
+  int32 pid = 1;
+}
+
+message StartFlowerServerRequest {
+  string request_id = 1;
+  string algorithm_folder_path = 2;
+  int32 number_of_clients = 3;
+  string server_address = 4;
+  string data_model = 5;
+  repeated string datasets = 6;
+}
+
+message StartFlowerServerResponse {
+  int32 pid = 1;
+}
+
+message StopFlowerProcessRequest {
+  string request_id = 1;
+  int32 pid = 2;
+  string algorithm_name = 3;
+}
+
+message StopFlowerProcessResponse {
+  bool stopped = 1;
+}
+
+message GarbageCollectRequest {
+  string request_id = 1;
+}
+
+message GarbageCollectResponse {
+  bool ok = 1;
+}
+
+message RunUdfRequest {
+  string request_id = 1;
+  string udf_registry_key = 2;
+  google.protobuf.Struct params = 3;
+}
+
+message RunUdfResponse {
+  google.protobuf.Value result = 1;
+}
+
+message LoadDataFolderRequest {
+  string request_id = 1;
+  google.protobuf.StringValue folder = 2;
+}
+
+message LoadDataFolderResponse {
+  string status = 1;
+}

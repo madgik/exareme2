@@ -1,19 +1,16 @@
-from exareme2.celery_app_conf import CELERY_APP_QUEUE_MAX_PRIORITY
-from exareme2.celery_app_conf import get_celery_app
+import grpc
+
 from exareme2.worker import config as worker_config
+from exareme2.worker_api import worker_pb2
+from exareme2.worker_api import worker_pb2_grpc
 
-HEALTHCHECK_TASK_SIGNATURE = "exareme2.worker.worker_info.worker_info_api.healthcheck"
+target = f"{worker_config.grpc.ip}:{worker_config.grpc.port}"
+channel = grpc.insecure_channel(target)
+stub = worker_pb2_grpc.WorkerServiceStub(channel)
 
-socket_addr = f"{worker_config.rabbitmq.ip}:{worker_config.rabbitmq.port}"
-user = worker_config.rabbitmq.user
-password = worker_config.rabbitmq.password
-vhost = worker_config.rabbitmq.vhost
-celery_app = get_celery_app(user, password, socket_addr, vhost)
-
-healthcheck_signature = celery_app.signature(HEALTHCHECK_TASK_SIGNATURE)
-healthcheck_signature.apply_async(
-    kwargs={"request_id": "HEALTHCHECK", "check_db": True},
-    priority=CELERY_APP_QUEUE_MAX_PRIORITY,
-).get(worker_config.celery.tasks_timeout)
+stub.Healthcheck(
+    worker_pb2.HealthcheckRequest(request_id="HEALTHCHECK", check_db=True),
+    timeout=worker_config.worker_tasks.tasks_timeout,
+)
 
 print("Healthcheck successful!")

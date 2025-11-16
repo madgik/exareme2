@@ -11,8 +11,8 @@ class WorkerUnresponsiveError(Exception):
 class WorkerTaskTimeoutError(Exception):
     def __init__(self):
         message = (
-            f"One of the celery in the algorithm execution took longer to finish than "
-            f"the timeout.This could be caused by a high load or by an experiment with "
+            f"One of the worker tasks in the algorithm execution took longer to finish than "
+            f"the timeout. This could be caused by a high load or by an experiment with "
             f"too much data. Please try again or increase the timeout."
         )
         super().__init__(message)

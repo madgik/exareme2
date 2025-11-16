@@ -51,8 +51,8 @@ spec:
           value: {{ quote .Values.controller.workers_cleanup_interval }}
         - name: WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
           value: "86400"  # One day in seconds
-        - name: CELERY_TASKS_TIMEOUT
-          value: {{ quote .Values.controller.celery_tasks_timeout }}
+        - name: WORKER_TASKS_TIMEOUT
+          value: {{ quote .Values.controller.worker_tasks_timeout }}
         - name: LOCALWORKERS_DNS
           value: {{ quote .Values.controller.workers_dns }}
         - name: LOCALWORKERS_PORT
@@ -79,13 +79,13 @@ spec:
             port: 5000
           initialDelaySeconds: 60
           periodSeconds: 30
-          timeoutSeconds: {{ .Values.controller.celery_tasks_timeout }}
+          timeoutSeconds: {{ .Values.controller.worker_tasks_timeout }}
         livenessProbe:
           httpGet:
             path: /healthcheck
             port: 5000
           periodSeconds: 30
-          timeoutSeconds: {{ .Values.controller.celery_tasks_timeout }}
+          timeoutSeconds: {{ .Values.controller.worker_tasks_timeout }}
 
       ### --- SMPC components ---
       {{ if .Values.smpc.enabled }}

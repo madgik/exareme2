@@ -120,7 +120,7 @@ def ttest_one_sample(agg_client, sample, *, mu: float, alpha: float, alternative
     t_stat = (smpl_mean - mu) / sed
     df = total_n_obs - 1
 
-    ci_lower, ci_upper = st.t.interval(alpha=1 - alpha, df=df, loc=smpl_mean, scale=sed)
+    ci_lower, ci_upper = st.t.interval(1 - alpha, df, loc=smpl_mean, scale=sed)
 
     if alternative == "greater":
         p_value = 1.0 - st.t.cdf(t_stat, df)
@@ -199,9 +199,7 @@ def ttest_paired(
     df = total_n_obs - 1
 
     sample_mean = total_diff_sum / total_n_obs
-    ci_lower, ci_upper = st.t.interval(
-        alpha=1 - alpha, df=df, loc=sample_mean, scale=sed
-    )
+    ci_lower, ci_upper = st.t.interval(1 - alpha, df, loc=sample_mean, scale=sed)
 
     if alternative == "greater":
         p_value = 1.0 - st.t.cdf(t_stat, df)
@@ -281,7 +279,7 @@ def ttest_independent(
     df = n_a_total + n_b_total - 2
     diff_mean = mean_a - mean_b
 
-    ci_lower, ci_upper = st.t.interval(alpha=1 - alpha, df=df, loc=diff_mean, scale=sed)
+    ci_lower, ci_upper = st.t.interval(1 - alpha, df, loc=diff_mean, scale=sed)
 
     if alternative == "greater":
         p_value = 1.0 - st.t.cdf(t_stat, df)

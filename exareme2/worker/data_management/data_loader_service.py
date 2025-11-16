@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections import OrderedDict
 from pathlib import Path
 
 import duckdb
@@ -93,10 +94,13 @@ def _reformat_metadata(metadata: dict) -> dict:
             reformatted[new_key] = reformatted.pop(old_key)
 
     if "enumerations" in reformatted and isinstance(reformatted["enumerations"], list):
-        reformatted["enumerations"] = {
-            enumeration.get("code", ""): enumeration.get("label", "")
+        reformatted["enumerations"] = OrderedDict(
+            (
+                enumeration.get("code", ""),
+                enumeration.get("label", ""),
+            )
             for enumeration in reformatted["enumerations"]
-        }
+        )
 
     return reformatted
 
@@ -179,17 +183,6 @@ def _dataset_codes_from_metadata(metadata: dict) -> list[str]:
     return [metadata.get("code", "dataset")]
 
 
-def _load_assigned_datasets(data_model_dir: Path) -> list[str]:
-    datasets_file = data_model_dir / "datasets.json"
-    if not datasets_file.exists():
-        return []
-    with open(datasets_file) as fp:
-        data = json.load(fp)
-    if isinstance(data, list):
-        return data
-    return []
-
-
 def load_data_folder(request_id: str, folder: str | None = None) -> str:
     db_path = worker_config.duckdb.path
     folder_path = _resolve_folder(folder)
@@ -243,15 +236,8 @@ def load_data_folder(request_id: str, folder: str | None = None) -> str:
                 ],
             )
 
-            dataset_properties = json.dumps(metadata)
-
             dataset_csv_map = _datasets_from_csv_files(csv_paths)
-            if dataset_csv_map:
-                assigned_datasets = sorted(dataset_csv_map.keys())
-            else:
-                assigned_datasets = _load_assigned_datasets(data_model_dir)
-                if not assigned_datasets:
-                    assigned_datasets = _dataset_codes_from_metadata(metadata)
+            assigned_datasets = sorted(dataset_csv_map.keys())
 
             for dataset_code in assigned_datasets:
                 dataset_id += 1
@@ -264,7 +250,7 @@ def load_data_folder(request_id: str, folder: str | None = None) -> str:
                         dataset_code,
                         "ENABLED",
                         str(dataset_csv_map.get(dataset_code, csv_paths[0])),
-                        dataset_properties,
+                        None,
                     ],
                 )
     finally:

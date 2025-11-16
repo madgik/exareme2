@@ -153,3 +153,4 @@ pyrightconfig.json
 .stored_data/
 *.db
 /tests/test_data/.combined/
+/logs/

@@ -2,8 +2,8 @@
 Deployment script used for the development of the Exareme2.
 
 In order to understand this script a basic knowledge of the system is required, this script
-does not contain the documentation of the engine. The documentation of the celery,
-in this script, is targeted to the specifics of the development deployment process.
+does not contain the documentation of the engine. The documentation in this script
+is targeted to the specifics of the development deployment process.
 
 This script deploys all the containers and api natively on your machine.
 It deploys the containers on different ports and then configures the api to use the appropriate ports.
@@ -13,7 +13,7 @@ or in the location of the env variable 'EXAREME2_WORKER_CONFIG_FILE', if the env
 This deployment script used for development, uses the env variable logic, therefore before deploying each
 worker service the env variable is changed to the location of the worker api' config file.
 
-In order for this script's celery to work the './configs/workers' folder should contain all the worker's config files
+In order for this script to work the './configs/workers' folder should contain all the worker's config files
 following the './exareme2/worker/config.toml' as template.
 You can either create the files manually or using a '.deployment.toml' file with the following template
 ```
@@ -26,21 +26,21 @@ port = 5000
 
 [[workers]]
 id = "globalworker"
-rabbitmq_port=5670
+grpc_port=5670
 
 [[workers]]
 id = "localworker1"
-rabbitmq_port=5671
+grpc_port=5671
 
 [[workers]]
 id = "localworker2"
-rabbitmq_port=5672
+grpc_port=5672
 ```
 
 and by running the command 'inv create-configs'.
 
 The worker api are named after their config file. If a config file is named './configs/workers/localworker1.toml'
-the worker service will be called 'localworker1' and should be referenced using that in the following celery.
+the worker service will be called 'localworker1' and should be referenced using that in the following commands.
 
 Paths are subject to change so in the following documentation the global variables will be used.
 
@@ -88,7 +88,7 @@ CONTROLLER_CONFIG_TEMPLATE_FILE = (
 )
 AGG_SERVER_DIR = PROJECT_ROOT / "aggregation_server"
 AGG_SERVER_CONFIG_TEMPLATE_FILE = AGG_SERVER_DIR / "config.toml"
-OUTDIR = Path("/tmp/exareme2/")
+OUTDIR = PROJECT_ROOT / "logs"
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
@@ -166,7 +166,7 @@ SMPC_PLAYER_BASE_NAME = "smpc_player"
 SMPC_CLIENT_BASE_NAME = "smpc_client"
 
 
-# TODO Add pre-celery when this is implemented https://github.com/pyinvoke/invoke/issues/170
+# TODO Replace invoke's lack of pre-task support when implemented https://github.com/pyinvoke/invoke/issues/170
 # Right now if we call a task from another task, the "pre"-task is not executed
 
 
@@ -204,14 +204,15 @@ def create_configs(c):
             "aggregation_server"
         ]["enabled"]
 
-        worker_config["rabbitmq"]["ip"] = deployment_config["ip"]
-        worker_config["rabbitmq"]["port"] = worker["rabbitmq_port"]
+        worker_config["grpc"]["ip"] = deployment_config["ip"]
+        worker_config["grpc"]["port"] = worker["grpc_port"]
+        worker_config["grpc"]["bind_ip"] = "0.0.0.0"
 
-        worker_config["celery"]["tasks_timeout"] = deployment_config[
-            "celery_tasks_timeout"
+        worker_config["worker_tasks"]["tasks_timeout"] = deployment_config[
+            "worker_tasks_timeout"
         ]
-        worker_config["celery"]["run_udf_task_timeout"] = deployment_config[
-            "celery_run_udf_task_timeout"
+        worker_config["worker_tasks"]["run_udf_task_timeout"] = deployment_config[
+            "worker_run_udf_task_timeout"
         ]
 
         worker_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
@@ -283,14 +284,14 @@ def create_configs(c):
     controller_config["aggregation_server"]["enabled"] = deployment_config[
         "aggregation_server"
     ]["enabled"]
-    controller_config["rabbitmq"]["celery_tasks_timeout"] = deployment_config[
-        "celery_tasks_timeout"
+    controller_config["grpc"]["tasks_timeout"] = deployment_config[
+        "worker_tasks_timeout"
     ]
-    controller_config["rabbitmq"]["celery_cleanup_task_timeout"] = deployment_config[
-        "celery_cleanup_task_timeout"
+    controller_config["grpc"]["cleanup_task_timeout"] = deployment_config[
+        "worker_cleanup_task_timeout"
     ]
-    controller_config["rabbitmq"]["celery_run_udf_task_timeout"] = deployment_config[
-        "celery_run_udf_task_timeout"
+    controller_config["grpc"]["run_udf_task_timeout"] = deployment_config[
+        "worker_run_udf_task_timeout"
     ]
     controller_config["deployment_type"] = "LOCAL"
 
@@ -337,7 +338,7 @@ def create_configs(c):
 
     # Create the controller localworkers config file
     localworkers_addresses = [
-        f"{deployment_config['ip']}:{worker['rabbitmq_port']}"
+        f"{deployment_config['ip']}:{worker['grpc_port']}"
         for worker in deployment_config["workers"]
     ]
     with open(CONTROLLER_LOCALWORKERS_CONFIG_FILE, "w+") as fp:
@@ -376,26 +377,23 @@ def install_dependencies(c):
 
 
 @task
-def rm_containers(c, container_name=None, rabbitmq=False, smpc=False):
+def rm_containers(c, container_name=None, smpc=False):
     """
     Remove the specified docker containers, either by container or relative name.
 
     :param container_name: If set, removes the container with the specified name.
-    :param rabbitmq: If True, it will remove all rabbitmq containers.
     :param smpc: If True, it will remove all smpc related containers.
 
     If nothing is set, nothing is removed.
     """
     names = []
-    if rabbitmq:
-        names.append("rabbitmq")
     if smpc:
         names.append("smpc")
     if container_name:
         names.append(container_name)
     if not names:
         message(
-            "You must specify at least one container family to remove (rabbitmq and/or smpc)",
+            "You must specify a container family to remove",
             level=Level.WARNING,
         )
     for name in names:
@@ -624,14 +622,6 @@ def _structure_data(worker=None):
 
                 combined_csv_path = data_model_dir / f"{data_model_code}.csv"
                 concatenate_csv_files(dataset_paths, combined_csv_path)
-
-                dataset_codes = sorted(
-                    {Path(path).stem for path in dataset_paths if path.endswith(".csv")}
-                )
-                datasets_file = data_model_dir / "datasets.json"
-                with open(datasets_file, "w", encoding="utf-8") as fp:
-                    json.dump(dataset_codes, fp)
-
                 combined_folder_structure[worker_id][data_model_key] = {
                     "folder": str(data_model_dir),
                     "metadata": str(metadata_destination),
@@ -714,74 +704,6 @@ def structure_data(c, worker=None):
     _structure_data(worker)
 
 
-@task(iterable=["worker"])
-def create_rabbitmq(c, worker, rabbitmq_image=None):
-    """
-    (Re)Create RabbitMQ container(s) of given worker(s). If the container exists, remove it and create it again.
-
-    :param worker: A list of workers for which to (re)create the rabbitmq containers.
-    :param rabbitmq_image: The image to deploy. If not set, it will read it from the `DEPLOYMENT_CONFIG_FILE`.
-
-    """
-    if not worker:
-        message("Please specify a worker using --worker <worker>", Level.WARNING)
-        sys.exit(1)
-
-    if not rabbitmq_image:
-        rabbitmq_image = get_deployment_config("rabbitmq_image")
-
-    get_docker_image(c, rabbitmq_image)
-
-    worker_ids = worker
-    for worker_id in worker_ids:
-        container_name = f"rabbitmq-{worker_id}"
-        rm_containers(c, container_name=container_name)
-
-        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
-        with open(worker_config_file) as fp:
-            worker_config = toml.load(fp)
-        queue_port = f"{worker_config['rabbitmq']['port']}:5672"
-        api_port = f"{worker_config['rabbitmq']['port']+10000}:15672"
-        message(
-            f"Starting container {container_name} on ports {queue_port}...",
-            Level.HEADER,
-        )
-        cmd = f"docker run -d -p {queue_port} -p {api_port} --name {container_name} {rabbitmq_image}"
-        run(c, cmd)
-
-
-@task(iterable=["worker"])
-def verify_rabbitmq(c, worker):
-    """Ensure RabbitMQ containers are healthy for the provided worker ids."""
-
-    if not worker:
-        message("Please specify a worker using --worker <worker>", Level.WARNING)
-        sys.exit(1)
-
-    worker_ids = worker
-
-    for worker_id in worker_ids:
-        container_name = f"rabbitmq-{worker_id}"
-
-        cmd = f"docker inspect --format='{{{{json .State.Health}}}}' {container_name}"
-        # Wait until rabbitmq is healthy
-        message(
-            f"Waiting for container {container_name} to become healthy...",
-            Level.HEADER,
-        )
-        for _ in range(100):
-            status = run(c, cmd, raise_error=True, wait=True, show_ok=False)
-
-            if '"Status":"healthy"' not in status.stdout:
-                spin_wheel(time=2)
-            else:
-                message("Ok", Level.SUCCESS)
-                break
-        else:
-            message("Cannot configure RabbitMQ", Level.ERROR)
-            sys.exit(1)
-
-
 @task
 def kill_worker(c, worker=None, all_=False):
     """
@@ -802,34 +724,22 @@ def kill_worker(c, worker=None, all_=False):
         )
         sys.exit(1)
 
-    res_bin = run(
-        c,
-        f"ps aux | grep '[c]elery' | grep 'worker' | grep '{worker_pattern}' ",
-        warn=True,
-        show_ok=False,
-    )
+    process_pattern = "python -m exareme2.worker.grpc_server"
+    grep_cmd = f"ps aux | grep '[p]ython -m exareme2.worker.grpc_server' | grep '{worker_pattern}' "
+    res_bin = run(c, grep_cmd, warn=True, show_ok=False)
 
     if res_bin.ok:
         message(
-            f"Killing previous celery instance(s) with pattern '{worker_pattern}' ...",
+            f"Killing previous worker gRPC instance(s) with pattern '{worker_pattern}' ...",
             Level.HEADER,
         )
-
-        # We need to kill the celery worker processes with the "worker_pattern", if provided.
-        # First we kill the parent process (celery workers' parent) if there is one, when "worker_pattern is provided,
-        # and then we kill all the celery worker processes with/without a pattern.
         cmd = (
-            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{worker_pattern}' | awk '{{print $2}}') "
-            f"&& pgrep -P $pid | xargs kill -9 "
+            f"pids=$(ps aux | grep '[p]ython -m exareme2.worker.grpc_server' | grep '{worker_pattern}' | awk '{{print $2}}') "
+            '&& if [ -n "$pids" ]; then kill -9 $pids; fi'
         )
         run(c, cmd, warn=True, show_ok=False)
-        cmd = (
-            f"pid=$(ps aux | grep '[c]elery' | grep 'worker' | grep '{worker_pattern}' | awk '{{print $2}}') "
-            f"&& kill -9 $pid "
-        )
-        run(c, cmd, warn=True)
     else:
-        message("No celery instances found", Level.HEADER)
+        message("No worker instances found", Level.HEADER)
 
 
 def validate_algorithm_folders(folders, name):
@@ -909,15 +819,15 @@ def start_worker(
             # Build and run the command based on the detached/all_ flags
             if detached or all_:
                 cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT}: poetry run celery "
-                    f"-A exareme2.worker.utils.celery_app worker -l {framework_log_level} > {outpath} "
-                    f"--pool=eventlet --purge 2>&1"
+                    f"PYTHONPATH={PROJECT_ROOT}: poetry run python -m "
+                    f"exareme2.worker.grpc_server --worker-id {worker_id} "
+                    f"> {outpath} 2>&1"
                 )
                 run(c, cmd, wait=False)
             else:
                 cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT} poetry run celery -A "
-                    f"exareme2.worker.utils.celery_app worker -l {framework_log_level} --pool=eventlet --purge"
+                    f"PYTHONPATH={PROJECT_ROOT} poetry run python -m "
+                    f"exareme2.worker.grpc_server --worker-id {worker_id}"
                 )
                 run(c, cmd, attach_=True)
 
@@ -955,6 +865,7 @@ def start_aggregation_server(c, detached: bool = False):
     # Build environment for the server process
     env = os.environ.copy()
     env["AGG_SERVER_CONFIG_FILE"] = str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
+    kill_aggregation_server(c)
 
     # cd into the aggregation_server folder so Poetry picks up its own pyproject.toml
     run_cmd = (
@@ -1097,13 +1008,10 @@ def deploy(
             worker_config = toml.load(fp)
         worker_ids.append(worker_config["identifier"])
     _structure_data()
-    create_rabbitmq(c, worker=worker_ids)
 
     worker_ids.sort()  # Sorting the ids protects removing a similarly named id, localworker1 would remove localworker10.
     if start_aggregation_server_:
         start_aggregation_server(c, detached=True)
-
-    verify_rabbitmq(c, worker=worker_ids)
 
     start_worker(
         c,
@@ -1149,11 +1057,11 @@ def attach(c, worker=None, controller=False, db=None):
 
 @task
 def cleanup(c):
-    """Stop worker/controller services, remove RabbitMQ containers, and delete DuckDB files."""
+    """Stop worker/controller services and delete DuckDB files."""
     kill_controller(c)
     kill_aggregation_server(c)
     kill_worker(c, all_=True)
-    rm_containers(c, rabbitmq=True, smpc=True)
+    rm_containers(c, smpc=True)
 
     # Create a pattern for DuckDB files inside the default test data folder
     pattern = os.path.join(TEST_DATA_FOLDER, "*.duckdb")
@@ -1210,64 +1118,6 @@ def clean_duckdb(duckdb_path):
             message("Ok", level=Level.SUCCESS)
     except Exception as e:  # noqa: BLE001
         print(f"Error deleting {duckdb_path}: {e}")
-
-
-@task
-def start_flower(c, worker=None, all_=False):
-    """
-    (Re)Start flower monitoring tool. If flower is already running, stop ir and start it again.
-
-    :param worker: The worker service, for which to create the flower monitoring.
-    :param all_: If set, it will create monitoring for all worker api in the `WORKERS_CONFIG_DIR`.
-    """
-
-    kill_all_flowers(c)
-
-    FLOWER_PORT = 5550
-
-    worker_ids = get_worker_ids(all_, worker)
-    worker_ids.sort()
-
-    for worker_id in worker_ids:
-        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
-        with open(worker_config_file) as fp:
-            worker_config = toml.load(fp)
-
-        ip = worker_config["rabbitmq"]["ip"]
-        port = worker_config["rabbitmq"]["port"]
-        api_port = port + 10000
-        user_and_password = (
-            worker_config["rabbitmq"]["user"]
-            + ":"
-            + worker_config["rabbitmq"]["password"]
-        )
-        vhost = worker_config["rabbitmq"]["vhost"]
-        flower_url = ip + ":" + str(port)
-        broker = f"amqp://{user_and_password}@{flower_url}/{vhost}"
-        broker_api = f"http://{user_and_password}@{ip + ':' + str(api_port)}/api/"
-
-        flower_index = worker_ids.index(worker_id)
-        flower_port = FLOWER_PORT + flower_index
-
-        message(f"Starting flower container for worker {worker_id}...", Level.HEADER)
-        command = f"docker run --name flower-{worker_id} -d -p {flower_port}:5555 mher/flower:0.9.5 flower --broker={broker} --broker-api={broker_api}"
-        run(c, command)
-        cmd = "docker ps | grep '[f]lower'"
-        run(c, cmd, warn=True, show_ok=False)
-        message(f"Visit me at http://localhost:{flower_port}", Level.HEADER)
-
-
-@task
-def kill_all_flowers(c):
-    """Kill all flower instances."""
-    container_ids = run(c, "docker ps -qa --filter name=flower", show_ok=False)
-    if container_ids.stdout:
-        message("Killing Flower instances and removing containers...", Level.HEADER)
-        cmd = f"docker container kill flower & docker rm -vf $(docker ps -qa --filter name=flower)"
-        run(c, cmd)
-        message("Flower has withered away", Level.HEADER)
-    else:
-        message(f"No flower container to remove", level=Level.HEADER)
 
 
 def start_smpc_coordinator_db(c, image):

@@ -89,7 +89,9 @@ def _apply_single_rule(df: pd.DataFrame, rule: Dict[str, Any]) -> pd.DataFrame:
             raise ValueError(f"Unsupported operator: {operator}")
 
 
-def _apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
+def _apply_inputdata(
+    df: pd.DataFrame, inputdata: Inputdata, dropna: bool
+) -> pd.DataFrame:
     """
     Filters the dataframe based on the provided inputdata including filters, datasets, and selected columns.
     """
@@ -117,26 +119,32 @@ def _apply_inputdata(df: pd.DataFrame, inputdata: Inputdata) -> pd.DataFrame:
     )
     # Select only the required columns (keep dataset column if available for downstream grouping).
     df = df[select_columns]
-    # Drop rows with missing values in any of the requested columns.
-    # This matches the SQL `IS NOT NULL` filters that the non-exaflow algorithms use.
-    df = df.dropna(subset=columns)
+    if dropna:
+        # Drop rows with missing values in any of the requested columns.
+        # This matches the SQL `IS NOT NULL` filters that the non-exaflow algorithms use.
+        df = df.dropna(subset=columns)
 
     return df
 
 
 def _read_filtered_chunks(
-    path: str, needed_columns: Set[str], inputdata: Inputdata
+    path: str,
+    needed_columns: Set[str],
+    inputdata: Inputdata,
+    dropna: bool,
 ) -> Iterator[pd.DataFrame]:
     """
     Yields filtered DataFrame chunks from a CSV file.
     """
     for chunk in pd.read_csv(path, usecols=needed_columns, chunksize=10000):
-        filtered_chunk = _apply_inputdata(chunk, inputdata)
+        filtered_chunk = _apply_inputdata(chunk, inputdata, dropna)
         if not filtered_chunk.empty:
             yield filtered_chunk
 
 
-def fetch_data(inputdata: Inputdata, csv_paths: List[str]) -> pd.DataFrame:
+def fetch_data(
+    inputdata: Inputdata, csv_paths: List[str], *, dropna: bool = True
+) -> pd.DataFrame:
     """
     Loads CSV data from the given paths in chunks, applies filtering based on inputdata,
     and concatenates the results into a single DataFrame.
@@ -156,7 +164,9 @@ def fetch_data(inputdata: Inputdata, csv_paths: List[str]) -> pd.DataFrame:
     # Gather filtered chunks from all CSV files
     chunks = []
     for path in set(csv_paths):
-        chunks.extend(list(_read_filtered_chunks(path, needed_columns, inputdata)))
+        chunks.extend(
+            list(_read_filtered_chunks(path, needed_columns, inputdata, dropna))
+        )
 
     return (
         pd.concat(chunks, ignore_index=True)

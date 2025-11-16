@@ -8,6 +8,25 @@ from exareme2.worker.utils.logger import initialise_logger
 from exareme2.worker.worker_info.worker_info_db import get_dataset_csv_paths
 
 
+def enforce_enum_order(data_dict):
+    for key, field in data_dict.items():
+        if field.get("enumerations"):
+            ordered = field.get("ordered_enums")
+
+            # Only process if ordered_enums exists
+            if ordered and "enumerations" in field:
+                enums = field["enumerations"]
+
+                # Rebuild the enumerations dict using the list order
+                new_enums = {code: enums[code] for code in ordered if code in enums}
+
+                field["enumerations"] = new_enums
+
+                # Remove the ordered_enums entry
+                del field["ordered_enums"]
+    return data_dict
+
+
 @initialise_logger
 def run_udf(
     request_id,
@@ -23,6 +42,9 @@ def run_udf(
         params["agg_client"] = AggregationClient(request_id)
 
     logger = get_logger()
+    if "metadata" in params:
+        # GRPC will mess with the order of dict when sending from controller to worker we need a list with the order to we can re-arrange them properly
+        params["metadata"] = enforce_enum_order(params["metadata"])
     udf = exaflow_registry.get_func(udf_registry_key)
     if not udf:
         error_msg = f"udf '{udf_registry_key}' not found in EXAFLOW_REGISTRY."

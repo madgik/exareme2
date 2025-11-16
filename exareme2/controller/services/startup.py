@@ -15,8 +15,8 @@ def start_background_services():
     worker_landscape_aggregator = WorkerLandscapeAggregator(
         logger=ctrl_logger.get_background_service_logger(),
         update_interval=ctrl_config.worker_landscape_aggregator_update_interval,
-        tasks_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
-        run_udf_task_timeout=ctrl_config.rabbitmq.celery_run_udf_task_timeout,
+        tasks_timeout=ctrl_config.grpc.tasks_timeout,
+        run_udf_task_timeout=ctrl_config.grpc.run_udf_task_timeout,
         deployment_type=ctrl_config.deployment_type,
         localworkers=ctrl_config.localworkers,
     )
@@ -25,12 +25,12 @@ def start_background_services():
 
     flower_controller = FlowerController(
         worker_landscape_aggregator=worker_landscape_aggregator,
-        task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
+        task_timeout=ctrl_config.grpc.tasks_timeout,
     )
     set_flower_controller(flower_controller)
 
     exaflow_controller = ExaflowController(
         worker_landscape_aggregator=worker_landscape_aggregator,
-        task_timeout=ctrl_config.rabbitmq.celery_tasks_timeout,
+        task_timeout=ctrl_config.grpc.tasks_timeout,
     )
     set_exaflow_controller(exaflow_controller)

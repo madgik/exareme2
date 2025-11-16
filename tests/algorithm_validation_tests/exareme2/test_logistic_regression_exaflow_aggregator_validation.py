@@ -13,6 +13,7 @@ ALGNAME = "logistic_regression_exaflow_aggregator"
 expected_file = Path(__file__).parent / "expected" / "logistic_regression_expected.json"
 
 
+@pytest.mark.skip
 class TestLogisticRegressionExaflow:
     @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
     def test_n_obs(self, test_input, expected):

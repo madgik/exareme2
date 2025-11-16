@@ -2,6 +2,7 @@ import threading
 import time
 import traceback
 from abc import ABC
+from collections import OrderedDict
 from collections import defaultdict
 from logging import Logger
 from typing import Any
@@ -13,8 +14,6 @@ from typing import Tuple
 from pydantic import BaseModel
 
 from exareme2.controller import DeploymentType
-from exareme2.controller.celery.app import CeleryConnectionError
-from exareme2.controller.celery.app import CeleryTaskTimeoutException
 from exareme2.controller.federation_info_logs import log_datamodel_added
 from exareme2.controller.federation_info_logs import log_datamodel_removed
 from exareme2.controller.federation_info_logs import log_dataset_added
@@ -24,6 +23,9 @@ from exareme2.controller.federation_info_logs import log_worker_left_federation
 from exareme2.controller.services.worker_landscape_aggregator.worker_info_tasks_handler import (
     WorkerInfoTasksHandler,
 )
+from exareme2.controller.worker_client.app import LOGGER
+from exareme2.controller.worker_client.app import WorkerClientConnectionError
+from exareme2.controller.worker_client.app import WorkerClientTimeoutException
 from exareme2.controller.workers_addresses import WorkersAddressesFactory
 from exareme2.utils import AttrDict
 from exareme2.worker_communication import BadUserInput
@@ -370,7 +372,7 @@ class WorkerLandscapeAggregator:
             try:
                 result = tasks_handler.get_worker_info_task()
                 workers_info.append(result)
-            except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+            except (WorkerClientConnectionError, WorkerClientTimeoutException) as exc:
                 # just log the exception do not reraise it
                 self._logger.warning(exc)
             except Exception:
@@ -391,7 +393,7 @@ class WorkerLandscapeAggregator:
             datasets_per_data_model = (
                 tasks_handler.get_worker_datasets_per_data_model_task()
             )
-        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        except (WorkerClientConnectionError, WorkerClientTimeoutException) as exc:
             # just log the exception do not reraise it
             self._logger.warning(exc)
             return {}
@@ -414,7 +416,7 @@ class WorkerLandscapeAggregator:
                 data_model=data_model,
             )
             return worker_cdes
-        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        except (WorkerClientConnectionError, WorkerClientTimeoutException) as exc:
             # just log the exception do not reraise it
             self._logger.warning(exc)
         except Exception:
@@ -434,7 +436,7 @@ class WorkerLandscapeAggregator:
                 data_model=data_model
             )
             return attributes
-        except (CeleryConnectionError, CeleryTaskTimeoutException) as exc:
+        except (WorkerClientConnectionError, WorkerClientTimeoutException) as exc:
             # just log the exception do not reraise it
             self._logger.warning(exc)
         except Exception:
@@ -499,11 +501,13 @@ class WorkerLandscapeAggregator:
 
     def get_metadata(self, data_model: str, variable_names: List[str]):
         common_data_elements = self.get_cdes(data_model)
+        self._logger.error(common_data_elements)
         metadata = {
             variable_name: cde.dict()
             for variable_name, cde in common_data_elements.items()
             if variable_name in variable_names
         }
+        self._logger.error(metadata)
         return metadata
 
     def get_cdes_per_data_model(self) -> DataModelsCDES:
@@ -607,9 +611,19 @@ class WorkerLandscapeAggregator:
                     tasks_timeout=self._worker_info_tasks_timeout,
                     request_id=WORKER_LANDSCAPE_AGGREGATOR_REQUEST_ID,
                 )
-                datasets_per_data_model = (
-                    handler.get_worker_datasets_per_data_model_task()
-                )
+                datasets_per_data_model: DatasetsInfoPerDataModel | None = None
+                try:
+                    datasets_per_data_model = (
+                        handler.get_worker_datasets_per_data_model_task()
+                    )
+                except (WorkerClientConnectionError, WorkerClientTimeoutException):
+                    # Most commonly raised when metadata tables are missing (first boot)
+                    self._logger.debug(
+                        "Failed to fetch datasets for worker %s before loading data",
+                        worker_info.id,
+                        exc_info=True,
+                    )
+
                 if (
                     datasets_per_data_model
                     and datasets_per_data_model.datasets_info_per_data_model
@@ -617,6 +631,7 @@ class WorkerLandscapeAggregator:
                     cached_datasets[worker_info.id] = datasets_per_data_model
                     self._loaded_workers.add(worker_info.id)
                     continue
+
                 handler.load_worker_data(worker_info.data_folder)
                 self._loaded_workers.add(worker_info.id)
                 try:
@@ -628,7 +643,7 @@ class WorkerLandscapeAggregator:
                         and datasets_per_data_model.datasets_info_per_data_model
                     ):
                         cached_datasets[worker_info.id] = datasets_per_data_model
-                except Exception:
+                except (WorkerClientConnectionError, WorkerClientTimeoutException):
                     self._logger.debug(
                         "Failed to fetch datasets after loading data for worker %s",
                         worker_info.id,
@@ -712,8 +727,9 @@ def _crunch_data_model_registry_data(
         data_models_metadata_per_worker_with_compatible_data_models, logger
     )
     data_models_cdes = _aggregate_data_models_cdes(
-        cleaned_data_models_metadata_per_worker,
+        cleaned_data_models_metadata_per_worker, logger
     )
+
     data_models_attributes = _aggregate_data_models_attributes(
         cleaned_data_models_metadata_per_worker,
     )
@@ -787,9 +803,11 @@ def _remove_duplicate_datasets(
 
 
 def _aggregate_data_models_cdes(
-    data_models_metadata_per_worker: DataModelsMetadataPerWorker,
+    data_models_metadata_per_worker: DataModelsMetadataPerWorker, logger
 ) -> DataModelsCDES:
-    data_models_dataset_enumerations = {}
+    # Keep per-data-model enumerations in an OrderedDict to preserve insertion order.
+    data_models_dataset_enumerations: dict[str, OrderedDict[str, str]] = {}
+    # First pass: collect all dataset enumerations per data model in a stable order.
     for (
         worker_id,
         data_models_metadata,
@@ -798,14 +816,23 @@ def _aggregate_data_models_cdes(
             data_model,
             data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
-            if data_model not in data_models_dataset_enumerations:
-                data_models_dataset_enumerations[data_model] = {}
-            for dataset_info in data_model_metadata.dataset_infos:
-                data_models_dataset_enumerations[data_model][
-                    dataset_info.code
-                ] = dataset_info.label
 
-    data_models = {}
+            if data_model not in data_models_dataset_enumerations:
+                data_models_dataset_enumerations[data_model] = OrderedDict()
+
+            enum_dict = data_models_dataset_enumerations[data_model]
+
+            # Assuming dataset_infos is already in the desired order.
+            for dataset_info in data_model_metadata.dataset_infos:
+
+                # Only set once to avoid bumping items to the end if the same code
+                # appears from another worker.
+                if dataset_info.code not in enum_dict:
+                    enum_dict[dataset_info.code] = dataset_info.label
+
+    # Second pass: build the final DataModelsCDES structure.
+    data_models: Dict[str, CommonDataElements] = {}
+
     for (
         worker_id,
         data_models_metadata,
@@ -815,6 +842,7 @@ def _aggregate_data_models_cdes(
             data_model_metadata,
         ) in data_models_metadata.data_models_metadata.items():
             data_models[data_model] = data_model_metadata.cdes
+
             dataset_cde = data_model_metadata.cdes.values["dataset"]
             new_dataset_cde = CommonDataElement(
                 code=dataset_cde.code,

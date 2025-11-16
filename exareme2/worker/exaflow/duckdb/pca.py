@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Iterable
-from typing import List
 
 import duckdb
 import numpy as np
@@ -13,8 +12,12 @@ from exareme2.algorithms.exaflow.exaflow_udf_aggregation_client_interface import
     ExaflowUDFAggregationClientI,
 )
 from exareme2.algorithms.utils.inputdata_utils import Inputdata
-from exareme2.data_filters import build_filter_clause
 from exareme2.worker import config as worker_config
+from exareme2.worker.exaflow.duckdb._utils import build_where_clause
+from exareme2.worker.exaflow.duckdb._utils import empty_struct_list_literal
+from exareme2.worker.exaflow.duckdb._utils import primary_table_name
+from exareme2.worker.exaflow.duckdb._utils import struct_list_to_matrix
+from exareme2.worker.exaflow.duckdb._utils import struct_pack_expression
 from exareme2.worker_communication import BadUserInput
 
 _ARROW_RESULT_TYPE = pa.struct(
@@ -66,7 +69,7 @@ def register_pca_aggregation_arrow_udf(
     function_name: str = "pca_udf_agg_arrow",
 ) -> None:
     def _udf(samples: pa.ChunkedArray) -> pa.Array:
-        matrix = _struct_list_to_matrix(samples)
+        matrix = struct_list_to_matrix(samples)
         result = _pca_with_aggregation_client(matrix, agg_client)
         return pa.array([result], type=_ARROW_RESULT_TYPE)
 
@@ -77,33 +80,6 @@ def register_pca_aggregation_arrow_udf(
         type=functional.ARROW,
         side_effects=True,
     )
-
-
-def _struct_list_to_matrix(struct_lists: pa.ChunkedArray) -> np.ndarray:
-    """
-    Convert a DuckDB list of structs into a 2D numpy array.
-    """
-    arr = struct_lists.combine_chunks()
-    if pa.types.is_list(arr.type) or pa.types.is_large_list(arr.type):
-        struct_array = arr.flatten()
-    else:
-        struct_array = arr
-
-    num_rows = len(struct_array)
-    num_fields = struct_array.type.num_fields
-    if num_fields == 0:
-        return np.empty((num_rows, 0), dtype=float)
-
-    columns: List[np.ndarray] = []
-    for idx in range(num_fields):
-        field_array = struct_array.field(idx)
-        columns.append(
-            np.asarray(field_array.to_numpy(zero_copy_only=False), dtype=float)
-        )
-
-    if not columns:
-        return np.empty((num_rows, 0), dtype=float)
-    return np.column_stack(columns)
 
 
 def _pca_with_aggregation_client(
@@ -163,10 +139,10 @@ def _pca_with_aggregation_client(
 
 
 def _build_duckdb_query(inputdata: Inputdata) -> str:
-    table_name = _primary_table_name(inputdata.data_model)
-    sample_expr = _struct_pack_expression(inputdata.y)
-    where_clause = _build_where_clause(inputdata)
-    empty_literal = _empty_struct_list_literal(inputdata.y)
+    table_name = primary_table_name(inputdata.data_model)
+    sample_expr = struct_pack_expression(inputdata.y)
+    where_clause = build_where_clause(inputdata, required_columns=inputdata.y or [])
+    empty_literal = empty_struct_list_literal(inputdata.y)
     samples_expr = f"coalesce(array_agg(sample), {empty_literal})"
 
     return f"""
@@ -183,55 +159,3 @@ SELECT result.n_obs, result.eigenvalues, result.eigenvectors
 FROM aggregated
 LIMIT 1
 """
-
-
-def _build_where_clause(inputdata: Inputdata) -> str:
-    clauses: List[str] = []
-    datasets = sorted(
-        {
-            *(inputdata.datasets or []),
-            *(inputdata.validation_datasets or []),
-        }
-    )
-    if datasets:
-        datasets_clause = ", ".join(_quote_literal(value) for value in datasets)
-        clauses.append(f'{_quote_identifier("dataset")} IN ({datasets_clause})')
-
-    if inputdata.filters:
-        clauses.append(build_filter_clause(inputdata.filters))
-
-    if not clauses:
-        return ""
-    return "WHERE " + " AND ".join(clauses)
-
-
-def _primary_table_name(data_model: str) -> str:
-    sanitized = data_model
-    for ch in (":", "-", "."):
-        sanitized = sanitized.replace(ch, "_")
-    return f'"{sanitized}__primary_data"'
-
-
-def _struct_pack_expression(columns: Iterable[str]) -> str:
-    assignments = ", ".join(
-        f"{_quote_identifier(column)} := {_quote_identifier(column)}"
-        for column in columns
-    )
-    return f"struct_pack({assignments})"
-
-
-def _empty_struct_list_literal(columns: Iterable[str]) -> str:
-    struct_fields = ", ".join(
-        f"{_quote_identifier(column)} DOUBLE" for column in columns
-    )
-    return f"array[]::STRUCT({struct_fields})[]"
-
-
-def _quote_identifier(identifier: str) -> str:
-    escaped = identifier.replace('"', '""')
-    return f'"{escaped}"'
-
-
-def _quote_literal(value: str) -> str:
-    escaped = value.replace("'", "''")
-    return f"'{escaped}'"

@@ -15,17 +15,14 @@ port = "$CONTROLLER_PORT"
 minimum_row_count = 10
 protect_local_data = "$PROTECT_LOCAL_DATA"
 
-[celery]
-worker_concurrency = 16
-tasks_timeout="$CELERY_TASKS_TIMEOUT"
-run_udf_task_timeout="$CELERY_TASKS_TIMEOUT"
+[worker_tasks]
+tasks_timeout="$WORKER_TASKS_TIMEOUT"
+run_udf_task_timeout="$WORKER_TASKS_TIMEOUT"
 
-[rabbitmq]
-ip = "$RABBITMQ_IP"
-port = "$RABBITMQ_PORT"
-user = "user"
-password = "password"
-vhost = "user_vhost"
+[grpc]
+ip = "$GRPC_IP"
+port = "$GRPC_PORT"
+bind_ip = "$GRPC_BIND_IP"
 
 [aggregation_server]
 enabled = "$AGGREGATION_SERVER_ENABLED"

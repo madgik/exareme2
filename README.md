@@ -8,6 +8,8 @@
    It is important to install `poetry` in isolation, so follow the
    recommended installation method.
 
+1.
+
 ## Setup
 
 #### Environment Setup
@@ -51,9 +53,9 @@
    exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
 
    worker_landscape_aggregator_update_interval = 30
-   celery_tasks_timeout = 20
-   celery_cleanup_task_timeout=2
-   celery_run_udf_task_timeout = 120
+   worker_tasks_timeout = 20
+   worker_cleanup_task_timeout=2
+   worker_run_udf_task_timeout = 120
 
    [flower]
    enabled = true
@@ -93,18 +95,18 @@
    [[workers]]
    id = "globalworker"
    role = "GLOBALWORKER"
-   rabbitmq_port=5670
+   grpc_port=5670
 
    [[workers]]
    id = "localworker1"
    role = "LOCALWORKER"
-   rabbitmq_port=5671
+   grpc_port=5671
    smpc_client_port=9001
 
    [[workers]]
    id = "localworker2"
    role = "LOCALWORKER"
-   rabbitmq_port=5672
+   grpc_port=5672
    smpc_client_port=9002
 
    ```

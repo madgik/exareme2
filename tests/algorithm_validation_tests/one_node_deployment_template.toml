@@ -44,9 +44,9 @@ enabled = false
 [[workers]]
 id = "globalworker"
 role="GLOBALWORKER"
-rabbitmq_port=5670
+grpc_port=5670
 
 [[workers]]
 id = "localworker1"
 role="LOCALWORKER"
-rabbitmq_port=5671
+grpc_port=5671

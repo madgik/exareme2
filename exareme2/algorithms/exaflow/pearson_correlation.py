@@ -76,25 +76,6 @@ def _format_result_matrices(
 
 @exaflow_udf(with_aggregation_server=True)
 def local_step(inputdata, csv_paths, agg_client, alpha):
-    from exareme2.algorithms.utils.inputdata_utils import fetch_data
+    from exareme2.worker.exaflow.duckdb import pearson_correlation as duckdb_pearson
 
-    if not inputdata.y:
-        raise ValueError("Pearson correlation needs target variables in 'y'.")
-
-    x_vars: List[str]
-    if inputdata.x:
-        x_vars = inputdata.x
-    else:
-        x_vars = inputdata.y
-
-    data = fetch_data(inputdata, csv_paths)
-    # Use numpy arrays directly to avoid pandas alignment overhead.
-    x_matrix = data[x_vars].to_numpy(dtype=float, copy=False)
-    y_matrix = data[inputdata.y].to_numpy(dtype=float, copy=False)
-
-    return pearson_correlation(
-        agg_client=agg_client,
-        x=x_matrix,
-        y=y_matrix,
-        alpha=alpha,
-    )
+    return duckdb_pearson.run_pearson(inputdata, agg_client, alpha)

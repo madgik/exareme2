@@ -71,10 +71,20 @@ def local_step(inputdata, csv_paths, agg_client, alpha, alternative, group_a, gr
     data = fetch_data(inputdata, csv_paths)
 
     grouping = data[group_var]
+    if hasattr(grouping, "ndim") and grouping.ndim > 1:
+        # Some backends return a single-column DataFrame; convert to Series.
+        grouping = grouping.squeeze()
     values = data[value_var]
 
-    sample_a = values[grouping == group_a].to_numpy(dtype=float, copy=False)
-    sample_b = values[grouping == group_b].to_numpy(dtype=float, copy=False)
+    mask_a = grouping == group_a
+    mask_b = grouping == group_b
+    if hasattr(mask_a, "ndim") and mask_a.ndim > 1:
+        mask_a = mask_a.squeeze()
+    if hasattr(mask_b, "ndim") and mask_b.ndim > 1:
+        mask_b = mask_b.squeeze()
+
+    sample_a = values[mask_a].to_numpy(dtype=float, copy=False)
+    sample_b = values[mask_b].to_numpy(dtype=float, copy=False)
 
     return ttest_independent(
         agg_client=agg_client,

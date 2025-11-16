@@ -1,8 +1,8 @@
 from logging.config import dictConfig
 
 import pydantic
-from celery.utils.serialization import jsonify
 from quart import Blueprint
+from quart import jsonify
 from quart import request
 
 from exareme2.controller import config as ctrl_config
@@ -64,7 +64,6 @@ async def get_datasets_variables() -> dict:
 @algorithms.route("/cdes_metadata", methods=["GET"])
 async def get_cdes_metadata() -> dict:
     cdes_per_data_model = get_worker_landscape_aggregator().get_cdes_per_data_model()
-
     return {
         data_model: {
             column: metadata.dict() for column, metadata in cdes.values.items()

@@ -1,6 +1,6 @@
 from exareme2.controller import logger as ctrl_logger
-from exareme2.controller.celery.tasks_handler import WorkerTasksHandler
 from exareme2.controller.services.tasks_handler_interface import TasksHandlerI
+from exareme2.controller.worker_client.tasks_handler import WorkerTasksHandler
 
 
 class FlowerTasksHandler(TasksHandlerI):
@@ -39,13 +39,14 @@ class FlowerTasksHandler(TasksHandlerI):
         execution_timeout,
     ) -> int:
         return self._worker_tasks_handler.start_flower_client(
-            self._request_id,
-            algorithm_folder_path,
-            server_address,
-            data_model,
-            datasets,
-            execution_timeout,
-        ).get(timeout=self._tasks_timeout)
+            request_id=self._request_id,
+            algorithm_folder_path=algorithm_folder_path,
+            server_address=server_address,
+            data_model=data_model,
+            datasets=datasets,
+            execution_timeout=execution_timeout,
+            timeout=self._tasks_timeout,
+        )
 
     def start_flower_server(
         self,
@@ -56,25 +57,32 @@ class FlowerTasksHandler(TasksHandlerI):
         datasets,
     ) -> int:
         return self._worker_tasks_handler.start_flower_server(
-            self._request_id,
-            algorithm_folder_path,
-            number_of_clients,
-            server_address,
-            data_model,
-            datasets,
-        ).get(timeout=self._tasks_timeout)
+            request_id=self._request_id,
+            algorithm_folder_path=algorithm_folder_path,
+            number_of_clients=number_of_clients,
+            server_address=server_address,
+            data_model=data_model,
+            datasets=datasets,
+            timeout=self._tasks_timeout,
+        )
 
     def stop_flower_server(self, pid: int, algorithm_name: str):
         self._worker_tasks_handler.stop_flower_server(
-            self._request_id, pid, algorithm_name
-        ).get(timeout=self._tasks_timeout)
+            request_id=self._request_id,
+            pid=pid,
+            algorithm_name=algorithm_name,
+            timeout=self._tasks_timeout,
+        )
 
     def stop_flower_client(self, pid: int, algorithm_name: str):
         self._worker_tasks_handler.stop_flower_client(
-            self._request_id, pid, algorithm_name
-        ).get(timeout=self._tasks_timeout)
+            request_id=self._request_id,
+            pid=pid,
+            algorithm_name=algorithm_name,
+            timeout=self._tasks_timeout,
+        )
 
     def garbage_collect(self):
-        self._worker_tasks_handler.garbage_collect(self._request_id).get(
-            timeout=self._tasks_timeout
+        self._worker_tasks_handler.garbage_collect(
+            request_id=self._request_id, timeout=self._tasks_timeout
         )

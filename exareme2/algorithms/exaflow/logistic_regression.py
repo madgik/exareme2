@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Dict
 from typing import List
 
@@ -215,6 +213,18 @@ def build_design_matrix(
 
 
 def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray):
+    if X.ndim != 2:
+        X = np.atleast_2d(X)
+    if y.ndim == 2 and y.shape[1] != 1:
+        y = y.reshape(-1, 1)
+    if X.shape[0] != y.shape[0]:
+        if X.shape[1] == y.shape[0]:
+            X = X.T
+        else:
+            raise BadUserInput(
+                "Design matrix row count does not match target size for logistic regression."
+            )
+
     n_obs_local = int(y.size)
     y_sum_local = float(y.sum())
 

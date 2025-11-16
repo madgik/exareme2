@@ -6,6 +6,7 @@ from typing import List
 from pydantic import ValidationError
 
 from exareme2.worker import config as worker_config
+from exareme2.worker.utils.logger import init_logger
 from exareme2.worker.worker_info import duckdb_adapter as metadata_db
 from exareme2.worker_communication import CommonDataElement
 from exareme2.worker_communication import CommonDataElements
@@ -14,6 +15,7 @@ from exareme2.worker_communication import DatasetInfo
 from exareme2.worker_communication import DatasetProperties
 
 HEALTHCHECK_VALIDATION_STRING = "HEALTHCHECK"
+LOGGER = init_logger("WORKER DATA LOADER")
 
 
 def get_data_models() -> List[str]:
@@ -165,13 +167,13 @@ def get_data_model_cdes(data_model: str) -> CommonDataElements:
     table_name = f"{sanitized}_variables_metadata"
     query = f'SELECT code, metadata FROM "{table_name}"'
     cdes_rows = metadata_db.execute_and_fetchall(query)
-
     cdes = CommonDataElements(
         values={
             code: CommonDataElement.parse_raw(metadata) for code, metadata in cdes_rows
         }
     )
 
+    LOGGER.error(cdes)
     return cdes
 
 
