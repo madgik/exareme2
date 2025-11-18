@@ -40,49 +40,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Load MIPDB container cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/mipdb
-          key: ${{ runner.os }}-buildx-mipdb-${{hashFiles('mipdb/**')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-mipdb-
-
-      - name: Build MIPDB container docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: mipdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_mipdb:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/mipdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/mipdb
-
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_rabbitmq:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
       - name: Load WORKER service cached image
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/worker
-          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exareme2/**')}}
+          key: ${{ runner.os }}-buildx-worker-${{hashFiles('exaflow/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-worker-
 
@@ -90,7 +52,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: exareme2/worker/Dockerfile
+          file: exaflow/worker/Dockerfile
           push: false
           load: true
           tags: madgik/exareme2_worker:dev
@@ -101,7 +63,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exareme2/**')}}
+          key: ${{ runner.os }}-buildx-controller-${{hashFiles('exaflow/**')}}
           restore-keys: |
             ${{ runner.os }}-buildx-controller-
 
@@ -109,7 +71,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: exareme2/controller/Dockerfile
+          file: exaflow/controller/Dockerfile
           push: false
           load: true
           tags: madgik/exareme2_controller:dev
@@ -120,7 +82,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache/aggregation_server
-          key: ${{ runner.os }}-buildx-aggregation-server-${{ hashFiles('exareme2/**') }}
+          key: ${{ runner.os }}-buildx-aggregation-server-${{ hashFiles('exaflow/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-aggregation-server-
 
@@ -181,12 +143,6 @@ jobs:
           docker image rm madgik/exareme2_worker:dev
           kind load docker-image madgik/exareme2_controller:dev --nodes kind-control-plane
           docker image rm madgik/exareme2_controller:dev
-          kind load docker-image madgik/exareme2_db:dev
-          docker image rm madgik/exareme2_db:dev
-          kind load docker-image madgik/exareme2_mipdb:dev
-          docker image rm madgik/exareme2_mipdb:dev
-          kind load docker-image madgik/exareme2_rabbitmq:dev
-          docker image rm madgik/exareme2_rabbitmq:dev
           kind load docker-image madgik/exareme2_aggregation_server:dev --nodes kind-control-plane
           docker image rm madgik/exareme2_aggregation_server:dev
 
@@ -201,7 +157,7 @@ jobs:
         run: helm template kubernetes/
 
       - name: Deploy Helm
-        run: helm install exareme2 kubernetes/ --debug
+        run: helm install exaflow kubernetes/ --debug
 
       - name: Wait for pods to get healthy
         run: |
@@ -216,48 +172,8 @@ jobs:
             fi
           done'
 
-      - name: Load data models into localworkers and globalworker
-        run: |
-          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name')
-          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name')
-          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r ".items[0].metadata.name")
-
-          for POD in $LOCALWORKER1 $LOCALWORKER2 $GLOBALWORKER; do
-            kubectl exec $POD -c db-importer -- sh -c 'mipdb init'
-            for model in dementia_v_0_1 tbi_v_0_1 longitudinal_dementia_v_0_1; do
-              kubectl exec $POD -c db-importer -- sh -c "mipdb add-data-model /opt/data/${model}/CDEsMetadata.json"
-            done
-          done
-
-      - name: Load Dataset CSVs into Localworkers and Globalworker
-        run: |
-          LOCALWORKER1=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker1") | .metadata.name')
-          LOCALWORKER2=$(kubectl get pods -o json | jq -r '.items[] | select(.spec.nodeName=="localworker2") | .metadata.name')
-          GLOBALWORKER=$(kubectl get pods -l=nodeType=globalworker -o json | jq -r ".items[0].metadata.name")
-
-          for model in dementia_v_0_1 tbi_v_0_1 longitudinal_dementia_v_0_1; do
-            for filepath in $(kubectl exec $GLOBALWORKER -c db-importer -- ls /opt/data/${model}); do
-              filepath=/opt/data/${model}/${filepath}
-              if [[ $filepath == *test.csv ]]; then
-                echo "Loading file: $filepath at $GLOBALWORKER"
-                kubectl exec $GLOBALWORKER -c db-importer -- mipdb add-dataset $filepath -d ${model%_v_*} -v 0.1
-              elif [[ $filepath == *.csv ]]; then
-                filename=$(basename $filepath)
-                suffix=$(echo $filename | grep -o '[0-9]*' | tail -1)
-                if (( suffix % 2 == 0 )); then
-                  POD_NAME=$LOCALWORKER2
-                else
-                  POD_NAME=$LOCALWORKER1
-                fi
-                echo "Loading file: $filepath at $POD_NAME"
-                kubectl exec $POD_NAME -c db-importer -- mipdb add-dataset $filepath -d ${model%_v_*} -v 0.1
-              fi
-            done
-          done
-
-
       - name: Controller logs
-        run: kubectl logs -l app=exareme2-controller --tail -1
+        run: kubectl logs -l app=exaflow-controller --tail -1
 
       - name: Globalnode logs
         run: kubectl logs -l nodeType=globalworker -c worker --tail -1
@@ -268,7 +184,7 @@ jobs:
       - name: Controller logs (post run)
         uses: webiny/action-post-run@3.0.0
         with:
-          run: kubectl logs -l app=exareme2-controller --tail -1
+          run: kubectl logs -l app=exaflow-controller --tail -1
 
       - name: Globalnode logs (post run)
         uses: webiny/action-post-run@3.0.0

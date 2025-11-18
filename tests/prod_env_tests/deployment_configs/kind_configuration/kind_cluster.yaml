@@ -9,18 +9,18 @@ nodes:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/master/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/exareme2/globalworker/csvs
+    containerPath: /opt/exaflow/globalworker/csvs
 
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker1/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/exareme2/localworker/csvs
+    containerPath: /opt/exaflow/localworker/csvs
 
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker2/hostname
     containerPath: /etc/hostname
   - hostPath: ./tests/test_data
-    containerPath: /opt/exareme2/localworker/csvs
+    containerPath: /opt/exaflow/localworker/csvs

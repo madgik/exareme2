@@ -8,13 +8,13 @@ is targeted to the specifics of the development deployment process.
 This script deploys all the containers and api natively on your machine.
 It deploys the containers on different ports and then configures the api to use the appropriate ports.
 
-A worker service uses a configuration file either on the default location './exareme2/worker/config.toml'
-or in the location of the env variable 'EXAREME2_WORKER_CONFIG_FILE', if the env variable is set.
+A worker service uses a configuration file either on the default location './exaflow/worker/config.toml'
+or in the location of the env variable 'EXAFLOW_WORKER_CONFIG_FILE', if the env variable is set.
 This deployment script used for development, uses the env variable logic, therefore before deploying each
 worker service the env variable is changed to the location of the worker api' config file.
 
 In order for this script to work the './configs/workers' folder should contain all the worker's config files
-following the './exareme2/worker/config.toml' as template.
+following the './exaflow/worker/config.toml' as template.
 You can either create the files manually or using a '.deployment.toml' file with the following template
 ```
 ip = "172.17.0.1"
@@ -77,18 +77,18 @@ from termcolor import colored
 PROJECT_ROOT = Path(__file__).parent
 DEPLOYMENT_CONFIG_FILE = PROJECT_ROOT / ".deployment.toml"
 WORKERS_CONFIG_DIR = PROJECT_ROOT / "configs" / "workers"
-WORKER_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exareme2" / "worker" / "config.toml"
+WORKER_CONFIG_TEMPLATE_FILE = PROJECT_ROOT / "exaflow" / "worker" / "config.toml"
 CONTROLLER_CONFIG_DIR = PROJECT_ROOT / "configs" / "controller"
 AGG_SERVER_CONFIG_DIR = PROJECT_ROOT / "configs" / "aggregation_server"
 CONTROLLER_LOCALWORKERS_CONFIG_FILE = (
     PROJECT_ROOT / "configs" / "controller" / "localworkers_config.json"
 )
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
-    PROJECT_ROOT / "exareme2" / "controller" / "config.toml"
+    PROJECT_ROOT / "exaflow" / "controller" / "config.toml"
 )
 AGG_SERVER_DIR = PROJECT_ROOT / "aggregation_server"
 AGG_SERVER_CONFIG_TEMPLATE_FILE = AGG_SERVER_DIR / "config.toml"
-OUTDIR = PROJECT_ROOT / "logs"
+OUTDIR = Path("/tmp/exaflow/")
 if not OUTDIR.exists():
     OUTDIR.mkdir()
 
@@ -100,7 +100,7 @@ TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
 FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
-EXAREME2_WORKER_CONFIG_FILE = "EXAREME2_WORKER_CONFIG_FILE"
+EXAFLOW_WORKER_CONFIG_FILE = "EXAFLOW_WORKER_CONFIG_FILE"
 EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
 EXAREME2_AGG_SERVER_CONFIG_FILE = "EXAREME2_AGG_SERVER_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
@@ -211,9 +211,6 @@ def create_configs(c):
         worker_config["worker_tasks"]["tasks_timeout"] = deployment_config[
             "worker_tasks_timeout"
         ]
-        worker_config["worker_tasks"]["run_udf_task_timeout"] = deployment_config[
-            "worker_run_udf_task_timeout"
-        ]
 
         worker_config["privacy"]["minimum_row_count"] = deployment_config["privacy"][
             "minimum_row_count"
@@ -287,12 +284,7 @@ def create_configs(c):
     controller_config["grpc"]["tasks_timeout"] = deployment_config[
         "worker_tasks_timeout"
     ]
-    controller_config["grpc"]["cleanup_task_timeout"] = deployment_config[
-        "worker_cleanup_task_timeout"
-    ]
-    controller_config["grpc"]["run_udf_task_timeout"] = deployment_config[
-        "worker_run_udf_task_timeout"
-    ]
+
     controller_config["deployment_type"] = "LOCAL"
 
     controller_config["localworkers"]["config_file"] = str(
@@ -580,6 +572,28 @@ def _structure_data(worker=None):
                             {field: row.get(field, "") for field in canonical_header}
                         )
 
+    import os
+
+    def format_directory_structure(root: str) -> str:
+        """
+        Returns a tree-style directory listing of immediate subdirectories of `root`.
+        Similar to the example:
+            .combined/
+            ├── globalworker
+            ├── localworker1
+            └── localworker2
+        """
+        entries = sorted(
+            [e for e in os.listdir(root) if os.path.isdir(os.path.join(root, e))]
+        )
+
+        lines = [f"{os.path.basename(root)}/"]
+        for i, entry in enumerate(entries):
+            connector = "└── " if i == len(entries) - 1 else "├── "
+            lines.append(f"{connector}{entry}")
+
+        return "\n".join(lines)
+
     def create_combined_datasets(worker_dataset_structure, worker_ids):
         """Create combined dataset folders per worker and data model."""
 
@@ -693,9 +707,13 @@ def _structure_data(worker=None):
             combined_folder_structure,
         ) = create_combined_datasets(worker_dataset_structure, sorted(all_worker_ids))
 
+        # Format directory structure
+        structure_text = format_directory_structure(combined_root)
+
         message(
-            f"Combined dataset folders prepared at: {combined_root}",
-            Level.BODY,
+            f"Combined dataset folders prepared at: {combined_root}\n"
+            f"{structure_text}",
+            Level.HEADER,
         )
 
 
@@ -724,8 +742,8 @@ def kill_worker(c, worker=None, all_=False):
         )
         sys.exit(1)
 
-    process_pattern = "python -m exareme2.worker.grpc_server"
-    grep_cmd = f"ps aux | grep '[p]ython -m exareme2.worker.grpc_server' | grep '{worker_pattern}' "
+    process_pattern = "python -m exaflow.worker.grpc_server"
+    grep_cmd = f"ps aux | grep '[p]ython -m exaflow.worker.grpc_server' | grep '{worker_pattern}' "
     res_bin = run(c, grep_cmd, warn=True, show_ok=False)
 
     if res_bin.ok:
@@ -734,7 +752,7 @@ def kill_worker(c, worker=None, all_=False):
             Level.HEADER,
         )
         cmd = (
-            f"pids=$(ps aux | grep '[p]ython -m exareme2.worker.grpc_server' | grep '{worker_pattern}' | awk '{{print $2}}') "
+            f"pids=$(ps aux | grep '[p]ython -m exaflow.worker.grpc_server' | grep '{worker_pattern}' | awk '{{print $2}}') "
             '&& if [ -n "$pids" ]; then kill -9 $pids; fi'
         )
         run(c, cmd, warn=True, show_ok=False)
@@ -808,8 +826,8 @@ def start_worker(
         env_vars = {
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
             EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
-            EXAREME2_WORKER_CONFIG_FILE: worker_config_file,
-            DATA_PATH: TEST_DATA_FOLDER.as_posix(),
+            EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
+            DATA_PATH: (TEST_DATA_FOLDER / ".combined" / worker_id).as_posix(),
         }
 
         # Use the helper context manager to apply environment variable prefixes
@@ -820,14 +838,14 @@ def start_worker(
             if detached or all_:
                 cmd = (
                     f"PYTHONPATH={PROJECT_ROOT}: poetry run python -m "
-                    f"exareme2.worker.grpc_server --worker-id {worker_id} "
+                    f"exaflow.worker.grpc_server --worker-id {worker_id} "
                     f"> {outpath} 2>&1"
                 )
                 run(c, cmd, wait=False)
             else:
                 cmd = (
                     f"PYTHONPATH={PROJECT_ROOT} poetry run python -m "
-                    f"exareme2.worker.grpc_server --worker-id {worker_id}"
+                    f"exaflow.worker.grpc_server --worker-id {worker_id}"
                 )
                 run(c, cmd, attach_=True)
 
@@ -856,7 +874,9 @@ def start_aggregation_server(c, detached: bool = False):
     Start the aggregation_server gRPC service.
     If detached=True, run in background and log to OUTDIR/aggregation_server.out.
     """
-    message("Starting aggregation_server…", Level.HEADER)
+    kill_aggregation_server(c)
+
+    message("Starting aggregation server...", Level.HEADER)
 
     if not AGG_SERVER_CONFIG_TEMPLATE_FILE.exists():
         message(f"Config not found: {AGG_SERVER_CONFIG_TEMPLATE_FILE}", Level.ERROR)
@@ -865,7 +885,6 @@ def start_aggregation_server(c, detached: bool = False):
     # Build environment for the server process
     env = os.environ.copy()
     env["AGG_SERVER_CONFIG_FILE"] = str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
-    kill_aggregation_server(c)
 
     # cd into the aggregation_server folder so Poetry picks up its own pyproject.toml
     run_cmd = (
@@ -938,14 +957,14 @@ def start_controller(
         outpath = OUTDIR / "controller.out"
         if detached:
             cmd = (
-                f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config "
-                f"-b 0.0.0.0:5000 exareme2.controller.quart.app:app >> {outpath} 2>&1"
+                f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exaflow.controller.quart.hypercorn_config "
+                f"-b 0.0.0.0:5000 exaflow.controller.quart.app:app >> {outpath} 2>&1"
             )
             run(c, cmd, wait=False)
         else:
             cmd = (
-                f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exareme2.controller.quart.hypercorn_config "
-                f"-b 0.0.0.0:5000 exareme2.controller.quart.app:app"
+                f"PYTHONPATH={PROJECT_ROOT} poetry run hypercorn --config python:exaflow.controller.quart.hypercorn_config "
+                f"-b 0.0.0.0:5000 exaflow.controller.quart.app:app"
             )
             run(c, cmd, attach_=True)
 

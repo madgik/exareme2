@@ -175,7 +175,7 @@ Let's rewrite the local/global functions of the previous examples as Exareme
 UDFs. First the local UDF.
 
 ```python
-from exareme2.algorithms.exareme2.udfgen import udf, relation, transfer
+from exaflow.algorithms.exaflow.udfgen import udf, relation, transfer
 
 
 @udf(local_data=relation(), return_type=transfer())
@@ -202,7 +202,7 @@ serializable.
 Now, let's write the global UDF.
 
 ```python
-from exareme2.algorithms.exareme2.udfgen import udf, transfer, merge_transfer
+from exaflow.algorithms.exaflow.udfgen import udf, transfer, merge_transfer
 
 
 @udf(local_results=merge_transfer(), return_type=transfer())
@@ -238,7 +238,7 @@ the algorithm execution interface. To have access to this interface we have to
 inherit from the `Algorithm` base class.
 
 ```python
-from exareme2.algorithms.exareme2.algorithm import Algorithm
+from exaflow.algorithms.exaflow.algorithm import Algorithm
 
 
 class MyAlgorithm(Algorithm, algname="my_algorithm"):
@@ -287,7 +287,7 @@ In our case we need a very simple data loader for a single dataframe with a
 single column, as requested by the user (see Examples for more advanced uses).
 
 ```python
-from exareme2.algorithms.exareme2.algorithm import AlgorithmDataLoader
+from exaflow.algorithms.exaflow.algorithm import AlgorithmDataLoader
 
 
 class MyDataLoader(AlgorithmDataLoader, algname="mean"):
@@ -303,13 +303,13 @@ types of variables, whether they are required or optional, the names and types
 of additional parameters etc.
 
 The full description can be found in
-[`exareme2.algorithms.specifications.AlgorithmSpecification`](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/specifications.py).
+[`exaflow.algorithms.specifications.AlgorithmSpecification`](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/algorithms/specifications.py).
 The algorithm writer needs to provide a JSON file, with the same name and
 location as the file where the algorithm is defined. E.g. for an algorithm
 defined in `dir1/dir2/my_algorithm.py` we also create
 `dir1/dir2/my_algorithm.json`. The contents of the file are a JSON object with
 the exact same structure as
-`exareme2.algorithms.specifications.AlgorithmSpecification`.
+`exaflow.algorithms.specifications.AlgorithmSpecification`.
 
 In our example the specs are
 
@@ -336,7 +336,7 @@ In our example the specs are
 
 Once all building blocks are in place, and our system is deployed, we can run
 the algorithm either by performing a POST request to Exareme, or by using
-[`run_algorithm`](https://github.com/madgik/exareme2/blob/algo-user-guide/run_algorithm) from the
+[`run_algorithm`](https://github.com/madgik/exaflow/blob/algo-user-guide/run_algorithm) from the
 command line.
 
 # Advanced topics
@@ -347,7 +347,7 @@ Let's explore some of these tools in this section.
 
 ## UDF generator
 
-The [UDF generator module](https://github.com/madgik/exareme2/tree/algo-user-guide/exareme2/udfgen)
+The [UDF generator module](https://github.com/madgik/exaflow/tree/algo-user-guide/exaflow/udfgen)
 is responsible for translating the `udf` decorated python functions into actual
 UDFs which run in the database. This translation has a few subtle points,
 mostly related to the conflict between the dynamically typed Python on one
@@ -358,7 +358,7 @@ about how to read or write a python object into the database.
 ### API
 
 For a detailed explanation of the various types see the
-[module's docstring](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/udfgen/py_udfgenerator.py).
+[module's docstring](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/udfgen/py_udfgenerator.py).
 Here we present a few important ones.
 
 ##### `relation(schema=None)`
@@ -377,7 +377,7 @@ arrays. Tensors are fundamentally different from relational tables in that
 their types are homogeneous and the order of their rows matter. Tensors are
 used when the algorithmic context is linear algebra, rather than relational
 algebra. `dtype` is the tensor's datatype, and can be of type `type` or
-`exareme2.datatypes.DType`. `ndims` is an `int` and defines the tensor's
+`exaflow.datatypes.DType`. `ndims` is an `int` and defines the tensor's
 dimensions. Another benefit of tensors is that their data are stored in a
 contiguous block of memory (unlike `relations` where individual columns are
 contiguous) which result in better efficiency when used within frameworks like
@@ -418,7 +418,7 @@ is when we want to store part of the output locally for later use in the same
 worker, and we want to transfer the other part of the output to another worker.
 
 ```python
-from exareme2.algorithms.exareme2.udfgen import udf, state, transfer
+from exaflow.algorithms.exaflow.udfgen import udf, state, transfer
 
 
 @udf(input=relation(), return_type=[state(), transfer()])
@@ -457,7 +457,7 @@ To implement a SMPC computation we need to have a local UDF with a
 `secure_transfer` output.
 
 ```python
-from exareme2.algorithms.exareme2.udfgen import udf, relation, secure_transfer
+from exaflow.algorithms.exaflow.udfgen import udf, relation, secure_transfer
 
 
 @udf(local_data=relation(), return_type=secure_transfer(sum_op=True))
@@ -523,7 +523,7 @@ This will only allocate a single float!
 
 There are multiple tricks like this one that we can use to reduce the memory
 footprint of our UDFs. You can find a few in this
-[commit](https://github.com/madgik/exareme2/commit/5d15847898930ac44fcf3be3669b4e74f427d5b5)
+[commit](https://github.com/madgik/exaflow/commit/5d15847898930ac44fcf3be3669b4e74f427d5b5)
 together with a short summary of the main ideas.
 
 ## Time efficiency
@@ -612,11 +612,11 @@ mean of some variable. This algorithm requires a single local and a single
 global step. More complex workflows are possible, such as an
 iterative workflow. Below is an example of how to structure code to achieve
 this. For a real world example you should see the `fit` method in the [logistic regression
-algorithm](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/logistic_regression.py).
+algorithm](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/algorithms/logistic_regression.py).
 
 ```python
-from exareme2.algorithms.exareme2.algorithm import Algorithm
-from exareme2.algorithms.exareme2.helpers import get_transfer_data
+from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exaflow.helpers import get_transfer_data
 
 
 class MyAlgorithm(Algorithm, algname="iterative"):
@@ -651,14 +651,14 @@ when the iteration stops.
 
 When the algorithm logic becomes too complex, we might want to abstract some parts into separate
 classes. This is possible and advised. For example, when the algorithm makes use of a supervised learning
-model, e.g. [linear regression](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/linear_regression.py),
+model, e.g. [linear regression](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/algorithms/linear_regression.py),
 we can create a separate class for the model and call it from within the algorithm class.
 Typically, a model implements two methods, `fit` and `predict`. The first does the learning by fitting the
 model to the data, and the second does prediction on new data. Both methods could be used in a cross-validation
-algorithm, see for example [here](https://github.com/madgik/exareme2/blob/algo-user-guide/exareme2/algorithms/linear_regression_cv.py).
+algorithm, see for example [here](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/algorithms/linear_regression_cv.py).
 
 ```python
-from exareme2.algorithms.exareme2.algorithm import Algorithm
+from exaflow.algorithms.exaflow.algorithm import Algorithm
 
 
 class MyModel:

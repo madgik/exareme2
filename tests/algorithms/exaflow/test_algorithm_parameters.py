@@ -1,5 +1,5 @@
-from exareme2.algorithms.exaflow.algorithm import Algorithm
-from exareme2.algorithms.utils.inputdata_utils import Inputdata
+from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.utils.inputdata_utils import Inputdata
 
 
 class _DummyAlgorithm(Algorithm, algname="dummy"):

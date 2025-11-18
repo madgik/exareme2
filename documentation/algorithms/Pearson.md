@@ -28,4 +28,4 @@ This algorithm computes the Pearson correlation coefficient between two vectors 
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[Pearson](../../exareme2/algorithms/exareme2/pearson_correlation.py)
+[Pearson](../../exaflow/algorithms/exaflow/pearson_correlation.py)

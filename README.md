@@ -1,4 +1,4 @@
-# Exareme2 [![Maintainability](https://qlty.sh/gh/madgik/projects/MIP-Engine/maintainability.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine) [![Code Coverage](https://qlty.sh/gh/madgik/projects/MIP-Engine/coverage.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine)
+# exaflow [![Maintainability](https://qlty.sh/gh/madgik/projects/MIP-Engine/maintainability.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine) [![Code Coverage](https://qlty.sh/gh/madgik/projects/MIP-Engine/coverage.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine)
 
 ### Prerequisites
 
@@ -47,15 +47,12 @@
    federation = "dementia"
    log_level = "DEBUG"
    framework_log_level ="INFO"
-   rabbitmq_image = "madgik/exareme2_rabbitmq:dev"
 
-   flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
-   exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
+   flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
+   exaflow_algorithm_folders = "./exaflow/algorithms/exaflow,./tests/algorithms/exaflow"
 
-   worker_landscape_aggregator_update_interval = 30
+   worker_landscape_aggregator_update_interval = 3000
    worker_tasks_timeout = 20
-   worker_cleanup_task_timeout=2
-   worker_run_udf_task_timeout = 120
 
    [flower]
    enabled = true
@@ -68,10 +65,6 @@
    [privacy]
    minimum_row_count = 10
    protect_local_data = false
-
-   [cleanup]
-   workers_cleanup_interval=10
-   contextid_release_timelimit=3600 #an hour
 
    [aggregation_server]
    enabled = true
@@ -150,7 +143,7 @@
 
 #### Local Deployment (without single configuration file)
 
-1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exareme2/worker/config.toml` template.
+1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exaflow/worker/config.toml` template.
 
 #### Start monitoring tools
 

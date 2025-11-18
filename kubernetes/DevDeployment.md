@@ -97,17 +97,13 @@ First, build the images:
 <br />(you can execute these in separate terminals, concurrently)
 
 ```
-docker build -f monetdb/Dockerfile -t madgik/exareme2_db:latest ./
-docker build -f rabbitmq/Dockerfile -t madgik/exareme2_rabbitmq:latest ./
-docker build -f exareme2/worker/Dockerfile -t madgik/exareme2_worker:latest ./
-docker build -f exareme2/controller/Dockerfile -t madgik/exareme2_controller:latest ./
+docker build -f exaflow/worker/Dockerfile -t madgik/exareme2_worker:latest ./
+docker build -f exaflow/controller/Dockerfile -t madgik/exareme2_controller:latest ./
 ```
 
 Second, load the docker images to the kuberentes cluster
 
 ```
-kind load docker-image madgik/exareme2_db:latest
-kind load docker-image madgik/exareme2_rabbitmq:latest
 kind load docker-image madgik/exareme2_worker:latest
 kind load docker-image madgik/exareme2_controller:latest --nodes kind-control-plane
 ```
@@ -115,7 +111,7 @@ kind load docker-image madgik/exareme2_controller:latest --nodes kind-control-pl
 5. Deploy the Exareme2 kubernetes pods using helm charts:
 
 ```
-helm install exareme2 kubernetes/
+helm install exaflow kubernetes/
 ```
 
 6. (Validation) You can then run the prod_env_tests to see if the deploymnt is working (it might take about a minute for services to sync):

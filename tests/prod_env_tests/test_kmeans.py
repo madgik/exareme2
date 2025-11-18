@@ -1,12 +1,10 @@
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
-from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
-from tests.algorithm_validation_tests.exareme2.helpers import assert_allclose
-from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
+from tests.algorithm_validation_tests.exaflow import algorithm_request
+from tests.algorithm_validation_tests.exaflow import get_test_params
 
 expected_file = Path(__file__).parent / "expected" / "kmeans_expected.json"
 

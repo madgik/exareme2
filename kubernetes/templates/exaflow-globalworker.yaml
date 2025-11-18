@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: exaflow-globalworker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: exaflow-worker
+    nodeType: globalworker
+spec:
+  clusterIP: None
+  selector:
+    app: exaflow-worker
+    nodeType: globalworker
+  ports:
+    - name: grpc
+      port: 5672
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: exaflow-globalworker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: exaflow-worker
+    nodeType: globalworker
+spec:
+  serviceName: exaflow-globalworker
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exaflow-worker
+      nodeType: globalworker
+  template:
+    metadata:
+      labels:
+        app: exaflow-worker
+        nodeType: globalworker
+    spec:
+      {{- if not .Values.managed_cluster }}
+      nodeSelector:
+        master: "true"
+      # Use hostPath storage on unmanaged clusters
+      volumes:
+        - name: csv-data
+          hostPath:
+            path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
+      {{- end }}
+      containers:
+      - name: worker
+        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
+        volumeMounts:
+        - mountPath: /opt/data
+          name: csv-data
+        env:
+        - name: WORKER_IDENTIFIER
+          value: {{ .Values.globalworker_identifier }}
+        - name: WORKER_ROLE
+          value: "GLOBALWORKER"
+        - name: FEDERATION
+          value: {{ .Values.federation }}
+        - name: LOG_LEVEL
+          value: {{ .Values.log_level }}
+        - name: FRAMEWORK_LOG_LEVEL
+          value: {{ .Values.framework_log_level }}
+        - name: CONTROLLER_IP
+          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_HOST)
+        - name: CONTROLLER_PORT
+          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_PORT)
+        - name: PROTECT_LOCAL_DATA
+          value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
+        - name: WORKER_TASKS_TIMEOUT
+          value: {{ quote .Values.controller.worker_tasks_timeout }}
+        - name: GRPC_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: GRPC_PORT
+          value: "5672"
+        - name: SMPC_ENABLED
+          value: {{ quote .Values.smpc.enabled }}
+        {{- if .Values.smpc.enabled }}
+        - name: SMPC_OPTIONAL
+          value: {{ quote .Values.smpc.optional }}
+        - name: SMPC_CLIENT_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: SMPC_COORDINATOR_IP
+          value: exaflow-smpc-coordinator-service
+        - name: SMPC_COORDINATOR_ADDRESS
+          value: "http://$(SMPC_COORDINATOR_IP):12314"
+        {{- end }}
+        startupProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exaflow.worker.healthcheck
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exaflow.worker.healthcheck
+          periodSeconds: 30
+          timeoutSeconds: 10
+  {{- if .Values.managed_cluster }}
+  volumeClaimTemplates:
+  - metadata:
+      name: csv-data
+      annotations:
+        # tells Argo CD: do not prune (delete) this resource
+        argocd.argoproj.io/sync-options: Delete=false,Prune=false
+    spec:
+      storageClassName: {{ .Values.storage.cephfs.storageClassName }}
+      accessModes: {{ toYaml .Values.storage.cephfs.globalworker.csvs.accessModes | nindent 6 }}
+      resources:
+        requests:
+          storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
+
+  {{- end }}
+  {{- end }}

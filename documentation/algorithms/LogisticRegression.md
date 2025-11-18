@@ -30,6 +30,6 @@ the dependent variable *y* has to be binary.
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[Logistic Regression](../../exareme2/algorithms/exareme2/logistic_regression.py)
+[Logistic Regression](../../exaflow/algorithms/exaflow/logistic_regression.py)
 
-[Logistic Regression with Cross - Validation](../../exareme2/algorithms/exareme2/logistic_regression_cv.py)
+[Logistic Regression with Cross - Validation](../../exaflow/algorithms/exaflow/logistic_regression_cv.py)

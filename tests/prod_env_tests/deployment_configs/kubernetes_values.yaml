@@ -22,9 +22,9 @@ flower:
   server_port: 8080
 
 controller:
-  workers_dns: "exareme2-workers-service"
+  workers_dns: "exaflow-workers-service"
   worker_landscape_aggregator_update_interval: 20
-  celery_tasks_timeout: 120
+  worker_tasks_timeout: 120
   workers_cleanup_interval: 60
 
 smpc:
@@ -37,7 +37,6 @@ storage:
   type: hostPath  # options: hostPath | cephfs
 
   hostPath:
-    controller_cleanup: "/opt/cleanup"
     db:
-      localworker: "/opt/exareme2/localworker"
-      globalworker: "/opt/exareme2/globalworker"
+      localworker: "/opt/exaflow/localworker"
+      globalworker: "/opt/exaflow/globalworker"

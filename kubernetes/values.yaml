@@ -19,12 +19,9 @@ flower:
   server_port: 8080
 
 controller:
-  workers_dns: "exareme2-workers-service"
+  workers_dns: "exaflow-workers-service"
   worker_landscape_aggregator_update_interval: 30
   worker_tasks_timeout: 300
-  worker_cleanup_task_timeout: 2
-  worker_run_udf_task_timeout: 300
-  workers_cleanup_interval: 60
 
 globalworker_identifier: globalworker
 
@@ -45,10 +42,9 @@ storage:
   type: hostPath
 
   hostPath:
-    controller_cleanup: "/opt/cleanup"
     db:
-      localworker: "/opt/exareme2/localworker"
-      globalworker: "/opt/exareme2/globalworker"
+      localworker: "/opt/exaflow/localworker"
+      globalworker: "/opt/exaflow/globalworker"
 
   cephfs:
     storageClassName: ceph-corbo-cephfs-retain

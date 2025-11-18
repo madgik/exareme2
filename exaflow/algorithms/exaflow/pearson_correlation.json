@@ -1,0 +1,50 @@
+{
+    "name": "pearson_correlation",
+    "desc": "Measure the linear relationship between two continuous variables. It calculates the correlation coefficient (range: -1 to 1). The correlation matrix will be computed between all possible pairs of variables and covariates. Leaving covariates empty is equivalent to having covariates = variables.",
+    "label": "Pearson Correlation Matrix (Exaflow)",
+    "enabled": true,
+    "components": ["AGGREGATION_SERVER"],
+    "type": "exaflow",
+    "inputdata": {
+        "y": {
+            "label": "Variables",
+            "desc": "Numerical variables on x axis of correlation matrix.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": true
+        },
+        "x": {
+            "label": "Covariates (optional)",
+            "desc": "Numerical variables on y axis of correlation matrix.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": false,
+            "multiple": true
+        }
+    },
+    "parameters": {
+        "alpha": {
+            "label": "Confidence level",
+            "desc": "The confidence level alpha used in the calculation of the confidence intervals for the correlation coefficients.",
+            "types": [
+                "real"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 0.95,
+            "min": 0.0,
+            "max": 1.0
+        }
+    }
+}

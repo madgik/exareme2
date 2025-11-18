@@ -2,16 +2,12 @@ ip = "172.17.0.1"
 federation = "algorithm_tests"
 log_level = "INFO"
 framework_log_level ="INFO"
-rabbitmq_image = "madgik/exareme2_rabbitmq:testing"
 
-
-flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
-exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
+flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
+exaflow_algorithm_folders = "./exaflow/algorithms/exaflow,./tests/algorithms/exaflow"
 
 worker_landscape_aggregator_update_interval = 300
-celery_tasks_timeout = 60
-celery_cleanup_task_timeout=2
-celery_run_udf_task_timeout = 120
+worker_tasks_timeout = 60
 
 [flower]
 enabled = true
@@ -24,10 +20,6 @@ port = 5000
 [privacy]
 minimum_row_count = 1
 protect_local_data = false
-
-[cleanup]
-workers_cleanup_interval=30
-contextid_release_timelimit=3600 #an hour
 
 [aggregation_server]
 enabled = false

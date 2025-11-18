@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "exareme2"
-version = "0.1.0"
+name = "exaflow"
+version = "1.0.0"
 description = "Core engine for the Medical Informatics Platform"
 authors = ["Your Name <you@example.com>"]
 packages = [
-    { include = "exareme2" },
+    { include = "exaflow" },
 ]
 
 [tool.poetry.dependencies]
@@ -78,7 +78,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 norecursedirs = ["tests/testcase_generators"]
 
 [tool.coverage.run]
-source_pkgs = ['exareme2']
+source_pkgs = ['exaflow']
 dynamic_context = 'test_function'
 
 [tool.coverage.report]

@@ -1,11 +1,10 @@
 from pathlib import Path
 
-import numpy as np
 import pytest
 
-from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
-from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
-from tests.algorithm_validation_tests.exareme2.helpers import parse_response
+from tests.algorithm_validation_tests.exaflow import algorithm_request
+from tests.algorithm_validation_tests.exaflow import get_test_params
+from tests.algorithm_validation_tests.exaflow import parse_response
 
 algorithm_name = "pearson_correlation"
 

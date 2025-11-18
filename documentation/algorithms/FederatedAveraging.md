@@ -20,4 +20,4 @@ This algorithm aggregates the parameters of the local models and returns their a
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[FedAvg](../../exareme2/algorithms/exareme2/fedaverage.py)
+[FedAvg](../../exaflow/algorithms/exaflow/fedaverage.py)

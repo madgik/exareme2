@@ -1,10 +1,10 @@
-from exareme2.algorithms.exaflow.algorithm import Algorithm
-from exareme2.algorithms.exaflow.exaflow_registry import exaflow_udf
-from exareme2.worker_communication import ColumnDataFloat
-from exareme2.worker_communication import ColumnDataStr
-from exareme2.worker_communication import TabularDataResult
+from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.worker_communication import ColumnDataFloat
+from exaflow.worker_communication import ColumnDataStr
+from exaflow.worker_communication import TabularDataResult
 
-ALGORITHM_NAME = "standard_deviation_exaflow_aggregator"
+ALGORITHM_NAME = "standard_deviation"
 
 
 class StandardDeviationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
@@ -46,7 +46,7 @@ def compute_stddev(agg_client, data):
 
 @exaflow_udf(with_aggregation_server=True)
 def local_step(inputdata, csv_paths, agg_client):
-    from exareme2.algorithms.utils.inputdata_utils import fetch_data
+    from exaflow.algorithms.utils.inputdata_utils import fetch_data
 
     data = fetch_data(inputdata, csv_paths)
     return compute_stddev(agg_client, data[inputdata.y[0]])

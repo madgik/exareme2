@@ -13,77 +13,6 @@ env:
   RETRY_SLEEP: "10"
 
 jobs:
-  build_and_push_rabbitmq:
-    name: Build RABBITMQ image and push to dockerhub
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Harbor connectivity probe
-        run: |
-          set -x
-          getent hosts ${{ env.HARBOR_REGISTRY }} || true
-          curl -vI --connect-timeout 10 https://${{ env.HARBOR_REGISTRY }}/v2/ || true
-
-      - name: Disable IPv6 (job-scoped)
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Log in to EBRAINS HARBOR (retry)
-        run: |
-          for i in $(seq 1 ${{ env.RETRY_ATTEMPTS }}); do
-            echo "${{ secrets.HARBOR_PASSWORD }}" | \
-            docker login ${{ env.HARBOR_REGISTRY }} \
-              -u "${{ secrets.HARBOR_USERNAME }}" --password-stdin && exit 0
-            echo "Harbor login attempt $i failed; retrying in ${{ env.RETRY_SLEEP }}s..."
-            sleep ${{ env.RETRY_SLEEP }}
-          done
-          echo "Harbor login failed after ${{ env.RETRY_ATTEMPTS }} attempts" >&2
-          exit 1
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            madgik/exareme2_rabbitmq
-            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_rabbitmq
-
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{ hashFiles('rabbitmq/**') }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
   build_and_push_controller:
     name: Build CONTROLLER image and push to dockerhub
     runs-on: ubuntu-latest
@@ -135,7 +64,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache/controller
-          key: ${{ runner.os }}-buildx-controller-${{ hashFiles('exareme2/**') }}
+          key: ${{ runner.os }}-buildx-controller-${{ hashFiles('exaflow/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-controller-
 
@@ -143,7 +72,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: exareme2/controller/Dockerfile
+          file: exaflow/controller/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -206,7 +135,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache/worker
-          key: ${{ runner.os }}-buildx-worker-${{ hashFiles('exareme2/**') }}
+          key: ${{ runner.os }}-buildx-worker-${{ hashFiles('exaflow/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-worker-
 
@@ -214,7 +143,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: exareme2/worker/Dockerfile
+          file: exaflow/worker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
