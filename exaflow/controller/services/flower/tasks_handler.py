@@ -9,13 +9,11 @@ class FlowerTasksHandler(TasksHandlerI):
         request_id: str,
         worker_id: str,
         worker_queue_addr: str,
-        worker_db_addr: str,
         tasks_timeout: int,
     ):
         self._request_id = request_id
         self._worker_id = worker_id
         self._worker_queue_addr = worker_queue_addr
-        self._db_address = worker_db_addr
         self._tasks_timeout = tasks_timeout
         self._logger = ctrl_logger.get_request_logger(request_id=request_id)
         self._worker_tasks_handler = WorkerTasksHandler(
@@ -25,10 +23,6 @@ class FlowerTasksHandler(TasksHandlerI):
     @property
     def worker_id(self) -> str:
         return self._worker_id
-
-    @property
-    def worker_data_address(self) -> str:
-        return self._db_address
 
     def start_flower_client(
         self,

@@ -30,6 +30,5 @@ class FlowerController(ControllerI):
             request_id,
             worker_id=worker_info.id,
             worker_queue_addr=worker_addr,
-            worker_db_addr=worker_db_addr,
             tasks_timeout=self.task_timeout,
         )
