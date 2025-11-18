@@ -1,19 +1,33 @@
 from __future__ import annotations
 
 from typing import Iterable
-from typing import Sequence
 from typing import Set
 
 import pandas as pd
 
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
-from exaflow.algorithms.utils.inputdata_utils import fetch_data
 from exaflow.data_filters import build_filter_clause
+
+
+def primary_table_name(data_model: str) -> str:
+    sanitized = data_model
+    for ch in (":", "-", "."):
+        sanitized = sanitized.replace(ch, "_")
+    return f'"{sanitized}__primary_data"'
+
+
+def quote_identifier(identifier: str) -> str:
+    escaped = identifier.replace('"', '""')
+    return f'"{escaped}"'
+
+
+def quote_literal(value: str) -> str:
+    escaped = value.replace("'", "''")
+    return f"'{escaped}'"
 
 
 def load_algorithm_dataframe(
     inputdata: Inputdata,
-    csv_paths: Sequence[str],
     *,
     dropna: bool = True,
     include_dataset: bool = False,
@@ -21,10 +35,6 @@ def load_algorithm_dataframe(
 ) -> pd.DataFrame:
     """
     Shared data loader for exaflow algorithms.
-
-    It mirrors the existing fetch_data behaviour when `use_duckdb` is False
-    and optionally pulls rows via DuckDB when `use_duckdb` is True. On any
-    DuckDB error it falls back to fetch_data to maintain current behaviour.
     """
     required_columns: Set[str] = set(inputdata.x or []) | set(inputdata.y or [])
     if include_dataset:
@@ -41,9 +51,6 @@ def _fetch_with_duckdb(
     import duckdb
 
     from exaflow.worker import config as worker_config
-    from exaflow.worker.exaflow.duckdb._utils import primary_table_name
-    from exaflow.worker.exaflow.duckdb._utils import quote_identifier
-    from exaflow.worker.exaflow.duckdb._utils import quote_literal
 
     datasets = (inputdata.datasets or []) + (
         inputdata.validation_datasets if inputdata.validation_datasets else []

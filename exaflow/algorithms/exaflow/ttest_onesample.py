@@ -28,7 +28,6 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         alpha = self.parameters.get("alpha", DEFAULT_ALPHA)
         alternative = self.parameters.get("alt_hypothesis", DEFAULT_ALT)
         mu = self.parameters.get("mu", DEFAULT_MU)
-        use_duckdb = True
 
         results = self.engine.run_algorithm_udf(
             func=local_step,
@@ -37,7 +36,6 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "alpha": alpha,
                 "alternative": alternative,
                 "mu": mu,
-                "use_duckdb": use_duckdb,
             },
         )
         result = results[0]
@@ -57,13 +55,13 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, csv_paths, agg_client, alpha, alternative, mu, use_duckdb):
+def local_step(inputdata, agg_client, alpha, alternative, mu):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
     if not inputdata.y or len(inputdata.y) != 1:
         raise ValueError("One-sample t-test requires exactly one variable in 'y'.")
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     sample = data[inputdata.y[0]].to_numpy(dtype=float, copy=False)
 
     return ttest_one_sample(

@@ -26,7 +26,6 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         alternative = self.parameters.get("alt_hypothesis", DEFAULT_ALT)
         group_a = self.parameters.get("groupA")
         group_b = self.parameters.get("groupB")
-        use_duckdb = True
 
         if group_a is None or group_b is None:
             raise ValueError(
@@ -41,7 +40,6 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "alternative": alternative,
                 "group_a": group_a,
                 "group_b": group_b,
-                "use_duckdb": use_duckdb,
             },
         )
         result = results[0]
@@ -59,9 +57,7 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(
-    inputdata, csv_paths, agg_client, alpha, alternative, group_a, group_b, use_duckdb
-):
+def local_step(inputdata, agg_client, alpha, alternative, group_a, group_b):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
     if not inputdata.x or not inputdata.y:
@@ -72,7 +68,7 @@ def local_step(
     group_var = inputdata.x[0]
     value_var = inputdata.y[0]
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     grouping = data[group_var]
     if hasattr(grouping, "ndim") and grouping.ndim > 1:

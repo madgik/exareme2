@@ -35,7 +35,6 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         Error messages are preserved so the validation tests match.
         """
         data_transformation: Dict = self.parameters.get("data_transformation", {})
-        use_duckdb = True
 
         try:
             results = self.engine.run_algorithm_udf(
@@ -43,7 +42,6 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 positional_args={
                     "inputdata": self.inputdata.json(),
                     "data_transformation": data_transformation,
-                    "use_duckdb": use_duckdb,
                 },
             )
         except Exception as ex:
@@ -70,10 +68,8 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 @exaflow_udf(with_aggregation_server=True)
 def pca_with_transformation_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     data_transformation,
-    use_duckdb,
 ):
     """
     UDF that:
@@ -105,7 +101,7 @@ def pca_with_transformation_local_step(
         if key not in allowed_keys:
             raise ValueError(f"Unknown transformation: {key}")
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # Use the same y variables as the base PCA implementation
     y_vars = inputdata.y

@@ -22,8 +22,6 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         if not self.inputdata.y:
             raise BadUserInput("K-means requires at least one variable in 'y'.")
 
-        use_duckdb = True
-
         # Required parameters
         try:
             n_clusters = int(self.parameters["k"])
@@ -44,7 +42,6 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "n_clusters": n_clusters,
                 "tol": tol,
                 "maxiter": maxiter,
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -60,7 +57,7 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, csv_paths, agg_client, n_clusters, tol, maxiter, use_duckdb):
+def local_step(inputdata, agg_client, n_clusters, tol, maxiter):
     """
     Local exaflow UDF wrapper:
 
@@ -71,7 +68,7 @@ def local_step(inputdata, csv_paths, agg_client, n_clusters, tol, maxiter, use_d
     """
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # `inputdata.y` is a list of variable names; we use them as features
     # just like PCA does: data[inputdata.y] is a 2D array-like.

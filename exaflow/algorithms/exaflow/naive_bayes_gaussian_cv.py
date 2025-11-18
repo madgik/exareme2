@@ -122,13 +122,13 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def gaussian_nb_cv_check_local(inputdata, csv_paths, y_var, n_splits):
+def gaussian_nb_cv_check_local(inputdata, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         n_obs = int(data[y_var].dropna().shape[0])
     else:
@@ -139,7 +139,6 @@ def gaussian_nb_cv_check_local(inputdata, csv_paths, y_var, n_splits):
 @exaflow_udf(with_aggregation_server=True)
 def gaussian_nb_cv_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     y_var,
     x_vars,
@@ -166,7 +165,7 @@ def gaussian_nb_cv_local_step(
 
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     n_splits = int(n_splits)
     class_labels = list(labels)

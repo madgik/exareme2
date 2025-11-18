@@ -46,7 +46,6 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             raise BadUserInput("Naive Bayes CV requires a dependent variable.")
         if not self.inputdata.x:
             raise BadUserInput("Naive Bayes CV requires at least one covariate.")
-        use_duckdb = True
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
@@ -79,7 +78,6 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "n_splits": int(n_splits),
-                "use_duckdb": use_duckdb,
             },
         )
         if not all(res["ok"] for res in check_results):
@@ -98,7 +96,6 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "x_vars": x_vars,
                 "categories": categories,
                 "n_splits": int(n_splits),
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -127,15 +124,13 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def naive_bayes_categorical_cv_check_local(
-    inputdata, csv_paths, y_var, n_splits, use_duckdb=False
-):
+def naive_bayes_categorical_cv_check_local(inputdata, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         n_obs = int(data[y_var].dropna().shape[0])
     else:
@@ -146,13 +141,11 @@ def naive_bayes_categorical_cv_check_local(
 @exaflow_udf(with_aggregation_server=True)
 def naive_bayes_categorical_cv_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     y_var,
     x_vars,
     categories,
     n_splits,
-    use_duckdb,
 ):
     """
     Exaflow UDF that performs K-fold cross-validation for categorical
@@ -166,7 +159,7 @@ def naive_bayes_categorical_cv_local_step(
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
     n_splits = int(n_splits)
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # --- NEW: ensure we don't end up with duplicated columns ---
     # Build unique list of columns: x_vars + y_var (in that order)
@@ -174,8 +167,6 @@ def naive_bayes_categorical_cv_local_step(
 
     # Restrict to relevant columns and drop duplicate column names if any
     data = data[cols].copy()
-    if data.columns.duplicated().any():
-        data = data.loc[:, ~data.columns.duplicated()]
 
     # Build categorical columns directly on the same DataFrame
     class_cats = categories[y_var]

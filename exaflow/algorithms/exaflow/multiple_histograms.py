@@ -33,7 +33,6 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         y_var = self.inputdata.y[0]
         x_vars = self.inputdata.x or []
         bins_param = self.parameters.get("bins", 20) or 20
-        use_duckdb = True
 
         metadata_subset = {var: metadata[var] for var in {y_var, *x_vars}}
 
@@ -43,7 +42,6 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "inputdata": self.inputdata.json(),
                 "metadata": metadata_subset,
                 "bins": int(bins_param),
-                "use_duckdb": use_duckdb,
             },
         )
         payload = results[0]
@@ -78,7 +76,7 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, csv_paths, agg_client, metadata, bins, use_duckdb):
+def local_step(inputdata, agg_client, metadata, bins):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
     from exaflow.worker import config as worker_config
 
@@ -86,7 +84,7 @@ def local_step(inputdata, csv_paths, agg_client, metadata, bins, use_duckdb):
 
     y_var = inputdata.y[0]
     x_vars = inputdata.x or []
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     y_meta = metadata.get(y_var, {})
     is_categorical = y_meta.get("is_categorical", False)

@@ -50,7 +50,6 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             raise BadUserInput("Logistic regression requires a dependent variable.")
         if not self.inputdata.x:
             raise BadUserInput("Logistic regression requires at least one covariate.")
-        use_duckdb = True
 
         positive_class = self.parameters.get("positive_class")
         if positive_class is None:
@@ -70,7 +69,6 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             self.inputdata.json(),
             categorical_vars,
             logistic_collect_categorical_levels,
-            extra_args={"use_duckdb": use_duckdb},
         )
 
         indep_var_names = construct_design_labels(
@@ -86,7 +84,6 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "categorical_vars": categorical_vars,
                 "numerical_vars": numerical_vars,
                 "dummy_categories": dummy_categories,
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -107,32 +104,28 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def logistic_collect_categorical_levels(
-    inputdata, csv_paths, categorical_vars, use_duckdb=False
-):
+def logistic_collect_categorical_levels(inputdata, categorical_vars):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf(with_aggregation_server=True)
 def logistic_regression_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     positive_class,
     y_var,
     categorical_vars,
     numerical_vars,
     dummy_categories,
-    use_duckdb,
 ):
     import pandas as pd
 
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # --- keep only the variables we actually use (X + y) and ensure unique names ---
     # order: categorical, numerical, then y
@@ -140,9 +133,6 @@ def logistic_regression_local_step(
 
     # subset and drop duplicated column names, keeping the first occurrence
     data = data[cols].copy()
-    if data.columns.duplicated().any():
-        data = data.loc[:, ~data.columns.duplicated()]
-
     if data.empty:
         X = build_design_matrix(
             data,

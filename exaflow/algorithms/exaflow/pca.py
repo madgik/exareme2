@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.library.stats.stats import pca
 
 ALGORITHM_NAME = "pca"
 
@@ -36,7 +37,9 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, csv_paths, agg_client):
-    from exaflow.worker.exaflow.duckdb import pca as duckdb_pca
+def local_step(inputdata, agg_client):
+    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    return duckdb_pca.run_pca(inputdata, agg_client)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
+
+    return pca(agg_client, data[inputdata.y])

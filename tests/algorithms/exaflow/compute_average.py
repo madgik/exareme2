@@ -46,9 +46,9 @@ def compute_local_sum_and_count(columns, data):
 
 
 @exaflow_udf
-def local_step(inputdata, csv_paths):
-    from exaflow.algorithms.utils.inputdata_utils import fetch_data
+def local_step(inputdata):
+    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = fetch_data(inputdata, csv_paths)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     columns = inputdata.y
     return compute_local_sum_and_count(columns, data)

@@ -63,7 +63,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         variable_names = [
             v for v in (self.inputdata.x + self.inputdata.y) if v != DATASET_VAR_NAME
         ]
-        use_duckdb = True
+
         numerical_vars = [
             var for var in variable_names if not metadata[var]["is_categorical"]
         ]
@@ -77,7 +77,6 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "inputdata": self.inputdata.json(),
                 "numerical_vars": numerical_vars,
                 "nominal_vars": nominal_vars,
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -105,18 +104,16 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def local_step(inputdata, csv_paths, numerical_vars, nominal_vars, use_duckdb):
+def local_step(inputdata, numerical_vars, nominal_vars):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
     from exaflow.worker import config as worker_config
 
     min_row_count = worker_config.privacy.minimum_row_count
     data = load_algorithm_dataframe(
         inputdata,
-        csv_paths,
         dropna=False,
         include_dataset=True,
     )
-    data = data.loc[:, ~data.columns.duplicated()]
     if "dataset" in data.columns:
         ds = data["dataset"]
         if isinstance(ds, pd.DataFrame):

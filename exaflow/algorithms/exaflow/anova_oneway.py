@@ -116,9 +116,7 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def anova_oneway_local_step(
-    inputdata, csv_paths, agg_client, x_var, y_var, covar_enums
-):
+def anova_oneway_local_step(inputdata, agg_client, x_var, y_var, covar_enums):
     """
     Exaflow UDF that:
     - On each worker: builds local group statistics for y by x.
@@ -133,7 +131,7 @@ def anova_oneway_local_step(
 
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     covar_enums = list(covar_enums)
 
     if data.empty or x_var not in data.columns or y_var not in data.columns:

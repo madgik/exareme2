@@ -711,7 +711,7 @@ def _structure_data(worker=None):
         structure_text = format_directory_structure(combined_root)
 
         message(
-            f"Dedicated folders for each workers are located at: {combined_root}\n"
+            f"Dedicated folders for each workers are located at: 'tests/test_data/.combined'\n"
             f"{structure_text}",
             Level.HEADER,
         )

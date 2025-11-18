@@ -43,7 +43,6 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             raise BadUserInput("Linear regression requires a dependent variable.")
         if not self.inputdata.x:
             raise BadUserInput("Linear regression requires at least one covariate.")
-        use_duckdb = True
 
         y_var = self.inputdata.y[0]
 
@@ -61,7 +60,6 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             self.inputdata.json(),
             categorical_vars,
             linear_collect_categorical_levels,
-            extra_args={"use_duckdb": use_duckdb},
         )
 
         # Construct names of design-matrix columns: Intercept, dummies, numericals
@@ -79,7 +77,6 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "categorical_vars": categorical_vars,
                 "numerical_vars": numerical_vars,
                 "dummy_categories": dummy_categories,
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -113,29 +110,25 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def linear_collect_categorical_levels(
-    inputdata, csv_paths, categorical_vars, use_duckdb=False
-):
+def linear_collect_categorical_levels(inputdata, categorical_vars):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf(with_aggregation_server=True)
 def linear_regression_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     y_var,
     categorical_vars,
     numerical_vars,
     dummy_categories,
-    use_duckdb,
 ):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty:
         X = build_design_matrix(

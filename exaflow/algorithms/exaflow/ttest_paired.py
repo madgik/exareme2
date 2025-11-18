@@ -24,7 +24,6 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         alpha = self.parameters.get("alpha", DEFAULT_ALPHA)
         alternative = self.parameters.get("alt_hypothesis", DEFAULT_ALT)
-        use_duckdb = True
 
         results = self.engine.run_algorithm_udf(
             func=local_step,
@@ -32,7 +31,6 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "inputdata": self.inputdata.json(),
                 "alpha": alpha,
                 "alternative": alternative,
-                "use_duckdb": use_duckdb,
             },
         )
         result = results[0]
@@ -50,7 +48,7 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, csv_paths, agg_client, alpha, alternative, use_duckdb):
+def local_step(inputdata, agg_client, alpha, alternative):
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
     if not inputdata.x or not inputdata.y:
@@ -59,7 +57,7 @@ def local_step(inputdata, csv_paths, agg_client, alpha, alternative, use_duckdb)
     x_var = inputdata.x[0]
     y_var = inputdata.y[0]
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     sample_x = data[x_var].to_numpy(dtype=float, copy=False)
     sample_y = data[y_var].to_numpy(dtype=float, copy=False)

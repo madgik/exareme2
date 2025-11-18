@@ -43,7 +43,6 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             raise BadUserInput("Linear regression CV requires a dependent variable.")
         if not self.inputdata.x:
             raise BadUserInput("Linear regression CV requires at least one covariate.")
-        use_duckdb = True
 
         y_var = self.inputdata.y[0]
         n_splits = self.parameters.get("n_splits")
@@ -66,7 +65,6 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             inputdata_json=self.inputdata.json(),
             categorical_vars=categorical_vars,
             collect_udf=linear_collect_categorical_levels_cv,
-            extra_args={"use_duckdb": use_duckdb},
         )
 
         indep_var_names = construct_design_labels(
@@ -84,7 +82,6 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "n_splits": n_splits,
-                "use_duckdb": use_duckdb,
             },
         )
         if not all(res["ok"] for res in check_results):
@@ -105,7 +102,6 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "dummy_categories": dummy_categories,
                 "n_splits": n_splits,
                 "p": p,
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -140,9 +136,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def linear_collect_categorical_levels_cv(
-    inputdata, csv_paths, categorical_vars, use_duckdb=False
-):
+def linear_collect_categorical_levels_cv(inputdata, categorical_vars):
     """
     Thin UDF wrapper used only to collect categorical levels from workers.
 
@@ -151,20 +145,18 @@ def linear_collect_categorical_levels_cv(
     """
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf()
-def linear_regression_cv_check_local(
-    inputdata, csv_paths, y_var, n_splits, use_duckdb=False
-):
+def linear_regression_cv_check_local(inputdata, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         n_obs = int(data[y_var].dropna().shape[0])
     else:
@@ -176,7 +168,6 @@ def linear_regression_cv_check_local(
 @exaflow_udf(with_aggregation_server=True)
 def linear_regression_cv_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     y_var,
     categorical_vars,
@@ -184,7 +175,6 @@ def linear_regression_cv_local_step(
     dummy_categories,
     n_splits,
     p,
-    use_duckdb,
 ):
     """
     Run K-fold CV locally on each worker, but use agg_client to:
@@ -202,7 +192,7 @@ def linear_regression_cv_local_step(
     n_splits = int(n_splits)
     p = int(p)
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty or y_var not in data.columns:
         # This worker contributes nothing but must still participate.

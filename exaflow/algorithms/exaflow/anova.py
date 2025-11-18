@@ -126,7 +126,7 @@ class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def anova_twoway_collect_levels(inputdata, csv_paths, x1, x2):
+def anova_twoway_collect_levels(inputdata, x1, x2):
     """
     Collect observed levels for x1 and x2 on each worker.
     """
@@ -134,7 +134,7 @@ def anova_twoway_collect_levels(inputdata, csv_paths, x1, x2):
 
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     if data.empty:
         return {"x1_levels": [], "x2_levels": []}
 
@@ -155,7 +155,6 @@ def anova_twoway_collect_levels(inputdata, csv_paths, x1, x2):
 @exaflow_udf(with_aggregation_server=True)
 def anova_twoway_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     x1,
     x2,
@@ -172,7 +171,7 @@ def anova_twoway_local_step(
 
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     sstype = int(sstype)
     levels_a = list(levels_a)

@@ -232,7 +232,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             raise BadUserInput(
                 "Logistic regression CV requires at least one covariate."
             )
-        use_duckdb = True
 
         positive_class = self.parameters.get("positive_class")
         if positive_class is None:
@@ -260,7 +259,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             inputdata_json=self.inputdata.json(),
             categorical_vars=categorical_vars,
             collect_udf=logistic_collect_categorical_levels_cv,
-            extra_args={"use_duckdb": use_duckdb},
         )
 
         indep_var_names = construct_design_labels(
@@ -277,7 +275,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "y_var": y_var,
                 "positive_class": positive_class,
                 "n_splits": n_splits,
-                "use_duckdb": use_duckdb,
             },
         )
         if not all(res["ok"] for res in check_results):
@@ -298,7 +295,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "numerical_vars": numerical_vars,
                 "dummy_categories": dummy_categories,
                 "n_splits": n_splits,
-                "use_duckdb": use_duckdb,
             },
         )
 
@@ -360,22 +356,18 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def logistic_collect_categorical_levels_cv(
-    inputdata, csv_paths, categorical_vars, use_duckdb=False
-):
+def logistic_collect_categorical_levels_cv(inputdata, categorical_vars):
     """
     Thin UDF wrapper used only to collect categorical levels from workers.
     """
     from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf()
-def logistic_regression_cv_check_local(
-    inputdata, csv_paths, y_var, positive_class, n_splits, use_duckdb=False
-):
+def logistic_regression_cv_check_local(inputdata, y_var, positive_class, n_splits):
     """
     Check on each worker whether the number of observations (for y) is at least n_splits.
     """
@@ -383,7 +375,7 @@ def logistic_regression_cv_check_local(
 
     n_splits = int(n_splits)
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         y = (data[y_var] == positive_class).astype(float)
         n_obs = int(y.dropna().shape[0])
@@ -396,7 +388,6 @@ def logistic_regression_cv_check_local(
 @exaflow_udf(with_aggregation_server=True)
 def logistic_regression_cv_local_step(
     inputdata,
-    csv_paths,
     agg_client,
     y_var,
     positive_class,
@@ -404,7 +395,6 @@ def logistic_regression_cv_local_step(
     numerical_vars,
     dummy_categories,
     n_splits,
-    use_duckdb,
 ):
     """
     Run K-fold CV for logistic regression using secure aggregation.
@@ -421,7 +411,7 @@ def logistic_regression_cv_local_step(
 
     n_splits = int(n_splits)
 
-    data = load_algorithm_dataframe(inputdata, csv_paths, dropna=True)
+    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty or y_var not in data.columns:
         return {
