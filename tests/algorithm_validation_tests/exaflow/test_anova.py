@@ -7,12 +7,13 @@ from tests.algorithm_validation_tests.exaflow.helpers import assert_allclose
 from tests.algorithm_validation_tests.exaflow.helpers import get_test_params
 from tests.algorithm_validation_tests.exaflow.helpers import parse_response
 
-expected_file = Path(__file__).parent / "expected" / "anova_expected.json"
+alrorithm_name = "anova"
+expected_file = Path(__file__).parent / "expected" / f"{alrorithm_name}_expected.json"
 
 
 @pytest.mark.parametrize("test_input, expected", get_test_params(expected_file))
 def test_anova_two_way(test_input, expected, subtests):
-    response = algorithm_request("anova", test_input)
+    response = algorithm_request(alrorithm_name, test_input)
     result = parse_response(response)
 
     validate_results(result, expected, subtests)
