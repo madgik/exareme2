@@ -1,6 +1,12 @@
-import numpy
+from typing import Dict
+from typing import List
+from typing import Optional
+
+import numpy as np
 import scipy.special as special
 import scipy.stats as st
+
+from exaflow.controller.worker_client.app import LOGGER
 
 
 def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
@@ -30,10 +36,9 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
         centers: List[List[float]]
             Final cluster centers (k x n_features).
     """
-    import numpy
 
     # Convert to numpy array
-    X = numpy.asarray(x, dtype=float)
+    X = np.asarray(x, dtype=float)
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
@@ -50,17 +55,17 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
     # Global initialization of centers using global min/max per feature
     # ------------------------------------------------------------------
     if n_local > 0:
-        local_min = numpy.nanmin(X, axis=0)
-        local_max = numpy.nanmax(X, axis=0)
+        local_min = np.nanmin(X, axis=0)
+        local_max = np.nanmax(X, axis=0)
     else:
         # This worker has no rows but we still need to participate
-        local_min = numpy.full((n_features,), numpy.inf, dtype=float)
-        local_max = numpy.full((n_features,), -numpy.inf, dtype=float)
+        local_min = np.full((n_features,), np.inf, dtype=float)
+        local_max = np.full((n_features,), -np.inf, dtype=float)
 
-    global_min = numpy.asarray(agg_client.min(local_min.tolist()), dtype=float)
-    global_max = numpy.asarray(agg_client.max(local_max.tolist()), dtype=float)
+    global_min = np.asarray(agg_client.min(local_min.tolist()), dtype=float)
+    global_max = np.asarray(agg_client.max(local_max.tolist()), dtype=float)
 
-    rng = numpy.random.RandomState(seed=random_state)
+    rng = np.random.RandomState(seed=random_state)
     centers = rng.uniform(
         low=global_min,
         high=global_max,
@@ -77,28 +82,28 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
             # X: (n_local, n_features)
             # centers: (k, n_features)
             # diff: (n_local, k, n_features)
-            diff = X[:, numpy.newaxis, :] - centers[numpy.newaxis, :, :]
-            dists_sq = numpy.einsum("ijk,ijk->ij", diff, diff)
-            labels = numpy.argmin(dists_sq, axis=1)
+            diff = X[:, np.newaxis, :] - centers[np.newaxis, :, :]
+            dists_sq = np.einsum("ijk,ijk->ij", diff, diff)
+            labels = np.argmin(dists_sq, axis=1)
 
             # Local sums and counts per cluster
-            sum_local = numpy.zeros((n_clusters, n_features), dtype=float)
-            count_local = numpy.zeros((n_clusters,), dtype=float)
+            sum_local = np.zeros((n_clusters, n_features), dtype=float)
+            count_local = np.zeros((n_clusters,), dtype=float)
 
             for k in range(n_clusters):
                 mask = labels == k
-                if numpy.any(mask):
+                if np.any(mask):
                     sum_local[k] = X[mask].sum(axis=0)
                     count_local[k] = float(mask.sum())
         else:
-            sum_local = numpy.zeros((n_clusters, n_features), dtype=float)
-            count_local = numpy.zeros((n_clusters,), dtype=float)
+            sum_local = np.zeros((n_clusters, n_features), dtype=float)
+            count_local = np.zeros((n_clusters,), dtype=float)
 
         # Aggregate sums and counts across workers
         sum_flat_global = agg_client.sum(sum_local.ravel().tolist())
-        count_global = numpy.asarray(agg_client.sum(count_local.tolist()), dtype=float)
+        count_global = np.asarray(agg_client.sum(count_local.tolist()), dtype=float)
 
-        sum_global = numpy.asarray(sum_flat_global, dtype=float).reshape(
+        sum_global = np.asarray(sum_flat_global, dtype=float).reshape(
             (n_clusters, n_features)
         )
 
@@ -109,7 +114,7 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
                 new_centers[k] = sum_global[k] / count_global[k]
 
         # Check convergence (Frobenius norm)
-        diff_norm = numpy.linalg.norm(new_centers - centers, ord="fro")
+        diff_norm = np.linalg.norm(new_centers - centers, ord="fro")
         centers = new_centers
         if diff_norm <= tol:
             break
@@ -123,30 +128,30 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
 def pca(agg_client, x):
 
     n_obs = len(x)
-    sx = numpy.einsum("ij->j", x)
-    sxx = numpy.einsum("ij,ij->j", x, x)
+    sx = np.einsum("ij->j", x)
+    sxx = np.einsum("ij,ij->j", x, x)
 
     total_n_obs = agg_client.sum([float(n_obs)])[0]
-    total_sx = numpy.array(agg_client.sum(sx.tolist()), dtype=float)
-    total_sxx = numpy.array(agg_client.sum(sxx.tolist()), dtype=float)
+    total_sx = np.array(agg_client.sum(sx.tolist()), dtype=float)
+    total_sxx = np.array(agg_client.sum(sxx.tolist()), dtype=float)
 
     means = total_sx / total_n_obs
     variances = (total_sxx - total_n_obs * means**2) / (total_n_obs - 1)
-    variances = numpy.maximum(variances, 0.0)
-    sigmas = numpy.sqrt(variances)
+    variances = np.maximum(variances, 0.0)
+    sigmas = np.sqrt(variances)
     zero_sigma = sigmas == 0
-    if numpy.any(zero_sigma):
+    if np.any(zero_sigma):
         sigmas = sigmas.copy()
         sigmas[zero_sigma] = 1.0
-    out = numpy.empty(x.shape)
+    out = np.empty(x.shape)
 
-    numpy.subtract(x, means, out=out)
-    numpy.divide(out, sigmas, out=out)
-    gramian = numpy.einsum("ji,jk->ik", out, out)
-    total_gramian = numpy.array(agg_client.sum(gramian.tolist()), dtype=float)
+    np.subtract(x, means, out=out)
+    np.divide(out, sigmas, out=out)
+    gramian = np.einsum("ji,jk->ik", out, out)
+    total_gramian = np.array(agg_client.sum(gramian.tolist()), dtype=float)
     covariance = total_gramian / (total_n_obs - 1)
 
-    eigenvalues, eigenvectors = numpy.linalg.eig(covariance)
+    eigenvalues, eigenvectors = np.linalg.eig(covariance)
     idx = eigenvalues.argsort()[::-1]
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
@@ -161,21 +166,21 @@ def pca(agg_client, x):
 def pearson_correlation(agg_client, x, y, alpha):
     n_obs = len(y)
 
-    x = numpy.asarray(x, dtype=float)
-    y = numpy.asarray(y, dtype=float)
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
 
-    sx = numpy.einsum("ij->j", x)
-    sy = numpy.einsum("ij->j", y)
-    sxx = numpy.einsum("ij,ij->j", x, x)
-    syy = numpy.einsum("ij,ij->j", y, y)
-    sxy = numpy.einsum("ji,jk->ki", x, y)
+    sx = np.einsum("ij->j", x)
+    sy = np.einsum("ij->j", y)
+    sxx = np.einsum("ij,ij->j", x, x)
+    syy = np.einsum("ij,ij->j", y, y)
+    sxy = np.einsum("ji,jk->ki", x, y)
 
     total_n_obs = agg_client.sum([float(n_obs)])[0]
-    total_sx = numpy.array(agg_client.sum(sx.tolist()), dtype=float)
-    total_sy = numpy.array(agg_client.sum(sy.tolist()), dtype=float)
-    total_sxx = numpy.array(agg_client.sum(sxx.tolist()), dtype=float)
-    total_syy = numpy.array(agg_client.sum(syy.tolist()), dtype=float)
-    total_sxy = numpy.array(agg_client.sum(sxy.tolist()), dtype=float)
+    total_sx = np.array(agg_client.sum(sx.tolist()), dtype=float)
+    total_sy = np.array(agg_client.sum(sy.tolist()), dtype=float)
+    total_sxx = np.array(agg_client.sum(sxx.tolist()), dtype=float)
+    total_syy = np.array(agg_client.sum(syy.tolist()), dtype=float)
+    total_sxy = np.array(agg_client.sum(sxy.tolist()), dtype=float)
 
     df = total_n_obs - 2
     if total_n_obs == 0:
@@ -185,22 +190,22 @@ def pearson_correlation(agg_client, x, y, alpha):
         raise ValueError("Not enough observations to compute Pearson correlation.")
 
     d = (
-        numpy.sqrt(total_n_obs * total_sxx - total_sx * total_sx)
-        * numpy.sqrt(total_n_obs * total_syy - total_sy * total_sy)[:, numpy.newaxis]
+        np.sqrt(total_n_obs * total_sxx - total_sx * total_sx)
+        * np.sqrt(total_n_obs * total_syy - total_sy * total_sy)[:, np.newaxis]
     )
-    correlations = (total_n_obs * total_sxy - total_sx * total_sy[:, numpy.newaxis]) / d
+    correlations = (total_n_obs * total_sxy - total_sx * total_sy[:, np.newaxis]) / d
     correlations[d == 0] = 0
     correlations = correlations.clip(-1, 1)
     t_squared = correlations**2 * (df / ((1.0 - correlations) * (1.0 + correlations)))
     p_values = special.betainc(
-        0.5 * df, 0.5, numpy.fmin(numpy.asarray(df / (df + t_squared)), 1.0)
+        0.5 * df, 0.5, np.fmin(np.asarray(df / (df + t_squared)), 1.0)
     )
     p_values[abs(correlations) == 1] = 0
-    r_z = numpy.arctanh(correlations)
-    se = 1 / numpy.sqrt(total_n_obs - 3)
+    r_z = np.arctanh(correlations)
+    se = 1 / np.sqrt(total_n_obs - 3)
     z = st.norm.ppf(1 - alpha / 2)
     lo_z, hi_z = r_z - z * se, r_z + z * se
-    ci_lo, ci_hi = numpy.tanh((lo_z, hi_z))
+    ci_lo, ci_hi = np.tanh((lo_z, hi_z))
 
     return dict(
         n_obs=int(total_n_obs),
@@ -212,11 +217,11 @@ def pearson_correlation(agg_client, x, y, alpha):
 
 
 def ttest_one_sample(agg_client, sample, *, mu: float, alpha: float, alternative: str):
-    sample = numpy.asarray(sample, dtype=float).reshape(-1)
+    sample = np.asarray(sample, dtype=float).reshape(-1)
     n_obs = sample.size
 
     sum_x = sample.sum()
-    sqrd_x = numpy.dot(sample, sample)
+    sqrd_x = np.dot(sample, sample)
     diff_x = sum_x - n_obs * mu
     diff_sqrd_x = sqrd_x - 2 * mu * sum_x + n_obs * mu**2
 
@@ -230,10 +235,10 @@ def ttest_one_sample(agg_client, sample, *, mu: float, alpha: float, alternative
         raise ValueError("Not enough observations for one-sample t-test.")
 
     smpl_mean = total_sum_x / total_n_obs
-    sd = numpy.sqrt(
+    sd = np.sqrt(
         (total_diff_sqrd_x - (total_diff_x**2 / total_n_obs)) / (total_n_obs - 1)
     )
-    sed = sd / numpy.sqrt(total_n_obs)
+    sed = sd / np.sqrt(total_n_obs)
     t_stat = (smpl_mean - mu) / sed
     df = total_n_obs - 1
 
@@ -272,8 +277,8 @@ def ttest_paired(
     alpha: float,
     alternative: str,
 ):
-    sample_x = numpy.asarray(sample_x, dtype=float).reshape(-1)
-    sample_y = numpy.asarray(sample_y, dtype=float).reshape(-1)
+    sample_x = np.asarray(sample_x, dtype=float).reshape(-1)
+    sample_y = np.asarray(sample_y, dtype=float).reshape(-1)
     if sample_x.shape != sample_y.shape:
         raise ValueError("Paired samples must have the same length.")
 
@@ -283,9 +288,9 @@ def ttest_paired(
     sum_x = sample_x.sum()
     sum_y = sample_y.sum()
     diff_sum = diff.sum()
-    diff_sq_sum = numpy.dot(diff, diff)
-    x_sq_sum = numpy.dot(sample_x, sample_x)
-    y_sq_sum = numpy.dot(sample_y, sample_y)
+    diff_sq_sum = np.dot(diff, diff)
+    x_sq_sum = np.dot(sample_x, sample_x)
+    y_sq_sum = np.dot(sample_y, sample_y)
 
     totals = agg_client.sum(
         [float(n_obs), float(sum_x), float(sum_y), float(diff_sum), float(diff_sq_sum)]
@@ -300,18 +305,18 @@ def ttest_paired(
     mean_x = total_sum_x / total_n_obs
     mean_y = total_sum_y / total_n_obs
 
-    sd_x = numpy.sqrt(
+    sd_x = np.sqrt(
         (total_x_sq - 2 * mean_x * total_sum_x + (mean_x**2) * total_n_obs)
         / (total_n_obs - 1)
     )
-    sd_y = numpy.sqrt(
+    sd_y = np.sqrt(
         (total_y_sq - 2 * mean_y * total_sum_y + (mean_y**2) * total_n_obs)
         / (total_n_obs - 1)
     )
-    sd_diff = numpy.sqrt(
+    sd_diff = np.sqrt(
         (total_diff_sq_sum - (total_diff_sum**2 / total_n_obs)) / (total_n_obs - 1)
     )
-    sed = sd_diff / numpy.sqrt(total_n_obs)
+    sed = sd_diff / np.sqrt(total_n_obs)
     t_stat = (mean_x - mean_y) / sed
     df = total_n_obs - 1
 
@@ -327,7 +332,7 @@ def ttest_paired(
     else:
         p_value = (1.0 - st.t.cdf(abs(t_stat), df)) * 2.0
 
-    cohens_d = (mean_x - mean_y) / numpy.sqrt((sd_x**2 + sd_y**2) / 2)
+    cohens_d = (mean_x - mean_y) / np.sqrt((sd_x**2 + sd_y**2) / 2)
 
     return dict(
         t_stat=t_stat,
@@ -349,8 +354,8 @@ def ttest_independent(
     alpha: float,
     alternative: str,
 ):
-    sample_a = numpy.asarray(sample_a, dtype=float).reshape(-1)
-    sample_b = numpy.asarray(sample_b, dtype=float).reshape(-1)
+    sample_a = np.asarray(sample_a, dtype=float).reshape(-1)
+    sample_b = np.asarray(sample_b, dtype=float).reshape(-1)
 
     n_a = sample_a.size
     n_b = sample_b.size
@@ -366,7 +371,7 @@ def ttest_independent(
     n_a_total, n_b_total, sum_a_total, sum_b_total = sums
 
     sq_sums = agg_client.sum(
-        [float(numpy.dot(sample_a, sample_a)), float(numpy.dot(sample_b, sample_b))]
+        [float(np.dot(sample_a, sample_a)), float(np.dot(sample_b, sample_b))]
     )
     sq_sum_a, sq_sum_b = sq_sums
 
@@ -380,18 +385,18 @@ def ttest_independent(
     mean_a = sum_a_total / n_a_total
     mean_b = sum_b_total / n_b_total
 
-    sd_a = numpy.sqrt(
+    sd_a = np.sqrt(
         (sq_sum_a - 2 * mean_a * sum_a_total + (mean_a**2) * n_a_total)
         / (n_a_total - 1)
     )
-    sd_b = numpy.sqrt(
+    sd_b = np.sqrt(
         (sq_sum_b - 2 * mean_b * sum_b_total + (mean_b**2) * n_b_total)
         / (n_b_total - 1)
     )
 
-    sed_a = sd_a / numpy.sqrt(n_a_total)
-    sed_b = sd_b / numpy.sqrt(n_b_total)
-    sed = numpy.sqrt(sed_a**2 + sed_b**2)
+    sed_a = sd_a / np.sqrt(n_a_total)
+    sed_b = sd_b / np.sqrt(n_b_total)
+    sed = np.sqrt(sed_a**2 + sed_b**2)
     t_stat = (mean_a - mean_b) / sed
     df = n_a_total + n_b_total - 2
     diff_mean = mean_a - mean_b
@@ -410,7 +415,7 @@ def ttest_independent(
     pooled_var = ((n_a_total - 1) * sd_a**2 + (n_b_total - 1) * sd_b**2) / (
         n_a_total + n_b_total - 2
     )
-    cohens_d = diff_mean / numpy.sqrt(pooled_var)
+    cohens_d = diff_mean / np.sqrt(pooled_var)
 
     return dict(
         t_stat=t_stat,
@@ -446,41 +451,336 @@ def roc_curve_binary(y_true, y_score):
     - Identical to sklearn.metrics.roc_curve(..., drop_intermediate=False)
     - Does NOT perform secure aggregation — operates on already-local arrays.
     """
-    y_true = numpy.asarray(y_true).astype(int)
-    y_score = numpy.asarray(y_score).astype(float)
+    y_true = np.asarray(y_true).astype(int)
+    y_score = np.asarray(y_score).astype(float)
 
     # Sort by descending score
-    desc_idx = numpy.argsort(-y_score)
+    desc_idx = np.argsort(-y_score)
     y_true = y_true[desc_idx]
     y_score = y_score[desc_idx]
 
     # Count positives/negatives
-    P = numpy.sum(y_true == 1)
-    N = numpy.sum(y_true == 0)
+    P = np.sum(y_true == 1)
+    N = np.sum(y_true == 0)
 
     if P == 0 or N == 0:
         # Degenerate case: only one class present
         return {"tpr": [0.0, 1.0], "fpr": [0.0, 1.0]}
 
     # True positives & false positives cumulative
-    tps = numpy.cumsum(y_true == 1)
-    fps = numpy.cumsum(y_true == 0)
+    tps = np.cumsum(y_true == 1)
+    fps = np.cumsum(y_true == 0)
 
     # Threshold changes
     # Find indices where the score changes
-    distinct_idx = numpy.where(numpy.diff(y_score))[0]
+    distinct_idx = np.where(np.diff(y_score))[0]
     # Always include last index
-    threshold_idxs = numpy.r_[distinct_idx, y_true.size - 1]
+    threshold_idxs = np.r_[distinct_idx, y_true.size - 1]
 
     # Compute TPR, FPR at each threshold
     tpr = tps[threshold_idxs] / P
     fpr = fps[threshold_idxs] / N
 
     # prepend (0,0) to match sklearn behavior
-    tpr = numpy.r_[0.0, tpr]
-    fpr = numpy.r_[0.0, fpr]
+    tpr = np.r_[0.0, tpr]
+    fpr = np.r_[0.0, fpr]
 
     return {
         "tpr": tpr.tolist(),
         "fpr": fpr.tolist(),
+    }
+
+
+def anova_twoway(
+    agg_client,
+    x: np.ndarray,
+    y: np.ndarray,
+    x1_name: str,
+    x2_name: str,
+    levels_a: List,
+    levels_b: List,
+    sstype: int,
+) -> Dict:
+    """
+    Distributed two-way ANOVA via a *single* aggregation call.
+
+    x: (n, 2) array with two categorical columns (x1, x2) encoded as labels
+    y: (n,) or (n,1) numeric response
+    """
+
+    sstype = int(sstype)
+    levels_a = list(levels_a)
+    levels_b = list(levels_b)
+    La = len(levels_a)
+    Lb = len(levels_b)
+
+    # parameter counts
+    p_const = 1
+    p_a = 1 + (La - 1)
+    p_b = 1 + (Lb - 1)
+    p_ab = 1 + (La - 1) + (Lb - 1)
+    p_full = 1 + (La - 1) + (Lb - 1) + (La - 1) * (Lb - 1)
+
+    # -------------------------------------------------------------
+    # Local contributions
+    # -------------------------------------------------------------
+    if x.size == 0 or y.size == 0:
+        n_local = 0.0
+        yTy_local = 0.0
+
+        xTx_const_local = np.zeros((p_const, p_const), dtype=float)
+        xTy_const_local = np.zeros((p_const, 1), dtype=float)
+
+        xTx_a_local = np.zeros((p_a, p_a), dtype=float)
+        xTy_a_local = np.zeros((p_a, 1), dtype=float)
+
+        xTx_b_local = np.zeros((p_b, p_b), dtype=float)
+        xTy_b_local = np.zeros((p_b, 1), dtype=float)
+
+        xTx_ab_local = np.zeros((p_ab, p_ab), dtype=float)
+        xTy_ab_local = np.zeros((p_ab, 1), dtype=float)
+
+        xTx_full_local = np.zeros((p_full, p_full), dtype=float)
+        xTy_full_local = np.zeros((p_full, 1), dtype=float)
+
+    else:
+        col_a = x[:, 0]
+        col_b = x[:, 1]
+        y_vec = y.reshape(-1, 1).astype(float)
+        n_local = float(y_vec.shape[0])
+        yTy_local = float((y_vec**2).sum())
+
+        def encode_factor(values, levels):
+            cols = []
+            for lvl in levels[1:]:
+                cols.append((values == lvl).astype(float).reshape(-1, 1))
+            if not cols:
+                return np.empty((values.shape[0], 0), dtype=float)
+            return np.hstack(cols)
+
+        A = encode_factor(col_a, levels_a)
+        B = encode_factor(col_b, levels_b)
+
+        n_rows = y_vec.shape[0]
+        ones = np.ones((n_rows, 1), dtype=float)
+
+        X_const = ones
+        X_a = np.hstack([ones, A])
+        X_b = np.hstack([ones, B])
+        X_ab = np.hstack([ones, A, B])
+
+        inter_cols = []
+        if A.shape[1] > 0 and B.shape[1] > 0:
+            for j in range(A.shape[1]):
+                for k in range(B.shape[1]):
+                    inter_cols.append((A[:, j] * B[:, k]).reshape(-1, 1))
+        X_full = np.hstack([X_ab] + inter_cols) if inter_cols else X_ab
+
+        assert X_const.shape[1] == p_const
+        assert X_a.shape[1] == p_a
+        assert X_b.shape[1] == p_b
+        assert X_ab.shape[1] == p_ab
+        assert X_full.shape[1] == p_full
+
+        xTx_const_local = X_const.T @ X_const
+        xTy_const_local = X_const.T @ y_vec
+
+        xTx_a_local = X_a.T @ X_a
+        xTy_a_local = X_a.T @ y_vec
+
+        xTx_b_local = X_b.T @ X_b
+        xTy_b_local = X_b.T @ y_vec
+
+        xTx_ab_local = X_ab.T @ X_ab
+        xTy_ab_local = X_ab.T @ y_vec
+
+        xTx_full_local = X_full.T @ X_full
+        xTy_full_local = X_full.T @ y_vec
+
+    # -------------------------------------------------------------
+    # Pack everything into a single vector and aggregate once
+    # -------------------------------------------------------------
+    parts = []
+
+    parts.append(np.array([n_local, yTy_local], dtype=float))
+
+    parts.append(xTx_const_local.ravel())
+    parts.append(xTy_const_local.ravel())
+
+    parts.append(xTx_a_local.ravel())
+    parts.append(xTy_a_local.ravel())
+
+    parts.append(xTx_b_local.ravel())
+    parts.append(xTy_b_local.ravel())
+
+    parts.append(xTx_ab_local.ravel())
+    parts.append(xTy_ab_local.ravel())
+
+    parts.append(xTx_full_local.ravel())
+    parts.append(xTy_full_local.ravel())
+
+    local_vec = np.concatenate(parts).tolist()
+    global_vec = np.asarray(agg_client.sum(local_vec), dtype=float)
+
+    # -------------------------------------------------------------
+    # Unpack aggregated vector
+    # -------------------------------------------------------------
+    idx = 0
+    n_total = int(global_vec[idx])
+    idx += 1
+    yTy = float(global_vec[idx])
+    idx += 1
+
+    def take_matrix(size, rows, cols):
+        nonlocal idx
+        block = global_vec[idx : idx + size]
+        idx += size
+        return block.reshape((rows, cols))
+
+    def take_vector(size):
+        nonlocal idx
+        block = global_vec[idx : idx + size]
+        idx += size
+        return block.reshape((size, 1))
+
+    xTx_const = take_matrix(p_const * p_const, p_const, p_const)
+    xTy_const = take_vector(p_const)
+
+    xTx_a = take_matrix(p_a * p_a, p_a, p_a)
+    xTy_a = take_vector(p_a)
+
+    xTx_b = take_matrix(p_b * p_b, p_b, p_b)
+    xTy_b = take_vector(p_b)
+
+    xTx_ab = take_matrix(p_ab * p_ab, p_ab, p_ab)
+    xTy_ab = take_vector(p_ab)
+
+    xTx_full = take_matrix(p_full * p_full, p_full, p_full)
+    xTy_full = take_vector(p_full)
+
+    if n_total == 0:
+        terms = [x1_name, x2_name, f"{x1_name}:{x2_name}", "Residuals"]
+        return {
+            "n_obs": 0,
+            "terms": terms,
+            "sum_sq": [0.0, 0.0, 0.0, 0.0],
+            "df": [0, 0, 0, 0],
+            "f_stat": [None, None, None, None],
+            "f_pvalue": [None, None, None, None],
+        }
+
+    # -------------------------------------------------------------
+    # RSS from (X'X, X'y, y'y)
+    # -------------------------------------------------------------
+    def rss_from_xtx_xty(xtx, xty, yty):
+        if xtx.size == 0:
+            return float(yty)
+        try:
+            xtx_inv = np.linalg.inv(xtx)
+        except np.linalg.LinAlgError:
+            xtx_inv = np.linalg.pinv(xtx)
+        beta = xtx_inv @ xty
+        bxty = float((beta.T @ xty).squeeze())
+        return float(yty) - bxty
+
+    rss_const = rss_from_xtx_xty(xTx_const, xTy_const, yTy)
+    rss_a = rss_from_xtx_xty(xTx_a, xTy_a, yTy)
+    rss_b = rss_from_xtx_xty(xTx_b, xTy_b, yTy)
+    rss_ab = rss_from_xtx_xty(xTx_ab, xTy_ab, yTy)
+    rss_full = rss_from_xtx_xty(xTx_full, xTy_full, yTy)
+
+    # -------------------------------------------------------------
+    # Degrees of freedom from ranks
+    # -------------------------------------------------------------
+    r_const = np.linalg.matrix_rank(xTx_const)
+    r_a = np.linalg.matrix_rank(xTx_a)
+    r_b = np.linalg.matrix_rank(xTx_b)
+    r_ab = np.linalg.matrix_rank(xTx_ab)
+    r_full = np.linalg.matrix_rank(xTx_full)
+
+    df_a = max(r_a - r_const, 0)
+    df_b = max(r_ab - r_a, 0)
+    df_inter = max(r_full - r_ab, 0)
+    df_resid = int(n_total - r_full)
+
+    if df_resid <= 0:
+        terms = [x1_name, x2_name, f"{x1_name}:{x2_name}", "Residuals"]
+        return {
+            "n_obs": int(n_total),
+            "terms": terms,
+            "sum_sq": [0.0, 0.0, 0.0, 0.0],
+            "df": [0, 0, 0, 0],
+            "f_stat": [None, None, None, None],
+            "f_pvalue": [None, None, None, None],
+        }
+
+    # -------------------------------------------------------------
+    # Sum of squares (Type I / II)
+    # -------------------------------------------------------------
+    sum_sq = np.empty(4, dtype=float)
+
+    if sstype == 1:
+        # ----- Type I (sequential): const -> A -> B -> A:B -----
+        # Main effects as in the original exareme2 code
+        sum_sq[0] = rss_const - rss_a  # A
+        sum_sq[1] = rss_a - rss_ab  # B
+        sum_sq[3] = rss_full  # Residual
+
+        # Interaction via ANOVA identity:
+        # SS_total_model = RSS_const - RSS_full = SS_A + SS_B + SS_AB
+        ss_total_model = rss_const - rss_full
+        sum_sq[2] = ss_total_model - sum_sq[0] - sum_sq[1]  # A:B
+
+    else:  # sstype == 2
+        # ----- Type II: A and B adjusted for each other -----
+        # This must match the original exareme2 implementation and
+        # we do NOT enforce SS_total = SS_A + SS_B + SS_AB here.
+        sum_sq[0] = rss_b - rss_ab  # A | B
+        sum_sq[1] = rss_a - rss_ab  # B | A
+        sum_sq[2] = rss_ab - rss_full  # A:B
+        sum_sq[3] = rss_full  # Residual
+
+    # If interaction adds no rank, zero it out
+    if df_inter == 0:
+        sum_sq[2] = 0.0
+
+    # Clamp tiny negative SS from numerical noise
+    if sum_sq[2] < 0 and abs(sum_sq[2]) < 1e-8 * abs(sum_sq[3]):
+        sum_sq[2] = 0.0
+
+    df = np.array([df_a, df_b, df_inter, df_resid], dtype=int)
+
+    # -------------------------------------------------------------
+    # F and p-values
+    # -------------------------------------------------------------
+    ms = np.zeros_like(sum_sq)
+    for i in range(4):
+        if df[i] > 0:
+            ms[i] = sum_sq[i] / df[i]
+
+    F: List[Optional[float]] = [None, None, None, None]
+    if df[0] > 0 and ms[3] != 0:
+        F[0] = ms[0] / ms[3]
+    if df[1] > 0 and ms[3] != 0:
+        F[1] = ms[1] / ms[3]
+    if df[2] > 0 and ms[3] != 0:
+        F[2] = ms[2] / ms[3]
+
+    pval: List[Optional[float]] = [None, None, None, None]
+    if F[0] is not None:
+        pval[0] = float(1.0 - st.f.cdf(F[0], df[0], df[3]))
+    if F[1] is not None:
+        pval[1] = float(1.0 - st.f.cdf(F[1], df[1], df[3]))
+    if F[2] is not None:
+        pval[2] = float(1.0 - st.f.cdf(F[2], df[2], df[3]))
+
+    terms = [x1_name, x2_name, f"{x1_name}:{x2_name}", "Residuals"]
+
+    return {
+        "n_obs": int(n_total),
+        "terms": terms,
+        "sum_sq": sum_sq.tolist(),
+        "df": df.tolist(),
+        "f_stat": F,
+        "f_pvalue": pval,
     }
