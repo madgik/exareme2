@@ -36,9 +36,6 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-ansi --no-root
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Copy .deployment.toml file
         run: cp ./tests/algorithm_validation_tests/one_node_deployment_template.toml .deployment.toml
 
@@ -106,9 +103,6 @@ jobs:
       - name: Install dependencies
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Copy .deployment.toml file
         run: cp ./tests/algorithm_validation_tests/five_node_deployment_template.toml .deployment.toml
