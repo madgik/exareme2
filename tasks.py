@@ -711,7 +711,7 @@ def _structure_data(worker=None):
         structure_text = format_directory_structure(combined_root)
 
         message(
-            f"Combined dataset folders prepared at: {combined_root}\n"
+            f"Dedicated folders for each workers are located at: {combined_root}\n"
             f"{structure_text}",
             Level.HEADER,
         )
@@ -870,25 +870,20 @@ def kill_aggregation_server(c):
 
 @task(pre=[kill_aggregation_server])
 def start_aggregation_server(c, detached: bool = False):
-    """
-    Start the aggregation_server gRPC service.
-    If detached=True, run in background and log to OUTDIR/aggregation_server.out.
-    """
+    """Start the aggregation_server gRPC service."""
     kill_aggregation_server(c)
-
     message("Starting aggregation server...", Level.HEADER)
 
     if not AGG_SERVER_CONFIG_TEMPLATE_FILE.exists():
         message(f"Config not found: {AGG_SERVER_CONFIG_TEMPLATE_FILE}", Level.ERROR)
         return
 
-    # Build environment for the server process
     env = os.environ.copy()
     env["AGG_SERVER_CONFIG_FILE"] = str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
 
-    # cd into the aggregation_server folder so Poetry picks up its own pyproject.toml
+    # run the script directly instead of -m aggregation_server.server
     run_cmd = (
-        f"cd {AGG_SERVER_DIR!s} && " "poetry run python -m aggregation_server.server"
+        f"cd {PROJECT_ROOT!s} && " f"poetry run python -m aggregation_server.server"
     )
 
     if detached:
@@ -902,11 +897,7 @@ def start_aggregation_server(c, detached: bool = False):
         )
         message("Ok.", Level.SUCCESS)
     else:
-        c.run(
-            run_cmd,
-            env=env,
-            pty=True,
-        )
+        c.run(run_cmd, env=env, pty=True)
 
 
 @task

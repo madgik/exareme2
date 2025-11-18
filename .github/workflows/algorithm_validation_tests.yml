@@ -113,9 +113,6 @@ jobs:
       - name: Deploy all api
         run: poetry run inv deploy --no-install-dep
 
-      - name: Run Worker Landscape Aggregator update
-        run: curl -X POST "http://172.17.0.1:5000/wla"
-
       - name: Controller logs
         run: cat /tmp/exaflow/controller.out
 
