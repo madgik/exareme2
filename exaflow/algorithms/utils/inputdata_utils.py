@@ -156,7 +156,6 @@ def fetch_data(
     Returns:
         A concatenated DataFrame after filtering.
     """
-    raise ValueError("Not implemented yet.")
     x_columns = inputdata.x or []
     y_columns = inputdata.y or []
     # Include "dataset" column for filtering
