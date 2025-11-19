@@ -24,8 +24,6 @@ def get_worker_info(request_id: str) -> WorkerInfo:
         role=worker_config.role,
         ip=worker_config.grpc.ip,
         port=worker_config.grpc.port,
-        data_folder=worker_config.data_loader.folder,
-        auto_load_data=worker_config.data_loader.auto_load,
     )
 
 

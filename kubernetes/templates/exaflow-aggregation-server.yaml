@@ -20,7 +20,7 @@ spec:
         master: "true"
       containers:
         - name: aggregation-server
-          image: "{{ .Values.exareme2_images.repository }}/exareme2_aggregation_server:{{ .Values.exareme2_images.version }}"
+          image: "{{ .Values.exaflow_images.repository }}/exaflow_aggregation_server:{{ .Values.exaflow_images.version }}"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 50051

@@ -47,7 +47,7 @@ spec:
       {{- end }}
       containers:
       - name: worker
-        image: {{ .Values.exareme2_images.repository }}/exareme2_worker:{{ .Values.exareme2_images.version }}
+        image: {{ .Values.exaflow_images.repository }}/exaflow_worker:{{ .Values.exaflow_images.version }}
         volumeMounts:
         - mountPath: /opt/data
           name: csv-data
@@ -63,11 +63,9 @@ spec:
         - name: FRAMEWORK_LOG_LEVEL
           value: {{ .Values.framework_log_level }}
         - name: CONTROLLER_IP
-          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_HOST)
+          value: $(EXAFLOW_CONTROLLER_SERVICE_SERVICE_HOST)
         - name: CONTROLLER_PORT
-          value: $(EXAREME2_CONTROLLER_SERVICE_SERVICE_PORT)
-        - name: PROTECT_LOCAL_DATA
-          value: "false"      # The GLOBALWORKER does not need to secure its data, since they are not private.
+          value: $(EXAFLOW_CONTROLLER_SERVICE_SERVICE_PORT)
         - name: WORKER_TASKS_TIMEOUT
           value: {{ quote .Values.controller.worker_tasks_timeout }}
         - name: GRPC_IP
@@ -76,6 +74,10 @@ spec:
               fieldPath: status.podIP
         - name: GRPC_PORT
           value: "5672"
+        - name: DUCKDB_PATH
+          value: "/opt/data/data_models.duckdb"
+        - name: AGGREGATION_SERVER_ENABLED
+          value: {{ quote .Values.aggregation_server.enabled }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{- if .Values.smpc.enabled }}
@@ -121,5 +123,4 @@ spec:
         requests:
           storage: {{ .Values.storage.cephfs.globalworker.csvs.size }}
 
-  {{- end }}
   {{- end }}

@@ -2,7 +2,7 @@ namespace: default
 managed_cluster: false
 localnodes: 2
 
-exareme2_images:
+exaflow_images:
   repository: madgik
   version: 0.27.0
 
@@ -26,7 +26,7 @@ controller:
 globalworker_identifier: globalworker
 
 aggregation_server:
-  enabled: false
+  enabled: true
   max_wait_for_aggregation_inputs: 60
 
 smpc:

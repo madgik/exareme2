@@ -41,8 +41,6 @@ def _worker_info_to_proto(info: WorkerInfo) -> worker_pb2.WorkerInfo:
         role=_worker_role_to_proto(info.role),
         ip=str(info.ip),
         port=info.port,
-        data_folder=info.data_folder or "",
-        auto_load_data=bool(info.auto_load_data),
     )
 
 
@@ -271,7 +269,7 @@ def serve() -> None:
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
     health_servicer.set("worker", health_pb2.HealthCheckResponse.SERVING)
 
-    listen_addr = f"{worker_config.grpc.bind_ip}:{worker_config.grpc.port}"
+    listen_addr = f"{worker_config.grpc.ip}:{worker_config.grpc.port}"
     server.add_insecure_port(listen_addr)
     LOGGER.info("Worker gRPC server listening on %s", listen_addr)
     server.start()

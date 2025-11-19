@@ -1,5 +1,5 @@
 FROM python:3.10.18-slim-bullseye
-MAINTAINER Thanasis Karampatsis <tkarabatsis@athenarc.gr>
+LABEL maintainer="Thanasis Karampatsis <tkarabatsis@athenarc.gr>"
 
 #######################################################
 # Setting up timezone
@@ -29,18 +29,17 @@ VOLUME $DATA_PATH
 
 
 #######################################################
-# Copying the codebase
-#######################################################
-COPY exaflow/ ./exaflow/
-RUN rm -rf exaflow/controller
-
-#######################################################
 # Installing poetry and dependencies
 #######################################################
 RUN pip install poetry==$POETRY_VERSION
 COPY poetry.lock pyproject.toml ./
-RUN poetry install --no-dev --without aggregation-server
+RUN poetry install --only main --no-root
 
+#######################################################
+# Copying the codebase
+#######################################################
+COPY exaflow/ ./exaflow/
+RUN rm -rf exaflow/controller
 
 #######################################################
 # Setup bootstrap file

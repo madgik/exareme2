@@ -5,7 +5,7 @@
 To build a new image you must be on the project root `Exareme2`, then
 
 ```
-docker build -t <USERNAME>/exareme2_controller:<IMAGETAG> -f exaflow/controller/Dockerfile .
+docker build -t <USERNAME>/exaflow_controller:<IMAGETAG> -f exaflow/controller/Dockerfile .
 ```
 
 ## Run with env file
@@ -30,5 +30,5 @@ LOCALWORKERS_CONFIG_FILE=/home/user/localworkers_config.json
 Then start the container with:
 
 ```
-docker run -d --name <CONTAINER_NAME> --env-file=.env_file <USERNAME>/exareme2_controller:<IMAGETAG>
+docker run -d --name <CONTAINER_NAME> --env-file=.env_file <USERNAME>/exaflow_controller:<IMAGETAG>
 ```

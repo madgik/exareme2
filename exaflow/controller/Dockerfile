@@ -1,14 +1,14 @@
 FROM python:3.10.18-slim-bullseye
-MAINTAINER Thanasis Karampatsis <tkarabatsis@athenarc.gr>
+LABEL maintainer="Thanasis Karampatsis <tkarabatsis@athenarc.gr>"
 
 #######################################################
-# Setting up timezone
+# Timezone
 #######################################################
 ENV TZ=Etc/GMT
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 #######################################################
-# Setting up env variables and workdir
+# Env & workdir
 #######################################################
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
@@ -26,8 +26,9 @@ WORKDIR $CODE_PATH
 # Installing poetry and dependencies
 #######################################################
 RUN pip install poetry==$POETRY_VERSION
-COPY poetry.lock pyproject.toml ./
-RUN poetry install --no-dev --without aggregation-server
+COPY pyproject.toml poetry.lock ./
+
+RUN poetry install --only main --no-root
 
 #######################################################
 # Copying the codebase

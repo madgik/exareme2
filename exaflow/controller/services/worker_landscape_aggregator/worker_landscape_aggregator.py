@@ -598,8 +598,6 @@ class WorkerLandscapeAggregator:
     ) -> Dict[str, DatasetsInfoPerDataModel]:
         cached_datasets: Dict[str, DatasetsInfoPerDataModel] = {}
         for worker_info in workers:
-            if not worker_info.auto_load_data:
-                continue
             if worker_info.id in self._loaded_workers:
                 continue
             try:

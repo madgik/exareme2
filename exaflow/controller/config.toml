@@ -7,6 +7,7 @@ framework_log_level = "$FRAMEWORK_LOG_LEVEL"
 deployment_type="$DEPLOYMENT_TYPE"
 
 worker_landscape_aggregator_update_interval="$WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL"
+worker_tasks_timeout="$WORKER_TASKS_TIMEOUT"
 
 [flower]
 enabled = "$FLOWER_ENABLED"
@@ -17,13 +18,6 @@ server_port="$FLOWER_SERVER_PORT"
 config_file="$LOCALWORKERS_CONFIG_FILE"
 dns="$LOCALWORKERS_DNS"
 port="$LOCALWORKERS_PORT"
-
-[grpc]
-tasks_timeout="$WORKER_TASKS_TIMEOUT"
-tasks_max_retries=3
-tasks_interval_start=0
-tasks_interval_step=0.2
-tasks_interval_max=0.5
 
 [aggregation_server]
 enabled = "$AGGREGATION_SERVER_ENABLED"

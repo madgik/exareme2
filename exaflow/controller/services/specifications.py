@@ -88,7 +88,7 @@ class Specifications:
 
     @staticmethod
     def _choose_spec_class(raw: dict) -> Type[SpecType]:
-        if raw["type"].startswith(TransformerType.EXAREME2_TRANSFORMER.value):
+        if raw["type"].startswith(TransformerType.EXAFLOW_TRANSFORMER.value):
             return TransformerSpecification
         return AlgorithmSpecification
 

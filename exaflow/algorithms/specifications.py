@@ -17,7 +17,7 @@ class AlgorithmType(Enum):
 
 @unique
 class TransformerType(Enum):
-    EXAREME2_TRANSFORMER = "exareme2_transformer"
+    EXAFLOW_TRANSFORMER = "exaflow_transformer"
 
 
 @unique

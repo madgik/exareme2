@@ -6,8 +6,6 @@ import numpy as np
 import scipy.special as special
 import scipy.stats as st
 
-from exaflow.controller.worker_client.app import LOGGER
-
 
 def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
     """

@@ -47,17 +47,12 @@ Paths are subject to change so in the following documentation the global variabl
 """
 
 import copy
-import csv
-import glob
-import itertools
 import json
 import os
-import pathlib
 import shutil
+import stat
 import subprocess
 import sys
-import time
-from collections import defaultdict
 from contextlib import ExitStack
 from contextlib import contextmanager
 from enum import Enum
@@ -101,8 +96,8 @@ TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAFLOW_WORKER_CONFIG_FILE = "EXAFLOW_WORKER_CONFIG_FILE"
-EXAREME2_CONTROLLER_CONFIG_FILE = "EXAREME2_CONTROLLER_CONFIG_FILE"
-EXAREME2_AGG_SERVER_CONFIG_FILE = "EXAREME2_AGG_SERVER_CONFIG_FILE"
+EXAFLOW_CONTROLLER_CONFIG_FILE = "EXAFLOW_CONTROLLER_CONFIG_FILE"
+EXAFLOW_AGG_SERVER_CONFIG_FILE = "EXAFLOW_AGG_SERVER_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
 
 
@@ -110,23 +105,6 @@ def _expand_path(path_value) -> Path:
     """Expand environment variables and user symbols inside *path_value*."""
 
     return Path(os.path.expanduser(os.path.expandvars(str(path_value))))
-
-
-def _duckdb_path_for_worker(worker_id: str) -> Path:
-    duckdb_path = TEST_DATA_FOLDER / f"{worker_id}.duckdb"
-    duckdb_path.parent.mkdir(parents=True, exist_ok=True)
-    return duckdb_path
-
-
-def _resolve_data_loader_folder(config: dict) -> Path:
-    data_loader_cfg = config.get("data_loader", {})
-    folder = data_loader_cfg.get("folder")
-    if folder:
-        target = _expand_path(folder)
-    else:
-        target = TEST_DATA_FOLDER / ".combined" / config["identifier"]
-    target.mkdir(parents=True, exist_ok=True)
-    return target
 
 
 def _load_worker_config(worker_id: str) -> dict | None:
@@ -137,21 +115,8 @@ def _load_worker_config(worker_id: str) -> dict | None:
         return toml.load(fp)
 
 
-def _duckdb_path_from_config(worker_id: str) -> Path:
-    worker_config = _load_worker_config(worker_id)
-    if worker_config:
-        duckdb_section = worker_config.get("duckdb", {})
-        path_override = duckdb_section.get("path")
-        if path_override:
-            expanded = _expand_path(path_override)
-            expanded.parent.mkdir(parents=True, exist_ok=True)
-            return expanded
-        db_name = duckdb_section.get("db_name")
-        if db_name:
-            duckdb_path = TEST_DATA_FOLDER / f"{db_name}.duckdb"
-            duckdb_path.parent.mkdir(parents=True, exist_ok=True)
-            return duckdb_path
-    return _duckdb_path_for_worker(worker_id)
+def _worker_data_path(worker_id: str) -> Path:
+    return TEST_DATA_FOLDER / ".data_paths" / worker_id
 
 
 SMPC_COORDINATOR_PORT = 12314
@@ -247,12 +212,7 @@ def create_configs(c):
                     ] = f"http://{deployment_config['ip']}:{worker['smpc_client_port']}"
 
         worker_config["duckdb"] = {
-            "path": str(_duckdb_path_for_worker(worker_config["identifier"]))
-        }
-
-        worker_config["data_loader"] = {
-            "folder": str(TEST_DATA_FOLDER / ".combined" / worker_config["identifier"]),
-            "auto_load": True,
+            "path": f"{str(_worker_data_path(worker_config['identifier']))}/data_models.duckdb"
         }
 
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker['id']}.toml"
@@ -281,7 +241,7 @@ def create_configs(c):
     controller_config["aggregation_server"]["enabled"] = deployment_config[
         "aggregation_server"
     ]["enabled"]
-    controller_config["grpc"]["tasks_timeout"] = deployment_config[
+    controller_config["worker_tasks_timeout"] = deployment_config[
         "worker_tasks_timeout"
     ]
 
@@ -407,7 +367,7 @@ def create_duckdb(c, worker):
         sys.exit(1)
 
     for worker_id in worker:
-        duckdb_path = _duckdb_path_from_config(worker_id)
+        duckdb_path = _worker_data_path(worker_id)
         clean_duckdb(duckdb_path)
         message(
             f"Reset DuckDB file for worker: {worker_id} at {duckdb_path}.",
@@ -434,286 +394,60 @@ def update_wla(c):
 
 def _structure_data(worker=None):
     """
-    Load data into the specified DB from the 'TEST_DATA_FOLDER'.
-
-    :param port: A list of ports, in which it will load the data. If not set, it will use the `WORKERS_CONFIG_DIR` files.
+    Delegate dataset structuring to worker_data_path_builder.py and
+    reprint its output using our message() logging system.
     """
 
     def get_worker_configs():
-        """
-        Retrieve the configuration files of all workers.
-
-        :return: A list of worker configurations.
-        """
         config_files = [
             WORKERS_CONFIG_DIR / file for file in listdir(WORKERS_CONFIG_DIR)
         ]
         if not config_files:
-            message(
-                f"There are no worker config files to be used for data import. Folder: {WORKERS_CONFIG_DIR}",
-                Level.WARNING,
-            )
-            sys.exit(1)
+            raise RuntimeError(f"No worker configs in: {WORKERS_CONFIG_DIR}")
 
-        worker_configs = []
-        for worker_config_file in config_files:
-            with open(worker_config_file) as fp:
-                worker_config = toml.load(fp)
-                worker_configs.append(worker_config)
-        return worker_configs
+        configs = []
+        for cfg in config_files:
+            with open(cfg) as fp:
+                configs.append(toml.load(fp))
+        return configs
 
-    def filter_worker_configs(worker_configs, worker, node_type):
-        """
-        Filter worker configurations based on a specific worker identifier and node type.
-
-        :param worker_configs: A list of all worker configurations.
-        :param worker: The identifier of the worker to filter for.
-        :param node_type: The type of node to filter for (default is "localworker").
-        :return: A list of tuples containing worker identifiers and ports.
-        """
+    def filter_worker_configs(worker_configs, worker_identifier, node_type):
         return [
             config["identifier"]
             for config in worker_configs
-            if (not worker or config["identifier"] == worker)
+            if (not worker_identifier or config["identifier"] == worker_identifier)
             and config["role"] == node_type
         ]
 
-    def read_data_model_metadata(cdes_file):
-        """Read the data model metadata definition."""
-
-        with open(cdes_file) as data_model_metadata_file:
-            data_model_metadata = json.load(data_model_metadata_file)
-
-        data_model_code = data_model_metadata["code"]
-        data_model_version = data_model_metadata["version"]
-
-        return data_model_code, data_model_version
-
-    def get_datasets_per_localworker(dirpath, filenames, worker_id_and_ports):
-        """Using round robin returns the csv paths per worker per data-model"""
-        datasets_per_localworker = {worker_id: [] for worker_id in worker_id_and_ports}
-
-        if not worker_id_and_ports:
-            return datasets_per_localworker
-
-        if len(worker_id_and_ports) == 1:
-            worker_id = worker_id_and_ports[0]
-            datasets_per_localworker[worker_id] = sorted(
-                [
-                    os.path.join(dirpath, file)
-                    for file in filenames
-                    if file.endswith(".csv") and not file.endswith("test.csv")
-                ]
-            )
-            return datasets_per_localworker
-
-        first_worker_id = worker_id_and_ports[0]
-        first_worker_csvs = sorted(
-            [
-                os.path.join(dirpath, file)
-                for file in filenames
-                if file.endswith("0.csv") and not file.endswith("10.csv")
-            ]
-        )
-        datasets_per_localworker[first_worker_id].extend(first_worker_csvs)
-
-        remaining_csvs = sorted(
-            [
-                os.path.join(dirpath, file)
-                for file in filenames
-                if file.endswith(".csv")
-                and not file.endswith("0.csv")
-                and not file.endswith("test.csv")
-            ]
-        )
-        worker_cycle = itertools.cycle(worker_id_and_ports[1:])
-        for csv_path in remaining_csvs:
-            worker_id = next(worker_cycle)
-            datasets_per_localworker[worker_id].append(csv_path)
-
-        return datasets_per_localworker
-
-    def concatenate_csv_files(csv_paths, destination_path):
-        """Concatenate CSV files using the canonical header order."""
-        if not csv_paths:
-            return
-
-        destination_path.parent.mkdir(parents=True, exist_ok=True)
-        csv_paths = sorted(csv_paths)
-
-        canonical_header = None
-
-        with open(destination_path, "w", newline="") as destination_file:
-            writer = None
-            for csv_path in csv_paths:
-                with open(csv_path, newline="") as source_file:
-                    reader = csv.DictReader(source_file)
-                    if reader.fieldnames is None:
-                        continue
-
-                    if canonical_header is None:
-                        canonical_header = reader.fieldnames
-                        writer = csv.DictWriter(
-                            destination_file, fieldnames=canonical_header
-                        )
-                        writer.writeheader()
-                    else:
-                        if set(reader.fieldnames) != set(canonical_header):
-                            message(
-                                "Inconsistent headers detected while concatenating datasets.",
-                                Level.ERROR,
-                            )
-                            raise ValueError(
-                                "Dataset headers do not match the canonical data model header."
-                            )
-
-                    for row in reader:
-                        writer.writerow(
-                            {field: row.get(field, "") for field in canonical_header}
-                        )
-
-    import os
-
-    def format_directory_structure(root: str) -> str:
-        """
-        Returns a tree-style directory listing of immediate subdirectories of `root`.
-        Similar to the example:
-            .combined/
-            ├── globalworker
-            ├── localworker1
-            └── localworker2
-        """
-        entries = sorted(
-            [e for e in os.listdir(root) if os.path.isdir(os.path.join(root, e))]
-        )
-
-        lines = [f"{os.path.basename(root)}/"]
-        for i, entry in enumerate(entries):
-            connector = "└── " if i == len(entries) - 1 else "├── "
-            lines.append(f"{connector}{entry}")
-
-        return "\n".join(lines)
-
-    def create_combined_datasets(worker_dataset_structure, worker_ids):
-        """Create combined dataset folders per worker and data model."""
-
-        combined_root = TEST_DATA_FOLDER / ".combined"
-        if combined_root.exists():
-            shutil.rmtree(combined_root)
-        combined_root.mkdir(exist_ok=True)
-
-        combined_folder_structure = defaultdict(dict)
-        worker_directories = {}
-
-        for worker_id in worker_ids:
-            worker_dir = combined_root / worker_id
-            worker_dir.mkdir(exist_ok=True)
-            worker_directories[worker_id] = worker_dir
-
-            data_models = worker_dataset_structure.get(worker_id, {})
-
-            for data_model_key in sorted(data_models.keys()):
-                data_model_entry = data_models[data_model_key]
-                dataset_paths = sorted(set(data_model_entry.get("datasets", [])))
-                metadata_path = data_model_entry.get("metadata")
-
-                if not dataset_paths or not metadata_path:
-                    continue
-
-                if not os.path.exists(metadata_path):
-                    message(
-                        f"Skipping data model '{data_model_key[0]}:{data_model_key[1]}' for worker {worker_id} (metadata missing).",
-                        Level.WARNING,
-                    )
-                    continue
-
-                data_model_code, data_model_version = data_model_key
-                data_model_dir = worker_dir / f"{data_model_code}_{data_model_version}"
-                data_model_dir.mkdir(exist_ok=True)
-
-                metadata_destination = data_model_dir / "CDEsMetadata.json"
-                shutil.copyfile(metadata_path, metadata_destination)
-
-                combined_csv_path = data_model_dir / f"{data_model_code}.csv"
-                concatenate_csv_files(dataset_paths, combined_csv_path)
-                combined_folder_structure[worker_id][data_model_key] = {
-                    "folder": str(data_model_dir),
-                    "metadata": str(metadata_destination),
-                    "combined_csv": str(combined_csv_path),
-                    "source_datasets": [str(path) for path in dataset_paths],
-                }
-
-        return combined_root, worker_directories, combined_folder_structure
-
-    worker_dataset_structure = defaultdict(dict)
-    # Retrieve and filter worker configurations for local workers
     worker_configs = get_worker_configs()
-    local_worker_id_and_ports = filter_worker_configs(
-        worker_configs, worker, "LOCALWORKER"
-    )
 
-    if not local_worker_id_and_ports:
-        raise Exception("Local worker config files cannot be loaded.")
+    local_worker_ids = filter_worker_configs(worker_configs, worker, "LOCALWORKER")
+    if not local_worker_ids:
+        raise Exception("No local workers found.")
 
-    all_worker_ids = {worker_id for worker_id in local_worker_id_and_ports}
+    script_path = Path(__file__).parent / "worker_data_path_builder.py"
 
-    # Retrieve and filter worker configurations for global worker
-    global_worker_id_and_ports = filter_worker_configs(
-        worker_configs, worker, "GLOBALWORKER"
-    )
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--local-workers",
+        *local_worker_ids,
+    ]
 
-    if not global_worker_id_and_ports:
-        raise Exception("Global worker config files cannot be loaded.")
+    # Run helper script and capture its output
+    result = subprocess.run(cmd, capture_output=True, text=True)
 
-    all_worker_ids.update(worker_id for worker_id in global_worker_id_and_ports)
-    # Process each dataset in the TEST_DATA_FOLDER for local workers
-    for dirpath, dirnames, filenames in os.walk(TEST_DATA_FOLDER):
-        if ".combined" in dirnames:
-            dirnames.remove(".combined")
-        if "CDEsMetadata.json" not in filenames:
-            continue
-        cdes_file = os.path.join(dirpath, "CDEsMetadata.json")
+    # Reprint script output inside Removing directoryyour message() logger
+    if result.stdout.strip():
+        message(result.stdout.strip(), Level.HEADER)
 
-        data_model_code, data_model_version = read_data_model_metadata(cdes_file)
-        data_model_key = (data_model_code, data_model_version)
+    if result.stderr.strip():
+        message(result.stderr.strip(), Level.ERROR)
 
-        datasets_per_worker = get_datasets_per_localworker(
-            dirpath, filenames, local_worker_id_and_ports
-        )
-        datasets_per_worker["globalworker"] = sorted(
-            [
-                os.path.join(dirpath, file)
-                for file in filenames
-                if file.endswith("test.csv")
-            ]
-        )
-
-        for worker_id, csv_paths in datasets_per_worker.items():
-            if not csv_paths:
-                continue
-
-            entry = worker_dataset_structure[worker_id].setdefault(
-                data_model_key, {"metadata": cdes_file, "datasets": []}
-            )
-
-            if not entry.get("metadata"):
-                entry["metadata"] = cdes_file
-            entry["datasets"].extend(csv_paths)
-
-    if all_worker_ids:
-        (
-            combined_root,
-            worker_directories,
-            combined_folder_structure,
-        ) = create_combined_datasets(worker_dataset_structure, sorted(all_worker_ids))
-
-        # Format directory structure
-        structure_text = format_directory_structure(combined_root)
-
-        message(
-            f"Dedicated folders for each workers are located at: 'tests/test_data/.combined'\n"
-            f"{structure_text}",
-            Level.HEADER,
+    # Raise if failed
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(
+            result.returncode, cmd, result.stdout, result.stderr
         )
 
 
@@ -827,7 +561,7 @@ def start_worker(
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
             EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
             EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
-            DATA_PATH: (TEST_DATA_FOLDER / ".combined" / worker_id).as_posix(),
+            DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
         }
 
         # Use the helper context manager to apply environment variable prefixes
@@ -940,7 +674,7 @@ def start_controller(
     env_vars = {
         FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
         EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
-        EXAREME2_CONTROLLER_CONFIG_FILE: controller_config_file,
+        EXAFLOW_CONTROLLER_CONFIG_FILE: controller_config_file,
     }
 
     # Use the helper context manager to apply environment variable prefixes
@@ -1065,6 +799,21 @@ def attach(c, worker=None, controller=False, db=None):
         sys.exit(1)
 
 
+def _on_rm_error(func, path, exc_info):
+    """
+    If removing a file/dir fails due to permissions, chmod it and retry.
+    """
+    exc = exc_info[1]
+    if isinstance(exc, PermissionError):
+        try:
+            os.chmod(path, stat.S_IWUSR | stat.S_IREAD | stat.S_IEXEC)
+            func(path)
+        except Exception:
+            raise
+    else:
+        raise exc
+
+
 @task
 def cleanup(c):
     """Stop worker/controller services and delete DuckDB files."""
@@ -1072,13 +821,6 @@ def cleanup(c):
     kill_aggregation_server(c)
     kill_worker(c, all_=True)
     rm_containers(c, smpc=True)
-
-    # Create a pattern for DuckDB files inside the default test data folder
-    pattern = os.path.join(TEST_DATA_FOLDER, "*.duckdb")
-
-    # Delete each DuckDB file
-    for duckdb_path in glob.glob(pattern):
-        clean_duckdb(duckdb_path)
 
     # Remove any DuckDB files referenced in worker configs (in case they live elsewhere)
     if WORKERS_CONFIG_DIR.exists():
@@ -1090,33 +832,42 @@ def cleanup(c):
             if duckdb_path:
                 config_defined_paths.add(_expand_path(duckdb_path))
 
-        for duckdb_path in config_defined_paths:
-            clean_duckdb(duckdb_path)
-
-    combined_root_path = TEST_DATA_FOLDER / ".combined"
-    if combined_root_path.exists():
-        try:
-            message(f"Removing {combined_root_path}...", level=Level.HEADER)
-
-            shutil.rmtree(combined_root_path)
-        except OSError:
-            message(
-                f"Failed to remove combined dataset directory {combined_root_path}",
-                Level.WARNING,
-            )
-
+    clean_data_paths()
     if OUTDIR.exists():
         message(f"Removing {OUTDIR}...", level=Level.HEADER)
         for outpath in OUTDIR.glob("*.out"):
             outpath.unlink()
         OUTDIR.rmdir()
         message("Ok", level=Level.SUCCESS)
+
     if CLEANUP_DIR.exists():
         message(f"Removing {CLEANUP_DIR}...", level=Level.HEADER)
         for cleanup_file in CLEANUP_DIR.glob("*.toml"):
             cleanup_file.unlink()
         CLEANUP_DIR.rmdir()
         message("Ok", level=Level.SUCCESS)
+
+
+def clean_data_paths():
+    combined_root_path = TEST_DATA_FOLDER / ".data_paths"
+
+    if combined_root_path.exists():
+        # Recursively find *all* .duckdb files
+        for duckdb_path in combined_root_path.rglob("*.duckdb"):
+            clean_duckdb(duckdb_path)
+
+        try:
+            message(
+                f"Removing directory {combined_root_path} recursively...",
+                level=Level.HEADER,
+            )
+            shutil.rmtree(combined_root_path, onerror=_on_rm_error)
+            message("Ok", level=Level.SUCCESS)
+        except Exception as exc:
+            message(
+                f"Failed to remove {combined_root_path}: {exc}",
+                Level.WARNING,
+            )
 
 
 def clean_duckdb(duckdb_path):

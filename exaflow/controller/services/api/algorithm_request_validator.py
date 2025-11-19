@@ -398,7 +398,7 @@ def _validate_parameter_type(
     parameter_value: Any,
     parameter_spec: ParameterSpecification,
 ):
-    exareme2types_to_python_types = {
+    exaflowtypes_to_python_types = {
         "text": str,
         "int": int,
         "real": numbers.Real,
@@ -408,7 +408,7 @@ def _validate_parameter_type(
 
     for param_type in parameter_spec.types:
         if isinstance(
-            parameter_value, exareme2types_to_python_types.get(param_type.value)
+            parameter_value, exaflowtypes_to_python_types.get(param_type.value)
         ):
             return
     else:

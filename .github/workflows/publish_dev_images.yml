@@ -35,7 +35,7 @@ jobs:
           context: .
           file: exaflow/controller/Dockerfile
           push: true
-          tags: madgik/exareme2_controller:dev
+          tags: madgik/exaflow_controller:dev
           cache-from: type=local,src=/tmp/.buildx-cache/controller
           cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
 
@@ -77,7 +77,7 @@ jobs:
           context: .
           file: exaflow/worker/Dockerfile
           push: true
-          tags: madgik/exareme2_worker:dev
+          tags: madgik/exaflow_worker:dev
           cache-from: type=local,src=/tmp/.buildx-cache/worker
           cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
 

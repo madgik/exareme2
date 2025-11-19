@@ -21,7 +21,7 @@ MonetDB needs to have the data loaded from a volume and not imported due to a me
 
 ```
 sudo rm -rf /opt/monetdb
-docker run --name monetdb_tmp -d -p 50010:50000 -v /opt/monetdb:/home/monetdb madgik/exareme2_db:latest
+docker run --name monetdb_tmp -d -p 50010:50000 -v /opt/monetdb:/home/monetdb madgik/exaflow_db:latest
 ```
 
 2. Load the data into that container:
@@ -97,15 +97,15 @@ First, build the images:
 <br />(you can execute these in separate terminals, concurrently)
 
 ```
-docker build -f exaflow/worker/Dockerfile -t madgik/exareme2_worker:latest ./
-docker build -f exaflow/controller/Dockerfile -t madgik/exareme2_controller:latest ./
+docker build -f exaflow/worker/Dockerfile -t madgik/exaflow_worker:latest ./
+docker build -f exaflow/controller/Dockerfile -t madgik/exaflow_controller:latest ./
 ```
 
 Second, load the docker images to the kuberentes cluster
 
 ```
-kind load docker-image madgik/exareme2_worker:latest
-kind load docker-image madgik/exareme2_controller:latest --nodes kind-control-plane
+kind load docker-image madgik/exaflow_worker:latest
+kind load docker-image madgik/exaflow_controller:latest --nodes kind-control-plane
 ```
 
 5. Deploy the Exareme2 kubernetes pods using helm charts:

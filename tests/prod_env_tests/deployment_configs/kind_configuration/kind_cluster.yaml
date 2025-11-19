@@ -8,19 +8,19 @@ nodes:
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/master/hostname
     containerPath: /etc/hostname
-  - hostPath: ./tests/test_data
+  - hostPath: ./tests/test_data/.data_paths/globalworker
     containerPath: /opt/exaflow/globalworker/csvs
 
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker1/hostname
     containerPath: /etc/hostname
-  - hostPath: ./tests/test_data
+  - hostPath: ./tests/test_data/.data_paths/localworker1
     containerPath: /opt/exaflow/localworker/csvs
 
 - role: worker
   extraMounts:
   - hostPath: ./tests/prod_env_tests/deployment_configs/kind_configuration/worker2/hostname
     containerPath: /etc/hostname
-  - hostPath: ./tests/test_data
+  - hostPath: ./tests/test_data/.data_paths/localworker2
     containerPath: /opt/exaflow/localworker/csvs

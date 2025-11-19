@@ -37,6 +37,13 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
+      - name: Build data paths for workers
+        run: |
+          python worker_data_path_builder.py \
+            --local-workers localworker1 localworker2 \
+            --global-worker globalworker \
+            --test-data-folder tests/test_data
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -55,7 +62,7 @@ jobs:
           file: exaflow/worker/Dockerfile
           push: false
           load: true
-          tags: madgik/exareme2_worker:dev
+          tags: madgik/exaflow_worker:dev
           cache-from: type=local,src=/tmp/.buildx-cache/worker
           cache-to: type=local,dest=/tmp/.buildx-cache-new/worker
 
@@ -74,7 +81,7 @@ jobs:
           file: exaflow/controller/Dockerfile
           push: false
           load: true
-          tags: madgik/exareme2_controller:dev
+          tags: madgik/exaflow_controller:dev
           cache-from: type=local,src=/tmp/.buildx-cache/controller
           cache-to: type=local,dest=/tmp/.buildx-cache-new/controller
 
@@ -93,7 +100,7 @@ jobs:
           file: aggregation_server/Dockerfile
           push: false
           load: true
-          tags: madgik/exareme2_aggregation_server:dev
+          tags: madgik/exaflow_aggregation_server:dev
           cache-from: type=local,src=/tmp/.buildx-cache/aggregation-server
           cache-to: type=local,dest=/tmp/.buildx-cache-new/aggregation-server
 
@@ -139,12 +146,12 @@ jobs:
       - name: Load docker images to kind containers and delete them locally
         run: |
 
-          kind load docker-image madgik/exareme2_worker:dev
-          docker image rm madgik/exareme2_worker:dev
-          kind load docker-image madgik/exareme2_controller:dev --nodes kind-control-plane
-          docker image rm madgik/exareme2_controller:dev
-          kind load docker-image madgik/exareme2_aggregation_server:dev --nodes kind-control-plane
-          docker image rm madgik/exareme2_aggregation_server:dev
+          kind load docker-image madgik/exaflow_worker:dev
+          docker image rm madgik/exaflow_worker:dev
+          kind load docker-image madgik/exaflow_controller:dev --nodes kind-control-plane
+          docker image rm madgik/exaflow_controller:dev
+          kind load docker-image madgik/exaflow_aggregation_server:dev --nodes kind-control-plane
+          docker image rm madgik/exaflow_aggregation_server:dev
 
 
       - name: Get container disk space
@@ -162,15 +169,44 @@ jobs:
       - name: Wait for pods to get healthy
         run: |
           timeout 300 bash -c '
+          set -euo pipefail
+
           while true; do
+            # Get pods and check if all are ready (1/1, 2/2, 3/3, 4/4)
             if kubectl get pods --no-headers | awk '\''{if ($2 != "1/1" && $2 != "2/2" && $2 != "3/3" && $2 != "4/4") exit 1;}'\''; then
-              echo "All pods are ready!";
-              break;
+              echo "All pods are ready!"
+              break
             else
-              kubectl get pods -o wide;
-              sleep 20;
+              echo "Some pods are not ready yet:"
+              kubectl get pods -o wide
+
+              # Find clearly "bad" pods (crashing / failing)
+              crashing_pods=$(kubectl get pods --no-headers \
+                | awk '\''$3 ~ /CrashLoopBackOff|Error|ImagePullBackOff|CreateContainerError/ {print $1}'\'')
+
+              if [ -n "$crashing_pods" ]; then
+                echo "Detected crashing pods: $crashing_pods"
+
+                for p in $crashing_pods; do
+                  echo "===== DESCRIBE POD $p ====="
+                  kubectl describe pod "$p" || true
+
+                  echo "===== LOGS POD $p (all containers) ====="
+                  kubectl logs "$p" --all-containers --tail=200 || true
+
+                  echo "===== PREVIOUS LOGS POD $p (if any) ====="
+                  kubectl logs "$p" --all-containers --previous --tail=200 || true
+                done
+
+                echo "Failing because at least one pod is crashing."
+                exit 1
+              fi
+
+              sleep 5
             fi
-          done'
+          done
+          '
+
 
       - name: Controller logs
         run: kubectl logs -l app=exaflow-controller --tail -1

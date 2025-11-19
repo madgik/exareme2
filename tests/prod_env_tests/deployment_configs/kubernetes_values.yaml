@@ -1,7 +1,7 @@
 localnodes: 2
 managed_cluster: false
 
-exareme2_images:
+exaflow_images:
   repository: madgik
   version: dev
 
@@ -13,7 +13,7 @@ max_concurrent_experiments: 32
 globalworker_identifier: globalworker
 
 aggregation_server:
-  enabled: false
+  enabled: true
   max_wait_for_aggregation_inputs: 60
 
 flower:
@@ -28,9 +28,6 @@ controller:
   workers_cleanup_interval: 60
 
 smpc:
-  enabled: false
-
-elk:
   enabled: false
 
 storage:

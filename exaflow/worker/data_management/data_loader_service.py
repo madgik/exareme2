@@ -13,12 +13,6 @@ from exaflow.worker.utils.logger import init_logger
 LOGGER = init_logger("WORKER DATA LOADER")
 
 
-def _resolve_folder(folder: str | None) -> Path:
-    configured_path = folder or worker_config.data_loader.folder
-    path = Path(configured_path).expanduser()
-    return path
-
-
 def _sanitize_name(name: str) -> str:
     sanitized = name
     for ch in (":", "-", "."):
@@ -183,7 +177,7 @@ def _dataset_codes_from_metadata(metadata: dict) -> list[str]:
     return [metadata.get("code", "dataset")]
 
 
-def load_data_folder(request_id: str, folder: str | None = None) -> str:
+def load_data_folder(request_id: str) -> str:
     db_path = worker_config.duckdb.path
     folder_path = Path(worker_config.data_path).expanduser()
     if not folder_path.exists():

@@ -2,7 +2,7 @@
 
 1. Configure the [helm chart values](../values.yaml).
 
-   - The `exareme2_images -> version` should be the exaflow services version in dockerhub.
+   - The `exaflow_images -> version` should be the exaflow services version in dockerhub.
    - The `localnodes` is a counter for the localnodes. Should be equal to the number of local nodes that exist in the cluster.
 
 1. From the `Exareme2` folder, deploy the services:
@@ -15,7 +15,7 @@ helm install exaflow kubernetes
 
 ### Change the Exareme2 version running
 
-1. Modify the `exareme2_images -> version` value in the [helm chart values](../values.yaml) accordingly.
+1. Modify the `exaflow_images -> version` value in the [helm chart values](../values.yaml) accordingly.
 
 1. Upgrade the helm chart with:
 

@@ -57,8 +57,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            madgik/exareme2_controller
-            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_controller
+            madgik/exaflow_controller
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exaflow_controller
 
       - name: Load CONTROLLER service cached image
         uses: actions/cache@v4
@@ -128,8 +128,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            madgik/exareme2_worker
-            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exareme2_worker
+            madgik/exaflow_worker
+            ${{ env.HARBOR_REGISTRY }}/medical-informatics-platform/exaflow_worker
 
       - name: Load WORKER service cached image
         uses: actions/cache@v4

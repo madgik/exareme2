@@ -19,7 +19,7 @@ class DeploymentType(str, Enum):
 
 # Initializing the configurations from the config file
 config = None
-if config_file := os.getenv("EXAREME2_CONTROLLER_CONFIG_FILE"):
+if config_file := os.getenv("EXAFLOW_CONTROLLER_CONFIG_FILE"):
     with open(config_file) as fp:
         config = AttrDict(envtoml.load(fp))
 else:

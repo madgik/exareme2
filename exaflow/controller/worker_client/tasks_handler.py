@@ -30,8 +30,6 @@ def _proto_worker_to_model(worker: worker_pb2.WorkerInfo) -> WorkerInfo:
         role=_proto_worker_role(worker.role),
         ip=IPv4Address(worker.ip),
         port=worker.port,
-        data_folder=worker.data_folder or None,
-        auto_load_data=worker.auto_load_data,
     )
 
 

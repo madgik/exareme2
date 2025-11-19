@@ -12,7 +12,7 @@ def _ensure_duckdb_config(cfg: AttrDict) -> None:
     duckdb_cfg = getattr(cfg, "duckdb", AttrDict({}))
     duckdb_path = duckdb_cfg.get("path")
     if not duckdb_path:
-        default_path = Path(cfg.data_path) / f"{cfg.identifier}.duckdb"
+        default_path = Path(cfg.data_path) / f"data_models.duckdb"
         duckdb_path = str(default_path)
     duckdb_cfg.path = duckdb_path
     cfg.duckdb = duckdb_cfg
@@ -26,7 +26,6 @@ def _ensure_grpc_config(cfg: AttrDict) -> None:
 
     grpc_cfg.ip = grpc_cfg.get("ip", default_ip)
     grpc_cfg.port = int(grpc_cfg.get("port", default_port))
-    grpc_cfg.bind_ip = grpc_cfg.get("bind_ip", "0.0.0.0")
 
     cfg.grpc = grpc_cfg
 
