@@ -77,14 +77,11 @@ class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 @exaflow_udf(with_aggregation_server=True)
 def anova_twoway_local_step(
-    inputdata, agg_client, x1, x2, y, levels_a, levels_b, sstype
+    data, inputdata, agg_client, x1, x2, y, levels_a, levels_b, sstype
 ):
     import numpy as np
 
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
     from exaflow.algorithms.exaflow.library.stats.stats import anova_twoway
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty or any(col not in data.columns for col in (x1, x2, y)):
         x_arr = np.empty((0, 2), dtype=float)

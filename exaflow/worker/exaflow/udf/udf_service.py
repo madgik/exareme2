@@ -3,6 +3,7 @@ from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
 )
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_registry
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
+from exaflow.worker.exaflow.udf.udf_db import load_algorithm_dataframe
 from exaflow.worker.utils.logger import get_logger
 from exaflow.worker.utils.logger import initialise_logger
 
@@ -32,6 +33,7 @@ def run_udf(
     udf_registry_key: str,
     params: dict,
 ):
+    # TODO this has to be completely replace on algorithms to expect x and y not data
     inpudata_dict = params["inputdata"]
     inpudata = Inputdata.parse_raw(inpudata_dict)
     params["inputdata"] = inpudata
@@ -43,6 +45,15 @@ def run_udf(
     if "metadata" in params:
         # GRPC will mess with the order of dict when sending from controller to worker we need a list with the order to we can re-arrange them properly
         params["metadata"] = enforce_enum_order(params["metadata"])
+
+    dropna = params.pop("dropna", True)
+    include_dataset = params.pop("include_dataset", False)
+
+    params["data"] = load_algorithm_dataframe(
+        inpudata,
+        dropna=dropna,
+        include_dataset=include_dataset,
+    )
     udf = exaflow_registry.get_func(udf_registry_key)
     if not udf:
         error_msg = f"udf '{udf_registry_key}' not found in EXAFLOW_REGISTRY."

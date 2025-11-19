@@ -57,7 +57,7 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client, n_clusters, tol, maxiter):
+def local_step(data, inputdata, agg_client, n_clusters, tol, maxiter):
     """
     Local exaflow UDF wrapper:
 
@@ -66,9 +66,6 @@ def local_step(inputdata, agg_client, n_clusters, tol, maxiter):
     - Delegate the actual distributed K-means to `stats.kmeans`, which uses
       `agg_client` to aggregate across workers.
     """
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # `inputdata.y` is a list of variable names; we use them as features
     # just like PCA does: data[inputdata.y] is a 2D array-like.

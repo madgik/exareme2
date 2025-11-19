@@ -48,16 +48,13 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client, alpha, alternative):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def local_step(data, inputdata, agg_client, alpha, alternative):
 
     if not inputdata.x or not inputdata.y:
         raise ValueError("Paired t-test requires both 'x' and 'y' variables.")
 
     x_var = inputdata.x[0]
     y_var = inputdata.y[0]
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     sample_x = data[x_var].to_numpy(dtype=float, copy=False)
     sample_y = data[y_var].to_numpy(dtype=float, copy=False)

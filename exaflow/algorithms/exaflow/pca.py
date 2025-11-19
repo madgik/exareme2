@@ -37,9 +37,5 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
-
+def local_step(data, inputdata, agg_client):
     return pca(agg_client, data[inputdata.y])

@@ -55,13 +55,11 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client, alpha, alternative, mu):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def local_step(data, inputdata, agg_client, alpha, alternative, mu):
 
     if not inputdata.y or len(inputdata.y) != 1:
         raise ValueError("One-sample t-test requires exactly one variable in 'y'.")
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     sample = data[inputdata.y[0]].to_numpy(dtype=float, copy=False)
 
     return ttest_one_sample(

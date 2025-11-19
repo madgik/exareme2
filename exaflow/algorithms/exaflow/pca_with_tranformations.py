@@ -67,6 +67,7 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 @exaflow_udf(with_aggregation_server=True)
 def pca_with_transformation_local_step(
+    data,
     inputdata,
     agg_client,
     data_transformation,
@@ -90,8 +91,6 @@ def pca_with_transformation_local_step(
     """
     import pandas as pd
 
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
     if data_transformation is None:
         data_transformation = {}
 
@@ -100,8 +99,6 @@ def pca_with_transformation_local_step(
     for key in data_transformation.keys():
         if key not in allowed_keys:
             raise ValueError(f"Unknown transformation: {key}")
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # Use the same y variables as the base PCA implementation
     y_vars = inputdata.y

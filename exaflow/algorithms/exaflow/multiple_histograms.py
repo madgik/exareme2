@@ -76,15 +76,13 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client, metadata, bins):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def local_step(data, inputdata, agg_client, metadata, bins):
     from exaflow.worker import config as worker_config
 
     min_row_count = worker_config.privacy.minimum_row_count
 
     y_var = inputdata.y[0]
     x_vars = inputdata.x or []
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     y_meta = metadata.get(y_var, {})
     is_categorical = y_meta.get("is_categorical", False)

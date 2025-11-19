@@ -75,10 +75,8 @@ def _format_result_matrices(
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client, alpha):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def local_step(data, inputdata, agg_client, alpha):
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     if not inputdata.y:
         raise ValueError("Pearson correlation needs target variables in 'y'.")
 

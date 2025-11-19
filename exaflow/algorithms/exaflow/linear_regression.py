@@ -110,15 +110,13 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def linear_collect_categorical_levels(inputdata, categorical_vars):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
+def linear_collect_categorical_levels(data, inputdata, categorical_vars):
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf(with_aggregation_server=True)
 def linear_regression_local_step(
+    data,
     inputdata,
     agg_client,
     y_var,
@@ -126,9 +124,6 @@ def linear_regression_local_step(
     numerical_vars,
     dummy_categories,
 ):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty:
         X = build_design_matrix(

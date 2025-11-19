@@ -136,27 +136,23 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def linear_collect_categorical_levels_cv(inputdata, categorical_vars):
+def linear_collect_categorical_levels_cv(data, inputdata, categorical_vars):
     """
     Thin UDF wrapper used only to collect categorical levels from workers.
 
     It delegates the core logic to collect_categorical_levels_from_df so that
     linear/logistic regressions share the same behaviour.
     """
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf()
-def linear_regression_cv_check_local(inputdata, y_var, n_splits):
+def linear_regression_cv_check_local(data, inputdata, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         n_obs = int(data[y_var].dropna().shape[0])
     else:
@@ -167,6 +163,7 @@ def linear_regression_cv_check_local(inputdata, y_var, n_splits):
 
 @exaflow_udf(with_aggregation_server=True)
 def linear_regression_cv_local_step(
+    data,
     inputdata,
     agg_client,
     y_var,
@@ -186,13 +183,9 @@ def linear_regression_cv_local_step(
     """
     from sklearn.model_selection import KFold
 
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
     # Ensure n_splits and p are ints
     n_splits = int(n_splits)
     p = int(p)
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty or y_var not in data.columns:
         # This worker contributes nothing but must still participate.

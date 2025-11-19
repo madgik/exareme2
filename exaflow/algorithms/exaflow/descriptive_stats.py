@@ -77,6 +77,8 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "inputdata": self.inputdata.json(),
                 "numerical_vars": numerical_vars,
                 "nominal_vars": nominal_vars,
+                "dropna": False,
+                "include_dataset": True,
             },
         )
 
@@ -104,16 +106,10 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def local_step(inputdata, numerical_vars, nominal_vars):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def local_step(data, inputdata, numerical_vars, nominal_vars):
     from exaflow.worker import config as worker_config
 
     min_row_count = worker_config.privacy.minimum_row_count
-    data = load_algorithm_dataframe(
-        inputdata,
-        dropna=False,
-        include_dataset=True,
-    )
     if "dataset" in data.columns:
         ds = data["dataset"]
         if isinstance(ds, pd.DataFrame):

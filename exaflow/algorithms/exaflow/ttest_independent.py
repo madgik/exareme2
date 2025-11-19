@@ -57,8 +57,7 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf(with_aggregation_server=True)
-def local_step(inputdata, agg_client, alpha, alternative, group_a, group_b):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def local_step(data, inputdata, agg_client, alpha, alternative, group_a, group_b):
 
     if not inputdata.x or not inputdata.y:
         raise ValueError(
@@ -67,8 +66,6 @@ def local_step(inputdata, agg_client, alpha, alternative, group_a, group_b):
 
     group_var = inputdata.x[0]
     value_var = inputdata.y[0]
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     grouping = data[group_var]
     if hasattr(grouping, "ndim") and grouping.ndim > 1:

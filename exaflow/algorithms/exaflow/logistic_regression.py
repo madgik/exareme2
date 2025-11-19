@@ -104,15 +104,14 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def logistic_collect_categorical_levels(inputdata, categorical_vars):
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
+def logistic_collect_categorical_levels(data, inputdata, categorical_vars):
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf(with_aggregation_server=True)
 def logistic_regression_local_step(
+    data,
     inputdata,
     agg_client,
     positive_class,
@@ -121,12 +120,6 @@ def logistic_regression_local_step(
     numerical_vars,
     dummy_categories,
 ):
-    import pandas as pd
-
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
-
     # --- keep only the variables we actually use (X + y) and ensure unique names ---
     # order: categorical, numerical, then y
     cols = list(dict.fromkeys(list(categorical_vars) + list(numerical_vars) + [y_var]))

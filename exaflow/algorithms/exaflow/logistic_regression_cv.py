@@ -356,26 +356,24 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def logistic_collect_categorical_levels_cv(inputdata, categorical_vars):
+def logistic_collect_categorical_levels_cv(data, inputdata, categorical_vars):
     """
     Thin UDF wrapper used only to collect categorical levels from workers.
     """
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exaflow_udf()
-def logistic_regression_cv_check_local(inputdata, y_var, positive_class, n_splits):
+def logistic_regression_cv_check_local(
+    data, inputdata, y_var, positive_class, n_splits
+):
     """
     Check on each worker whether the number of observations (for y) is at least n_splits.
     """
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
     n_splits = int(n_splits)
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         y = (data[y_var] == positive_class).astype(float)
         n_obs = int(y.dropna().shape[0])
@@ -387,6 +385,7 @@ def logistic_regression_cv_check_local(inputdata, y_var, positive_class, n_split
 
 @exaflow_udf(with_aggregation_server=True)
 def logistic_regression_cv_local_step(
+    data,
     inputdata,
     agg_client,
     y_var,
@@ -407,11 +406,7 @@ def logistic_regression_cv_local_step(
     """
     from sklearn.model_selection import KFold
 
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
     n_splits = int(n_splits)
-
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     if data.empty or y_var not in data.columns:
         return {

@@ -124,13 +124,11 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exaflow_udf()
-def naive_bayes_categorical_cv_check_local(inputdata, y_var, n_splits):
+def naive_bayes_categorical_cv_check_local(data, inputdata, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
 
-    data = load_algorithm_dataframe(inputdata, dropna=True)
     if y_var in data.columns:
         n_obs = int(data[y_var].dropna().shape[0])
     else:
@@ -140,6 +138,7 @@ def naive_bayes_categorical_cv_check_local(inputdata, y_var, n_splits):
 
 @exaflow_udf(with_aggregation_server=True)
 def naive_bayes_categorical_cv_local_step(
+    data,
     inputdata,
     agg_client,
     y_var,
@@ -156,10 +155,7 @@ def naive_bayes_categorical_cv_local_step(
     from sklearn.model_selection import KFold
     from sklearn.preprocessing import OrdinalEncoder
 
-    from exaflow.algorithms.exaflow.data_loading import load_algorithm_dataframe
-
     n_splits = int(n_splits)
-    data = load_algorithm_dataframe(inputdata, dropna=True)
 
     # --- NEW: ensure we don't end up with duplicated columns ---
     # Build unique list of columns: x_vars + y_var (in that order)
