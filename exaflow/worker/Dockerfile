@@ -14,7 +14,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=1.2.2 \
+    POETRY_VERSION=1.8.2 \
     POETRY_HOME="/opt/poetry" \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_NO_INTERACTION=1 \
@@ -29,17 +29,18 @@ VOLUME $DATA_PATH
 
 
 #######################################################
+# Copying the codebase
+#######################################################
+COPY exaflow/ ./exaflow/
+RUN rm -rf exaflow/controller
+
+#######################################################
 # Installing poetry and dependencies
 #######################################################
 RUN pip install poetry==$POETRY_VERSION
 COPY poetry.lock pyproject.toml ./
 RUN poetry install --no-dev --without aggregation-server
 
-#######################################################
-# Copying the codebase
-#######################################################
-COPY exaflow/ ./exaflow/
-RUN rm -rf exaflow/controller
 
 #######################################################
 # Setup bootstrap file
