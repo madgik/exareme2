@@ -68,6 +68,15 @@ class AggregationServer(AggregationServerServicer):
         return ConfigureResponse(status="Configured")
 
     def Aggregate(self, request, context):
+        # TODO: Somehow make this faster maybe send a whole bunch of commands like we did with the tranfer instead of just one calculation:
+        # Example: PCA uses this:
+        # total_n_obs = agg_client.sum([float(n_obs)])[0]
+        # total_sx = np.array(agg_client.sum(sx.tolist()), dtype=float)
+        # total_sxx = np.array(agg_client.sum(sxx.tolist()), dtype=float)
+        # Maybe we shoule just make aggregation server accept a list of computation: [Computation(<type>,<values>), ...]
+        # In the above example it should be [Computation("sum",[float(n_obs)]), Computation("sum",sx.tolist()), Computation("sum",sxx.tolist())]
+        # Order should matter so we do not aggregate wrong combinations then maybe have a name for the combination so add like a name right before the type
+        # Optimize as much as we can
         agg_ctx = self._get_aggregation_context(request.request_id, context)
         with agg_ctx.lock:
             self._validate_request_type(agg_ctx, request, context)
