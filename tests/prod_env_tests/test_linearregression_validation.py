@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from tests.algorithm_validation_tests.exaflow import algorithm_request
-from tests.algorithm_validation_tests.exaflow import get_test_params
-from tests.algorithm_validation_tests.exaflow import parse_response
+from tests.algorithm_validation_tests.exaflow.conftest import algorithm_request
+from tests.algorithm_validation_tests.exaflow.conftest import parse_response
+from tests.algorithm_validation_tests.exaflow.helpers import get_test_params
 
 algorithm_name = "linear_regression"
 

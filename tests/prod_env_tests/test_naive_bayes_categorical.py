@@ -1,7 +1,7 @@
 import pytest
 
-from tests.algorithm_validation_tests.exaflow import algorithm_request
-from tests.algorithm_validation_tests.exaflow import parse_response
+from tests.algorithm_validation_tests.exaflow.conftest import algorithm_request
+from tests.algorithm_validation_tests.exaflow.conftest import parse_response
 from tests.algorithm_validation_tests.exaflow.test_naive_bayes_categorical import (
     cv_inputs,
 )
