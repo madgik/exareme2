@@ -53,6 +53,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from contextlib import contextmanager
@@ -100,6 +101,8 @@ EXAFLOW_WORKER_CONFIG_FILE = "EXAFLOW_WORKER_CONFIG_FILE"
 EXAFLOW_CONTROLLER_CONFIG_FILE = "EXAFLOW_CONTROLLER_CONFIG_FILE"
 EXAFLOW_AGG_SERVER_CONFIG_FILE = "EXAFLOW_AGG_SERVER_CONFIG_FILE"
 DATA_PATH = "DATA_PATH"
+WORKER_STARTUP_SUCCESS_LOG = "Data folder loaded successfully on startup."
+WORKER_STARTUP_TIMEOUT_SECONDS = 120
 
 
 def _expand_path(path_value) -> Path:
@@ -518,6 +521,30 @@ def env_prefixes(c, env_vars):
         yield
 
 
+def _wait_for_worker_startup(worker_id: str, log_path: Path):
+    """Block until the worker log contains the startup success message."""
+    deadline = time.monotonic() + WORKER_STARTUP_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        if log_path.exists():
+            try:
+                with log_path.open() as fp:
+                    log_contents = fp.read()
+            except OSError as exc:
+                message(
+                    f"Could not read log file for worker {worker_id}: {exc}",
+                    Level.WARNING,
+                )
+            else:
+                if WORKER_STARTUP_SUCCESS_LOG in log_contents:
+                    message(f"Worker {worker_id} ready.", Level.SUCCESS)
+                    return
+        sleep(1)
+    raise TimeoutError(
+        f"Worker {worker_id} did not log '{WORKER_STARTUP_SUCCESS_LOG}' within "
+        f"{WORKER_STARTUP_TIMEOUT_SECONDS} seconds. Check logs at {log_path}."
+    )
+
+
 @task
 def start_worker(
     c,
@@ -599,14 +626,17 @@ def start_worker(
                 f"> {outpath} 2>&1"
             )
             run(c, cmd, wait=False)
+        _wait_for_worker_startup(worker_id, outpath)
 
     message(f"Starting Workers {worker_ids}...", Level.HEADER)
     # Use as many threads as workers (you can cap this if you like)
     max_workers = max(1, len(worker_ids))
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all workers in parallel
-        for wid in worker_ids:
-            executor.submit(_restart_single_worker, wid)
+        futures = [executor.submit(_restart_single_worker, wid) for wid in worker_ids]
+        # Block until every worker logs the expected startup message
+        for future in futures:
+            future.result()
 
 
 @task

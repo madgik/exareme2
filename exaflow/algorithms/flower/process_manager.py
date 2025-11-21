@@ -1,8 +1,34 @@
 import os
 import subprocess
+import time
 from pathlib import Path
 
 import psutil
+
+try:  # pragma: no cover - fallback for contexts without worker config
+    from exaflow.worker import config as worker_config
+except Exception:  # noqa: BLE001
+
+    class _FallbackWorkerConfig:  # pragma: no cover - best effort fallback
+        class worker_tasks:  # noqa: D401 - simple namespace
+            tasks_timeout = 120
+
+    worker_config = _FallbackWorkerConfig()
+
+
+def _task_timeout_seconds() -> int:
+    timeout = getattr(worker_config.worker_tasks, "tasks_timeout", 120)
+    try:
+        timeout = int(timeout)
+    except (TypeError, ValueError):  # noqa: PERF203
+        timeout = 120
+    return max(1, timeout)
+
+
+def _deadline(seconds: int | None = None) -> float:
+    return time.monotonic() + (
+        seconds if seconds is not None else _task_timeout_seconds()
+    )
 
 
 def process_status(proc):
@@ -49,8 +75,11 @@ def send_signal(proc, signal, timeout, logger):
         return True
 
 
-def terminate_process(proc, logger, max_attempts=3, wait_time=10):
-    """Attempt to terminate the process with a limited number of retries, handling zombie processes."""
+def terminate_process(proc, logger, max_attempts=3, deadline: float | None = None):
+    """Attempt to terminate the process with retries respecting the worker task timeout."""
+
+    if deadline is None:
+        deadline = _deadline()
 
     for attempt in range(max_attempts):
         status = process_status(proc)
@@ -60,8 +89,22 @@ def terminate_process(proc, logger, max_attempts=3, wait_time=10):
         if status == "zombie":
             return handle_zombie(proc, logger)
 
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            logger.warning(f"Stopping PID {proc.pid} exceeded the worker task timeout.")
+            return
+
         signal = "TERM" if attempt < max_attempts - 1 else "KILL"
-        timeout = wait_time if signal == "TERM" else None
+        # Allow a small wait even if remaining time is tiny to give the OS a chance to reap the process.
+        timeout = (
+            max(0.5, remaining / (max_attempts - attempt))
+            if signal == "TERM"
+            else remaining
+        )
+        if timeout <= 0:
+            logger.warning(f"No time left to terminate PID {proc.pid}.")
+            return
+
         if send_signal(proc, signal, timeout, logger):
             return
 
@@ -75,14 +118,14 @@ def should_terminate_process(cmdline):
     )
 
 
-def process_garbage_collect(proc, logger):
+def process_garbage_collect(proc, logger, deadline):
     """Terminate a process and handle errors."""
     try:
         pid = proc.pid
         cmdline = proc.cmdline()
         if should_terminate_process(cmdline):
             logger.info(f"PID: {pid} - Name: {proc.name()} - Cmdline: {cmdline}")
-            terminate_process(proc, logger)
+            terminate_process(proc, logger, deadline=deadline)
     except psutil.NoSuchProcess:
         logger.warn(
             f"No process found with PID {proc.pid}. It may have already exited."
@@ -122,7 +165,7 @@ class FlowerProcess:
             command_line = " ".join(proc.cmdline())
             logger.info(f"Command line for PID {pid}: {command_line}")
             if algorithm_name.lower() in command_line.lower():
-                terminate_process(proc, logger)
+                terminate_process(proc, logger, deadline=_deadline())
         except psutil.NoSuchProcess:
             logger.warn(f"No process found with PID {pid}. It may have already exited.")
         except psutil.AccessDenied:
@@ -133,5 +176,11 @@ class FlowerProcess:
     @classmethod
     def garbage_collect(cls, logger):
         """Garbage collect processes matching specific criteria."""
+        deadline = _deadline()
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-            process_garbage_collect(proc, logger)
+            if time.monotonic() >= deadline:
+                logger.warning(
+                    "Flower process garbage collection exceeded worker task timeout."
+                )
+                break
+            process_garbage_collect(proc, logger, deadline=deadline)

@@ -8,6 +8,8 @@ from exaflow.controller.services.errors import WorkerTaskTimeoutError
 from exaflow.controller.services.flower import FlowerController
 from exaflow.controller.services.flower.tasks_handler import FlowerTasksHandler
 from exaflow.controller.services.strategy_interface import AlgorithmExecutionStrategyI
+from exaflow.controller.worker_client.app import WorkerClientConnectionError
+from exaflow.controller.worker_client.app import WorkerClientTimeoutException
 
 
 class FlowerStrategy(AlgorithmExecutionStrategyI):
@@ -24,9 +26,15 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                 else []
             )
 
-            self._global_worker_tasks_handler.garbage_collect()
+            self._safe_worker_call(
+                "garbage collect on global worker",
+                self._global_worker_tasks_handler.garbage_collect,
+            )
             for handler in self._local_worker_tasks_handlers:
-                handler.garbage_collect()
+                self._safe_worker_call(
+                    f"garbage collect on worker {handler.worker_id}",
+                    handler.garbage_collect,
+                )
 
             self._controller.flower_execution_info.set_inputdata(
                 inputdata=self._algorithm_request_dto.inputdata.dict()
@@ -83,10 +91,29 @@ class FlowerStrategy(AlgorithmExecutionStrategyI):
                     clients_pids,
                 )
 
+    def _safe_worker_call(self, action_desc, func, *args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except (WorkerClientTimeoutException, WorkerClientConnectionError) as exc:
+            self._logger.warning("Failed to %s: %s", action_desc, exc)
+        except Exception as exc:  # noqa: BLE001
+            self._logger.exception("Unexpected error while %s: %s", action_desc, exc)
+
     async def _cleanup(
         self, algorithm_name, server_task_handler, server_pid, clients_pids
     ):
         await self._controller.flower_execution_info.reset()
-        server_task_handler.stop_flower_server(server_pid, algorithm_name)
+        if server_pid is not None:
+            self._safe_worker_call(
+                f"stop flower server pid={server_pid}",
+                server_task_handler.stop_flower_server,
+                server_pid,
+                algorithm_name,
+            )
         for pid, handler in clients_pids.items():
-            handler.stop_flower_client(pid, algorithm_name)
+            self._safe_worker_call(
+                f"stop flower client pid={pid} on worker {handler.worker_id}",
+                handler.stop_flower_client,
+                pid,
+                algorithm_name,
+            )
