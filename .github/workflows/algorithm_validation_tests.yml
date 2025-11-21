@@ -69,11 +69,21 @@ jobs:
         with:
           run: cat /tmp/exaflow/localworker1.out
 
-      - name: Run Flower algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/flower/ --verbosity=4  -n 2 --reruns 6 --reruns-delay 5
+      - name: Run Flower algorithm validation tests (with peak memory)
+        run: |
+          /usr/bin/time -v poetry run pytest tests/algorithm_validation_tests/flower/ \
+            --verbosity=4 \
+            -n 2 \
+            --reruns 6 \
+            --reruns-delay 5
 
-      - name: Run Exareme2 algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/exaflow --verbosity=4 -n 16 --reruns 3 --reruns-delay 5
+      - name: Run Exareme2 algorithm validation tests (with peak memory)
+        run: |
+          /usr/bin/time -v poetry run pytest tests/algorithm_validation_tests/exaflow \
+            --verbosity=4 \
+            -n 16 \
+            --reruns 3 \
+            --reruns-delay 5
 
   run_tests_in_five_nodes:
     runs-on: ubuntu-latest
@@ -140,12 +150,16 @@ jobs:
         with:
           run: cat /tmp/exaflow/localworker1.out
 
-      - name: Run Exareme2 algorithm validation tests
-        run: poetry run pytest tests/algorithm_validation_tests/exaflow/ --verbosity=4  -n 16  -k "input1 and not input1-" # run tests 10-19
-
-      - name: Run Flower algorithm validation tests
+      - name: Run Exareme2 algorithm validation tests (with peak memory)
         run: |
-          poetry run pytest tests/algorithm_validation_tests/flower \
+          /usr/bin/time -v poetry run pytest tests/algorithm_validation_tests/exaflow/ \
+            --verbosity=4 \
+            -n 16 \
+            -k "input1 and not input1-" # run tests 10-19
+
+      - name: Run Flower algorithm validation tests (with peak memory)
+        run: |
+          /usr/bin/time -v poetry run pytest tests/algorithm_validation_tests/flower \
             -n 2 \
             --verbosity=4 \
             --reruns=6 \
