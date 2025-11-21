@@ -6,8 +6,8 @@ framework_log_level ="INFO"
 flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
 exaflow_algorithm_folders = "./exaflow/algorithms/exaflow,./tests/algorithms/exaflow"
 
-worker_landscape_aggregator_update_interval = 300
-worker_tasks_timeout = 60
+worker_landscape_aggregator_update_interval = 30000
+worker_tasks_timeout = 5
 
 [flower]
 enabled = true
@@ -25,7 +25,7 @@ protect_local_data = false
 enabled = true
 port = 50051
 max_grpc_connections = 10
-max_wait_for_aggregation_inputs = 10
+max_wait_for_aggregation_inputs = 1
 
 [smpc]
 enabled=false
