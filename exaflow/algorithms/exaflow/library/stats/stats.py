@@ -673,13 +673,11 @@ def anova_twoway(
     def rss_from_xtx_xty(xtx, xty, yty):
         if xtx.size == 0:
             return float(yty)
-        try:
-            xtx_inv = np.linalg.inv(xtx)
-        except np.linalg.LinAlgError:
-            xtx_inv = np.linalg.pinv(xtx)
-        beta = xtx_inv @ xty
+        # Solve normal equations in a least-squares sense to stay stable
+        beta, *_ = np.linalg.lstsq(xtx, xty, rcond=None)
         bxty = float((beta.T @ xty).squeeze())
-        return float(yty) - bxty
+        rss = float(yty) - bxty
+        return max(rss, 0.0)
 
     rss_const = rss_from_xtx_xty(xTx_const, xTy_const, yTy)
     rss_a = rss_from_xtx_xty(xTx_a, xTy_a, yTy)

@@ -53,6 +53,7 @@ import shutil
 import stat
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from contextlib import contextmanager
 from enum import Enum
@@ -457,7 +458,7 @@ def structure_data(c, worker=None):
 
 
 @task
-def kill_worker(c, worker=None, all_=False):
+def kill_worker(c, worker=None, all_=False, silence=False):
     """
     Kill the worker(s) service(s).
 
@@ -481,17 +482,19 @@ def kill_worker(c, worker=None, all_=False):
     res_bin = run(c, grep_cmd, warn=True, show_ok=False)
 
     if res_bin.ok:
-        message(
-            f"Killing previous worker gRPC instance(s) with pattern '{worker_pattern}' ...",
-            Level.HEADER,
-        )
+        if not silence:
+            message(
+                f"Killing previous worker gRPC instance(s) with pattern '{worker_pattern}' ...",
+                Level.HEADER,
+            )
         cmd = (
             f"pids=$(ps aux | grep '[p]ython -m exaflow.worker.grpc_server' | grep '{worker_pattern}' | awk '{{print $2}}') "
             '&& if [ -n "$pids" ]; then kill -9 $pids; fi'
         )
         run(c, cmd, warn=True, show_ok=False)
     else:
-        message("No worker instances found", Level.HEADER)
+        if not silence:
+            message("No worker instances found", Level.HEADER)
 
 
 def validate_algorithm_folders(folders, name):
@@ -548,15 +551,15 @@ def start_worker(
         exaflow_algorithm_folders, "exaflow_algorithm_folders"
     )
 
-    # Retrieve and sort worker ids to avoid accidental removal of similarly named ids
     worker_ids = sorted(get_worker_ids(all_, worker))
 
-    for worker_id in worker_ids:
+    # If we're not detached and not starting all, keep the old sequential / attached behavior
+    if len(worker_ids) == 1:
+        worker_id = worker_ids[0]
         kill_worker(c, worker_id)
         message(f"Starting Worker {worker_id}...", Level.HEADER)
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
 
-        # Build environment variables dictionary
         env_vars = {
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
             EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
@@ -564,24 +567,46 @@ def start_worker(
             DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
         }
 
-        # Use the helper context manager to apply environment variable prefixes
+        with env_prefixes(c, env_vars):
+            cmd = (
+                f"PYTHONPATH={PROJECT_ROOT} poetry run python -m "
+                f"exaflow.worker.grpc_server --worker-id {worker_id}"
+            )
+            run(c, cmd, attach_=True)
+        return  # we're done
+
+    # ------------------------------------------------------------------
+    # Parallel branch: detached / all_ (background workers)
+    # ------------------------------------------------------------------
+
+    def _restart_single_worker(worker_id: str):
+        """Kill and start a single worker (background)."""
+        kill_worker(c, worker_id, silence=True)
+
+        worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
+        env_vars = {
+            FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
+            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
+            EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
+            DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
+        }
+
         with env_prefixes(c, env_vars):
             outpath = OUTDIR / f"{worker_id}.out"
+            cmd = (
+                f"PYTHONPATH={PROJECT_ROOT}: poetry run python -m "
+                f"exaflow.worker.grpc_server --worker-id {worker_id} "
+                f"> {outpath} 2>&1"
+            )
+            run(c, cmd, wait=False)
 
-            # Build and run the command based on the detached/all_ flags
-            if detached or all_:
-                cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT}: poetry run python -m "
-                    f"exaflow.worker.grpc_server --worker-id {worker_id} "
-                    f"> {outpath} 2>&1"
-                )
-                run(c, cmd, wait=False)
-            else:
-                cmd = (
-                    f"PYTHONPATH={PROJECT_ROOT} poetry run python -m "
-                    f"exaflow.worker.grpc_server --worker-id {worker_id}"
-                )
-                run(c, cmd, attach_=True)
+    message(f"Starting Workers {worker_ids}...", Level.HEADER)
+    # Use as many threads as workers (you can cap this if you like)
+    max_workers = max(1, len(worker_ids))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit all workers in parallel
+        for wid in worker_ids:
+            executor.submit(_restart_single_worker, wid)
 
 
 @task
