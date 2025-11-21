@@ -24,10 +24,14 @@ class ExaflowAlgorithmFlowEngineInterface:
         request_id: str,
         context_id: str,
         tasks_handlers: List[ExaflowTasksHandler],
+        preprocessing=None,
+        raw_inputdata=None,
     ) -> None:
         self._logger = ctrl_logger.get_request_logger(request_id=request_id)
         self._context_id = context_id
         self._tasks_handlers = tasks_handlers
+        self._preprocessing = preprocessing
+        self._raw_inputdata = raw_inputdata
 
     def run_algorithm_udf(self, func, positional_args) -> List[dict]:
         if not self._tasks_handlers:
@@ -38,12 +42,18 @@ class ExaflowAlgorithmFlowEngineInterface:
         if "metadata" in positional_args:
             positional_args["metadata"] = add_ordered_enums(positional_args["metadata"])
 
+        params = dict(positional_args)
+        if self._preprocessing:
+            params["preprocessing"] = self._preprocessing
+        if self._raw_inputdata:
+            params["raw_inputdata"] = self._raw_inputdata.json()
+
         with ThreadPoolExecutor(max_workers=len(self._tasks_handlers)) as executor:
             future_to_index = {
                 executor.submit(
                     task_handler.run_udf,
                     udf_registry_key=udf_registry_key,
-                    params=positional_args,
+                    params=params,
                 ): idx
                 for idx, task_handler in enumerate(self._tasks_handlers)
             }

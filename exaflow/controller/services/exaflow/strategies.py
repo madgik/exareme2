@@ -5,6 +5,10 @@ from exaflow import exaflow_algorithm_classes
 from exaflow.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
 )
+from exaflow.algorithms.exaflow.longitudinal_transformer import (
+    prepare_longitudinal_transformation,
+)
+from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.controller.federation_info_logs import log_experiment_execution
 from exaflow.controller.services.exaflow import ExaflowController
 from exaflow.controller.services.exaflow.algorithm_flow_engine_interface import (
@@ -20,22 +24,40 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
     _global_worker_tasks_handler: ExaflowTasksHandler
 
     async def execute(self) -> str:
-        variable_names = (self._algorithm_request_dto.inputdata.x or []) + (
-            self._algorithm_request_dto.inputdata.y or []
+        raw_inputdata = Inputdata.parse_raw(
+            self._algorithm_request_dto.inputdata.json()
         )
+        variable_names = (raw_inputdata.x or []) + (raw_inputdata.y or [])
         metadata = self._controller.worker_landscape_aggregator.get_metadata(
-            data_model=self._algorithm_request_dto.inputdata.data_model,
+            data_model=raw_inputdata.data_model,
             variable_names=variable_names,
         )
+
+        preprocessing = self._algorithm_request_dto.preprocessing or {}
+        preprocessing_payload = None
+        if "longitudinal_transformer" in preprocessing:
+            prep_payload = None
+            (
+                transformed_inputdata,
+                metadata,
+                prep_payload,
+            ) = prepare_longitudinal_transformation(
+                raw_inputdata, metadata, preprocessing["longitudinal_transformer"]
+            )
+            preprocessing_payload = {"longitudinal_transformer": prep_payload}
+        else:
+            transformed_inputdata = raw_inputdata
 
         engine = ExaflowAlgorithmFlowEngineInterface(
             request_id=self._request_id,
             context_id=self._context_id,
             tasks_handlers=self._local_worker_tasks_handlers,
+            preprocessing=preprocessing_payload,
+            raw_inputdata=raw_inputdata,
         )
         algorithm_cls = exaflow_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(
-            inputdata=self._algorithm_request_dto.inputdata,
+            inputdata=transformed_inputdata,
             engine=engine,
             parameters=self._algorithm_request_dto.parameters,
         )
@@ -44,7 +66,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
             self._request_id,
             self._context_id,
             self._algorithm_name,
-            self._algorithm_request_dto.inputdata.datasets,
+            transformed_inputdata.datasets,
             self._algorithm_request_dto.parameters,
             [h.worker_id for h in self._local_worker_tasks_handlers],
         )
