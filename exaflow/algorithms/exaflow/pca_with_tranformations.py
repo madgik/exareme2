@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.library.stats.stats import pca as core_pca
@@ -150,14 +151,21 @@ def pca_with_transformation_local_step(
             else np.zeros(X_values.shape[1], dtype=float)
         )
 
-        total_n_obs = float(agg_client.sum([n_obs_local])[0])
+        total_n_obs_arr, total_sx_arr, total_sxx_arr = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, np.array([n_obs_local], dtype=float)),
+                (AggregationType.SUM, sx_local),
+                (AggregationType.SUM, sxx_local),
+            ]
+        )
+        total_n_obs = float(np.asarray(total_n_obs_arr, dtype=float).reshape(-1)[0])
         if total_n_obs <= 1:
             # Degenerate case, keep things as-is (no meaningful stats)
             means = np.zeros_like(sx_local)
             sigmas = np.ones_like(sx_local)
         else:
-            total_sx = np.asarray(agg_client.sum(sx_local.tolist()), dtype=float)
-            total_sxx = np.asarray(agg_client.sum(sxx_local.tolist()), dtype=float)
+            total_sx = np.asarray(total_sx_arr, dtype=float)
+            total_sxx = np.asarray(total_sxx_arr, dtype=float)
 
             means = total_sx / total_n_obs
             variances = (total_sxx - total_n_obs * means**2) / (total_n_obs - 1)

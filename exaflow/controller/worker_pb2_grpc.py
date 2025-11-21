@@ -4,28 +4,6 @@ import grpc
 
 from . import worker_pb2 as worker__pb2
 
-GRPC_GENERATED_VERSION = "1.73.1"
-GRPC_VERSION = grpc.__version__
-_version_not_supported = False
-
-try:
-    from grpc._utilities import first_version_is_lower
-
-    _version_not_supported = first_version_is_lower(
-        GRPC_VERSION, GRPC_GENERATED_VERSION
-    )
-except ImportError:
-    _version_not_supported = True
-
-if _version_not_supported:
-    raise RuntimeError(
-        f"The grpc package installed is at version {GRPC_VERSION},"
-        + f" but the generated code in worker_pb2_grpc.py depends on"
-        + f" grpcio>={GRPC_GENERATED_VERSION}."
-        + f" Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}"
-        + f" or downgrade your generated code using grpcio-tools<={GRPC_VERSION}."
-    )
-
 
 class WorkerServiceStub(object):
     """Missing associated documentation comment in .proto file."""
@@ -40,67 +18,56 @@ class WorkerServiceStub(object):
             "/exaflow.worker.api.WorkerService/GetWorkerInfo",
             request_serializer=worker__pb2.GetWorkerInfoRequest.SerializeToString,
             response_deserializer=worker__pb2.GetWorkerInfoResponse.FromString,
-            _registered_method=True,
         )
         self.ListDatasetsPerDataModel = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/ListDatasetsPerDataModel",
             request_serializer=worker__pb2.ListDatasetsPerDataModelRequest.SerializeToString,
             response_deserializer=worker__pb2.ListDatasetsPerDataModelResponse.FromString,
-            _registered_method=True,
         )
         self.GetDataModelCdes = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GetDataModelCdes",
             request_serializer=worker__pb2.GetDataModelRequest.SerializeToString,
             response_deserializer=worker__pb2.GetDataModelCdesResponse.FromString,
-            _registered_method=True,
         )
         self.GetDataModelAttributes = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GetDataModelAttributes",
             request_serializer=worker__pb2.GetDataModelRequest.SerializeToString,
             response_deserializer=worker__pb2.GetDataModelAttributesResponse.FromString,
-            _registered_method=True,
         )
         self.Healthcheck = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/Healthcheck",
             request_serializer=worker__pb2.HealthcheckRequest.SerializeToString,
             response_deserializer=worker__pb2.HealthcheckResponse.FromString,
-            _registered_method=True,
         )
         self.StartFlowerClient = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StartFlowerClient",
             request_serializer=worker__pb2.StartFlowerClientRequest.SerializeToString,
             response_deserializer=worker__pb2.StartFlowerClientResponse.FromString,
-            _registered_method=True,
         )
         self.StartFlowerServer = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StartFlowerServer",
             request_serializer=worker__pb2.StartFlowerServerRequest.SerializeToString,
             response_deserializer=worker__pb2.StartFlowerServerResponse.FromString,
-            _registered_method=True,
         )
         self.StopFlowerClient = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StopFlowerClient",
             request_serializer=worker__pb2.StopFlowerProcessRequest.SerializeToString,
             response_deserializer=worker__pb2.StopFlowerProcessResponse.FromString,
-            _registered_method=True,
         )
         self.StopFlowerServer = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StopFlowerServer",
             request_serializer=worker__pb2.StopFlowerProcessRequest.SerializeToString,
             response_deserializer=worker__pb2.StopFlowerProcessResponse.FromString,
-            _registered_method=True,
         )
         self.GarbageCollect = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GarbageCollect",
             request_serializer=worker__pb2.GarbageCollectRequest.SerializeToString,
             response_deserializer=worker__pb2.GarbageCollectResponse.FromString,
-            _registered_method=True,
         )
         self.RunUdf = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/RunUdf",
             request_serializer=worker__pb2.RunUdfRequest.SerializeToString,
             response_deserializer=worker__pb2.RunUdfResponse.FromString,
-            _registered_method=True,
         )
 
 
@@ -236,9 +203,6 @@ def add_WorkerServiceServicer_to_server(servicer, server):
         "exaflow.worker.api.WorkerService", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers(
-        "exaflow.worker.api.WorkerService", rpc_method_handlers
-    )
 
 
 # This class is part of an EXPERIMENTAL API.
@@ -272,7 +236,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -302,7 +265,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -332,7 +294,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -362,7 +323,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -392,7 +352,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -422,7 +381,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -452,7 +410,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -482,7 +439,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -512,7 +468,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -542,7 +497,6 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -572,5 +526,4 @@ class WorkerService(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )

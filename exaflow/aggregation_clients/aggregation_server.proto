@@ -5,6 +5,7 @@ package aggregation_server;
 service AggregationServer {
   rpc Configure (ConfigureRequest) returns (ConfigureResponse);
   rpc Aggregate (AggregateRequest) returns (AggregateResponse);
+  rpc AggregateBatch (AggregateBatchRequest) returns (AggregateBatchResponse);
   rpc Cleanup (CleanupRequest) returns (CleanupResponse);
 }
 
@@ -25,6 +26,21 @@ message AggregateRequest {
 
 message AggregateResponse {
   repeated double result = 1;
+}
+
+message Operation {
+  string aggregation_type = 1;
+  repeated double vectors = 2;
+}
+
+message AggregateBatchRequest {
+  string request_id = 1;
+  repeated Operation operations = 2;
+}
+
+message AggregateBatchResponse {
+  repeated double results = 1;
+  repeated int32 offsets = 2;
 }
 
 message CleanupRequest {

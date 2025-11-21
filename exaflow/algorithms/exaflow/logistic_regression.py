@@ -6,6 +6,7 @@ from scipy import stats
 from scipy.special import expit
 from scipy.special import xlogy
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
@@ -165,8 +166,14 @@ def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray
     n_obs_local = int(y.size)
     y_sum_local = float(y.sum())
 
-    total_n_obs = int(agg_client.sum([float(n_obs_local)])[0])
-    total_y_sum = float(agg_client.sum([float(y_sum_local)])[0])
+    total_n_obs_arr, total_y_sum_arr = agg_client.aggregate_batch(
+        [
+            (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
+            (AggregationType.SUM, np.array([float(y_sum_local)], dtype=float)),
+        ]
+    )
+    total_n_obs = int(total_n_obs_arr[0])
+    total_y_sum = float(total_y_sum_arr[0])
 
     n_features = X.shape[1]
     handle_logreg_errors(total_n_obs, n_features, total_y_sum)
@@ -184,10 +191,17 @@ def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray
         H_local = np.einsum("ji,j,jk->ik", X, w.reshape(-1), X)
         ll_local = np.sum(xlogy(y, mu) + xlogy(1 - y, 1 - mu))
 
-        grad = np.asarray(agg_client.sum(grad_local.tolist()), dtype=float)
-        H_flat = agg_client.sum(H_local.ravel().tolist())
-        H = np.asarray(H_flat, dtype=float).reshape((n_features, n_features))
-        ll = float(agg_client.sum([float(ll_local)])[0])
+        grad_arr, H_arr, ll_arr = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, grad_local),
+                (AggregationType.SUM, H_local),
+                (AggregationType.SUM, np.array([float(ll_local)], dtype=float)),
+            ]
+        )
+
+        grad = np.asarray(grad_arr, dtype=float)
+        H = np.asarray(H_arr, dtype=float)
+        ll = float(np.asarray(ll_arr, dtype=float).reshape(-1)[0])
 
         try:
             H_inv = np.linalg.inv(H)

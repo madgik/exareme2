@@ -5,6 +5,7 @@ import numpy as np
 from pydantic import BaseModel
 from scipy import stats
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
@@ -157,19 +158,35 @@ def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray):
     sum_y_local = float(y.sum())
     sum_sq_y_local = float((y**2).sum())
 
-    # Global (secure) aggregates
+    ops = []
     if n_features > 0:
-        xTx_flat = agg_client.sum(xTx_local.ravel().tolist())
-        xTy_flat = agg_client.sum(xTy_local.ravel().tolist())
-        xTx = np.asarray(xTx_flat, dtype=float).reshape((n_features, n_features))
-        xTy = np.asarray(xTy_flat, dtype=float).reshape((n_features, 1))
+        ops.extend(
+            [
+                (AggregationType.SUM, xTx_local),
+                (AggregationType.SUM, xTy_local),
+            ]
+        )
+    ops.extend(
+        [
+            (AggregationType.SUM, np.array([n_obs_local], dtype=float)),
+            (AggregationType.SUM, np.array([sum_y_local], dtype=float)),
+            (AggregationType.SUM, np.array([sum_sq_y_local], dtype=float)),
+        ]
+    )
+    aggregated = agg_client.aggregate_batch(ops)
+
+    idx = 0
+    if n_features > 0:
+        xTx = np.asarray(aggregated[idx], dtype=float)
+        xTy = np.asarray(aggregated[idx + 1], dtype=float)
+        idx += 2
     else:
         xTx = np.zeros((0, 0), dtype=float)
         xTy = np.zeros((0, 1), dtype=float)
 
-    n_obs = int(agg_client.sum([n_obs_local])[0])
-    sum_y = float(agg_client.sum([sum_y_local])[0])
-    sum_sq_y = float(agg_client.sum([sum_sq_y_local])[0])
+    n_obs = int(np.asarray(aggregated[idx], dtype=float).reshape(-1)[0])
+    sum_y = float(np.asarray(aggregated[idx + 1], dtype=float).reshape(-1)[0])
+    sum_sq_y = float(np.asarray(aggregated[idx + 2], dtype=float).reshape(-1)[0])
 
     # Solve for coefficients using pseudo-inverse for stability
     if n_features > 0:
@@ -191,8 +208,14 @@ def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray):
         rss_local = 0.0
         sum_abs_resid_local = 0.0
 
-    rss = float(agg_client.sum([rss_local])[0])
-    sum_abs_resid = float(agg_client.sum([sum_abs_resid_local])[0])
+    rss_arr, sum_abs_resid_arr = agg_client.aggregate_batch(
+        [
+            (AggregationType.SUM, np.array([rss_local], dtype=float)),
+            (AggregationType.SUM, np.array([sum_abs_resid_local], dtype=float)),
+        ]
+    )
+    rss = float(np.asarray(rss_arr, dtype=float).reshape(-1)[0])
+    sum_abs_resid = float(np.asarray(sum_abs_resid_arr, dtype=float).reshape(-1)[0])
 
     # Global TSS from aggregates (same formula as original exaflow)
     if n_obs > 0:

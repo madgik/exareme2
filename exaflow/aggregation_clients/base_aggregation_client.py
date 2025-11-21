@@ -30,6 +30,24 @@ class BaseAggregationClient:
         )
         return self._stub.Aggregate(req).result
 
+    def _aggregate_batch_request(
+        self, ops: list[tuple[AggregationType, list[float]]]
+    ) -> list[list[float]]:
+        operations = [
+            pb2.Operation(aggregation_type=op.value, vectors=vals) for op, vals in ops
+        ]
+        req = pb2.AggregateBatchRequest(
+            request_id=self._request_id, operations=operations
+        )
+        resp = self._stub.AggregateBatch(req)
+        results = resp.results
+        offsets = resp.offsets
+        reconstructed = []
+        for i in range(len(offsets) - 1):
+            start, end = offsets[i], offsets[i + 1]
+            reconstructed.append(results[start:end])
+        return reconstructed
+
     def close(self) -> None:
         logger.debug("[CHANNEL] Closing gRPC channel.")
         self._channel.close()

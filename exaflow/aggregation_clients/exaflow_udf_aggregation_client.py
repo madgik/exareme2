@@ -25,3 +25,21 @@ class ExaflowUDFAggregationClient(BaseAggregationClient, ExaflowUDFAggregationCl
             return aggregated.reshape(original.shape)
 
         return aggregated
+
+    def aggregate_batch(
+        self, ops: list[tuple[AggregationType, ArrayInput]]
+    ) -> list[np.ndarray]:
+        originals = [np.asarray(vals) for _, vals in ops]
+        agg_types = [agg for agg, _ in ops]
+        flat_ops = [
+            (agg_type, arr.ravel().tolist())
+            for agg_type, arr in zip(agg_types, originals)
+        ]
+        aggregated_lists = self._aggregate_batch_request(flat_ops)
+        results = []
+        for arr, agg_list in zip(originals, aggregated_lists):
+            agg_np = np.asarray(agg_list, dtype=float)
+            if arr.shape and agg_np.size == arr.size:
+                agg_np = agg_np.reshape(arr.shape)
+            results.append(agg_np)
+        return results

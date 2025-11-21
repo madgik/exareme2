@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from scipy.special import expit
 from scipy.special import xlogy
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
@@ -171,8 +172,14 @@ def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray
     n_obs_local = int(y.size)
     y_sum_local = float(y.sum())
 
-    total_n_obs = int(agg_client.sum([float(n_obs_local)])[0])
-    total_y_sum = float(agg_client.sum([float(y_sum_local)])[0])
+    total_n_obs_arr, total_y_sum_arr = agg_client.aggregate_batch(
+        [
+            (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
+            (AggregationType.SUM, np.array([float(y_sum_local)], dtype=float)),
+        ]
+    )
+    total_n_obs = int(total_n_obs_arr[0])
+    total_y_sum = float(total_y_sum_arr[0])
 
     n_features = X.shape[1]
     handle_logreg_errors(total_n_obs, n_features, total_y_sum)
@@ -190,10 +197,16 @@ def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray
         H_local = np.einsum("ji,j,jk->ik", X, w.reshape(-1), X)
         ll_local = np.sum(xlogy(y, mu) + xlogy(1 - y, 1 - mu))
 
-        grad = np.asarray(agg_client.sum(grad_local.tolist()), dtype=float)
-        H_flat = agg_client.sum(H_local.ravel().tolist())
-        H = np.asarray(H_flat, dtype=float).reshape((n_features, n_features))
-        ll = float(agg_client.sum([float(ll_local)])[0])
+        grad_arr, H_arr, ll_arr = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, grad_local),
+                (AggregationType.SUM, H_local),
+                (AggregationType.SUM, np.array([float(ll_local)], dtype=float)),
+            ]
+        )
+        grad = np.asarray(grad_arr, dtype=float)
+        H = np.asarray(H_arr, dtype=float)
+        ll = float(np.asarray(ll_arr, dtype=float).reshape(-1)[0])
 
         try:
             H_inv = np.linalg.inv(H)
@@ -500,10 +513,23 @@ def logistic_regression_cv_local_step(
         tn_local = int(((preds05 == 0) & (y_true_local == 0)).sum())
         fn_local = int(((preds05 == 0) & (y_true_local == 1)).sum())
 
-        tp_global = int(agg_client.sum([float(tp_local)])[0])
-        fp_global = int(agg_client.sum([float(fp_local)])[0])
-        tn_global = int(agg_client.sum([float(tn_local)])[0])
-        fn_global = int(agg_client.sum([float(fn_local)])[0])
+        (
+            tp_global_arr,
+            fp_global_arr,
+            tn_global_arr,
+            fn_global_arr,
+        ) = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, np.array([float(tp_local)], dtype=float)),
+                (AggregationType.SUM, np.array([float(fp_local)], dtype=float)),
+                (AggregationType.SUM, np.array([float(tn_local)], dtype=float)),
+                (AggregationType.SUM, np.array([float(fn_local)], dtype=float)),
+            ]
+        )
+        tp_global = int(tp_global_arr[0])
+        fp_global = int(fp_global_arr[0])
+        tn_global = int(tn_global_arr[0])
+        fn_global = int(fn_global_arr[0])
 
         tp_per_fold.append(tp_global)
         fp_per_fold.append(fp_global)
@@ -528,10 +554,19 @@ def logistic_regression_cv_local_step(
             tn_list_local.append(float(tn_thr))
             fn_list_local.append(float(fn_thr))
 
-        tp_list_global = agg_client.sum(tp_list_local)
-        fp_list_global = agg_client.sum(fp_list_local)
-        tn_list_global = agg_client.sum(tn_list_local)
-        fn_list_global = agg_client.sum(fn_list_local)
+        (
+            tp_list_global,
+            fp_list_global,
+            tn_list_global,
+            fn_list_global,
+        ) = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, np.array(tp_list_local, dtype=float)),
+                (AggregationType.SUM, np.array(fp_list_local, dtype=float)),
+                (AggregationType.SUM, np.array(tn_list_local, dtype=float)),
+                (AggregationType.SUM, np.array(fn_list_local, dtype=float)),
+            ]
+        )
 
         tp_arr = np.asarray(tp_list_global, dtype=float)
         fp_arr = np.asarray(fp_list_global, dtype=float)

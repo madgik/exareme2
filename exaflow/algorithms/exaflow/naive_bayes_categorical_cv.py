@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.naive_bayes_common import make_naive_bayes_result
@@ -215,12 +216,10 @@ def naive_bayes_categorical_cv_local_step(
         )
         class_count_local = class_count_series.to_numpy(dtype=float)
 
-        class_count_global_list = agg_client.sum(class_count_local.tolist())
-        class_count_global = np.asarray(class_count_global_list, dtype=float)
-        total_train_n = int(class_count_global.sum())
+        ops = [(AggregationType.SUM, class_count_local)]
+        local_counts_per_var: Dict[str, np.ndarray] = {}
 
         # Per-feature category counts (class x category)
-        category_count_global_per_var: Dict[str, np.ndarray] = {}
         for xvar in x_vars:
             feat_cats = categories[xvar]
             idx_full = pd.MultiIndex.from_product(
@@ -232,12 +231,19 @@ def naive_bayes_categorical_cv_local_step(
             counts_matrix_local = counts_series.to_numpy(dtype=float).reshape(
                 (n_classes, len(feat_cats))
             )
-            flat_local = counts_matrix_local.ravel().tolist()
-            flat_global = agg_client.sum(flat_local)
-            counts_matrix_global = np.asarray(flat_global, dtype=float).reshape(
-                (n_classes, len(feat_cats))
+            local_counts_per_var[xvar] = counts_matrix_local
+            ops.append((AggregationType.SUM, counts_matrix_local))
+
+        aggregated_counts = agg_client.aggregate_batch(ops)
+
+        class_count_global = np.asarray(aggregated_counts[0], dtype=float)
+        total_train_n = int(class_count_global.sum())
+
+        category_count_global_per_var: Dict[str, np.ndarray] = {}
+        for idx, xvar in enumerate(x_vars, start=1):
+            category_count_global_per_var[xvar] = np.asarray(
+                aggregated_counts[idx], dtype=float
             )
-            category_count_global_per_var[xvar] = counts_matrix_global
 
         if total_train_n == 0:
             # Degenerate; no training data in this fold globally

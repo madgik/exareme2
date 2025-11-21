@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.worker_communication import BadUserInput
@@ -145,15 +146,47 @@ def anova_oneway_local_step(data, inputdata, agg_client, x_var, y_var, covar_enu
         maxs_local = [sys.float_info.min] * n_groups
 
         # Aggregate to get global stats
-        n_obs = int(agg_client.sum([float(n_obs_local)])[0])
-        overall_stats_sum = float(agg_client.sum([float(overall_sum_local)])[0])
-        overall_stats_count = float(agg_client.sum([float(overall_count_local)])[0])
-        overall_ssq = float(agg_client.sum([float(overall_ssq_local)])[0])
-        group_stats_sum = np.asarray(agg_client.sum(zeros), dtype=float)
-        group_stats_count = np.asarray(agg_client.sum(zeros), dtype=float)
-        group_ssq = np.asarray(agg_client.sum(zeros), dtype=float)
-        var_min_per_group = np.asarray(agg_client.min(mins_local), dtype=float)
-        var_max_per_group = np.asarray(agg_client.max(maxs_local), dtype=float)
+        (
+            total_n_obs_arr,
+            total_overall_sum_arr,
+            total_overall_count_arr,
+            total_overall_ssq_arr,
+            group_stats_sum_arr,
+            group_stats_count_arr,
+            group_ssq_arr,
+            var_min_arr,
+            var_max_arr,
+        ) = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
+                (
+                    AggregationType.SUM,
+                    np.array([float(overall_sum_local)], dtype=float),
+                ),
+                (
+                    AggregationType.SUM,
+                    np.array([float(overall_count_local)], dtype=float),
+                ),
+                (
+                    AggregationType.SUM,
+                    np.array([float(overall_ssq_local)], dtype=float),
+                ),
+                (AggregationType.SUM, np.array(zeros, dtype=float)),
+                (AggregationType.SUM, np.array(zeros, dtype=float)),
+                (AggregationType.SUM, np.array(zeros, dtype=float)),
+                (AggregationType.MIN, np.array(mins_local, dtype=float)),
+                (AggregationType.MAX, np.array(maxs_local, dtype=float)),
+            ]
+        )
+        n_obs = int(np.asarray(total_n_obs_arr).reshape(-1)[0])
+        overall_stats_sum = float(np.asarray(total_overall_sum_arr).reshape(-1)[0])
+        overall_stats_count = float(np.asarray(total_overall_count_arr).reshape(-1)[0])
+        overall_ssq = float(np.asarray(total_overall_ssq_arr).reshape(-1)[0])
+        group_stats_sum = np.asarray(group_stats_sum_arr, dtype=float)
+        group_stats_count = np.asarray(group_stats_count_arr, dtype=float)
+        group_ssq = np.asarray(group_ssq_arr, dtype=float)
+        var_min_per_group = np.asarray(var_min_arr, dtype=float)
+        var_max_per_group = np.asarray(var_max_arr, dtype=float)
     else:
         # --- Local stats like original local1, but force 1D arrays ---
         y_col = data[y_var]
@@ -223,25 +256,46 @@ def anova_oneway_local_step(data, inputdata, agg_client, x_var, y_var, covar_enu
         var_min_per_group_local = group_stats_df["min_per_group"].to_numpy(dtype=float)
         var_max_per_group_local = group_stats_df["max_per_group"].to_numpy(dtype=float)
 
-        # --- Secure aggregation across workers ---
-        n_obs = int(agg_client.sum([float(n_obs_local)])[0])
-        overall_stats_sum = float(agg_client.sum([float(overall_stats["sum"])])[0])
-        overall_stats_count = float(agg_client.sum([float(overall_stats["count"])])[0])
-        overall_ssq = float(agg_client.sum([float(overall_ssq)])[0])
+        # --- Secure aggregation across workers (batch to avoid mode mixing) ---
+        (
+            total_n_obs_arr,
+            total_overall_sum_arr,
+            total_overall_count_arr,
+            total_overall_ssq_arr,
+            group_stats_sum_arr,
+            group_stats_count_arr,
+            group_ssq_arr,
+            var_min_arr,
+            var_max_arr,
+        ) = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
+                (
+                    AggregationType.SUM,
+                    np.array([float(overall_stats["sum"])], dtype=float),
+                ),
+                (
+                    AggregationType.SUM,
+                    np.array([float(overall_stats["count"])], dtype=float),
+                ),
+                (AggregationType.SUM, np.array([float(overall_ssq)], dtype=float)),
+                (AggregationType.SUM, group_stats_sum_local),
+                (AggregationType.SUM, group_stats_count_local),
+                (AggregationType.SUM, group_ssq_local),
+                (AggregationType.MIN, var_min_per_group_local),
+                (AggregationType.MAX, var_max_per_group_local),
+            ]
+        )
 
-        group_stats_sum = np.asarray(
-            agg_client.sum(group_stats_sum_local.tolist()), dtype=float
-        )
-        group_stats_count = np.asarray(
-            agg_client.sum(group_stats_count_local.tolist()), dtype=float
-        )
-        group_ssq = np.asarray(agg_client.sum(group_ssq_local.tolist()), dtype=float)
-        var_min_per_group = np.asarray(
-            agg_client.min(var_min_per_group_local.tolist()), dtype=float
-        )
-        var_max_per_group = np.asarray(
-            agg_client.max(var_max_per_group_local.tolist()), dtype=float
-        )
+        n_obs = int(np.asarray(total_n_obs_arr).reshape(-1)[0])
+        overall_stats_sum = float(np.asarray(total_overall_sum_arr).reshape(-1)[0])
+        overall_stats_count = float(np.asarray(total_overall_count_arr).reshape(-1)[0])
+        overall_ssq = float(np.asarray(total_overall_ssq_arr).reshape(-1)[0])
+        group_stats_sum = np.asarray(group_stats_sum_arr, dtype=float)
+        group_stats_count = np.asarray(group_stats_count_arr, dtype=float)
+        group_ssq = np.asarray(group_ssq_arr, dtype=float)
+        var_min_per_group = np.asarray(var_min_arr, dtype=float)
+        var_max_per_group = np.asarray(var_max_arr, dtype=float)
 
     # At this point, we are effectively on the aggregation server,
     # with global stats in group_stats_* arrays.

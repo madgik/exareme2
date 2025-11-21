@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.naive_bayes_common import make_naive_bayes_result
@@ -171,18 +172,30 @@ def gaussian_nb_cv_local_step(
     data = data[cols].copy()
 
     n_rows = data.shape[0]
-    if n_rows == 0:
-        # This worker has no data; still needs to participate logically
-        return {
-            "confmats": [],
-            "n_obs": [],
-        }
-
+    counts_shape = (len(class_labels), len(x_vars))
+    conf_shape = (len(class_labels), len(class_labels))
     if n_rows < n_splits:
-        # Should be caught by check UDF, but be defensive
+        # This worker has insufficient data for CV; still participate with zeros
+        confmats_global: List[np.ndarray] = []
+        n_obs_per_fold: List[int] = []
+        counts_zero = np.zeros(counts_shape, dtype=float)
+        sums_zero = np.zeros(counts_shape, dtype=float)
+        sums_sq_zero = np.zeros(counts_shape, dtype=float)
+        conf_zero = np.zeros(conf_shape, dtype=float)
+        for _ in range(n_splits):
+            agg_client.aggregate_batch(
+                [
+                    (AggregationType.SUM, counts_zero),
+                    (AggregationType.SUM, sums_zero),
+                    (AggregationType.SUM, sums_sq_zero),
+                ]
+            )
+            agg_client.sum(conf_zero.ravel().tolist())
+            confmats_global.append(conf_zero.copy())
+            n_obs_per_fold.append(0)
         return {
-            "confmats": [],
-            "n_obs": [],
+            "confmats": [cm.tolist() for cm in confmats_global],
+            "n_obs": n_obs_per_fold,
         }
 
     # Make y categorical with fixed label order
@@ -202,8 +215,21 @@ def gaussian_nb_cv_local_step(
         # Training: global stats for NB
         # --------------------------
         if train_df.shape[0] == 0:
-            # Degenerate fold
-            confmats_global.append(np.zeros((n_classes_full, n_classes_full)))
+            # Degenerate fold: still participate in aggregation with zeros
+            counts_zero = np.zeros(counts_shape, dtype=float)
+            sums_zero = np.zeros(counts_shape, dtype=float)
+            sums_sq_zero = np.zeros(counts_shape, dtype=float)
+            agg_client.aggregate_batch(
+                [
+                    (AggregationType.SUM, counts_zero),
+                    (AggregationType.SUM, sums_zero),
+                    (AggregationType.SUM, sums_sq_zero),
+                ]
+            )
+            conf_zero = np.zeros(conf_shape, dtype=float)
+            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
+            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(conf_shape)
+            confmats_global.append(confmat_global)
             n_obs_per_fold.append(0)
             continue
 
@@ -231,9 +257,15 @@ def gaussian_nb_cv_local_step(
         sums_sq_local = sums_sq.to_numpy(dtype=float)
 
         # Aggregate across workers
-        counts_glob_flat = agg_client.sum(counts_local.ravel().tolist())
-        sums_glob_flat = agg_client.sum(sums_local.ravel().tolist())
-        sums_sq_glob_flat = agg_client.sum(sums_sq_local.ravel().tolist())
+        counts_glob_flat, sums_glob_flat, sums_sq_glob_flat = (
+            agg_client.aggregate_batch(
+                [
+                    (AggregationType.SUM, counts_local),
+                    (AggregationType.SUM, sums_local),
+                    (AggregationType.SUM, sums_sq_local),
+                ]
+            )
+        )
 
         counts_global = np.asarray(counts_glob_flat, dtype=float).reshape(
             counts_local.shape
@@ -248,8 +280,13 @@ def gaussian_nb_cv_local_step(
         total_train_n = int(class_count_full.sum())
 
         if total_train_n == 0:
-            # No training data globally in this fold
-            confmats_global.append(np.zeros((n_classes_full, n_classes_full)))
+            # No training data globally in this fold; still aggregate zero confmat
+            conf_zero = np.zeros((n_classes_full, n_classes_full), dtype=float)
+            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
+            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
+                (n_classes_full, n_classes_full)
+            )
+            confmats_global.append(confmat_global)
             n_obs_per_fold.append(0)
             continue
 
@@ -257,8 +294,12 @@ def gaussian_nb_cv_local_step(
         eff_mask = class_count_full > 0
         eff_indices = np.where(eff_mask)[0]
         if eff_indices.size == 0:
-            # Should not happen if total_train_n > 0, but be safe
-            confmats_global.append(np.zeros((n_classes_full, n_classes_full)))
+            conf_zero = np.zeros((n_classes_full, n_classes_full), dtype=float)
+            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
+            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
+                (n_classes_full, n_classes_full)
+            )
+            confmats_global.append(confmat_global)
             n_obs_per_fold.append(0)
             continue
 
@@ -284,7 +325,12 @@ def gaussian_nb_cv_local_step(
         # Prediction on test set
         # --------------------------
         if test_df.shape[0] == 0:
-            confmats_global.append(np.zeros((n_classes_full, n_classes_full)))
+            conf_zero = np.zeros((n_classes_full, n_classes_full), dtype=float)
+            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
+            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
+                (n_classes_full, n_classes_full)
+            )
+            confmats_global.append(confmat_global)
             n_obs_per_fold.append(total_train_n)
             continue
 

@@ -4,6 +4,7 @@ from typing import NamedTuple
 import numpy as np
 from pydantic import BaseModel
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
@@ -249,12 +250,17 @@ def linear_regression_cv_local_step(
         xTy_local = X_train.T @ y_train
         n_train_local = float(y_train.shape[0])
 
-        xTx_flat = agg_client.sum(xTx_local.ravel().tolist())
-        xTy_flat = agg_client.sum(xTy_local.ravel().tolist())
-        n_train = int(agg_client.sum([n_train_local])[0])
+        aggregated_train = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, xTx_local),
+                (AggregationType.SUM, xTy_local),
+                (AggregationType.SUM, np.array([n_train_local], dtype=float)),
+            ]
+        )
 
-        xTx = np.asarray(xTx_flat, dtype=float).reshape((n_features, n_features))
-        xTy = np.asarray(xTy_flat, dtype=float).reshape((n_features, 1))
+        xTx = np.asarray(aggregated_train[0], dtype=float)
+        xTy = np.asarray(aggregated_train[1], dtype=float)
+        n_train = int(np.asarray(aggregated_train[2], dtype=float).reshape(-1)[0])
 
         try:
             xTx_inv = np.linalg.inv(xTx)
@@ -285,11 +291,27 @@ def linear_regression_cv_local_step(
         sum_sq_y_test_local = float((y_test**2).sum())
 
         # Aggregate test statistics across workers
-        rss = float(agg_client.sum([rss_local])[0])
-        sum_abs_resid = float(agg_client.sum([sum_abs_resid_local])[0])
-        n_test = int(agg_client.sum([n_test_local])[0])
-        sum_y_test = float(agg_client.sum([sum_y_test_local])[0])
-        sum_sq_y_test = float(agg_client.sum([sum_sq_y_test_local])[0])
+        (
+            rss_arr,
+            sum_abs_resid_arr,
+            n_test_arr,
+            sum_y_test_arr,
+            sum_sq_y_test_arr,
+        ) = agg_client.aggregate_batch(
+            [
+                (AggregationType.SUM, np.array([rss_local], dtype=float)),
+                (AggregationType.SUM, np.array([sum_abs_resid_local], dtype=float)),
+                (AggregationType.SUM, np.array([n_test_local], dtype=float)),
+                (AggregationType.SUM, np.array([sum_y_test_local], dtype=float)),
+                (AggregationType.SUM, np.array([sum_sq_y_test_local], dtype=float)),
+            ]
+        )
+
+        rss = float(np.asarray(rss_arr, dtype=float).reshape(-1)[0])
+        sum_abs_resid = float(np.asarray(sum_abs_resid_arr, dtype=float).reshape(-1)[0])
+        n_test = int(np.asarray(n_test_arr, dtype=float).reshape(-1)[0])
+        sum_y_test = float(np.asarray(sum_y_test_arr, dtype=float).reshape(-1)[0])
+        sum_sq_y_test = float(np.asarray(sum_sq_y_test_arr, dtype=float).reshape(-1)[0])
 
         # Global TSS on test set
         if n_test > 0:

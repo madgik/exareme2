@@ -7,6 +7,7 @@ from typing import Union
 import numpy as np
 from pydantic import BaseModel
 
+from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 
@@ -146,14 +147,25 @@ def _numerical_histogram(
     bins = max(1, int(round(bins)))
     values = data[y_var].to_numpy(dtype=float, copy=False)
     n_obs = int(values.size)
-    total_n_obs = agg_client.sum([float(n_obs)])[0]
+    total_n_obs_arr, global_min_arr, global_max_arr = agg_client.aggregate_batch(
+        [
+            (AggregationType.SUM, np.array([float(n_obs)], dtype=float)),
+            (
+                AggregationType.MIN,
+                np.array([float(np.min(values)) if n_obs else np.inf]),
+            ),
+            (
+                AggregationType.MAX,
+                np.array([float(np.max(values)) if n_obs else -np.inf]),
+            ),
+        ]
+    )
+    total_n_obs = total_n_obs_arr[0]
     if total_n_obs == 0:
         raise ValueError("No data available to compute histogram.")
 
-    local_min = float(np.min(values)) if n_obs else float("inf")
-    local_max = float(np.max(values)) if n_obs else float("-inf")
-    global_min = agg_client.min([local_min])[0]
-    global_max = agg_client.max([local_max])[0]
+    global_min = float(global_min_arr[0])
+    global_max = float(global_max_arr[0])
     if not np.isfinite(global_min) or not np.isfinite(global_max):
         raise ValueError("Unable to determine histogram bounds.")
     if global_min == global_max:
