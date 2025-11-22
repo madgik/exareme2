@@ -111,11 +111,15 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
         )
         count_global = np.asarray(count_global_arr, dtype=float)
 
-        # Update centers; keep old center if a cluster has no points
-        new_centers = centers.copy()
+        # Update centers; if a cluster has no assigned points, follow the
+        # original Exareme behavior by resetting it to the origin so that
+        # it can capture the smallest-norm observations in the next step.
+        new_centers = np.zeros_like(centers)
         for k in range(n_clusters):
             if count_global[k] > 0.0:
                 new_centers[k] = sum_global[k] / count_global[k]
+            else:
+                new_centers[k] = np.zeros(n_features, dtype=float)
 
         # Check convergence (Frobenius norm)
         diff_norm = np.linalg.norm(new_centers - centers, ord="fro")

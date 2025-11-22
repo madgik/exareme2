@@ -4,9 +4,9 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.naive_bayes_categorical_model import CategoricalNB
 from exaflow.algorithms.exaflow.naive_bayes_common import make_naive_bayes_result
 from exaflow.algorithms.exaflow.naive_bayes_common import (
     multiclass_classification_metrics,
@@ -17,14 +17,9 @@ from exaflow.algorithms.exaflow.naive_bayes_common import (
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_categorical_cv"
-ALPHA = 1.0
 
 
 class CategoricalNBResult(BaseModel):
-    # This mirrors what make_naive_bayes_result returns, but we don’t rely
-    # on it directly here; Algorithm.run returns whatever
-    # make_naive_bayes_result creates.
-    # Kept only for clarity / typing; not strictly required by exaflow.
     confusion_matrix: dict
     labels: List[str]
     summary: dict
@@ -151,22 +146,39 @@ def naive_bayes_categorical_cv_local_step(
     Exaflow UDF that performs K-fold cross-validation for categorical
     Naive Bayes with secure aggregation.
     """
-    import numpy as np
     import pandas as pd
     from sklearn.model_selection import KFold
-    from sklearn.preprocessing import OrdinalEncoder
 
     n_splits = int(n_splits)
 
-    # --- NEW: ensure we don't end up with duplicated columns ---
     # Build unique list of columns: x_vars + y_var (in that order)
     cols = list(dict.fromkeys(list(x_vars) + [y_var]))
 
     # Restrict to relevant columns and drop duplicate column names if any
     data = data[cols].copy()
 
-    # Build categorical columns directly on the same DataFrame
-    class_cats = categories[y_var]
+    class_cats_full = list(categories[y_var])
+
+    if y_var in data.columns:
+        class_count_series = (
+            data[y_var].value_counts(dropna=True).reindex(class_cats_full, fill_value=0)
+        )
+        class_count_local = class_count_series.to_numpy(dtype=float)
+    else:
+        class_count_local = np.zeros(len(class_cats_full), dtype=float)
+
+    class_count_global = np.asarray(
+        agg_client.sum(class_count_local.tolist()), dtype=float
+    )
+    active_mask = class_count_global > 0
+    class_cats = [cat for cat, keep in zip(class_cats_full, active_mask) if keep]
+    if not class_cats:
+        return {
+            "labels": [],
+            "confmats": [],
+            "n_obs": [],
+        }
+
     data[y_var] = pd.Categorical(data[y_var], categories=class_cats)
     for xvar in x_vars:
         # Skip any xvar that for some reason is not in data after de-dup
@@ -177,14 +189,7 @@ def naive_bayes_categorical_cv_local_step(
     df = data  # fully categorical now
 
     n_rows = df.shape[0]
-    if n_rows == 0:
-        return {
-            "labels": class_cats,
-            "confmats": [],
-            "n_obs": [],
-        }
-
-    if n_rows < n_splits:
+    if n_rows == 0 or n_rows < n_splits:
         return {
             "labels": class_cats,
             "confmats": [],
@@ -196,6 +201,7 @@ def naive_bayes_categorical_cv_local_step(
     kf = KFold(n_splits=n_splits, shuffle=False)
 
     n_classes = len(class_cats)
+    label_to_idx = {label: idx for idx, label in enumerate(class_cats)}
 
     confmats_global: List[np.ndarray] = []
     n_obs_per_fold: List[int] = []
@@ -207,104 +213,51 @@ def naive_bayes_categorical_cv_local_step(
         train_df = df.iloc[train_idx]
         test_df = df.iloc[test_idx]
 
-        # --------------------------
-        # Training: global NB counts
-        # --------------------------
-        # Class counts
-        class_count_series = (
-            train_df.groupby(y_var).size().reindex(class_cats, fill_value=0)
+        model = CategoricalNB(
+            y_var=y_var,
+            x_vars=x_vars,
+            categories=categories,
         )
-        class_count_local = class_count_series.to_numpy(dtype=float)
-
-        ops = [(AggregationType.SUM, class_count_local)]
-        local_counts_per_var: Dict[str, np.ndarray] = {}
-
-        # Per-feature category counts (class x category)
-        for xvar in x_vars:
-            feat_cats = categories[xvar]
-            idx_full = pd.MultiIndex.from_product(
-                [class_cats, feat_cats], names=[y_var, xvar]
-            )
-            counts_series = (
-                train_df.groupby([y_var, xvar]).size().reindex(idx_full, fill_value=0)
-            )
-            counts_matrix_local = counts_series.to_numpy(dtype=float).reshape(
-                (n_classes, len(feat_cats))
-            )
-            local_counts_per_var[xvar] = counts_matrix_local
-            ops.append((AggregationType.SUM, counts_matrix_local))
-
-        aggregated_counts = agg_client.aggregate_batch(ops)
-
-        class_count_global = np.asarray(aggregated_counts[0], dtype=float)
-        total_train_n = int(class_count_global.sum())
-
-        category_count_global_per_var: Dict[str, np.ndarray] = {}
-        for idx, xvar in enumerate(x_vars, start=1):
-            category_count_global_per_var[xvar] = np.asarray(
-                aggregated_counts[idx], dtype=float
-            )
+        model.fit(train_df, agg_client)
+        total_train_n = int(model.class_count.sum())
 
         if total_train_n == 0:
-            # Degenerate; no training data in this fold globally
-            confmats_global.append(np.zeros((n_classes, n_classes), dtype=float))
+            conf_zero = np.zeros((n_classes, n_classes), dtype=float)
+            flat_conf_global = agg_client.sum(conf_zero.ravel().tolist())
+            confmat_global = np.asarray(flat_conf_global, dtype=float).reshape(
+                (n_classes, n_classes)
+            )
+            confmats_global.append(confmat_global)
             n_obs_per_fold.append(0)
             continue
 
-        # --------------------------
-        # Prediction on test set
-        # --------------------------
         if test_df.shape[0] == 0:
-            confmats_global.append(np.zeros((n_classes, n_classes), dtype=float))
+            conf_zero = np.zeros((n_classes, n_classes), dtype=float)
+            flat_conf_global = agg_client.sum(conf_zero.ravel().tolist())
+            confmat_global = np.asarray(flat_conf_global, dtype=float).reshape(
+                (n_classes, n_classes)
+            )
+            confmats_global.append(confmat_global)
             n_obs_per_fold.append(total_train_n)
             continue
 
-        # Prepare encoded X for test
-        feat_categories_ordered = [categories[xv] for xv in x_vars]
-        X_test = test_df[x_vars]
-        X_enc = OrdinalEncoder(
-            categories=feat_categories_ordered,
-            dtype=int,
-        ).fit_transform(X_test)
+        posterior = model.predict_proba(test_df[x_vars])
+        model_labels = list(model.labels)
+        local_to_global_idx = np.array(
+            [label_to_idx[label] for label in model_labels], dtype=int
+        )
 
-        # category_count list, shaped (n_features, n_classes, n_cats_feature)
-        category_count_list = [category_count_global_per_var[xv] for xv in x_vars]
-
-        # Following the original _predict_proba_local logic
-        # Build n_feat tensor: (n_features, n_classes, n_samples)
-        n_feat = np.stack([cc[:, xi] for cc, xi in zip(category_count_list, X_enc.T)])
-
-        n_class = class_count_global[np.newaxis, :, np.newaxis]
-        n_cat = np.array(
-            [len(cats) for cats in feat_categories_ordered],
-            dtype=float,
-        )[:, np.newaxis, np.newaxis]
-
-        factors = (n_feat + ALPHA) / (n_class + ALPHA * n_cat)
-        likelihood = factors.prod(axis=0).T  # (n_samples, n_classes)
-
-        prior = class_count_global / class_count_global.sum()
-        unnormalized_post = prior * likelihood
-        posterior = unnormalized_post / unnormalized_post.sum(axis=1, keepdims=True)
-
-        # --------------------------
-        # Confusion matrix (global)
-        # --------------------------
         y_true_cat = test_df[y_var]
-        # Map to indices 0..C-1, ignore NaNs
         true_codes = y_true_cat.cat.codes.to_numpy()
         valid_mask = true_codes >= 0
 
-        if not np.any(valid_mask):
-            confmat_local = np.zeros((n_classes, n_classes), dtype=float)
-        else:
+        confmat_local = np.zeros((n_classes, n_classes), dtype=float)
+        if np.any(valid_mask):
             true_idx = true_codes[valid_mask]
-            pred_idx = posterior[valid_mask].argmax(axis=1)
-
-            confmat_local = np.zeros((n_classes, n_classes), dtype=float)
+            pred_local_idx = posterior[valid_mask].argmax(axis=1)
+            pred_idx = local_to_global_idx[pred_local_idx]
             np.add.at(confmat_local, (true_idx, pred_idx), 1.0)
 
-        # Aggregate confusion matrix
         flat_conf_local = confmat_local.ravel().tolist()
         flat_conf_global = agg_client.sum(flat_conf_local)
         confmat_global = np.asarray(flat_conf_global, dtype=float).reshape(

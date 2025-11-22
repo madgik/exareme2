@@ -13,6 +13,7 @@ from exaflow.algorithms.exaflow.naive_bayes_common import (
 from exaflow.algorithms.exaflow.naive_bayes_common import (
     multiclass_classification_summary,
 )
+from exaflow.algorithms.exaflow.naive_bayes_gaussian_model import GaussianNB
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_gaussian_cv"
@@ -146,36 +147,23 @@ def gaussian_nb_cv_local_step(
     n_splits,
 ):
     """
-    Exaflow UDF that performs K-fold cross-validation for Gaussian Naive Bayes:
-
-      * Each worker fetches its local data.
-      * For each fold:
-          - Locally computes per-class statistics (count, sum, sum_sq) on train set.
-          - Uses agg_client.sum to aggregate these into global stats.
-          - From global stats, builds Gaussian NB parameters (means, variances,
-            class priors) with VAR_SMOOTHING.
-          - On the local test set, computes posterior probabilities and
-            local confusion matrix.
-          - Confusion matrices are aggregated across workers via agg_client.sum.
-      * Returns global confusion matrices and per-fold n_obs (train size).
+    Exaflow UDF that performs K-fold cross-validation for Gaussian Naive Bayes.
     """
     import pandas as pd
-    from scipy import stats as scipy_stats
     from sklearn.model_selection import KFold
 
     n_splits = int(n_splits)
     class_labels = list(labels)
     n_classes_full = len(class_labels)
+    n_features = len(x_vars)
 
-    # Restrict to X + y
-    cols = list(x_vars) + [y_var]
+    cols = list(dict.fromkeys(list(x_vars) + [y_var]))
     data = data[cols].copy()
 
     n_rows = data.shape[0]
-    counts_shape = (len(class_labels), len(x_vars))
-    conf_shape = (len(class_labels), len(class_labels))
+    counts_shape = (n_classes_full, n_features)
+    conf_shape = (n_classes_full, n_classes_full)
     if n_rows < n_splits:
-        # This worker has insufficient data for CV; still participate with zeros
         confmats_global: List[np.ndarray] = []
         n_obs_per_fold: List[int] = []
         counts_zero = np.zeros(counts_shape, dtype=float)
@@ -198,194 +186,63 @@ def gaussian_nb_cv_local_step(
             "n_obs": n_obs_per_fold,
         }
 
-    # Make y categorical with fixed label order
     data[y_var] = pd.Categorical(data[y_var], categories=class_labels)
-
     idx = np.arange(n_rows)
     kf = KFold(n_splits=n_splits, shuffle=False)
 
     confmats_global: List[np.ndarray] = []
     n_obs_per_fold: List[int] = []
+    label_to_idx = {label: idx for idx, label in enumerate(class_labels)}
 
     for train_idx, test_idx in kf.split(idx):
         train_df = data.iloc[train_idx]
         test_df = data.iloc[test_idx]
 
-        # --------------------------
-        # Training: global stats for NB
-        # --------------------------
-        if train_df.shape[0] == 0:
-            # Degenerate fold: still participate in aggregation with zeros
-            counts_zero = np.zeros(counts_shape, dtype=float)
-            sums_zero = np.zeros(counts_shape, dtype=float)
-            sums_sq_zero = np.zeros(counts_shape, dtype=float)
-            agg_client.aggregate_batch(
-                [
-                    (AggregationType.SUM, counts_zero),
-                    (AggregationType.SUM, sums_zero),
-                    (AggregationType.SUM, sums_sq_zero),
-                ]
-            )
+        model = GaussianNB(
+            y_var=y_var,
+            x_vars=x_vars,
+            labels=class_labels,
+            var_smoothing=VAR_SMOOTHING,
+        )
+        model.fit(train_df, agg_client)
+        total_train_n = int(model.total_n_obs)
+
+        if total_train_n == 0 or test_df.shape[0] == 0:
             conf_zero = np.zeros(conf_shape, dtype=float)
             flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
             confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(conf_shape)
             confmats_global.append(confmat_global)
-            n_obs_per_fold.append(0)
+            n_obs_per_fold.append(total_train_n)
             continue
 
-        # Build dataframe like in original _fit_local
-        train_data = train_df[x_vars].copy()
-        train_data[y_var] = train_df[y_var]
-
-        def sum_sq(x):
-            return (x**2).sum()
-
-        agg = train_data.groupby(by=y_var, observed=False).agg(["count", "sum", sum_sq])
-        agg = agg.swaplevel(axis=1)
-
-        counts = agg.xs("count", axis=1)
-        sums = agg.xs("sum", axis=1)
-        sums_sq = agg.xs("sum_sq", axis=1)
-
-        # Reindex to full class label set, fill missing with zeros
-        counts = counts.reindex(class_labels).fillna(0.0)
-        sums = sums.reindex(class_labels).fillna(0.0)
-        sums_sq = sums_sq.reindex(class_labels).fillna(0.0)
-
-        counts_local = counts.to_numpy(dtype=float)
-        sums_local = sums.to_numpy(dtype=float)
-        sums_sq_local = sums_sq.to_numpy(dtype=float)
-
-        # Aggregate across workers
-        counts_glob_flat, sums_glob_flat, sums_sq_glob_flat = (
-            agg_client.aggregate_batch(
-                [
-                    (AggregationType.SUM, counts_local),
-                    (AggregationType.SUM, sums_local),
-                    (AggregationType.SUM, sums_sq_local),
-                ]
-            )
-        )
-
-        counts_global = np.asarray(counts_glob_flat, dtype=float).reshape(
-            counts_local.shape
-        )
-        sums_global = np.asarray(sums_glob_flat, dtype=float).reshape(sums_local.shape)
-        sums_sq_global = np.asarray(sums_sq_glob_flat, dtype=float).reshape(
-            sums_sq_local.shape
-        )
-
-        # class_count is counts for any feature; take first column
-        class_count_full = counts_global[:, 0]
-        total_train_n = int(class_count_full.sum())
-
-        if total_train_n == 0:
-            # No training data globally in this fold; still aggregate zero confmat
-            conf_zero = np.zeros((n_classes_full, n_classes_full), dtype=float)
+        posterior = model.predict_proba(test_df[x_vars])
+        model_labels = list(model.labels)
+        if not model_labels:
+            conf_zero = np.zeros(conf_shape, dtype=float)
             flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
-            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
-                (n_classes_full, n_classes_full)
-            )
-            confmats_global.append(confmat_global)
-            n_obs_per_fold.append(0)
-            continue
-
-        # Effective classes: those with non-zero training count
-        eff_mask = class_count_full > 0
-        eff_indices = np.where(eff_mask)[0]
-        if eff_indices.size == 0:
-            conf_zero = np.zeros((n_classes_full, n_classes_full), dtype=float)
-            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
-            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
-                (n_classes_full, n_classes_full)
-            )
-            confmats_global.append(confmat_global)
-            n_obs_per_fold.append(0)
-            continue
-
-        counts_eff = counts_global[eff_mask, :]
-        sums_eff = sums_global[eff_mask, :]
-        sums_sq_eff = sums_sq_global[eff_mask, :]
-
-        # Means and variances (per class, per feature) as in _fit_global
-        means = sums_eff / counts_eff
-        var = (
-            sums_sq_eff - 2 * means * sums_eff + counts_eff * (means**2)
-        ) / counts_eff
-
-        # Variance smoothing like the original
-        epsilon = VAR_SMOOTHING * var.max()
-        var = np.clip(var, epsilon, np.inf)
-
-        class_count_eff = class_count_full[eff_mask]
-        # Priors for effective classes only
-        prior_eff = class_count_eff / class_count_eff.sum()
-
-        # --------------------------
-        # Prediction on test set
-        # --------------------------
-        if test_df.shape[0] == 0:
-            conf_zero = np.zeros((n_classes_full, n_classes_full), dtype=float)
-            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
-            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
-                (n_classes_full, n_classes_full)
-            )
+            confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(conf_shape)
             confmats_global.append(confmat_global)
             n_obs_per_fold.append(total_train_n)
             continue
 
-        X_test = test_df[x_vars].to_numpy(dtype=float)
-        # X_test shape: (n_samples, n_features)
-        # theta, var shapes: (n_eff_classes, n_features)
-        # We want factors[i, c, j] for sample i, class c, feature j
-
-        theta = means  # (n_eff, n_features)
-        sigma = np.sqrt(var)  # (n_eff, n_features)
-
-        # Broadcast:
-        # X shape: (n_samples, 1, n_features)
-        # theta, sigma: (1, n_eff, n_features)
-        X_expanded = X_test[:, np.newaxis, :]
-        theta_expanded = theta[np.newaxis, :, :]
-        sigma_expanded = sigma[np.newaxis, :, :]
-
-        # Normal pdf per feature
-        factors = scipy_stats.norm.pdf(
-            X_expanded, loc=theta_expanded, scale=sigma_expanded
+        local_to_global_idx = np.array(
+            [label_to_idx[label] for label in model_labels], dtype=int
         )
 
-        # Product over features -> likelihood per (sample, class)
-        likelihood = factors.prod(axis=2)  # (n_samples, n_eff)
-
-        # Posterior ~ prior * likelihood
-        unnormalized_post = prior_eff[np.newaxis, :] * likelihood
-        denom = unnormalized_post.sum(axis=1, keepdims=True)
-        # Guard against all-zero rows (e.g., extreme underflow)
-        denom[denom == 0.0] = 1.0
-        posterior = unnormalized_post / denom  # (n_samples, n_eff)
-
-        # Predicted effective class index per sample
-        pred_eff_idx = posterior.argmax(axis=1)  # (n_samples,)
-        # Map to full class index
-        pred_full_idx = eff_indices[pred_eff_idx]
-
-        # True class indices according to full label list
         y_true_cat = pd.Categorical(test_df[y_var], categories=class_labels)
-        true_codes = np.asarray(y_true_cat.codes, dtype=int)  # already an ndarray
+        true_codes = np.asarray(y_true_cat.codes, dtype=int)
         valid_mask = true_codes >= 0
 
-        confmat_local = np.zeros((n_classes_full, n_classes_full), dtype=float)
+        confmat_local = np.zeros(conf_shape, dtype=float)
         if np.any(valid_mask):
             true_idx = true_codes[valid_mask]
-            pred_idx = pred_full_idx[valid_mask]
+            pred_local_idx = posterior[valid_mask].argmax(axis=1)
+            pred_idx = local_to_global_idx[pred_local_idx]
             np.add.at(confmat_local, (true_idx, pred_idx), 1.0)
 
-        # Aggregate confusion matrix across workers
         flat_conf_local = confmat_local.ravel().tolist()
         flat_conf_glob = agg_client.sum(flat_conf_local)
-        confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(
-            (n_classes_full, n_classes_full)
-        )
+        confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(conf_shape)
 
         confmats_global.append(confmat_global)
         n_obs_per_fold.append(total_train_n)
