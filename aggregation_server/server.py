@@ -64,6 +64,7 @@ class AggregationContext:
         self.acquired_count = 0
         self.error = None
         self.lock = threading.Lock()
+        self.condition = threading.Condition(self.lock)
         self.result_ready = threading.Event()
         self.vector_length = None
         # Batch-related state
@@ -86,6 +87,7 @@ class AggregationContext:
         self.batch_vectors = None
         self.batch_vector_lengths = None
         self.batch_result = None
+        self.condition.notify_all()
 
 
 class AggregationServer(AggregationServerServicer):
@@ -278,6 +280,7 @@ class AggregationServer(AggregationServerServicer):
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "Batch request must include at least one operation.",
             )
+        self._wait_for_previous_batch_if_needed(agg_ctx, context)
         if not agg_ctx.batch_mode:
             agg_ctx.batch_mode = True
             agg_ctx.batch_ops = [op.aggregation_type for op in request.operations]
@@ -301,6 +304,25 @@ class AggregationServer(AggregationServerServicer):
                 )
                 logger.error(f"[AGGREGATE] {msg}")
                 context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
+
+    def _wait_for_previous_batch_if_needed(
+        self, agg_ctx: AggregationContext, context
+    ) -> None:
+        while (
+            agg_ctx.batch_mode
+            and agg_ctx.result_ready.is_set()
+            and agg_ctx.acquired_count < agg_ctx.expected_workers
+        ):
+            notified = agg_ctx.condition.wait(
+                timeout=config.max_wait_for_aggregation_inputs
+            )
+            if not notified:
+                msg = (
+                    f"Previous batch still being consumed for request_id='{agg_ctx.request_id}' "
+                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
+                )
+                logger.error(f"[AGGREGATE] {msg}")
+                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
 
     def _store_batch_vectors(self, agg_ctx: AggregationContext, request) -> int:
         # assume operations already validated
