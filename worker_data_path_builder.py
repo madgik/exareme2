@@ -106,6 +106,24 @@ def format_directory_structure(root: Path) -> str:
     return "\n".join(lines)
 
 
+def directory_size_bytes(root: Path) -> int:
+    total = 0
+    for entry in root.rglob("*"):
+        if entry.is_file():
+            total += entry.stat().st_size
+    return total
+
+
+def format_bytes(total: int) -> str:
+    units = ["B", "KB", "MB", "GB", "TB"]
+    size = float(total)
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            return f"{size:.2f} {unit}"
+        size /= 1024
+    return f"{size:.2f} TB"
+
+
 def create_combined_datasets(structure, worker_ids, test_data_folder: Path):
     combined_root = test_data_folder / ".data_paths"
     if combined_root.exists():
@@ -218,6 +236,8 @@ def main():
 
     print(f"Data paths for each worker is now located:")
     print(f"{args.test_data_folder}/{format_directory_structure(combined_root)}")
+    total_size = directory_size_bytes(combined_root)
+    print(f"Total structured data size: {format_bytes(total_size)}")
 
 
 if __name__ == "__main__":
