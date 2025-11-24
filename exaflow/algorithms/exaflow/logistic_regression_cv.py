@@ -7,11 +7,13 @@ import numpy as np
 import sklearn.metrics as skm
 from pydantic import BaseModel
 from scipy.special import expit
-from scipy.special import xlogy
 
 from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.library.logistic_common import (
+    run_distributed_logistic_regression,
+)
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
@@ -19,11 +21,6 @@ from exaflow.algorithms.exaflow.metrics import get_dummy_categories
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "logistic_regression_cv"
-
-# Reuse same hyper-params as plain logistic_regression
-MAX_ITER = 50
-TOL = 1e-4
-
 
 # ---------------------------------------------------------------------------#
 # Models
@@ -135,98 +132,6 @@ def make_classification_metrics_summary(
         recall=recall,
         fscore=fscore,
     )
-
-
-# ---------------------------------------------------------------------------#
-# Shared logistic core (copied from exaflow logistic_regression, no decorators)
-# ---------------------------------------------------------------------------#
-
-
-def handle_logreg_errors(nobs, p, y_sum):
-    if nobs <= p:
-        msg = (
-            "Logistic regression cannot run because the number of "
-            "observarions is smaller than the number of predictors. Please "
-            "add mode predictors or select more observations."
-        )
-        raise BadUserInput(msg)
-    if min(y_sum, nobs - y_sum) <= p:
-        msg = (
-            "Logistic regression cannot run because the number of "
-            "observarions in one category is smaller than the number of "
-            "predictors. Please add mode predictors or select more "
-            "observations for the category in question."
-        )
-        raise BadUserInput(msg)
-
-
-def max_abs(values):
-    return float(np.max(np.abs(values))) if len(values) else 0.0
-
-
-def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray):
-    """
-    Same core optimization as plain exaflow logistic regression:
-    Newton–Raphson with secure aggregation.
-    """
-    n_obs_local = int(y.size)
-    y_sum_local = float(y.sum())
-
-    total_n_obs_arr, total_y_sum_arr = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
-            (AggregationType.SUM, np.array([float(y_sum_local)], dtype=float)),
-        ]
-    )
-    total_n_obs = int(total_n_obs_arr[0])
-    total_y_sum = float(total_y_sum_arr[0])
-
-    n_features = X.shape[1]
-    handle_logreg_errors(total_n_obs, n_features, total_y_sum)
-
-    coeff = np.zeros((n_features, 1), dtype=float)
-    H_inv = np.eye(n_features, dtype=float)
-    ll = 0.0
-
-    for _ in range(MAX_ITER):
-        eta = X @ coeff
-        mu = expit(eta)
-        w = mu * (1.0 - mu)
-
-        grad_local = np.einsum("ji,j->i", X, (y - mu).reshape(-1))
-        H_local = np.einsum("ji,j,jk->ik", X, w.reshape(-1), X)
-        ll_local = np.sum(xlogy(y, mu) + xlogy(1 - y, 1 - mu))
-
-        grad_arr, H_arr, ll_arr = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, grad_local),
-                (AggregationType.SUM, H_local),
-                (AggregationType.SUM, np.array([float(ll_local)], dtype=float)),
-            ]
-        )
-        grad = np.asarray(grad_arr, dtype=float)
-        H = np.asarray(H_arr, dtype=float)
-        ll = float(np.asarray(ll_arr, dtype=float).reshape(-1)[0])
-
-        try:
-            H_inv = np.linalg.inv(H)
-        except np.linalg.LinAlgError:
-            H_inv = np.linalg.pinv(H)
-
-        coeff = coeff + H_inv @ grad.reshape(-1, 1)
-
-        if max_abs(grad) <= TOL:
-            break
-    else:
-        raise BadUserInput("Logistic regression cannot converge. Cancelling run.")
-
-    return {
-        "coefficients": coeff.reshape(-1).tolist(),
-        "hessian_inverse": H_inv.tolist(),
-        "ll": ll,
-        "n_obs": total_n_obs,
-        "y_sum": total_y_sum,
-    }
 
 
 # ---------------------------------------------------------------------------#

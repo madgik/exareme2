@@ -7,6 +7,9 @@ from pydantic import BaseModel
 from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.library.linear_models import (
+    run_distributed_linear_regression,
+)
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
@@ -220,8 +223,6 @@ def linear_regression_cv_local_step(
 
     kf = KFold(n_splits=n_splits, shuffle=False)
 
-    n_features = X.shape[1]
-
     n_obs_per_fold = []
     rmse_per_fold = []
     r2_per_fold = []
@@ -237,37 +238,22 @@ def linear_regression_cv_local_step(
         # --------------------------
         # Training: global OLS model
         # --------------------------
-        if X_train.size == 0:
-            # Degenerate; skip this fold
+        train_stats = run_distributed_linear_regression(
+            agg_client=agg_client,
+            X=X_train,
+            y=y_train,
+        )
+
+        n_train = int(train_stats["n_obs"])
+        coeff = np.asarray(train_stats["coefficients"], dtype=float).reshape(-1, 1)
+
+        if n_train == 0 or coeff.size == 0:
             n_obs_per_fold.append(0)
             rmse_per_fold.append(0.0)
             r2_per_fold.append(0.0)
             mae_per_fold.append(0.0)
             fstat_per_fold.append(0.0)
             continue
-
-        xTx_local = X_train.T @ X_train
-        xTy_local = X_train.T @ y_train
-        n_train_local = float(y_train.shape[0])
-
-        aggregated_train = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, xTx_local),
-                (AggregationType.SUM, xTy_local),
-                (AggregationType.SUM, np.array([n_train_local], dtype=float)),
-            ]
-        )
-
-        xTx = np.asarray(aggregated_train[0], dtype=float)
-        xTy = np.asarray(aggregated_train[1], dtype=float)
-        n_train = int(np.asarray(aggregated_train[2], dtype=float).reshape(-1)[0])
-
-        try:
-            xTx_inv = np.linalg.inv(xTx)
-        except np.linalg.LinAlgError:
-            xTx_inv = np.linalg.pinv(xTx)
-
-        coeff = xTx_inv @ xTy  # (n_features, 1)
 
         # --------------------------
         # Evaluation on test set

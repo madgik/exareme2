@@ -2,13 +2,13 @@ from typing import List
 
 import numpy as np
 from pydantic import BaseModel
-from scipy import stats
-from scipy.special import expit
-from scipy.special import xlogy
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.library.logistic_common import compute_logistic_summary
+from exaflow.algorithms.exaflow.library.logistic_common import (
+    run_distributed_logistic_regression,
+)
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
@@ -16,8 +16,6 @@ from exaflow.algorithms.exaflow.metrics import get_dummy_categories
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "logistic_regression"
-MAX_ITER = 50
-TOL = 1e-4
 ALPHA = 0.05
 
 
@@ -89,12 +87,15 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
         model_stats = udf_results[0]
-        summary = compute_summary(
-            coefficients=np.array(model_stats["coefficients"], dtype=float),
-            h_inv=np.array(model_stats["hessian_inverse"], dtype=float),
-            ll=model_stats["ll"],
-            n_obs=model_stats["n_obs"],
-            y_sum=model_stats["y_sum"],
+        summary = LogisticRegressionSummary(
+            **compute_logistic_summary(
+                coefficients=np.array(model_stats["coefficients"], dtype=float),
+                h_inv=np.array(model_stats["hessian_inverse"], dtype=float),
+                ll=model_stats["ll"],
+                n_obs=model_stats["n_obs"],
+                y_sum=model_stats["y_sum"],
+                alpha=ALPHA,
+            )
         )
 
         return LogisticRegressionResult(
@@ -148,151 +149,3 @@ def logistic_regression_local_step(
 
     model_stats = run_distributed_logistic_regression(agg_client, X, y)
     return model_stats
-
-
-def run_distributed_logistic_regression(agg_client, X: np.ndarray, y: np.ndarray):
-    if X.ndim != 2:
-        X = np.atleast_2d(X)
-    if y.ndim == 2 and y.shape[1] != 1:
-        y = y.reshape(-1, 1)
-    if X.shape[0] != y.shape[0]:
-        if X.shape[1] == y.shape[0]:
-            X = X.T
-        else:
-            raise BadUserInput(
-                "Design matrix row count does not match target size for logistic regression."
-            )
-
-    n_obs_local = int(y.size)
-    y_sum_local = float(y.sum())
-
-    total_n_obs_arr, total_y_sum_arr = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
-            (AggregationType.SUM, np.array([float(y_sum_local)], dtype=float)),
-        ]
-    )
-    total_n_obs = int(total_n_obs_arr[0])
-    total_y_sum = float(total_y_sum_arr[0])
-
-    n_features = X.shape[1]
-    handle_logreg_errors(total_n_obs, n_features, total_y_sum)
-
-    coeff = np.zeros((n_features, 1), dtype=float)
-    H_inv = np.eye(n_features, dtype=float)
-    ll = 0.0
-
-    for _ in range(MAX_ITER):
-        eta = X @ coeff
-        mu = expit(eta)
-        w = mu * (1.0 - mu)
-
-        grad_local = np.einsum("ji,j->i", X, (y - mu).reshape(-1))
-        H_local = np.einsum("ji,j,jk->ik", X, w.reshape(-1), X)
-        ll_local = np.sum(xlogy(y, mu) + xlogy(1 - y, 1 - mu))
-
-        grad_arr, H_arr, ll_arr = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, grad_local),
-                (AggregationType.SUM, H_local),
-                (AggregationType.SUM, np.array([float(ll_local)], dtype=float)),
-            ]
-        )
-
-        grad = np.asarray(grad_arr, dtype=float)
-        H = np.asarray(H_arr, dtype=float)
-        ll = float(np.asarray(ll_arr, dtype=float).reshape(-1)[0])
-
-        try:
-            H_inv = np.linalg.inv(H)
-        except np.linalg.LinAlgError:
-            H_inv = np.linalg.pinv(H)
-
-        coeff = coeff + H_inv @ grad.reshape(-1, 1)
-
-        if max_abs(grad) <= TOL:
-            break
-    else:
-        raise BadUserInput("Logistic regression cannot converge. Cancelling run.")
-
-    return {
-        "coefficients": coeff.reshape(-1).tolist(),
-        "hessian_inverse": H_inv.tolist(),
-        "ll": ll,
-        "n_obs": total_n_obs,
-        "y_sum": total_y_sum,
-    }
-
-
-def compute_summary(
-    *,
-    coefficients: np.ndarray,
-    h_inv: np.ndarray,
-    ll: float,
-    n_obs: int,
-    y_sum: float,
-) -> LogisticRegressionSummary:
-    stderr = np.sqrt(np.diag(h_inv))
-    z_scores = np.divide(
-        coefficients, stderr, out=np.zeros_like(coefficients), where=stderr != 0
-    )
-    pvalues = stats.norm.sf(np.abs(z_scores)) * 2
-
-    z_crit = stats.norm.ppf(1 - ALPHA / 2)
-    lower_ci = (coefficients - z_crit * stderr).tolist()
-    upper_ci = (coefficients + z_crit * stderr).tolist()
-
-    df_model = len(coefficients) - 1
-    df_resid = n_obs - len(coefficients)
-
-    y_mean = y_sum / n_obs if n_obs else 0
-    ll0 = float(xlogy(y_sum, y_mean) + xlogy(n_obs - y_sum, 1.0 - y_mean))
-
-    aic = 2 * len(coefficients) - 2 * ll
-    bic = np.log(n_obs) * len(coefficients) - 2 * ll if n_obs else float("inf")
-
-    if np.isclose(ll, 0.0) and np.isclose(ll0, 0.0):
-        r2_mcf = 1.0
-    else:
-        r2_mcf = 1.0 - (ll / ll0)
-    r2_cs = 1.0 - np.exp(2.0 * (ll0 - ll) / n_obs) if n_obs else 0.0
-
-    return LogisticRegressionSummary(
-        n_obs=int(n_obs),
-        coefficients=coefficients.tolist(),
-        stderr=stderr.tolist(),
-        lower_ci=lower_ci,
-        upper_ci=upper_ci,
-        z_scores=z_scores.tolist(),
-        pvalues=pvalues.tolist(),
-        df_model=int(df_model),
-        df_resid=int(df_resid),
-        r_squared_cs=r2_cs,
-        r_squared_mcf=r2_mcf,
-        ll0=ll0,
-        ll=float(ll),
-        aic=aic,
-        bic=bic,
-    )
-
-
-def handle_logreg_errors(nobs, p, y_sum):
-    if nobs <= p:
-        msg = (
-            "Logistic regression cannot run because the number of "
-            "observarions is smaller than the number of predictors. Please "
-            "add mode predictors or select more observations."
-        )
-        raise BadUserInput(msg)
-    if min(y_sum, nobs - y_sum) <= p:
-        msg = (
-            "Logistic regression cannot run because the number of "
-            "observarions in one category is smaller than the number of "
-            "predictors. Please add mode predictors or select more "
-            "observations for the category in question."
-        )
-        raise BadUserInput(msg)
-
-
-def max_abs(values):
-    return float(np.max(np.abs(values))) if len(values) else 0.0
