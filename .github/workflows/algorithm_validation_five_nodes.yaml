@@ -125,9 +125,6 @@ jobs:
       - name: Controller logs
         run: cat /tmp/exareme2/controller.out
 
-      - name: Aggregation Server logs
-        run: cat /tmp/exareme2/aggregation_server.out
-
       - name: Globalworker logs
         run: cat /tmp/exareme2/globalworker.out
 
