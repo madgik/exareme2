@@ -3,18 +3,19 @@ from typing import List
 
 import numpy as np
 from pydantic import BaseModel
-from scipy import stats
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.library.linear_models import compute_summary_from_stats
+from exaflow.algorithms.exaflow.library.linear_models import (
+    run_distributed_linear_regression,
+)
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
 from exaflow.algorithms.exaflow.metrics import get_dummy_categories
 from exaflow.worker_communication import BadUserInput
 
-ALPHA = 0.05  # same role as in exaflow version
 ALGORITHM_NAME = "linear_regression"
 
 
@@ -145,185 +146,3 @@ def linear_regression_local_step(
 
     model_stats = run_distributed_linear_regression(agg_client, X, y)
     return model_stats
-
-
-def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray):
-    """OLS in one exaflow UDF using secure aggregation, similar style to logistic."""
-    n_features = X.shape[1]
-
-    # Local sufficient statistics
-    xTx_local = X.T @ X if n_features > 0 else np.zeros((0, 0), dtype=float)
-    xTy_local = X.T @ y if n_features > 0 else np.zeros((0, 1), dtype=float)
-    n_obs_local = float(y.size)
-    sum_y_local = float(y.sum())
-    sum_sq_y_local = float((y**2).sum())
-
-    ops = []
-    if n_features > 0:
-        ops.extend(
-            [
-                (AggregationType.SUM, xTx_local),
-                (AggregationType.SUM, xTy_local),
-            ]
-        )
-    ops.extend(
-        [
-            (AggregationType.SUM, np.array([n_obs_local], dtype=float)),
-            (AggregationType.SUM, np.array([sum_y_local], dtype=float)),
-            (AggregationType.SUM, np.array([sum_sq_y_local], dtype=float)),
-        ]
-    )
-    aggregated = agg_client.aggregate_batch(ops)
-
-    idx = 0
-    if n_features > 0:
-        xTx = np.asarray(aggregated[idx], dtype=float)
-        xTy = np.asarray(aggregated[idx + 1], dtype=float)
-        idx += 2
-    else:
-        xTx = np.zeros((0, 0), dtype=float)
-        xTy = np.zeros((0, 1), dtype=float)
-
-    n_obs = int(np.asarray(aggregated[idx], dtype=float).reshape(-1)[0])
-    sum_y = float(np.asarray(aggregated[idx + 1], dtype=float).reshape(-1)[0])
-    sum_sq_y = float(np.asarray(aggregated[idx + 2], dtype=float).reshape(-1)[0])
-
-    # Solve for coefficients using pseudo-inverse for stability
-    if n_features > 0:
-        xTx_inv = np.linalg.pinv(xTx)
-        coefficients = xTx_inv @ xTy
-    else:
-        xTx_inv = np.zeros((0, 0), dtype=float)
-        coefficients = np.zeros((0, 1), dtype=float)
-
-    # Residuals and RSS need global coefficients.
-    # Since agg_client.sum returns the same value to all workers, each worker
-    # now has the same global coefficients and can compute local residuals.
-    if n_features > 0 and n_obs_local > 0:
-        y_pred_local = X @ coefficients
-        resid_local = y - y_pred_local
-        rss_local = float(np.dot(resid_local.reshape(-1), resid_local.reshape(-1)))
-        sum_abs_resid_local = float(np.abs(resid_local).sum())
-    else:
-        rss_local = 0.0
-        sum_abs_resid_local = 0.0
-
-    rss_arr, sum_abs_resid_arr = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([rss_local], dtype=float)),
-            (AggregationType.SUM, np.array([sum_abs_resid_local], dtype=float)),
-        ]
-    )
-    rss = float(np.asarray(rss_arr, dtype=float).reshape(-1)[0])
-    sum_abs_resid = float(np.asarray(sum_abs_resid_arr, dtype=float).reshape(-1)[0])
-
-    # Global TSS from aggregates (same formula as original exaflow)
-    if n_obs > 0:
-        y_mean = sum_y / n_obs
-        tss = sum_sq_y - 2.0 * y_mean * sum_y + n_obs * (y_mean**2)
-    else:
-        tss = 0.0
-
-    return {
-        "coefficients": coefficients.reshape(-1).tolist(),
-        "xTx_inv": xTx_inv.tolist(),
-        "rss": rss,
-        "tss": tss,
-        "sum_abs_resid": sum_abs_resid,
-        "n_obs": n_obs,
-    }
-
-
-def compute_summary_from_stats(
-    *,
-    coefficients: np.ndarray,
-    xTx_inv: np.ndarray,
-    rss: float,
-    tss: float,
-    sum_abs_resid: float,
-    n_obs: int,
-    p: int,
-) -> dict:
-    """
-    Replicates the statistics from the original LinearRegression.compute_summary:
-    RSE, R², adjusted R², F-stat, t-stats, CIs, etc.
-    """
-    # Degrees of freedom: same logic as original (p excludes intercept)
-    df_resid = n_obs - p - 1
-    df_model = p
-
-    if df_resid <= 0 or n_obs <= 0:
-        # Degenerate case; avoid divide-by-zero explosions
-        return {
-            "n_obs": int(n_obs),
-            "df_resid": float(df_resid),
-            "df_model": float(df_model),
-            "rse": float("nan"),
-            "r_squared": 0.0,
-            "r_squared_adjusted": 0.0,
-            "f_stat": float("nan"),
-            "f_pvalue": float("nan"),
-            "coefficients": coefficients.reshape(-1).tolist(),
-            "std_err": [float("nan")] * len(coefficients),
-            "t_stats": [float("nan")] * len(coefficients),
-            "pvalues": [float("nan")] * len(coefficients),
-            "lower_ci": [float("nan")] * len(coefficients),
-            "upper_ci": [float("nan")] * len(coefficients),
-        }
-
-    # Residual standard error
-    rse = float(np.sqrt(rss / df_resid))
-
-    # Standard errors of coefficients: sqrt(σ² * diag((X'X)^-1))
-    diag = np.diag(xTx_inv) if xTx_inv.size else np.array([], dtype=float)
-    std_err = np.sqrt(np.maximum(diag, 0.0) * (rse**2))
-
-    coeff_flat = coefficients.reshape(-1)
-    # t-stats
-    with np.errstate(divide="ignore", invalid="ignore"):
-        t_stats = np.divide(
-            coeff_flat,
-            std_err,
-            out=np.zeros_like(coeff_flat, dtype=float),
-            where=std_err != 0,
-        )
-
-    # p-values (two-sided)
-    t_p_values = stats.t.sf(np.abs(t_stats), df=df_resid) * 2.0
-
-    # Confidence intervals
-    t_crit = stats.t.ppf(1.0 - ALPHA / 2.0, df=df_resid)
-    lower_ci = (coeff_flat - t_crit * std_err).tolist()
-    upper_ci = (coeff_flat + t_crit * std_err).tolist()
-
-    # R² and adjusted R²
-    if tss > 0:
-        r_squared = 1.0 - (rss / tss)
-    else:
-        r_squared = 0.0
-    r_squared_adjusted = 1.0 - (1.0 - r_squared) * (n_obs - 1) / df_resid
-
-    # F-statistic
-    if rss == 0.0 or p == 0:
-        f_stat = float("inf")
-        f_pvalue = 0.0
-    else:
-        f_stat = float((tss - rss) * df_resid / (p * rss))
-        f_pvalue = float(stats.f.sf(f_stat, dfn=p, dfd=df_resid))
-
-    return {
-        "n_obs": int(n_obs),
-        "df_resid": float(df_resid),
-        "df_model": float(df_model),
-        "rse": rse,
-        "r_squared": float(r_squared),
-        "r_squared_adjusted": float(r_squared_adjusted),
-        "f_stat": f_stat,
-        "f_pvalue": f_pvalue,
-        "coefficients": coeff_flat.tolist(),
-        "std_err": std_err.tolist(),
-        "t_stats": t_stats.tolist(),
-        "pvalues": t_p_values.tolist(),
-        "lower_ci": lower_ci,
-        "upper_ci": upper_ci,
-    }
