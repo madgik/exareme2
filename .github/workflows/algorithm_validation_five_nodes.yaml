@@ -14,21 +14,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - suffix: times_275mb_data_expand
-            expand_factor: 100
-            pytest_workers: 1
-          - suffix: times_550mb_data_expand
-            expand_factor: 200
-            pytest_workers: 1
           - suffix: times_1100mb_data_expand
             expand_factor: 400
             pytest_workers: 1
+          - suffix: times_1100mb_data_expand_with_n16
+            expand_factor: 400
+            pytest_workers: 16
           - suffix: normal_data_without_n
             expand_factor: 1
             pytest_workers: null
-          - suffix: normal_data_with_n10
+          - suffix: normal_data_with_n16
             expand_factor: 1
-            pytest_workers: 10
+            pytest_workers: 16
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
