@@ -7,6 +7,7 @@ from typing import List
 import pandas as pd
 
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
+from exaflow.algorithms.utils.pandas_utils import ensure_pandas_dataframe
 from exaflow.worker_communication import BadUserInput
 
 
@@ -82,6 +83,7 @@ def _build_empty_result(columns: List[str]) -> pd.DataFrame:
 def apply_longitudinal_transformation(
     df: pd.DataFrame, payload: Dict[str, object]
 ) -> pd.DataFrame:
+    df = ensure_pandas_dataframe(df)
     visit1 = payload["visit1"]
     visit2 = payload["visit2"]
     strategies: Dict[str, str] = payload["strategies"]  # type: ignore[assignment]

@@ -6,7 +6,8 @@ from exaflow.algorithms.exaflow.longitudinal_transformer import (
     apply_longitudinal_transformation,
 )
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
-from exaflow.worker.exaflow.udf.udf_db import load_algorithm_dataframe
+from exaflow.algorithms.utils.pandas_utils import ensure_pandas_dataframe
+from exaflow.worker.exaflow.udf.udf_db import load_algorithm_arrow_table
 from exaflow.worker.utils.logger import get_logger
 from exaflow.worker.utils.logger import initialise_logger
 
@@ -65,7 +66,7 @@ def run_udf(
         )
         extra_columns.update({"subjectid", "visitid"})
 
-    data = load_algorithm_dataframe(
+    data = load_algorithm_arrow_table(
         loader_inputdata,
         dropna=dropna,
         include_dataset=include_dataset,
@@ -76,7 +77,7 @@ def run_udf(
         data = apply_longitudinal_transformation(
             data, preprocessing["longitudinal_transformer"]
         )
-    params["data"] = data
+    params["data"] = ensure_pandas_dataframe(data)
     udf = exaflow_registry.get_func(udf_registry_key)
     if not udf:
         error_msg = f"udf '{udf_registry_key}' not found in EXAFLOW_REGISTRY."

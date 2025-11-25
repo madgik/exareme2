@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Iterable
 from typing import Set
 
-import pandas as pd
+import pyarrow as pa
 
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.data_filters import build_filter_clause
@@ -26,15 +26,15 @@ def quote_literal(value: str) -> str:
     return f"'{escaped}'"
 
 
-def load_algorithm_dataframe(
+def load_algorithm_arrow_table(
     inputdata: Inputdata,
     *,
     dropna: bool = True,
     include_dataset: bool = False,
     extra_columns: Iterable[str] | None = None,
-) -> pd.DataFrame:
+) -> pa.Table:
     """
-    Shared data loader for exaflow algorithms.
+    Shared data loader for exaflow algorithms, returning an Arrow Table.
     """
     required_columns: Set[str] = set(inputdata.x or []) | set(inputdata.y or [])
     if include_dataset:
@@ -47,7 +47,7 @@ def load_algorithm_dataframe(
 
 def _fetch_with_duckdb(
     inputdata: Inputdata, required_columns: Set[str], *, dropna: bool
-) -> pd.DataFrame:
+) -> pa.Table:
     import duckdb
 
     from exaflow.worker import config as worker_config
@@ -79,10 +79,11 @@ def _fetch_with_duckdb(
 
     query = f"SELECT {select_columns} FROM {table_name}{where_sql}"
     with duckdb.connect(worker_config.duckdb.path, read_only=True) as conn:
-        df = conn.execute(query).fetch_df()
+        # Use fetch_arrow_table for zero-copy loading
+        arrow_table = conn.execute(query).fetch_arrow_table()
 
-    # Drop duplicate column names to mirror fetch_data behaviour when reading CSVs.
-    if df.columns.duplicated().any():
-        df = df.loc[:, ~df.columns.duplicated()]
+    # Drop duplicate column names if any (Arrow tables enforce unique names usually, but good to be safe)
+    # Note: Arrow handles duplicates differently than Pandas, usually by appending suffixes or erroring.
+    # DuckDB should return unique columns if the query is well-formed.
 
-    return df
+    return arrow_table

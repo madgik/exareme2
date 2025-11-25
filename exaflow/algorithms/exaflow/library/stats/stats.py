@@ -3,10 +3,21 @@ from typing import List
 from typing import Optional
 
 import numpy as np
+import pyarrow as pa
 import scipy.special as special
 import scipy.stats as st
 
 from exaflow.aggregation_clients import AggregationType
+
+
+def _to_numpy(x) -> np.ndarray:
+    """Convert input (Arrow Table/Array or list/array) to NumPy array."""
+    if isinstance(x, pa.Table):
+        # Convert to Pandas then NumPy (usually zero-copy for numeric data)
+        return x.to_pandas().to_numpy(dtype=float)
+    if isinstance(x, (pa.Array, pa.ChunkedArray)):
+        return x.to_numpy(zero_copy_only=False)
+    return np.asarray(x, dtype=float)
 
 
 def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
@@ -38,7 +49,7 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
     """
 
     # Convert to numpy array
-    X = np.asarray(x, dtype=float)
+    X = _to_numpy(x)
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
@@ -135,7 +146,7 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
 
 def pca(agg_client, x):
 
-    x = np.asarray(x, dtype=float)
+    x = _to_numpy(x)
     n_obs = len(x)
     sx = np.einsum("ij->j", x)
     sxx = np.einsum("ij,ij->j", x, x)
@@ -184,8 +195,8 @@ def pca(agg_client, x):
 def pearson_correlation(agg_client, x, y, alpha):
     n_obs = len(y)
 
-    x = np.asarray(x, dtype=float)
-    y = np.asarray(y, dtype=float)
+    x = _to_numpy(x)
+    y = _to_numpy(y)
 
     sx = np.einsum("ij->j", x)
     sy = np.einsum("ij->j", y)
@@ -247,7 +258,7 @@ def pearson_correlation(agg_client, x, y, alpha):
 
 
 def ttest_one_sample(agg_client, sample, *, mu: float, alpha: float, alternative: str):
-    sample = np.asarray(sample, dtype=float).reshape(-1)
+    sample = _to_numpy(sample).reshape(-1)
     n_obs = sample.size
 
     sum_x = sample.sum()
@@ -322,8 +333,8 @@ def ttest_paired(
     alpha: float,
     alternative: str,
 ):
-    sample_x = np.asarray(sample_x, dtype=float).reshape(-1)
-    sample_y = np.asarray(sample_y, dtype=float).reshape(-1)
+    sample_x = _to_numpy(sample_x).reshape(-1)
+    sample_y = _to_numpy(sample_y).reshape(-1)
     if sample_x.shape != sample_y.shape:
         raise ValueError("Paired samples must have the same length.")
 
@@ -417,8 +428,8 @@ def ttest_independent(
     alpha: float,
     alternative: str,
 ):
-    sample_a = np.asarray(sample_a, dtype=float).reshape(-1)
-    sample_b = np.asarray(sample_b, dtype=float).reshape(-1)
+    sample_a = _to_numpy(sample_a).reshape(-1)
+    sample_b = _to_numpy(sample_b).reshape(-1)
 
     n_a = sample_a.size
     n_b = sample_b.size
@@ -533,8 +544,8 @@ def roc_curve_binary(y_true, y_score):
     - Identical to sklearn.metrics.roc_curve(..., drop_intermediate=False)
     - Does NOT perform secure aggregation — operates on already-local arrays.
     """
-    y_true = np.asarray(y_true).astype(int)
-    y_score = np.asarray(y_score).astype(float)
+    y_true = _to_numpy(y_true).astype(int)
+    y_score = _to_numpy(y_score).astype(float)
 
     # Sort by descending score
     desc_idx = np.argsort(-y_score)
