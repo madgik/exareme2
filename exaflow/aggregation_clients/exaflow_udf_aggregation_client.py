@@ -17,9 +17,7 @@ class ExaflowUDFAggregationClient(BaseAggregationClient, ExaflowUDFAggregationCl
         original = np.asarray(values)
         flat = original.ravel()
 
-        aggregated = np.asarray(
-            self._aggregate_request(aggregation_type, flat.tolist()), dtype=float
-        )
+        aggregated = self._aggregate_request(aggregation_type, flat)
 
         if original.shape and aggregated.size == original.size:
             return aggregated.reshape(original.shape)
@@ -32,13 +30,11 @@ class ExaflowUDFAggregationClient(BaseAggregationClient, ExaflowUDFAggregationCl
         originals = [np.asarray(vals) for _, vals in ops]
         agg_types = [agg for agg, _ in ops]
         flat_ops = [
-            (agg_type, arr.ravel().tolist())
-            for agg_type, arr in zip(agg_types, originals)
+            (agg_type, arr.ravel()) for agg_type, arr in zip(agg_types, originals)
         ]
         aggregated_lists = self._aggregate_batch_request(flat_ops)
         results = []
-        for arr, agg_list in zip(originals, aggregated_lists):
-            agg_np = np.asarray(agg_list, dtype=float)
+        for arr, agg_np in zip(originals, aggregated_lists):
             if arr.shape and agg_np.size == arr.size:
                 agg_np = agg_np.reshape(arr.shape)
             results.append(agg_np)

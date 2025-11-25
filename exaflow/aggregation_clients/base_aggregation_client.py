@@ -1,14 +1,21 @@
 import logging
-from typing import List
+from typing import Sequence
 
 import grpc
+import numpy as np
+from numpy.typing import NDArray
 
 import exaflow.aggregation_clients.aggregation_server_pb2 as pb2
 import exaflow.aggregation_clients.aggregation_server_pb2_grpc as pb2_grpc
 
 from .constants import AggregationType
+from .serialization import bytes_to_ndarray
+from .serialization import ndarray_to_bytes
 
 logger = logging.getLogger(__name__)
+
+
+ArrayInput = NDArray[np.floating] | Sequence[float]
 
 
 class BaseAggregationClient:
@@ -18,34 +25,45 @@ class BaseAggregationClient:
         self._stub = pb2_grpc.AggregationServerStub(self._channel)
 
     def _aggregate_request(
-        self, aggregation_type: AggregationType, flat_values: List[float]
-    ) -> List[float]:
+        self, aggregation_type: AggregationType, flat_values: ArrayInput
+    ) -> NDArray[np.floating]:
+        tensor = ndarray_to_bytes(np.asarray(flat_values, dtype=np.float64))
         req = pb2.AggregateRequest(
             request_id=self._request_id,
             aggregation_type=aggregation_type.value,
-            vectors=flat_values,
+            tensor=tensor,
         )
         logger.debug(
             "[AGGREGATE] req_id=%s comp=%s", self._request_id, aggregation_type
         )
-        return self._stub.Aggregate(req).result
+        resp = self._stub.Aggregate(req)
+        if resp.tensor:
+            return bytes_to_ndarray(resp.tensor)
+        return np.asarray(resp.result, dtype=np.float64)
 
     def _aggregate_batch_request(
-        self, ops: list[tuple[AggregationType, list[float]]]
-    ) -> list[list[float]]:
+        self, ops: list[tuple[AggregationType, ArrayInput]]
+    ) -> list[NDArray[np.floating]]:
         operations = [
-            pb2.Operation(aggregation_type=op.value, vectors=vals) for op, vals in ops
+            pb2.Operation(
+                aggregation_type=op.value,
+                tensor=ndarray_to_bytes(np.asarray(vals, dtype=np.float64)),
+            )
+            for op, vals in ops
         ]
         req = pb2.AggregateBatchRequest(
             request_id=self._request_id, operations=operations
         )
         resp = self._stub.AggregateBatch(req)
+        if resp.tensors:
+            return [bytes_to_ndarray(tensor) for tensor in resp.tensors]
+
         results = resp.results
         offsets = resp.offsets
         reconstructed = []
         for i in range(len(offsets) - 1):
             start, end = offsets[i], offsets[i + 1]
-            reconstructed.append(results[start:end])
+            reconstructed.append(np.asarray(results[start:end], dtype=np.float64))
         return reconstructed
 
     def close(self) -> None:

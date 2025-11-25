@@ -5,6 +5,7 @@ from typing import Dict
 from typing import List
 
 import grpc
+import numpy as np
 from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
@@ -18,6 +19,8 @@ from .aggregation_server_pb2 import ConfigureResponse
 from .aggregation_server_pb2_grpc import AggregationServerServicer
 from .aggregation_server_pb2_grpc import add_AggregationServerServicer_to_server
 from .constants import AggregationType
+from .serialization import bytes_to_ndarray
+from .serialization import ndarray_to_bytes
 
 logger = logging.getLogger("AggregationServer")
 """
@@ -70,9 +73,11 @@ class AggregationContext:
         # Batch-related state
         self.batch_mode = False
         self.batch_ops = None  # List[str]
-        self.batch_vectors = None  # List[List[List[float]]]
+        self.batch_vectors = None  # List[List[np.ndarray]]
         self.batch_vector_lengths = None  # List[int]
-        self.batch_result = None
+        self.batch_result = (
+            None  # tuple[List[float], List[int], List[np.ndarray]] | None
+        )
 
     def reset(self):
         self.aggregation_type = None
@@ -116,15 +121,6 @@ class AggregationServer(AggregationServerServicer):
         return ConfigureResponse(status="Configured")
 
     def Aggregate(self, request, context):
-        # TODO: Somehow make this faster maybe send a whole bunch of commands like we did with the tranfer instead of just one calculation:
-        # Example: PCA uses this:
-        # total_n_obs = agg_client.sum([float(n_obs)])[0]
-        # total_sx = np.array(agg_client.sum(sx.tolist()), dtype=float)
-        # total_sxx = np.array(agg_client.sum(sxx.tolist()), dtype=float)
-        # Maybe we shoule just make aggregation server accept a list of computation: [Computation(<type>,<values>), ...]
-        # In the above example it should be [Computation("sum",[float(n_obs)]), Computation("sum",sx.tolist()), Computation("sum",sxx.tolist())]
-        # Order should matter so we do not aggregate wrong combinations then maybe have a name for the combination so add like a name right before the type
-        # Optimize as much as we can
         agg_ctx = self._get_aggregation_context(request.request_id, context)
         if agg_ctx.batch_mode:
             msg = (
@@ -140,7 +136,9 @@ class AggregationServer(AggregationServerServicer):
 
         self._wait_for_result(agg_ctx, request, context)
         result = self._get_result(agg_ctx, context)
-        return AggregateResponse(result=result)
+        return AggregateResponse(
+            result=result.tolist(), tensor=ndarray_to_bytes(result)
+        )
 
     def AggregateBatch(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
@@ -150,8 +148,11 @@ class AggregationServer(AggregationServerServicer):
             self._compute_batch_result_if_ready(agg_ctx, current_count)
 
         self._wait_for_result(agg_ctx, request, context)
-        results, offsets = self._get_batch_result(agg_ctx, context)
-        return AggregateBatchResponse(results=results, offsets=offsets)
+        results, offsets, tensors = self._get_batch_result(agg_ctx, context)
+        tensor_payloads = [ndarray_to_bytes(arr) for arr in tensors]
+        return AggregateBatchResponse(
+            results=results, offsets=offsets, tensors=tensor_payloads
+        )
 
     def Cleanup(self, request, context):
         with self.global_lock:
@@ -192,26 +193,36 @@ class AggregationServer(AggregationServerServicer):
             logger.error(f"[AGGREGATE] {msg}")
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
 
-    def _store_vectors(self, agg_ctx: AggregationContext, request) -> int:
-        vectors = list(request.vectors)
-        if not vectors:
-            raise ValueError(
-                f"Empty vectors received for request_id='{request.request_id}'"
-            )
+    def _decode_vector(
+        self, tensor: bytes, legacy_vectors, request_id: str
+    ) -> np.ndarray:
+        if tensor:
+            return np.asarray(bytes_to_ndarray(tensor), dtype=np.float64).reshape(-1)
 
+        vectors = list(legacy_vectors)
+        if not vectors:
+            raise ValueError(f"Empty vectors received for request_id='{request_id}'")
+        return np.asarray(vectors, dtype=np.float64)
+
+    def _store_vectors(self, agg_ctx: AggregationContext, request) -> int:
+        vector = self._decode_vector(
+            request.tensor, request.vectors, request.request_id
+        )
+
+        vector_length = len(vector)
         if agg_ctx.vector_length is None:
-            agg_ctx.vector_length = len(vectors)
-        elif len(vectors) != agg_ctx.vector_length:
+            agg_ctx.vector_length = vector_length
+        elif vector_length != agg_ctx.vector_length:
             raise ValueError(
                 f"All vectors must have the same length "
-                f"(expected {agg_ctx.vector_length}, got {len(vectors)})"
+                f"(expected {agg_ctx.vector_length}, got {vector_length})"
             )
 
-        agg_ctx.vectors.append(vectors)
+        agg_ctx.vectors.append(vector)
         current_count = len(agg_ctx.vectors)
         logger.info(
             f"[AGGREGATE] request_id='{request.request_id}' aggregation_type='{request.aggregation_type}' "
-            f"received response {current_count}/{agg_ctx.expected_workers} (vector_len={len(vectors)})"
+            f"received response {current_count}/{agg_ctx.expected_workers} (vector_len={vector_length})"
         )
         return current_count
 
@@ -260,13 +271,15 @@ class AggregationServer(AggregationServerServicer):
             logger.error(f"[AGGREGATE] {msg}")
             context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
 
-    def _get_result(self, agg_ctx: AggregationContext, context):
+    def _get_result(self, agg_ctx: AggregationContext, context) -> np.ndarray:
         with agg_ctx.lock:
             if agg_ctx.error is not None:
                 logger.error(f"[AGGREGATE] Error during aggregation: {agg_ctx.error}")
                 context.abort(grpc.StatusCode.INTERNAL, str(agg_ctx.error))
 
             result = agg_ctx.result
+            if result is None:
+                context.abort(grpc.StatusCode.INTERNAL, "Aggregation result missing.")
             agg_ctx.acquired_count += 1
 
             if agg_ctx.acquired_count == agg_ctx.expected_workers:
@@ -327,20 +340,17 @@ class AggregationServer(AggregationServerServicer):
     def _store_batch_vectors(self, agg_ctx: AggregationContext, request) -> int:
         # assume operations already validated
         for idx, op in enumerate(request.operations):
-            vectors = list(op.vectors)
-            if not vectors:
-                raise ValueError(
-                    f"Empty vectors in batch op {idx} for request_id='{request.request_id}'"
-                )
+            vector = self._decode_vector(op.tensor, op.vectors, request.request_id)
+            vector_length = len(vector)
             expected_len = agg_ctx.batch_vector_lengths[idx]
             if expected_len is None:
-                agg_ctx.batch_vector_lengths[idx] = len(vectors)
-            elif len(vectors) != expected_len:
+                agg_ctx.batch_vector_lengths[idx] = vector_length
+            elif vector_length != expected_len:
                 raise ValueError(
                     f"All vectors in batch op {idx} must have the same length "
-                    f"(expected {expected_len}, got {len(vectors)})"
+                    f"(expected {expected_len}, got {vector_length})"
                 )
-            agg_ctx.batch_vectors[idx].append(vectors)
+            agg_ctx.batch_vectors[idx].append(vector)
 
         current_count = len(agg_ctx.batch_vectors[0])
         logger.info(
@@ -356,8 +366,9 @@ class AggregationServer(AggregationServerServicer):
             return
 
         try:
-            results = []
+            flat_results: List[float] = []
             offsets = [0]
+            tensor_results: List[np.ndarray] = []
             for idx, op_type in enumerate(agg_ctx.batch_ops):
                 aggregation_function = {
                     AggregationType.SUM.value: self.sum,
@@ -368,9 +379,11 @@ class AggregationServer(AggregationServerServicer):
                     raise ValueError(f"Unsupported computation type: {op_type}")
                 vectors = agg_ctx.batch_vectors[idx]
                 res = aggregation_function(vectors)
-                results.extend(res)
-                offsets.append(len(results))
-            agg_ctx.batch_result = (results, offsets)
+                tensor_results.append(res)
+                res_list = res.tolist()
+                flat_results.extend(res_list)
+                offsets.append(len(flat_results))
+            agg_ctx.batch_result = (flat_results, offsets, tensor_results)
         except Exception as exc:
             agg_ctx.error = exc
         finally:
@@ -385,23 +398,23 @@ class AggregationServer(AggregationServerServicer):
                 context.abort(grpc.StatusCode.INTERNAL, str(agg_ctx.error))
             if not agg_ctx.batch_result:
                 context.abort(grpc.StatusCode.INTERNAL, "Batch result missing.")
-            results, offsets = agg_ctx.batch_result
+            results, offsets, tensors = agg_ctx.batch_result
             agg_ctx.acquired_count += 1
             if agg_ctx.acquired_count == agg_ctx.expected_workers:
                 agg_ctx.reset()
-            return results, offsets
+            return results, offsets, tensors
 
     @staticmethod
-    def sum(vectors: List[List[float]]) -> List[float]:
-        return [sum(column) for column in zip(*vectors)]
+    def sum(vectors: List[np.ndarray]) -> np.ndarray:
+        return np.add.reduce(vectors)
 
     @staticmethod
-    def min(vectors: List[List[float]]) -> List[float]:
-        return [min(column) for column in zip(*vectors)]
+    def min(vectors: List[np.ndarray]) -> np.ndarray:
+        return np.minimum.reduce(vectors)
 
     @staticmethod
-    def max(vectors: List[List[float]]) -> List[float]:
-        return [max(column) for column in zip(*vectors)]
+    def max(vectors: List[np.ndarray]) -> np.ndarray:
+        return np.maximum.reduce(vectors)
 
 
 def serve():

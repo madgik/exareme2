@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x18\x61ggregation_server.proto\x12\x12\x61ggregation_server">\n\x10\x43onfigureRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x16\n\x0enum_of_workers\x18\x02 \x01(\x05"#\n\x11\x43onfigureResponse\x12\x0e\n\x06status\x18\x01 \x01(\t"Q\n\x10\x41ggregateRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x18\n\x10\x61ggregation_type\x18\x02 \x01(\t\x12\x0f\n\x07vectors\x18\x03 \x03(\x01"#\n\x11\x41ggregateResponse\x12\x0e\n\x06result\x18\x01 \x03(\x01"6\n\tOperation\x12\x18\n\x10\x61ggregation_type\x18\x01 \x01(\t\x12\x0f\n\x07vectors\x18\x02 \x03(\x01"^\n\x15\x41ggregateBatchRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x31\n\noperations\x18\x02 \x03(\x0b\x32\x1d.aggregation_server.Operation":\n\x16\x41ggregateBatchResponse\x12\x0f\n\x07results\x18\x01 \x03(\x01\x12\x0f\n\x07offsets\x18\x02 \x03(\x05"$\n\x0e\x43leanupRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t"!\n\x0f\x43leanupResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\x84\x03\n\x11\x41ggregationServer\x12X\n\tConfigure\x12$.aggregation_server.ConfigureRequest\x1a%.aggregation_server.ConfigureResponse\x12X\n\tAggregate\x12$.aggregation_server.AggregateRequest\x1a%.aggregation_server.AggregateResponse\x12g\n\x0e\x41ggregateBatch\x12).aggregation_server.AggregateBatchRequest\x1a*.aggregation_server.AggregateBatchResponse\x12R\n\x07\x43leanup\x12".aggregation_server.CleanupRequest\x1a#.aggregation_server.CleanupResponseb\x06proto3'
+    b'\n\x18\x61ggregation_server.proto\x12\x12\x61ggregation_server">\n\x10\x43onfigureRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x16\n\x0enum_of_workers\x18\x02 \x01(\x05"#\n\x11\x43onfigureResponse\x12\x0e\n\x06status\x18\x01 \x01(\t"a\n\x10\x41ggregateRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x18\n\x10\x61ggregation_type\x18\x02 \x01(\t\x12\x0f\n\x07vectors\x18\x03 \x03(\x01\x12\x0e\n\x06tensor\x18\x04 \x01(\x0c"3\n\x11\x41ggregateResponse\x12\x0e\n\x06result\x18\x01 \x03(\x01\x12\x0e\n\x06tensor\x18\x02 \x01(\x0c"F\n\tOperation\x12\x18\n\x10\x61ggregation_type\x18\x01 \x01(\t\x12\x0f\n\x07vectors\x18\x02 \x03(\x01\x12\x0e\n\x06tensor\x18\x03 \x01(\x0c"^\n\x15\x41ggregateBatchRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x31\n\noperations\x18\x02 \x03(\x0b\x32\x1d.aggregation_server.Operation"K\n\x16\x41ggregateBatchResponse\x12\x0f\n\x07results\x18\x01 \x03(\x01\x12\x0f\n\x07offsets\x18\x02 \x03(\x05\x12\x0f\n\x07tensors\x18\x03 \x03(\x0c"$\n\x0e\x43leanupRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t"!\n\x0f\x43leanupResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\x84\x03\n\x11\x41ggregationServer\x12X\n\tConfigure\x12$.aggregation_server.ConfigureRequest\x1a%.aggregation_server.ConfigureResponse\x12X\n\tAggregate\x12$.aggregation_server.AggregateRequest\x1a%.aggregation_server.AggregateResponse\x12g\n\x0e\x41ggregateBatch\x12).aggregation_server.AggregateBatchRequest\x1a*.aggregation_server.AggregateBatchResponse\x12R\n\x07\x43leanup\x12".aggregation_server.CleanupRequest\x1a#.aggregation_server.CleanupResponseb\x06proto3'
 )
 
 _globals = globals()
@@ -27,19 +27,19 @@ if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["_CONFIGURERESPONSE"]._serialized_start = 112
     _globals["_CONFIGURERESPONSE"]._serialized_end = 147
     _globals["_AGGREGATEREQUEST"]._serialized_start = 149
-    _globals["_AGGREGATEREQUEST"]._serialized_end = 230
-    _globals["_AGGREGATERESPONSE"]._serialized_start = 232
-    _globals["_AGGREGATERESPONSE"]._serialized_end = 267
-    _globals["_OPERATION"]._serialized_start = 269
-    _globals["_OPERATION"]._serialized_end = 323
-    _globals["_AGGREGATEBATCHREQUEST"]._serialized_start = 325
-    _globals["_AGGREGATEBATCHREQUEST"]._serialized_end = 419
-    _globals["_AGGREGATEBATCHRESPONSE"]._serialized_start = 421
-    _globals["_AGGREGATEBATCHRESPONSE"]._serialized_end = 479
-    _globals["_CLEANUPREQUEST"]._serialized_start = 481
-    _globals["_CLEANUPREQUEST"]._serialized_end = 517
-    _globals["_CLEANUPRESPONSE"]._serialized_start = 519
-    _globals["_CLEANUPRESPONSE"]._serialized_end = 552
-    _globals["_AGGREGATIONSERVER"]._serialized_start = 555
-    _globals["_AGGREGATIONSERVER"]._serialized_end = 943
+    _globals["_AGGREGATEREQUEST"]._serialized_end = 246
+    _globals["_AGGREGATERESPONSE"]._serialized_start = 248
+    _globals["_AGGREGATERESPONSE"]._serialized_end = 299
+    _globals["_OPERATION"]._serialized_start = 301
+    _globals["_OPERATION"]._serialized_end = 371
+    _globals["_AGGREGATEBATCHREQUEST"]._serialized_start = 373
+    _globals["_AGGREGATEBATCHREQUEST"]._serialized_end = 467
+    _globals["_AGGREGATEBATCHRESPONSE"]._serialized_start = 469
+    _globals["_AGGREGATEBATCHRESPONSE"]._serialized_end = 544
+    _globals["_CLEANUPREQUEST"]._serialized_start = 546
+    _globals["_CLEANUPREQUEST"]._serialized_end = 582
+    _globals["_CLEANUPRESPONSE"]._serialized_start = 584
+    _globals["_CLEANUPRESPONSE"]._serialized_end = 617
+    _globals["_AGGREGATIONSERVER"]._serialized_start = 620
+    _globals["_AGGREGATIONSERVER"]._serialized_end = 1008
 # @@protoc_insertion_point(module_scope)
