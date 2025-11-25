@@ -178,7 +178,7 @@ def gaussian_nb_cv_local_step(
                     (AggregationType.SUM, sums_sq_zero),
                 ]
             )
-            agg_client.sum(conf_zero.ravel().tolist())
+            agg_client.sum(conf_zero.ravel())
             confmats_global.append(conf_zero.copy())
             n_obs_per_fold.append(0)
         return {
@@ -209,7 +209,7 @@ def gaussian_nb_cv_local_step(
 
         if total_train_n == 0 or test_df.shape[0] == 0:
             conf_zero = np.zeros(conf_shape, dtype=float)
-            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
+            flat_conf_glob = agg_client.sum(conf_zero.ravel())
             confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(conf_shape)
             confmats_global.append(confmat_global)
             n_obs_per_fold.append(total_train_n)
@@ -219,7 +219,7 @@ def gaussian_nb_cv_local_step(
         model_labels = list(model.labels)
         if not model_labels:
             conf_zero = np.zeros(conf_shape, dtype=float)
-            flat_conf_glob = agg_client.sum(conf_zero.ravel().tolist())
+            flat_conf_glob = agg_client.sum(conf_zero.ravel())
             confmat_global = np.asarray(flat_conf_glob, dtype=float).reshape(conf_shape)
             confmats_global.append(confmat_global)
             n_obs_per_fold.append(total_train_n)

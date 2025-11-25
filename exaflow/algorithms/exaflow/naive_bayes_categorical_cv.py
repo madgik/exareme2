@@ -167,9 +167,7 @@ def naive_bayes_categorical_cv_local_step(
     else:
         class_count_local = np.zeros(len(class_cats_full), dtype=float)
 
-    class_count_global = np.asarray(
-        agg_client.sum(class_count_local.tolist()), dtype=float
-    )
+    class_count_global = np.asarray(agg_client.sum(class_count_local), dtype=float)
     active_mask = class_count_global > 0
     class_cats = [cat for cat, keep in zip(class_cats_full, active_mask) if keep]
     if not class_cats:
@@ -223,7 +221,7 @@ def naive_bayes_categorical_cv_local_step(
 
         if total_train_n == 0:
             conf_zero = np.zeros((n_classes, n_classes), dtype=float)
-            flat_conf_global = agg_client.sum(conf_zero.ravel().tolist())
+            flat_conf_global = agg_client.sum(conf_zero.ravel())
             confmat_global = np.asarray(flat_conf_global, dtype=float).reshape(
                 (n_classes, n_classes)
             )
@@ -233,7 +231,7 @@ def naive_bayes_categorical_cv_local_step(
 
         if test_df.shape[0] == 0:
             conf_zero = np.zeros((n_classes, n_classes), dtype=float)
-            flat_conf_global = agg_client.sum(conf_zero.ravel().tolist())
+            flat_conf_global = agg_client.sum(conf_zero.ravel())
             confmat_global = np.asarray(flat_conf_global, dtype=float).reshape(
                 (n_classes, n_classes)
             )

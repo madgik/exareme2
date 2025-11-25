@@ -173,7 +173,7 @@ def _numerical_histogram(
 
     bin_edges = np.linspace(global_min, global_max, bins + 1)
     local_hist, _ = np.histogram(values, bins=bin_edges)
-    global_hist = agg_client.sum(local_hist.tolist())
+    global_hist = agg_client.sum(local_hist)
     masked_counts = _mask_counts(global_hist, min_row_count)
 
     grouped: Dict[str, Dict[str, List]] = {}

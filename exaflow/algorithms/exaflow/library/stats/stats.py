@@ -62,8 +62,8 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
         local_min = np.full((n_features,), np.inf, dtype=float)
         local_max = np.full((n_features,), -np.inf, dtype=float)
 
-    global_min = np.asarray(agg_client.min(local_min.tolist()), dtype=float)
-    global_max = np.asarray(agg_client.max(local_max.tolist()), dtype=float)
+    global_min = np.asarray(agg_client.min(local_min), dtype=float)
+    global_max = np.asarray(agg_client.max(local_max), dtype=float)
 
     rng = np.random.RandomState(seed=random_state)
     centers = rng.uniform(
@@ -165,7 +165,7 @@ def pca(agg_client, x):
     np.divide(out, sigmas, out=out)
     gramian = np.einsum("ji,jk->ik", out, out)
     total_gramian = np.asarray(
-        agg_client.aggregate(AggregationType.SUM, gramian.tolist()), dtype=float
+        agg_client.aggregate(AggregationType.SUM, gramian), dtype=float
     ).reshape(gramian.shape)
     covariance = total_gramian / (total_n_obs - 1)
 
