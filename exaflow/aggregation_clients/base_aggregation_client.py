@@ -21,7 +21,15 @@ ArrayInput = NDArray[np.floating] | Sequence[float]
 class BaseAggregationClient:
     def __init__(self, request_id: str, aggregator_address: str = "172.17.0.1:50051"):
         self._request_id = request_id
-        self._channel = grpc.insecure_channel(aggregator_address)
+        # Increase gRPC message size limits to support large Arrow tensors (e.g., ~80 MiB)
+        GRPC_MAX_MESSAGE_SIZE = 100 * 1024 * 1024  # 100 MiB
+        self._channel = grpc.insecure_channel(
+            aggregator_address,
+            options=[
+                ("grpc.max_send_message_length", GRPC_MAX_MESSAGE_SIZE),
+                ("grpc.max_receive_message_length", GRPC_MAX_MESSAGE_SIZE),
+            ],
+        )
         self._stub = pb2_grpc.AggregationServerStub(self._channel)
 
     def _aggregate_request(
