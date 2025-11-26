@@ -378,11 +378,26 @@ def logistic_regression_cv_local_step(
     tn_buf = np.empty_like(thresholds)
     fn_buf = np.empty_like(thresholds)
 
+    # Reusable buffers for train/test splits to avoid per-fold allocations
+    n_rows = X.shape[0]
+    train_X_buf = np.empty_like(X)
+    test_X_buf = np.empty_like(X)
+    train_y_buf = np.empty_like(y)
+    test_y_buf = np.empty_like(y)
+
     for train_idx, test_idx in kf.split(X):
-        X_train = X[train_idx, :]
-        y_train = y[train_idx, :]
-        X_test = X[test_idx, :]
-        y_test = y[test_idx, :]
+        train_len = len(train_idx)
+        test_len = len(test_idx)
+
+        np.take(X, train_idx, axis=0, out=train_X_buf[:train_len])
+        np.take(y, train_idx, axis=0, out=train_y_buf[:train_len])
+        X_train = train_X_buf[:train_len, :]
+        y_train = train_y_buf[:train_len, :]
+
+        np.take(X, test_idx, axis=0, out=test_X_buf[:test_len])
+        np.take(y, test_idx, axis=0, out=test_y_buf[:test_len])
+        X_test = test_X_buf[:test_len, :]
+        y_test = test_y_buf[:test_len, :]
 
         if X_train.size == 0:
             n_obs_train_per_fold.append(0)
