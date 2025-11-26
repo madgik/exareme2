@@ -372,7 +372,11 @@ def logistic_regression_cv_local_step(
     roc_fpr_per_fold = []
 
     # Fixed grid of thresholds for ROC approximation
-    thresholds = np.linspace(0.0, 1.0, 101).tolist()
+    thresholds = np.linspace(0.0, 1.0, 101)
+    tp_buf = np.empty_like(thresholds)
+    fp_buf = np.empty_like(thresholds)
+    tn_buf = np.empty_like(thresholds)
+    fn_buf = np.empty_like(thresholds)
 
     for train_idx, test_idx in kf.split(X):
         X_train = X[train_idx, :]
@@ -442,22 +446,12 @@ def logistic_regression_cv_local_step(
         fn_per_fold.append(fn_global)
 
         # ROC curve: approximate via aggregated counts at fixed thresholds
-        tp_list_local = []
-        fp_list_local = []
-        tn_list_local = []
-        fn_list_local = []
-
-        for thr in thresholds:
-            preds_thr = (proba_local >= thr).astype(int)
-            tp_thr = int(((preds_thr == 1) & (y_true_local == 1)).sum())
-            fp_thr = int(((preds_thr == 1) & (y_true_local == 0)).sum())
-            tn_thr = int(((preds_thr == 0) & (y_true_local == 0)).sum())
-            fn_thr = int(((preds_thr == 0) & (y_true_local == 1)).sum())
-
-            tp_list_local.append(float(tp_thr))
-            fp_list_local.append(float(fp_thr))
-            tn_list_local.append(float(tn_thr))
-            fn_list_local.append(float(fn_thr))
+        for i, thr in enumerate(thresholds):
+            preds_thr = proba_local >= thr
+            tp_buf[i] = float(((preds_thr) & (y_true_local == 1)).sum())
+            fp_buf[i] = float(((preds_thr) & (y_true_local == 0)).sum())
+            tn_buf[i] = float((~preds_thr & (y_true_local == 0)).sum())
+            fn_buf[i] = float((~preds_thr & (y_true_local == 1)).sum())
 
         (
             tp_list_global,
@@ -466,10 +460,10 @@ def logistic_regression_cv_local_step(
             fn_list_global,
         ) = agg_client.aggregate_batch(
             [
-                (AggregationType.SUM, np.array(tp_list_local, dtype=float)),
-                (AggregationType.SUM, np.array(fp_list_local, dtype=float)),
-                (AggregationType.SUM, np.array(tn_list_local, dtype=float)),
-                (AggregationType.SUM, np.array(fn_list_local, dtype=float)),
+                (AggregationType.SUM, tp_buf),
+                (AggregationType.SUM, fp_buf),
+                (AggregationType.SUM, tn_buf),
+                (AggregationType.SUM, fn_buf),
             ]
         )
 

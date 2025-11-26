@@ -126,8 +126,8 @@ def logistic_regression_local_step(
     # order: categorical, numerical, then y
     cols = list(dict.fromkeys(list(categorical_vars) + list(numerical_vars) + [y_var]))
 
-    # subset and drop duplicated column names, keeping the first occurrence
-    data = data[cols].copy()
+    # subset without deep copies; drop duplicated column names, keeping the first occurrence
+    data = data.loc[:, cols]
     if data.empty:
         X = build_design_matrix(
             data,
@@ -138,7 +138,12 @@ def logistic_regression_local_step(
         y = np.empty((0, 1), dtype=float)
     else:
         # y_var is now guaranteed to be a single 1D column, not a 2D frame
-        y = (data[y_var] == positive_class).astype(float).to_numpy().reshape(-1, 1)
+        y = (
+            data[y_var]
+            .eq(positive_class)
+            .to_numpy(dtype=float, copy=False)
+            .reshape(-1, 1)
+        )
 
         X = build_design_matrix(
             data,

@@ -31,38 +31,57 @@ def build_design_matrix(
     numerical_vars: List[str],
 ) -> np.ndarray:
     n_rows = len(data)
-    columns = [np.ones((n_rows, 1), dtype=float)]  # Intercept
+    if n_rows == 0:
+        total_cols = (
+            1
+            + sum(len(dummy_categories.get(var, [])) for var in categorical_vars)
+            + len(numerical_vars)
+        )
+        return np.empty((0, total_cols), dtype=float)
+
+    # Preallocate once: intercept + dummies + numeric columns
+    n_dummy_cols = sum(len(dummy_categories.get(var, [])) for var in categorical_vars)
+    total_cols = 1 + n_dummy_cols + len(numerical_vars)
+    design = np.empty((n_rows, total_cols), dtype=float)
+
+    col_idx = 0
+    design[:, col_idx] = 1.0  # Intercept
+    col_idx += 1
 
     # Categorical → dummy columns
     for var in categorical_vars:
         categories = dummy_categories.get(var, [])
         if var not in data.columns:
-            columns.extend([np.zeros((n_rows, 1), dtype=float) for _ in categories])
+            if categories:
+                design[:, col_idx : col_idx + len(categories)] = 0.0
+                col_idx += len(categories)
             continue
 
         col = data[var]
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
-
         values = col
         for category in categories:
-            encoded = (values == category).astype(float).to_numpy().reshape(-1, 1)
-            columns.append(encoded)
+            encoded = (values == category).to_numpy(dtype=float, copy=False).reshape(-1)
+            design[:, col_idx] = encoded
+            col_idx += 1
 
     # Numerical vars
     for var in numerical_vars:
         if var not in data.columns:
-            columns.append(np.zeros((n_rows, 1), dtype=float))
+            design[:, col_idx] = 0.0
+            col_idx += 1
             continue
 
         col = data[var]
         if isinstance(col, pd.DataFrame):
             col = col.iloc[:, 0]
 
-        num_col = col.astype(float).to_numpy().reshape(-1, 1)
-        columns.append(num_col)
+        num_col = col.to_numpy(dtype=float, copy=False).reshape(-1)
+        design[:, col_idx] = num_col
+        col_idx += 1
 
-    return np.hstack(columns) if columns else np.empty((n_rows, 0), dtype=float)
+    return design
 
 
 def collect_categorical_levels_from_df(

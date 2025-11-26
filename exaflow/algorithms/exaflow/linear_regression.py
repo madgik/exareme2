@@ -136,7 +136,7 @@ def linear_regression_local_step(
         )
         y = np.empty((0, 1), dtype=float)
     else:
-        y = data[y_var].astype(float).to_numpy().reshape(-1, 1)
+        y = data[y_var].to_numpy(dtype=float, copy=False).reshape(-1, 1)
         X = build_design_matrix(
             data,
             categorical_vars=categorical_vars,

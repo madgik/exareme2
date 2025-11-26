@@ -103,7 +103,7 @@ def pca_with_transformation_local_step(
 
     # Use the same y variables as the base PCA implementation
     y_vars = inputdata.y
-    X = data[y_vars].copy()
+    X = data.loc[:, y_vars]
 
     # ---------------------------
     # 1. Local log / exp
@@ -134,10 +134,9 @@ def pca_with_transformation_local_step(
 
     if center_cols or standardize_cols:
         # Compute global stats across all workers on the *log/exp-transformed* X
-        if isinstance(X, pd.DataFrame):
-            X_values = X.to_numpy(dtype=float)
-        else:
-            X_values = np.asarray(X, dtype=float)
+        X_values = X.to_numpy(dtype=float, copy=False)
+        if not X_values.flags.writeable:
+            X_values = np.array(X_values, copy=True)
 
         n_obs_local = float(X_values.shape[0])
         sx_local = (
@@ -195,6 +194,10 @@ def pca_with_transformation_local_step(
 
             # Push back into DataFrame (preserve column order)
             X.iloc[:, :] = X_values
+    else:
+        X_values = X.to_numpy(dtype=float, copy=False)
+        if not X_values.flags.writeable:
+            X_values = np.array(X_values, copy=True)
 
     # ---------------------------
     # 3. Delegate to the base PCA
@@ -204,4 +207,4 @@ def pca_with_transformation_local_step(
     #   - standardize all columns
     #   - compute covariance and eigen-decomposition
     # This matches the old exaflow PCA-with-transformation behaviour.
-    return core_pca(agg_client, X)
+    return core_pca(agg_client, X_values)

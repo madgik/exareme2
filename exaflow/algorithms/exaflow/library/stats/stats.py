@@ -170,11 +170,15 @@ def pca(agg_client, x):
     if np.any(zero_sigma):
         sigmas = sigmas.copy()
         sigmas[zero_sigma] = 1.0
-    out = np.empty(x.shape)
 
-    np.subtract(x, means, out=out)
-    np.divide(out, sigmas, out=out)
-    gramian = np.einsum("ji,jk->ik", out, out)
+    # Standardize in place to avoid holding an extra full-size buffer.
+    if not x.flags.writeable:
+        x = np.array(x, copy=True)
+
+    np.subtract(x, means, out=x)
+    np.divide(x, sigmas, out=x)
+
+    gramian = np.einsum("ji,jk->ik", x, x)
     total_gramian = np.asarray(
         agg_client.aggregate(AggregationType.SUM, gramian), dtype=float
     ).reshape(gramian.shape)
