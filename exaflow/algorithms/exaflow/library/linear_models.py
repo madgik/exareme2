@@ -5,13 +5,18 @@ from typing import Dict
 import numpy as np
 from scipy import stats
 
-from exaflow.aggregation_clients import AggregationType
-
 ALPHA = 0.05
 
 
 def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray) -> Dict:
-    """OLS fit that aggregates sufficient statistics across workers."""
+    """
+    Ordinary Least Squares with aggregated sufficient statistics.
+
+    Computations:
+    - XᵀX and Xᵀy are summed across workers.
+    - β̂ = (XᵀX)⁺ Xᵀy (Moore–Penrose if singular).
+    - RSS = Σ (y - Xβ̂)², TSS = Σ (y - ȳ)².
+    """
     n_features = X.shape[1]
 
     xTx_local = X.T @ X if n_features > 0 else np.zeros((0, 0), dtype=float)
@@ -20,35 +25,28 @@ def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray) 
     sum_y_local = float(y.sum())
     sum_sq_y_local = float((y**2).sum())
 
-    ops = []
     if n_features > 0:
-        ops.extend(
-            [
-                (AggregationType.SUM, xTx_local),
-                (AggregationType.SUM, xTy_local),
-            ]
-        )
-    ops.extend(
-        [
-            (AggregationType.SUM, np.array([n_obs_local], dtype=float)),
-            (AggregationType.SUM, np.array([sum_y_local], dtype=float)),
-            (AggregationType.SUM, np.array([sum_sq_y_local], dtype=float)),
-        ]
-    )
-    aggregated = agg_client.aggregate_batch(ops)
-
-    idx = 0
-    if n_features > 0:
-        xTx = np.asarray(aggregated[idx], dtype=float)
-        xTy = np.asarray(aggregated[idx + 1], dtype=float)
-        idx += 2
+        xTx = np.asarray(agg_client.sum(xTx_local), dtype=float)
+        xTy = np.asarray(agg_client.sum(xTy_local), dtype=float)
     else:
         xTx = np.zeros((0, 0), dtype=float)
         xTy = np.zeros((0, 1), dtype=float)
 
-    n_obs = int(np.asarray(aggregated[idx], dtype=float).reshape(-1)[0])
-    sum_y = float(np.asarray(aggregated[idx + 1], dtype=float).reshape(-1)[0])
-    sum_sq_y = float(np.asarray(aggregated[idx + 2], dtype=float).reshape(-1)[0])
+    n_obs = int(
+        np.asarray(
+            agg_client.sum(np.array([n_obs_local], dtype=float)), dtype=float
+        ).reshape(-1)[0]
+    )
+    sum_y = float(
+        np.asarray(
+            agg_client.sum(np.array([sum_y_local], dtype=float)), dtype=float
+        ).reshape(-1)[0]
+    )
+    sum_sq_y = float(
+        np.asarray(
+            agg_client.sum(np.array([sum_sq_y_local], dtype=float)), dtype=float
+        ).reshape(-1)[0]
+    )
 
     if n_features > 0:
         xTx_inv = np.linalg.pinv(xTx)
@@ -68,12 +66,8 @@ def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray) 
         rss_local = 0.0
         sum_abs_resid_local = 0.0
 
-    rss_arr, sum_abs_resid_arr = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([rss_local], dtype=float)),
-            (AggregationType.SUM, np.array([sum_abs_resid_local], dtype=float)),
-        ]
-    )
+    rss_arr = agg_client.sum(np.array([rss_local], dtype=float))
+    sum_abs_resid_arr = agg_client.sum(np.array([sum_abs_resid_local], dtype=float))
     rss = float(np.asarray(rss_arr, dtype=float).reshape(-1)[0])
     sum_abs_resid = float(np.asarray(sum_abs_resid_arr, dtype=float).reshape(-1)[0])
 
@@ -104,7 +98,18 @@ def compute_summary_from_stats(
     n_obs: int,
     p: int,
 ) -> Dict:
-    """Reproduce LinearRegression summary metrics using aggregated stats."""
+    """
+    Reproduce LinearRegression summary metrics using aggregated stats.
+
+    Formulas:
+    - df_resid = n - p - 1, df_model = p
+    - RSE = sqrt(RSS / df_resid)
+    - Var(β̂) = RSE² * diag((XᵀX)⁻¹); SE = sqrt(diag)
+    - t = β̂ / SE; two-sided p = 2 * (1 - F_t(|t|, df_resid))
+    - CI = β̂ ± t_{1-α/2, df_resid} * SE
+    - R² = 1 - RSS/TSS; adj R² = 1 - (1 - R²) * (n - 1)/df_resid
+    - F = ((TSS - RSS)/p) / (RSS/df_resid); p-value from F(df=p, df_resid)
+    """
     df_resid = n_obs - p - 1
     df_model = p
 

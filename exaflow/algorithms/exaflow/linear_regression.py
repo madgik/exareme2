@@ -1,4 +1,3 @@
-from typing import Dict
 from typing import List
 
 import numpy as np
@@ -10,11 +9,13 @@ from exaflow.algorithms.exaflow.library.linear_models import compute_summary_fro
 from exaflow.algorithms.exaflow.library.linear_models import (
     run_distributed_linear_regression,
 )
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
-from exaflow.algorithms.exaflow.metrics import get_dummy_categories
-from exaflow.worker_communication import BadUserInput
+from exaflow.algorithms.exaflow.preprocessing import get_dummy_categories
+from exaflow.algorithms.exaflow.validation_utils import require_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 
 ALGORITHM_NAME = "linear_regression"
 
@@ -41,12 +42,17 @@ class LinearRegressionResult(BaseModel):
 class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
         # Basic input checks
-        if not self.inputdata.y:
-            raise BadUserInput("Linear regression requires a dependent variable.")
-        if not self.inputdata.x:
-            raise BadUserInput("Linear regression requires at least one covariate.")
+        require_dependent_var(
+            self.inputdata,
+            message="Linear regression requires a dependent variable.",
+        )
+        require_covariates(
+            self.inputdata,
+            message="Linear regression requires at least one covariate.",
+        )
 
         y_var = self.inputdata.y[0]
+        validate_metadata_vars([y_var] + self.inputdata.x, metadata)
 
         categorical_vars = [
             var for var in self.inputdata.x if metadata[var]["is_categorical"]

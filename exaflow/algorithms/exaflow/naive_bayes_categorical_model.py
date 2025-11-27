@@ -4,8 +4,6 @@ from typing import List
 import numpy as np
 from sklearn.preprocessing import OrdinalEncoder
 
-from exaflow.aggregation_clients import AggregationType
-
 ALPHA = 1.0
 
 
@@ -41,7 +39,9 @@ class CategoricalNB:
             )
             class_count_local = class_count_series.to_numpy(dtype=float)
 
-        ops = [(AggregationType.SUM, class_count_local)]
+        class_count_full = np.asarray(agg_client.sum(class_count_local), dtype=float)
+
+        category_count_full = {}
         for xvar in self.x_vars:
             feat_cats = self.categories[xvar]
             if df.shape[0] == 0 or xvar not in df.columns:
@@ -58,15 +58,8 @@ class CategoricalNB:
                 counts_matrix_local = counts_series.to_numpy(dtype=float).reshape(
                     (n_classes, len(feat_cats))
                 )
-            ops.append((AggregationType.SUM, counts_matrix_local))
-
-        aggregated = agg_client.aggregate_batch(ops)
-
-        class_count_full = np.asarray(aggregated[0], dtype=float)
-        category_count_full = {
-            xvar: np.asarray(aggregated[idx], dtype=float)
-            for idx, xvar in enumerate(self.x_vars, start=1)
-        }
+            aggregated_counts = agg_client.sum(counts_matrix_local)
+            category_count_full[xvar] = np.asarray(aggregated_counts, dtype=float)
 
         keep_mask = class_count_full > 0
         labels_arr = np.asarray(self.labels, dtype=object)

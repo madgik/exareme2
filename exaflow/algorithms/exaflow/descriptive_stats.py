@@ -11,6 +11,9 @@ from pydantic import BaseModel
 
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
+from exaflow.algorithms.exaflow.validation_utils import require_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 
 DATASET_VAR_NAME = "dataset"
 ALGORITHM_NAME = "descriptive_stats"
@@ -63,6 +66,15 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         variable_names = [
             v for v in (self.inputdata.x + self.inputdata.y) if v != DATASET_VAR_NAME
         ]
+        # Allow either x or y to be supplied, but require at least one variable overall.
+        if not variable_names:
+            raise BadUserInput("Descriptive statistics requires at least one variable.")
+        # Still ensure the individual lists are present for consistency.
+        if self.inputdata.y:
+            require_dependent_var(self.inputdata)
+        if self.inputdata.x:
+            require_covariates(self.inputdata)
+        validate_metadata_vars(variable_names, metadata)
 
         numerical_vars = [
             var for var in variable_names if not metadata[var]["is_categorical"]

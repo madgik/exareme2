@@ -2,8 +2,6 @@ from typing import List
 
 import numpy as np
 
-from exaflow.aggregation_clients import AggregationType
-
 VAR_SMOOTHING = 1e-9
 
 
@@ -61,17 +59,9 @@ class GaussianNB:
             sums_local = sums.to_numpy(dtype=float)
             sums_sq_local = sums_sq.to_numpy(dtype=float)
 
-        counts_global, sums_global, sums_sq_global = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, counts_local),
-                (AggregationType.SUM, sums_local),
-                (AggregationType.SUM, sums_sq_local),
-            ]
-        )
-
-        counts_global = np.asarray(counts_global, dtype=float)
-        sums_global = np.asarray(sums_global, dtype=float)
-        sums_sq_global = np.asarray(sums_sq_global, dtype=float)
+        counts_global = np.asarray(agg_client.sum(counts_local), dtype=float)
+        sums_global = np.asarray(agg_client.sum(sums_local), dtype=float)
+        sums_sq_global = np.asarray(agg_client.sum(sums_sq_local), dtype=float)
 
         if counts_global.size == 0:
             self.theta = np.zeros((0, n_features), dtype=float)

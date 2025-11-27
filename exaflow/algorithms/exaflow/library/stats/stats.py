@@ -7,8 +7,6 @@ import pyarrow as pa
 import scipy.special as special
 import scipy.stats as st
 
-from exaflow.aggregation_clients import AggregationType
-
 
 def _to_numpy(x) -> np.ndarray:
     """Convert input (Arrow Table/Array or list/array) to NumPy array."""
@@ -64,7 +62,7 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
     n_local, n_features = X.shape
 
     # Global number of observations
-    total_n_obs = int(agg_client.aggregate(AggregationType.SUM, [float(n_local)])[0])
+    total_n_obs = int(agg_client.sum([float(n_local)])[0])
 
     # If there is no data at all, return empty centers
     if total_n_obs == 0:
@@ -119,12 +117,8 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
             count_local = np.zeros((n_clusters,), dtype=float)
 
         # Aggregate sums and counts across workers
-        sum_global_arr, count_global_arr = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, sum_local.ravel()),
-                (AggregationType.SUM, count_local),
-            ]
-        )
+        sum_global_arr = agg_client.sum(sum_local.ravel())
+        count_global_arr = agg_client.sum(count_local)
         sum_global = np.asarray(sum_global_arr, dtype=float).reshape(
             (n_clusters, n_features)
         )
@@ -158,13 +152,9 @@ def pca(agg_client, x):
     n_obs = len(x)
     sx = np.einsum("ij->j", x)
     sxx = np.einsum("ij,ij->j", x, x)
-    total_n_obs_arr, total_sx, total_sxx = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs)], dtype=float)),
-            (AggregationType.SUM, sx),
-            (AggregationType.SUM, sxx),
-        ]
-    )
+    total_n_obs_arr = agg_client.sum(np.array([float(n_obs)], dtype=float))
+    total_sx = agg_client.sum(sx)
+    total_sxx = agg_client.sum(sxx)
 
     total_n_obs = float(total_n_obs_arr.reshape(-1)[0])
     total_sx = np.asarray(total_sx, dtype=float)
@@ -187,9 +177,9 @@ def pca(agg_client, x):
     np.divide(x, sigmas, out=x)
 
     gramian = np.einsum("ji,jk->ik", x, x)
-    total_gramian = np.asarray(
-        agg_client.aggregate(AggregationType.SUM, gramian), dtype=float
-    ).reshape(gramian.shape)
+    total_gramian = np.asarray(agg_client.sum(gramian), dtype=float).reshape(
+        gramian.shape
+    )
     covariance = total_gramian / (total_n_obs - 1)
 
     eigenvalues, eigenvectors = np.linalg.eig(covariance)
@@ -216,18 +206,12 @@ def pearson_correlation(agg_client, x, y, alpha):
     syy = np.einsum("ij,ij->j", y, y)
     sxy = np.einsum("ji,jk->ki", x, y)
 
-    total_n_obs_arr, total_sx, total_sy, total_sxx, total_syy, total_sxy = (
-        agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, np.array([float(n_obs)], dtype=float)),
-                (AggregationType.SUM, sx),
-                (AggregationType.SUM, sy),
-                (AggregationType.SUM, sxx),
-                (AggregationType.SUM, syy),
-                (AggregationType.SUM, sxy),
-            ]
-        )
-    )
+    total_n_obs_arr = agg_client.sum(np.array([float(n_obs)], dtype=float))
+    total_sx = agg_client.sum(sx)
+    total_sy = agg_client.sum(sy)
+    total_sxx = agg_client.sum(sxx)
+    total_syy = agg_client.sum(syy)
+    total_sxy = agg_client.sum(sxy)
     total_n_obs = float(np.asarray(total_n_obs_arr).reshape(-1)[0])
     total_sx = np.asarray(total_sx, dtype=float)
     total_sy = np.asarray(total_sy, dtype=float)
@@ -278,21 +262,11 @@ def ttest_one_sample(agg_client, sample, *, mu: float, alpha: float, alternative
     diff_x = sum_x - n_obs * mu
     diff_sqrd_x = sqrd_x - 2 * mu * sum_x + n_obs * mu**2
 
-    (
-        total_n_obs_arr,
-        total_sum_x_arr,
-        total_sqrd_x_arr,
-        total_diff_x_arr,
-        total_diff_sqrd_x_arr,
-    ) = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs)], dtype=float)),
-            (AggregationType.SUM, np.array([float(sum_x)], dtype=float)),
-            (AggregationType.SUM, np.array([float(sqrd_x)], dtype=float)),
-            (AggregationType.SUM, np.array([float(diff_x)], dtype=float)),
-            (AggregationType.SUM, np.array([float(diff_sqrd_x)], dtype=float)),
-        ]
-    )
+    total_n_obs_arr = agg_client.sum(np.array([float(n_obs)], dtype=float))
+    total_sum_x_arr = agg_client.sum(np.array([float(sum_x)], dtype=float))
+    total_sqrd_x_arr = agg_client.sum(np.array([float(sqrd_x)], dtype=float))
+    total_diff_x_arr = agg_client.sum(np.array([float(diff_x)], dtype=float))
+    total_diff_sqrd_x_arr = agg_client.sum(np.array([float(diff_sqrd_x)], dtype=float))
     total_n_obs = float(np.asarray(total_n_obs_arr).reshape(-1)[0])
     total_sum_x = float(np.asarray(total_sum_x_arr).reshape(-1)[0])
     total_sqrd_x = float(np.asarray(total_sqrd_x_arr).reshape(-1)[0])
@@ -360,25 +334,20 @@ def ttest_paired(
     x_sq_sum = np.dot(sample_x, sample_x)
     y_sq_sum = np.dot(sample_y, sample_y)
 
-    totals_arr, total_x_sq_arr, total_y_sq_arr = agg_client.aggregate_batch(
-        [
-            (
-                AggregationType.SUM,
-                np.array(
-                    [
-                        float(n_obs),
-                        float(sum_x),
-                        float(sum_y),
-                        float(diff_sum),
-                        float(diff_sq_sum),
-                    ],
-                    dtype=float,
-                ),
-            ),
-            (AggregationType.SUM, np.array([float(x_sq_sum)], dtype=float)),
-            (AggregationType.SUM, np.array([float(y_sq_sum)], dtype=float)),
-        ]
+    totals_arr = agg_client.sum(
+        np.array(
+            [
+                float(n_obs),
+                float(sum_x),
+                float(sum_y),
+                float(diff_sum),
+                float(diff_sq_sum),
+            ],
+            dtype=float,
+        )
     )
+    total_x_sq_arr = agg_client.sum(np.array([float(x_sq_sum)], dtype=float))
+    total_y_sq_arr = agg_client.sum(np.array([float(y_sq_sum)], dtype=float))
     total_n_obs, total_sum_x, total_sum_y, total_diff_sum, total_diff_sq_sum = (
         np.asarray(totals_arr, dtype=float).reshape(-1)
     )
@@ -446,34 +415,25 @@ def ttest_independent(
     n_a = sample_a.size
     n_b = sample_b.size
 
-    (
-        totals_arr,
-        sq_sums_arr,
-    ) = agg_client.aggregate_batch(
-        [
-            (
-                AggregationType.SUM,
-                np.array(
-                    [
-                        float(n_a),
-                        float(n_b),
-                        float(sample_a.sum()),
-                        float(sample_b.sum()),
-                    ],
-                    dtype=float,
-                ),
-            ),
-            (
-                AggregationType.SUM,
-                np.array(
-                    [
-                        float(np.dot(sample_a, sample_a)),
-                        float(np.dot(sample_b, sample_b)),
-                    ],
-                    dtype=float,
-                ),
-            ),
-        ]
+    totals_arr = agg_client.sum(
+        np.array(
+            [
+                float(n_a),
+                float(n_b),
+                float(sample_a.sum()),
+                float(sample_b.sum()),
+            ],
+            dtype=float,
+        )
+    )
+    sq_sums_arr = agg_client.sum(
+        np.array(
+            [
+                float(np.dot(sample_a, sample_a)),
+                float(np.dot(sample_b, sample_b)),
+            ],
+            dtype=float,
+        )
     )
     n_a_total, n_b_total, sum_a_total, sum_b_total = np.asarray(
         totals_arr, dtype=float

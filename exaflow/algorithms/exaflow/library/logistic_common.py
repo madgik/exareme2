@@ -5,7 +5,6 @@ from scipy import stats
 from scipy.special import expit
 from scipy.special import xlogy
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.worker_communication import BadUserInput
 
 MAX_ITER = 50
@@ -38,7 +37,16 @@ def run_distributed_logistic_regression(
     agg_client, X: np.ndarray, y: np.ndarray
 ) -> Dict:
     """
-    Newton-Raphson fit of a logistic model with secure aggregation.
+    Newton–Raphson fit of a logistic model with secure aggregation.
+
+    Mathematical notes (per iteration):
+    - Linear predictor: η = X β
+    - Mean response: μ = sigmoid(η)
+    - Gradient: g = Xᵀ (y − μ)
+    - Hessian: H = Xᵀ W X, with diagonal W = μ ⊙ (1 − μ)
+    - Update: β ← β + H⁻¹ g
+    Stopping criterion: max(|g|) <= TOL or MAX_ITER reached.
+
     Returns coefficients, Hessian inverse, log-likelihood, n_obs, and y_sum.
     """
     if X.ndim != 2:
@@ -56,12 +64,8 @@ def run_distributed_logistic_regression(
     n_obs_local = int(y.size)
     y_sum_local = float(y.sum())
 
-    total_n_obs_arr, total_y_sum_arr = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
-            (AggregationType.SUM, np.array([float(y_sum_local)], dtype=float)),
-        ]
-    )
+    total_n_obs_arr = agg_client.sum(np.array([float(n_obs_local)], dtype=float))
+    total_y_sum_arr = agg_client.sum(np.array([float(y_sum_local)], dtype=float))
     total_n_obs = int(total_n_obs_arr[0])
     total_y_sum = float(total_y_sum_arr[0])
 
@@ -81,13 +85,9 @@ def run_distributed_logistic_regression(
         H_local = np.einsum("ji,j,jk->ik", X, w.reshape(-1), X)
         ll_local = np.sum(xlogy(y, mu) + xlogy(1 - y, 1 - mu))
 
-        grad_arr, H_arr, ll_arr = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, grad_local),
-                (AggregationType.SUM, H_local),
-                (AggregationType.SUM, np.array([float(ll_local)], dtype=float)),
-            ]
-        )
+        grad_arr = agg_client.sum(grad_local)
+        H_arr = agg_client.sum(H_local)
+        ll_arr = agg_client.sum(np.array([float(ll_local)], dtype=float))
 
         grad = np.asarray(grad_arr, dtype=float)
         H = np.asarray(H_arr, dtype=float)
@@ -123,7 +123,18 @@ def compute_logistic_summary(
     y_sum: float,
     alpha: float,
 ) -> Dict:
-    """Summaries matching the legacy logistic regression output."""
+    """
+    Summaries matching the legacy logistic regression output.
+
+    Formulas:
+    - SE(β̂) = sqrt(diag(H⁻¹))
+    - z = β̂ / SE(β̂); two-sided p = 2 * (1 - Φ(|z|))
+    - CI = β̂ ± z_{1-α/2} * SE
+    - df_model = p - 1 (excluding intercept); df_resid = n - p
+    - Null LL: ll0 = y_sum * log(ȳ) + (n - y_sum) * log(1 - ȳ)
+    - AIC = 2p - 2 ll ; BIC = log(n) * p - 2 ll
+    - Pseudo R²: McFadden = 1 - ll/ll0 ; Cox–Snell = 1 - exp(2 (ll0 - ll)/n)
+    """
     stderr = np.sqrt(np.diag(h_inv))
     z_scores = np.divide(
         coefficients, stderr, out=np.zeros_like(coefficients), where=stderr != 0

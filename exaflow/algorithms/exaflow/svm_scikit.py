@@ -4,7 +4,6 @@ import numpy as np
 from pydantic import BaseModel
 from sklearn.svm import SVC
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.worker_communication import BadUserInput
@@ -102,19 +101,10 @@ def svm_scikit_local_step(
     # Summarize support vectors as mean per feature to keep a fixed shape.
     support_summary_local = np.asarray(model.support_vectors_, dtype=float).mean(axis=0)
 
-    (
-        coeff_sum_arr,
-        support_sum_arr,
-        n_obs_arr,
-        workers_arr,
-    ) = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, coeff_local),
-            (AggregationType.SUM, support_summary_local),
-            (AggregationType.SUM, np.array([n_obs_local], dtype=float)),
-            (AggregationType.SUM, np.array([1.0], dtype=float)),
-        ]
-    )
+    coeff_sum_arr = agg_client.sum(coeff_local)
+    support_sum_arr = agg_client.sum(support_summary_local)
+    n_obs_arr = agg_client.sum(np.array([n_obs_local], dtype=float))
+    workers_arr = agg_client.sum(np.array([1.0], dtype=float))
 
     num_workers = float(np.asarray(workers_arr, dtype=float).reshape(-1)[0] or 1.0)
     coeff_mean = np.asarray(coeff_sum_arr, dtype=float) / num_workers

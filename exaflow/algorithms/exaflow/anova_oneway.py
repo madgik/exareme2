@@ -5,10 +5,13 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.library.anova_common import get_min_max_ci_info
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_enumerations
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
+from exaflow.algorithms.exaflow.validation_utils import require_exact_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_exact_dependents
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "anova_oneway"
@@ -27,11 +30,18 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         Exaflow implementation of one-way ANOVA with Tukey HSD, matching the
         behaviour of the original exaflow ANOVA_ONEWAY algorithm.
         """
-        if not self.inputdata.x or not self.inputdata.y:
-            raise BadUserInput("Anova one-way requires one covariate (x) and one y.")
-
-        x_var_name = self.inputdata.x[0]
-        y_var_name = self.inputdata.y[0]
+        y_var_name = require_exact_dependents(
+            self.inputdata,
+            count=1,
+            message="Anova one-way requires exactly one dependent variable (y).",
+        )[0]
+        x_var_name = require_exact_covariates(
+            self.inputdata,
+            count=1,
+            message="Anova one-way requires exactly one covariate (x).",
+        )[0]
+        validate_metadata_vars([x_var_name, y_var_name], metadata)
+        validate_metadata_enumerations([x_var_name], metadata)
 
         # Enumerations for the categorical covariate
         covar_enums_raw = metadata[x_var_name].get("enumerations")
@@ -202,35 +212,19 @@ def anova_oneway_local_step(data, inputdata, agg_client, x_var, y_var, covar_enu
     var_max_per_group_local = group_stats_df["max_per_group"].to_numpy(dtype=float)
 
     # --- Secure aggregation across workers (batch to avoid mode mixing) ---
-    (
-        total_n_obs_arr,
-        total_overall_sum_arr,
-        total_overall_count_arr,
-        total_overall_ssq_arr,
-        group_stats_sum_arr,
-        group_stats_count_arr,
-        group_ssq_arr,
-        var_min_arr,
-        var_max_arr,
-    ) = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs_local)], dtype=float)),
-            (
-                AggregationType.SUM,
-                np.array([float(overall_stats["sum"])], dtype=float),
-            ),
-            (
-                AggregationType.SUM,
-                np.array([float(overall_stats["count"])], dtype=float),
-            ),
-            (AggregationType.SUM, np.array([float(overall_ssq)], dtype=float)),
-            (AggregationType.SUM, group_stats_sum_local),
-            (AggregationType.SUM, group_stats_count_local),
-            (AggregationType.SUM, group_ssq_local),
-            (AggregationType.MIN, var_min_per_group_local),
-            (AggregationType.MAX, var_max_per_group_local),
-        ]
+    total_n_obs_arr = agg_client.sum(np.array([float(n_obs_local)], dtype=float))
+    total_overall_sum_arr = agg_client.sum(
+        np.array([float(overall_stats["sum"])], dtype=float)
     )
+    total_overall_count_arr = agg_client.sum(
+        np.array([float(overall_stats["count"])], dtype=float)
+    )
+    total_overall_ssq_arr = agg_client.sum(np.array([float(overall_ssq)], dtype=float))
+    group_stats_sum_arr = agg_client.sum(group_stats_sum_local)
+    group_stats_count_arr = agg_client.sum(group_stats_count_local)
+    group_ssq_arr = agg_client.sum(group_ssq_local)
+    var_min_arr = agg_client.min(var_min_per_group_local)
+    var_max_arr = agg_client.max(var_max_per_group_local)
 
     n_obs = int(np.asarray(total_n_obs_arr).reshape(-1)[0])
     overall_stats_sum = float(np.asarray(total_overall_sum_arr).reshape(-1)[0])

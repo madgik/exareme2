@@ -3,9 +3,11 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exaflow.crossvalidation import min_rows_for_cv
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_enumerations
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exaflow.naive_bayes_common import make_naive_bayes_result
 from exaflow.algorithms.exaflow.naive_bayes_common import (
     multiclass_classification_metrics,
@@ -14,6 +16,8 @@ from exaflow.algorithms.exaflow.naive_bayes_common import (
     multiclass_classification_summary,
 )
 from exaflow.algorithms.exaflow.naive_bayes_gaussian_model import GaussianNB
+from exaflow.algorithms.exaflow.validation_utils import require_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_gaussian_cv"
@@ -38,21 +42,25 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
           * a main CV UDF using agg_client for secure aggregation of
             training statistics and confusion matrices.
         """
-        if not self.inputdata.y:
-            raise BadUserInput("Naive Bayes Gaussian CV requires a dependent variable.")
-        if not self.inputdata.x:
-            raise BadUserInput(
-                "Naive Bayes Gaussian CV requires at least one covariate."
-            )
+        require_dependent_var(
+            self.inputdata,
+            message="Naive Bayes Gaussian CV requires a dependent variable.",
+        )
+        require_covariates(
+            self.inputdata,
+            message="Naive Bayes Gaussian CV requires at least one covariate.",
+        )
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
+        validate_metadata_vars([y_var] + x_vars, metadata)
 
         # Y must be categorical, as in the original GaussianNB
         if not metadata[y_var]["is_categorical"]:
             raise BadUserInput(
                 f"Dependent variable {y_var!r} must be categorical for Gaussian NB."
             )
+        validate_metadata_enumerations([y_var], metadata)
 
         n_splits = self.parameters.get("n_splits")
         if not isinstance(n_splits, int) or n_splits <= 1:
@@ -129,11 +137,7 @@ def gaussian_nb_cv_check_local(data, inputdata, y_var, n_splits):
     Check on each worker whether the number of observations is at least n_splits.
     """
 
-    if y_var in data.columns:
-        n_obs = int(data[y_var].dropna().shape[0])
-    else:
-        n_obs = 0
-    return {"ok": bool(n_obs >= int(n_splits)), "n_obs": n_obs}
+    return min_rows_for_cv(data, y_var, n_splits)
 
 
 @exaflow_udf(with_aggregation_server=True)
@@ -171,13 +175,9 @@ def gaussian_nb_cv_local_step(
         sums_sq_zero = np.zeros(counts_shape, dtype=float)
         conf_zero = np.zeros(conf_shape, dtype=float)
         for _ in range(n_splits):
-            agg_client.aggregate_batch(
-                [
-                    (AggregationType.SUM, counts_zero),
-                    (AggregationType.SUM, sums_zero),
-                    (AggregationType.SUM, sums_sq_zero),
-                ]
-            )
+            agg_client.sum(counts_zero)
+            agg_client.sum(sums_zero)
+            agg_client.sum(sums_sq_zero)
             agg_client.sum(conf_zero.ravel())
             confmats_global.append(conf_zero.copy())
             n_obs_per_fold.append(0)

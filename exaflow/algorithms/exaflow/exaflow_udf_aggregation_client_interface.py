@@ -15,6 +15,15 @@ ArrayInput = Union[
 
 
 class ExaflowUDFAggregationClientI(ABC):
+    """
+    Minimal interface passed into UDFs when `with_aggregation_server=True`.
+
+    Implementations must perform secure aggregation across workers according to
+    the requested `AggregationType` (SUM/MIN/MAX). UDFs should pass plain numpy
+    arrays or array-likes; the implementation is responsible for returning a
+    numpy array of the aggregated result.
+    """
+
     @abstractmethod
     def aggregate(
         self, aggregation_type: AggregationType, values: ArrayInput

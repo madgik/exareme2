@@ -10,6 +10,10 @@ from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.library.linear_models import (
     run_distributed_linear_regression,
 )
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_enumerations
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
+from exaflow.algorithms.exaflow.validation_utils import require_exact_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_exact_dependents
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "anova"
@@ -25,20 +29,19 @@ class AnovaResult(BaseModel):
 
 class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        if not self.inputdata.y or not self.inputdata.x:
-            raise BadUserInput(
-                "ANOVA two-way requires exactly one y and two x variables."
-            )
-
-        xs = self.inputdata.x
-        if len(xs) != 2:
-            raise BadUserInput(
-                f"Anova two-way only works with two independent variables. "
-                f"Got {len(xs)} variable(s) instead."
-            )
-
+        y = require_exact_dependents(
+            self.inputdata,
+            count=1,
+            message="ANOVA two-way requires exactly one dependent variable (y).",
+        )[0]
+        xs = require_exact_covariates(
+            self.inputdata,
+            count=2,
+            message="ANOVA two-way requires exactly two covariates (x).",
+        )
         x1, x2 = xs
-        y = self.inputdata.y[0]
+        validate_metadata_vars([x1, x2, y], metadata)
+        validate_metadata_enumerations([x1, x2], metadata)
 
         sstype = self.parameters.get("sstype")
         if sstype not in (1, 2):

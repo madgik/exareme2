@@ -5,7 +5,10 @@ import numpy as np
 from pydantic import BaseModel
 
 from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exaflow.crossvalidation import min_rows_for_cv
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_enumerations
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exaflow.naive_bayes_categorical_model import CategoricalNB
 from exaflow.algorithms.exaflow.naive_bayes_common import make_naive_bayes_result
 from exaflow.algorithms.exaflow.naive_bayes_common import (
@@ -14,6 +17,8 @@ from exaflow.algorithms.exaflow.naive_bayes_common import (
 from exaflow.algorithms.exaflow.naive_bayes_common import (
     multiclass_classification_summary,
 )
+from exaflow.algorithms.exaflow.validation_utils import require_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_categorical_cv"
@@ -38,13 +43,17 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         Then we reconstruct the summary using the same metrics helpers and
         make_naive_bayes_result.
         """
-        if not self.inputdata.y:
-            raise BadUserInput("Naive Bayes CV requires a dependent variable.")
-        if not self.inputdata.x:
-            raise BadUserInput("Naive Bayes CV requires at least one covariate.")
+        require_dependent_var(
+            self.inputdata,
+            message="Naive Bayes CV requires a dependent variable.",
+        )
+        require_covariates(
+            self.inputdata, message="Naive Bayes CV requires at least one covariate."
+        )
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
+        validate_metadata_vars([y_var] + x_vars, metadata)
 
         # Require all variables to be categorical
         non_cat = [v for v in [*x_vars, y_var] if not metadata[v]["is_categorical"]]
@@ -53,6 +62,7 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "Naive Bayes categorical CV only supports categorical variables. "
                 f"Non-categorical variables: {', '.join(non_cat)}"
             )
+        validate_metadata_enumerations([y_var] + x_vars, metadata)
 
         n_splits = self.parameters.get("n_splits")
         if not isinstance(n_splits, int) or n_splits <= 1:
@@ -125,11 +135,7 @@ def naive_bayes_categorical_cv_check_local(data, inputdata, y_var, n_splits):
     Check on each worker whether the number of observations is at least n_splits.
     """
 
-    if y_var in data.columns:
-        n_obs = int(data[y_var].dropna().shape[0])
-    else:
-        n_obs = 0
-    return {"ok": bool(n_obs >= int(n_splits)), "n_obs": n_obs}
+    return min_rows_for_cv(data, y_var, n_splits)
 
 
 @exaflow_udf(with_aggregation_server=True)

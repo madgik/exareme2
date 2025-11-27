@@ -4,16 +4,20 @@ from typing import NamedTuple
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exaflow.crossvalidation import buffered_kfold_split
+from exaflow.algorithms.exaflow.crossvalidation import min_rows_for_cv
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exaflow.library.linear_models import (
     run_distributed_linear_regression,
 )
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
-from exaflow.algorithms.exaflow.metrics import get_dummy_categories
+from exaflow.algorithms.exaflow.preprocessing import get_dummy_categories
+from exaflow.algorithms.exaflow.validation_utils import require_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "linear_regression_cv"
@@ -43,12 +47,17 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         This mirrors the original exaflow LinearRegressionCVAlgorithm, but
         uses exaflow UDFs and secure aggregation.
         """
-        if not self.inputdata.y:
-            raise BadUserInput("Linear regression CV requires a dependent variable.")
-        if not self.inputdata.x:
-            raise BadUserInput("Linear regression CV requires at least one covariate.")
+        require_dependent_var(
+            self.inputdata,
+            message="Linear regression CV requires a dependent variable.",
+        )
+        require_covariates(
+            self.inputdata,
+            message="Linear regression CV requires at least one covariate.",
+        )
 
         y_var = self.inputdata.y[0]
+        validate_metadata_vars([y_var] + self.inputdata.x, metadata)
         n_splits = self.parameters.get("n_splits")
         if not isinstance(n_splits, int) or n_splits <= 1:
             raise BadUserInput(
@@ -157,12 +166,7 @@ def linear_regression_cv_check_local(data, inputdata, y_var, n_splits):
     Check on each worker whether the number of observations is at least n_splits.
     """
 
-    if y_var in data.columns:
-        n_obs = int(data[y_var].dropna().shape[0])
-    else:
-        n_obs = 0
-
-    return {"ok": bool(n_obs >= n_splits), "n_obs": n_obs}
+    return min_rows_for_cv(data, y_var, n_splits)
 
 
 @exaflow_udf(with_aggregation_server=True)
@@ -185,8 +189,6 @@ def linear_regression_cv_local_step(
 
     Returns identical global metrics from every worker.
     """
-    from sklearn.model_selection import KFold
-
     # Ensure n_splits and p are ints
     n_splits = int(n_splits)
     p = int(p)
@@ -219,26 +221,9 @@ def linear_regression_cv_local_step(
     mae_per_fold = []
     fstat_per_fold = []
 
-    # Reusable buffers for train/test splits to avoid per-fold allocations
-    n_rows = X.shape[0]
-    train_X_buf = np.empty_like(X)
-    test_X_buf = np.empty_like(X)
-    train_y_buf = np.empty_like(y)
-    test_y_buf = np.empty_like(y)
-
-    for train_idx, test_idx in kf.split(X):
-        train_len = len(train_idx)
-        test_len = len(test_idx)
-
-        np.take(X, train_idx, axis=0, out=train_X_buf[:train_len])
-        np.take(y, train_idx, axis=0, out=train_y_buf[:train_len])
-        X_train = train_X_buf[:train_len, :]
-        y_train = train_y_buf[:train_len, :]
-
-        np.take(X, test_idx, axis=0, out=test_X_buf[:test_len])
-        np.take(y, test_idx, axis=0, out=test_y_buf[:test_len])
-        X_test = test_X_buf[:test_len, :]
-        y_test = test_y_buf[:test_len, :]
+    for X_train, y_train, X_test, y_test in buffered_kfold_split(
+        X, y, n_splits=n_splits
+    ):
 
         # --------------------------
         # Training: global OLS model
@@ -282,21 +267,11 @@ def linear_regression_cv_local_step(
         sum_sq_y_test_local = float((y_test**2).sum())
 
         # Aggregate test statistics across workers
-        (
-            rss_arr,
-            sum_abs_resid_arr,
-            n_test_arr,
-            sum_y_test_arr,
-            sum_sq_y_test_arr,
-        ) = agg_client.aggregate_batch(
-            [
-                (AggregationType.SUM, np.array([rss_local], dtype=float)),
-                (AggregationType.SUM, np.array([sum_abs_resid_local], dtype=float)),
-                (AggregationType.SUM, np.array([n_test_local], dtype=float)),
-                (AggregationType.SUM, np.array([sum_y_test_local], dtype=float)),
-                (AggregationType.SUM, np.array([sum_sq_y_test_local], dtype=float)),
-            ]
-        )
+        rss_arr = agg_client.sum(np.array([rss_local], dtype=float))
+        sum_abs_resid_arr = agg_client.sum(np.array([sum_abs_resid_local], dtype=float))
+        n_test_arr = agg_client.sum(np.array([n_test_local], dtype=float))
+        sum_y_test_arr = agg_client.sum(np.array([sum_y_test_local], dtype=float))
+        sum_sq_y_test_arr = agg_client.sum(np.array([sum_sq_y_test_local], dtype=float))
 
         rss = float(np.asarray(rss_arr, dtype=float).reshape(-1)[0])
         sum_abs_resid = float(np.asarray(sum_abs_resid_arr, dtype=float).reshape(-1)[0])

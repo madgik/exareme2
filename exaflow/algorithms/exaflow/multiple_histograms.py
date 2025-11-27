@@ -7,9 +7,10 @@ from typing import Union
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.aggregation_clients import AggregationType
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exaflow.metadata_utils import validate_metadata_vars
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 
 HistogramBin = Union[float, str]
 
@@ -31,9 +32,14 @@ ALGORITHM_NAME = "multiple_histograms"
 
 class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
+        require_dependent_var(
+            self.inputdata,
+            message="Multiple histograms requires a target variable in 'y' (grouping 'x' is optional).",
+        )
         y_var = self.inputdata.y[0]
         x_vars = self.inputdata.x or []
         bins_param = self.parameters.get("bins", 20) or 20
+        validate_metadata_vars([y_var] + x_vars, metadata)
 
         metadata_subset = {var: metadata[var] for var in {y_var, *x_vars}}
 
@@ -74,6 +80,36 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 )
 
         return HistogramResult(histogram=histograms)
+
+
+def _value_counts(series, categories):
+    counts = series.value_counts()
+    return [int(counts.get(cat, 0)) for cat in categories]
+
+
+def _get_enumerations(meta_entry, series):
+    if meta_entry and meta_entry.get("enumerations"):
+        return list(meta_entry["enumerations"].keys())
+    return sorted(series.dropna().unique().tolist())
+
+
+def _mask_counts(values: Sequence[float], min_row_count: int) -> List[Optional[int]]:
+    masked = []
+    for value in values:
+        count = int(round(value))
+        masked.append(count if count >= min_row_count else None)
+    return masked
+
+
+def _aggregate_matrix(agg_client, matrix: Sequence[Sequence[int]]):
+    if not matrix:
+        return []
+    arr = np.asarray(matrix, dtype=float)
+    if arr.size == 0:
+        return arr.tolist()
+    flat = arr.reshape(-1).tolist()
+    summed = agg_client.sum(flat)
+    return np.asarray(summed).reshape(arr.shape).tolist()
 
 
 @exaflow_udf(with_aggregation_server=True)
@@ -144,21 +180,17 @@ def _numerical_histogram(
     bins,
     min_row_count,
 ):
+    import numpy as np
+
     bins = max(1, int(round(bins)))
     values = data[y_var].to_numpy(dtype=float, copy=False)
     n_obs = int(values.size)
-    total_n_obs_arr, global_min_arr, global_max_arr = agg_client.aggregate_batch(
-        [
-            (AggregationType.SUM, np.array([float(n_obs)], dtype=float)),
-            (
-                AggregationType.MIN,
-                np.array([float(np.min(values)) if n_obs else np.inf]),
-            ),
-            (
-                AggregationType.MAX,
-                np.array([float(np.max(values)) if n_obs else -np.inf]),
-            ),
-        ]
+    total_n_obs_arr = agg_client.sum(np.array([float(n_obs)], dtype=float))
+    global_min_arr = agg_client.min(
+        np.array([float(np.min(values)) if n_obs else np.inf], dtype=float)
+    )
+    global_max_arr = agg_client.max(
+        np.array([float(np.max(values)) if n_obs else -np.inf], dtype=float)
     )
     total_n_obs = total_n_obs_arr[0]
     if total_n_obs == 0:

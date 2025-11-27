@@ -8,6 +8,15 @@ from typing import Dict
 
 from exaflow.utils import Singleton
 
+"""
+Lightweight registry for exaflow UDFs.
+
+- UDFs are registered with a stable key derived from `func.__qualname__` and
+  the defining module (see `get_udf_registry_key`).
+- Set `with_aggregation_server=True` when a UDF needs an aggregation server
+  session injected via `agg_client` (see logistic_regression for an example).
+"""
+
 
 def _hash(text: str) -> str:
     return base64.b32encode(hashlib.sha1(text.encode()).digest())[:4].decode().lower()
@@ -30,6 +39,10 @@ class ExaflowRegistry(metaclass=Singleton):
         self._registry: Dict[str, UDFInfo] = {}
 
     def register(self, func: Callable, *, with_aggregation_server: bool = False) -> str:
+        """
+        Register a UDF and return its registry key. Raises if the same key is
+        reused for a different function to avoid ambiguity.
+        """
         key = get_udf_registry_key(func)
         if key in self._registry and self._registry[key].func is not func:
             raise ValueError(f"Duplicate registration for key {key!r}")
