@@ -69,7 +69,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             var for var in self.inputdata.x if not metadata[var]["is_categorical"]
         ]
 
-        # ✅ Discover dummies from actual data (not metadata)
+        # Discover dummies from actual data (not metadata)
         dummy_categories = get_dummy_categories(
             engine=self.engine,
             inputdata_json=self.inputdata.json(),

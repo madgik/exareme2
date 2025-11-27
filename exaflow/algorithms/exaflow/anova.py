@@ -97,12 +97,15 @@ def anova_twoway_local_step(data, inputdata, agg_client, x1, x2, y, levels_a, le
 
     df = _build_dataframe()
 
+    # Explicit levels ensure consistent design matrices across workers
+    levels_a_repr = repr(list(levels_a))
+    levels_b_repr = repr(list(levels_b))
     formulas = {
         "const": "1",
-        "a": f"C({x1})",
-        "b": f"C({x2})",
-        "ab": f"C({x1}) + C({x2})",
-        "full": f"C({x1}) * C({x2})",
+        "a": f"C({x1}, levels={levels_a_repr})",
+        "b": f"C({x2}, levels={levels_b_repr})",
+        "ab": f"C({x1}, levels={levels_a_repr}) + C({x2}, levels={levels_b_repr})",
+        "full": f"C({x1}, levels={levels_a_repr}) * C({x2}, levels={levels_b_repr})",
     }
 
     design_frames = {

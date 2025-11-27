@@ -20,6 +20,8 @@ from exaflow.algorithms.exaflow.metrics import build_design_matrix
 from exaflow.algorithms.exaflow.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exaflow.metrics import construct_design_labels
 from exaflow.algorithms.exaflow.preprocessing import get_dummy_categories
+from exaflow.algorithms.exaflow.validation_utils import require_covariates
+from exaflow.algorithms.exaflow.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "logistic_regression_cv"

@@ -62,12 +62,11 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         ]
 
         # Discover dummy categories across workers
-        # TODO I do not know if i like this its way to confusing
         dummy_categories = get_dummy_categories(
-            self.engine,
-            self.inputdata.json(),
-            categorical_vars,
-            linear_collect_categorical_levels,
+            engine=self.engine,
+            inputdata_json=self.inputdata.json(),
+            categorical_vars=categorical_vars,
+            collect_udf=linear_collect_categorical_levels,
         )
 
         # Construct names of design-matrix columns: Intercept, dummies, numericals

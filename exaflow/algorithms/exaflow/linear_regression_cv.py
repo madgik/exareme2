@@ -3,6 +3,7 @@ from typing import NamedTuple
 
 import numpy as np
 from pydantic import BaseModel
+from sklearn.model_selection import KFold
 
 from exaflow.algorithms.exaflow.algorithm import Algorithm
 from exaflow.algorithms.exaflow.crossvalidation import buffered_kfold_split
