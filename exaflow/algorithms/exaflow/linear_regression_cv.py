@@ -191,16 +191,6 @@ def linear_regression_cv_local_step(
     n_splits = int(n_splits)
     p = int(p)
 
-    if data.empty or y_var not in data.columns:
-        # This worker contributes nothing but must still participate.
-        return {
-            "n_obs": [],
-            "rmse": [],
-            "r2": [],
-            "mae": [],
-            "f_stat": [],
-        }
-
     # Build design matrix and target vector
     X = build_design_matrix(
         data,

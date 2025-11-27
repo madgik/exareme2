@@ -100,9 +100,6 @@ def apply_longitudinal_transformation(
         )
 
     df = df[df["visitid"].isin([visit1, visit2])]
-    if df.empty:
-        return _build_empty_result(transformed_x + transformed_y)
-
     key_cols = ["subjectid"]
     if "dataset" in df.columns:
         key_cols.append("dataset")
@@ -110,9 +107,6 @@ def apply_longitudinal_transformation(
     left = df[df["visitid"] == visit1]
     right = df[df["visitid"] == visit2]
     merged = left.merge(right, on=key_cols, suffixes=("_v1", "_v2"), how="inner")
-    if merged.empty:
-        return _build_empty_result(transformed_x + transformed_y)
-
     result = merged[key_cols].copy()
 
     for varname, strategy in strategies.items():

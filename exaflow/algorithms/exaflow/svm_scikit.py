@@ -84,30 +84,23 @@ def svm_scikit_local_step(
     if n_features == 0:
         raise BadUserInput("SVM requires at least one covariate (x).")
 
-    if data.empty or y_var not in data.columns:
-        coeff_local = np.zeros((1, n_features), dtype=float)
-        support_summary_local = np.zeros(n_features, dtype=float)
-        n_obs_local = 0.0
-    else:
-        X = data[x_vars].to_numpy(dtype=float, copy=False)
-        y = data[y_var].to_numpy(copy=False)
+    X = data[x_vars].to_numpy(dtype=float, copy=False)
+    y = data[y_var].to_numpy(copy=False)
 
-        n_obs_local = float(len(y))
-        unique_y = np.unique(y)
-        if unique_y.size < 2:
-            raise BadUserInput("Cannot perform SVM. Covariable has only one level.")
+    n_obs_local = float(len(y))
+    unique_y = np.unique(y)
+    if unique_y.size < 2:
+        raise BadUserInput("Cannot perform SVM. Covariable has only one level.")
 
-        model = SVC(kernel="linear", gamma=gamma, C=C)
-        model.fit(X, y)
+    model = SVC(kernel="linear", gamma=gamma, C=C)
+    model.fit(X, y)
 
-        coeff_arr = np.asarray(model.coef_, dtype=float)
-        # Fix shape across workers: average across class rows to a single vector
-        coeff_local = coeff_arr.mean(axis=0)
+    coeff_arr = np.asarray(model.coef_, dtype=float)
+    # Fix shape across workers: average across class rows to a single vector
+    coeff_local = coeff_arr.mean(axis=0)
 
-        # Summarize support vectors as mean per feature to keep a fixed shape.
-        support_summary_local = np.asarray(model.support_vectors_, dtype=float).mean(
-            axis=0
-        )
+    # Summarize support vectors as mean per feature to keep a fixed shape.
+    support_summary_local = np.asarray(model.support_vectors_, dtype=float).mean(axis=0)
 
     (
         coeff_sum_arr,

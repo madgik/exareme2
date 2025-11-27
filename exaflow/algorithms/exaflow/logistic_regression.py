@@ -128,29 +128,16 @@ def logistic_regression_local_step(
 
     # subset without deep copies; drop duplicated column names, keeping the first occurrence
     data = data.loc[:, cols]
-    if data.empty:
-        X = build_design_matrix(
-            data,
-            categorical_vars=categorical_vars,
-            dummy_categories=dummy_categories,
-            numerical_vars=numerical_vars,
-        )
-        y = np.empty((0, 1), dtype=float)
-    else:
-        # y_var is now guaranteed to be a single 1D column, not a 2D frame
-        y = (
-            data[y_var]
-            .eq(positive_class)
-            .to_numpy(dtype=float, copy=False)
-            .reshape(-1, 1)
-        )
 
-        X = build_design_matrix(
-            data,
-            categorical_vars=categorical_vars,
-            dummy_categories=dummy_categories,
-            numerical_vars=numerical_vars,
-        )
+    # y_var is now guaranteed to be a single 1D column, not a 2D frame
+    y = data[y_var].eq(positive_class).to_numpy(dtype=float, copy=False).reshape(-1, 1)
+
+    X = build_design_matrix(
+        data,
+        categorical_vars=categorical_vars,
+        dummy_categories=dummy_categories,
+        numerical_vars=numerical_vars,
+    )
 
     model_stats = run_distributed_logistic_regression(agg_client, X, y)
     return model_stats

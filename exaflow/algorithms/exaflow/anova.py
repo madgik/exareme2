@@ -85,14 +85,6 @@ def anova_twoway_local_step(data, inputdata, agg_client, x1, x2, y, levels_a, le
     from patsy import dmatrix
 
     def _build_dataframe():
-        if data.empty or any(col not in data.columns for col in (x1, x2, y)):
-            return pd.DataFrame(
-                {
-                    y: pd.Series([], dtype=float),
-                    x1: pd.Categorical([], categories=levels_a),
-                    x2: pd.Categorical([], categories=levels_b),
-                }
-            )
         subset = data[[y, x1, x2]].copy()
         subset.dropna(inplace=True)
         subset[x1] = pd.Categorical(subset[x1], categories=levels_a)

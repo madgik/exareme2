@@ -326,17 +326,6 @@ def logistic_regression_cv_local_step(
 
     n_splits = int(n_splits)
 
-    if data.empty or y_var not in data.columns:
-        return {
-            "n_obs": [],
-            "tp": [],
-            "fp": [],
-            "tn": [],
-            "fn": [],
-            "roc_tpr": [],
-            "roc_fpr": [],
-        }
-
     # Build design matrix X and binarized y
     X = build_design_matrix(
         data,

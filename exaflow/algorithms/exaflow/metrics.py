@@ -31,14 +31,6 @@ def build_design_matrix(
     numerical_vars: List[str],
 ) -> np.ndarray:
     n_rows = len(data)
-    if n_rows == 0:
-        total_cols = (
-            1
-            + sum(len(dummy_categories.get(var, [])) for var in categorical_vars)
-            + len(numerical_vars)
-        )
-        return np.empty((0, total_cols), dtype=float)
-
     # Preallocate once: intercept + dummies + numeric columns
     n_dummy_cols = sum(len(dummy_categories.get(var, [])) for var in categorical_vars)
     total_cols = 1 + n_dummy_cols + len(numerical_vars)

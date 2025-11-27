@@ -127,22 +127,13 @@ def linear_regression_local_step(
     dummy_categories,
 ):
 
-    if data.empty:
-        X = build_design_matrix(
-            data,
-            categorical_vars=categorical_vars,
-            dummy_categories=dummy_categories,
-            numerical_vars=numerical_vars,
-        )
-        y = np.empty((0, 1), dtype=float)
-    else:
-        y = data[y_var].to_numpy(dtype=float, copy=False).reshape(-1, 1)
-        X = build_design_matrix(
-            data,
-            categorical_vars=categorical_vars,
-            dummy_categories=dummy_categories,
-            numerical_vars=numerical_vars,
-        )
+    y = data[y_var].to_numpy(dtype=float, copy=False).reshape(-1, 1)
+    X = build_design_matrix(
+        data,
+        categorical_vars=categorical_vars,
+        dummy_categories=dummy_categories,
+        numerical_vars=numerical_vars,
+    )
 
     model_stats = run_distributed_linear_regression(agg_client, X, y)
     return model_stats
