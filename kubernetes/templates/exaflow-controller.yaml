@@ -53,6 +53,8 @@ spec:
           value: "86400"  # One day in seconds
         - name: WORKER_TASKS_TIMEOUT
           value: {{ quote .Values.controller.worker_tasks_timeout }}
+        - name: AGGREGATION_SERVER_ENABLED
+          value: {{ quote .Values.aggregation_server.enabled }}
         - name: LOCALWORKERS_DNS
           value: {{ quote .Values.controller.workers_dns }}
         - name: LOCALWORKERS_PORT
