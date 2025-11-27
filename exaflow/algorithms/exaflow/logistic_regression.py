@@ -71,10 +71,10 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         # ✅ Discover dummies from actual data (not metadata)
         dummy_categories = get_dummy_categories(
-            self.engine,
-            self.inputdata.json(),
-            categorical_vars,
-            logistic_collect_categorical_levels,
+            engine=self.engine,
+            inputdata_json=self.inputdata.json(),
+            categorical_vars=categorical_vars,
+            collect_udf=logistic_collect_categorical_levels,
         )
 
         indep_var_names = construct_design_labels(
