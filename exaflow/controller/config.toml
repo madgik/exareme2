@@ -21,6 +21,8 @@ port="$LOCALWORKERS_PORT"
 
 [aggregation_server]
 enabled = "$AGGREGATION_SERVER_ENABLED"
+dns= "$AGGREGATION_SERVER_DNS"
+
 
 [smpc]
 enabled = "$SMPC_ENABLED"

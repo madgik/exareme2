@@ -1,4 +1,3 @@
-import warnings
 from typing import List
 
 from exaflow import exaflow_algorithm_classes
@@ -9,6 +8,7 @@ from exaflow.algorithms.exaflow.longitudinal_transformer import (
     prepare_longitudinal_transformation,
 )
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
+from exaflow.controller import config as controller_config
 from exaflow.controller.federation_info_logs import log_experiment_execution
 from exaflow.controller.services.exaflow import ExaflowController
 from exaflow.controller.services.exaflow.algorithm_flow_engine_interface import (
@@ -79,7 +79,14 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
 
 class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
     async def execute(self) -> str:
-        agg_client = ControllerAggregationClient(self._request_id)
+
+        agg_dns = (
+            getattr(getattr(controller_config, "aggregation_server", {}), "dns", None)
+            or None
+        )
+        agg_client = ControllerAggregationClient(
+            self._request_id, aggregator_dns=agg_dns
+        )
         status = agg_client.configure(
             num_workers=len(self._local_worker_tasks_handlers)
         )

@@ -7,6 +7,7 @@ from exaflow.algorithms.exaflow.longitudinal_transformer import (
 )
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.algorithms.utils.pandas_utils import ensure_pandas_dataframe
+from exaflow.worker import config as worker_config
 from exaflow.worker.exaflow.udf.udf_db import load_algorithm_arrow_table
 from exaflow.worker.utils.logger import get_logger
 from exaflow.worker.utils.logger import initialise_logger
@@ -46,7 +47,11 @@ def run_udf(
     params.pop("raw_inputdata", None)
 
     if exaflow_registry.aggregation_server_required(udf_registry_key):
-        params["agg_client"] = AggregationClient(request_id)
+        agg_dns = (
+            getattr(getattr(worker_config, "aggregation_server", {}), "dns", None)
+            or None
+        )
+        params["agg_client"] = AggregationClient(request_id, aggregator_dns=agg_dns)
 
     logger = get_logger()
     if "metadata" in params:

@@ -55,6 +55,8 @@ spec:
           value: {{ quote .Values.controller.worker_tasks_timeout }}
         - name: AGGREGATION_SERVER_ENABLED
           value: {{ quote .Values.aggregation_server.enabled }}
+        - name: AGGREGATION_SERVER_DNS
+          value: {{ quote .Values.aggregation_server.dns }}
         - name: LOCALWORKERS_DNS
           value: {{ quote .Values.controller.workers_dns }}
         - name: LOCALWORKERS_PORT

@@ -78,6 +78,8 @@ spec:
           value: "/opt/data/data_models.duckdb"
         - name: AGGREGATION_SERVER_ENABLED
           value: {{ quote .Values.aggregation_server.enabled }}
+        - name: AGGREGATION_SERVER_DNS
+          value: {{ quote .Values.aggregation_server.dns }}
         - name: SMPC_ENABLED
           value: {{ quote .Values.smpc.enabled }}
         {{- if .Values.smpc.enabled }}

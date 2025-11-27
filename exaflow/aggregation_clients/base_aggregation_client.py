@@ -1,4 +1,5 @@
 import logging
+import socket
 from typing import Sequence
 
 import grpc
@@ -19,12 +20,25 @@ ArrayInput = NDArray[np.floating] | Sequence[float]
 
 
 class BaseAggregationClient:
-    def __init__(self, request_id: str, aggregator_address: str = "172.17.0.1:50051"):
+    def __init__(self, request_id: str, aggregator_dns: str | None = None):
         self._request_id = request_id
+
+        target = aggregator_dns or "172.17.0.1:50051"
+        # If a DNS name is provided, resolve it to preserve compatibility with env-based overrides
+        if aggregator_dns:
+            try:
+                host, port = target.rsplit(":", 1)
+                resolved = socket.gethostbyname(host)
+                target = f"{resolved}:{port}"
+            except Exception as exc:
+                logger.warning(
+                    "Failed to resolve aggregator DNS %s: %s", aggregator_dns, exc
+                )
+
         # Increase gRPC message size limits to support large Arrow tensors (e.g., ~80 MiB)
         GRPC_MAX_MESSAGE_SIZE = 100 * 1024 * 1024  # 100 MiB
         self._channel = grpc.insecure_channel(
-            aggregator_address,
+            target,
             options=[
                 ("grpc.max_send_message_length", GRPC_MAX_MESSAGE_SIZE),
                 ("grpc.max_receive_message_length", GRPC_MAX_MESSAGE_SIZE),
