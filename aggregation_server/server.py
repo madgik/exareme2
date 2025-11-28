@@ -129,6 +129,7 @@ class AggregationServer(AggregationServerServicer):
             logger.error(msg)
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
         with agg_ctx.lock:
+            self._wait_for_previous_result_if_needed(agg_ctx, context)
             self._validate_request_type(agg_ctx, request, context)
             current_count = self._store_vectors(agg_ctx, request)
 
@@ -287,12 +288,30 @@ class AggregationServer(AggregationServerServicer):
 
         return result
 
+    def _wait_for_previous_result_if_needed(
+        self, agg_ctx: AggregationContext, context
+    ) -> None:
+        while agg_ctx.result_ready.is_set() and (
+            agg_ctx.acquired_count < agg_ctx.expected_workers
+        ):
+            notified = agg_ctx.condition.wait(
+                timeout=config.max_wait_for_aggregation_inputs
+            )
+            if not notified:
+                msg = (
+                    f"Previous aggregation still being consumed for request_id='{agg_ctx.request_id}' "
+                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
+                )
+                logger.error(f"[AGGREGATE] {msg}")
+                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
+
     def _init_batch_if_needed(self, agg_ctx: AggregationContext, request, context):
         if not request.operations:
             context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "Batch request must include at least one operation.",
             )
+        self._wait_for_previous_result_if_needed(agg_ctx, context)
         self._wait_for_previous_batch_if_needed(agg_ctx, context)
         if not agg_ctx.batch_mode:
             agg_ctx.batch_mode = True
