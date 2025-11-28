@@ -101,9 +101,7 @@ jobs:
           set +e
           /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exaflow \
             --verbosity=4 \
-            -n 16 \
-            --reruns 3 \
-            --reruns-delay 5
+            -n 16
           TEST_EXIT_CODE=$?
           set -e
           REPORT_ARGS=(--title "Exareme2 algorithm validation (1 node)")
