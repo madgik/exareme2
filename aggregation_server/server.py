@@ -122,14 +122,12 @@ class AggregationServer(AggregationServerServicer):
 
     def Aggregate(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
-        if agg_ctx.batch_mode:
-            msg = (
-                f"[AGGREGATE] request_id='{request.request_id}' already in batch mode."
-            )
-            logger.error(msg)
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
         with agg_ctx.lock:
             self._wait_for_previous_result_if_needed(agg_ctx, context)
+            if agg_ctx.batch_mode:
+                msg = f"[AGGREGATE] request_id='{request.request_id}' already in batch mode."
+                logger.error(msg)
+                context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
             self._validate_request_type(agg_ctx, request, context)
             current_count = self._store_vectors(agg_ctx, request)
 
