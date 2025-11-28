@@ -559,6 +559,7 @@ def roc_curve_binary(y_true, y_score):
 
 
 # Apply lazy aggregation to key aggregated helpers
+kmeans = lazy_agg()(kmeans)
 pca = lazy_agg()(pca)
 pearson_correlation = lazy_agg()(pearson_correlation)
 ttest_one_sample = lazy_agg()(ttest_one_sample)

@@ -46,3 +46,23 @@
   ```
 - If you want batching inside larger expressions, either hoist to temps yourself or rely on the built-in hoisting (it will skip comprehensions).
 - The rewriter needs access to the function’s source; dynamically generated or already-rewritten functions will be left untouched.
+
+## Dependency graph helper
+
+`DependencyGraphBuilder` builds a simple data-dependency graph for any Python function, which can be printed or visualized with Graphviz:
+
+```python
+from lazy_aggregation import build_dependency_graph, visualize_graph
+
+def example(a, b):
+    x = a + b
+    y = x * 2
+    return y
+
+nodes, edges = build_dependency_graph(example)
+visualize_graph(nodes, edges, "example_graph")  # requires `pip install graphviz`
+```
+
+## Rewrite log
+
+Every time `lazy_agg` rewrites a function, the rewritten source is appended to `lazy_agg_rewrites.log` (in the same directory as `lazy_aggregation.py`). Override the destination by setting `LAZY_AGG_REWRITE_LOG=/path/to/log`. Logging failures are ignored so rewriting is never blocked.

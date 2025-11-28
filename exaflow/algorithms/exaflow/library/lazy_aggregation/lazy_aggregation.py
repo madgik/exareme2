@@ -1,9 +1,14 @@
 import ast
+import datetime
 import inspect
+import os
 import textwrap
+from collections import defaultdict
 from enum import Enum
 from functools import wraps
+from typing import Dict
 from typing import List
+from typing import Set
 from typing import Tuple
 
 
@@ -80,6 +85,16 @@ def _used_names(node) -> set:
     return collector.names
 
 
+def _rewrite_log_path() -> str:
+    """
+    Resolve the path where rewritten UDFs are logged.
+
+    Override via LAZY_AGG_REWRITE_LOG if you want a custom location.
+    """
+    default_path = os.path.join(os.path.dirname(__file__), "lazy_agg_rewrites.log")
+    return os.environ.get("LAZY_AGG_REWRITE_LOG", default_path)
+
+
 class LazyAggregationRewriter:
     """
     Prototype AST rewriter that:
@@ -87,6 +102,25 @@ class LazyAggregationRewriter:
       - Reorders consecutive independent globals into a batch
       - Inserts a LazyAggregationExecutor that performs the batch
     """
+
+    def _log_rewritten(self, func_def: ast.FunctionDef, filename: str):
+        """
+        Persist the rewritten function source to a log file for inspection.
+        """
+        log_path = _rewrite_log_path()
+        try:
+            rewritten_source = (
+                ast.unparse(func_def)
+                if hasattr(ast, "unparse")
+                else ast.dump(func_def, include_attributes=False)
+            )
+            timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+            header = f"# --- lazy_agg rewrite: {func_def.name} ({filename}) at {timestamp} ---"
+            with open(log_path, "a", encoding="utf-8") as log_file:
+                log_file.write(f"{header}\n{rewritten_source}\n\n")
+        except Exception:
+            # Logging must never interfere with the rewrite process.
+            pass
 
     def rewrite(self, func, agg_client_name: str = "agg_client"):
         try:
@@ -121,6 +155,8 @@ class LazyAggregationRewriter:
         )
         if not filename:
             filename = f"<lazy-{func.__name__}>"
+
+        self._log_rewritten(func_def, filename)
 
         code_obj = compile(module_ast, filename=filename, mode="exec")
         env = func.__globals__
@@ -204,6 +240,9 @@ class LazyAggregationRewriter:
                     ast.Name(tmp_name, ctx=ast.Load()), expr
                 )
 
+            func_prefixes, new_func = self._hoist_globals_in_expr(
+                expr.func, agg_client_name
+            )
             arg_results = [
                 self._hoist_globals_in_expr(arg, agg_client_name) for arg in expr.args
             ]
@@ -218,9 +257,10 @@ class LazyAggregationRewriter:
                 new_kw = ast.keyword(arg=kw.arg, value=new_val)
                 new_kw = ast.copy_location(new_kw, kw)
                 new_keywords.append(new_kw)
+            expr.func = new_func
             expr.args = new_args
             expr.keywords = new_keywords
-            return [*arg_prefixes, *kw_prefixes], expr
+            return [*func_prefixes, *arg_prefixes, *kw_prefixes], expr
 
         if isinstance(expr, ast.BoolOp):
             parts = [
@@ -443,7 +483,7 @@ class LazyAggregationRewriter:
 
         return [batch_assign, execute_call, *assigns]
 
-    def _rewrite_body(self, body, agg_client_name: str):
+    def _rewrite_body(self, body, agg_client_name: str, insert_exec: bool = True):
         new_body = []
         has_lazy = False
 
@@ -466,15 +506,19 @@ class LazyAggregationRewriter:
         pending_location = None
         has_lazy = False
 
-        exec_assign = ast.Assign(
-            targets=[ast.Name("_lazy_exec", ctx=ast.Store())],
-            value=ast.Call(
-                func=ast.Name("LazyAggregationExecutor", ctx=ast.Load()),
-                args=[ast.Name(agg_client_name, ctx=ast.Load())],
-                keywords=[],
-            ),
+        exec_assign = (
+            ast.Assign(
+                targets=[ast.Name("_lazy_exec", ctx=ast.Store())],
+                value=ast.Call(
+                    func=ast.Name("LazyAggregationExecutor", ctx=ast.Load()),
+                    args=[ast.Name(agg_client_name, ctx=ast.Load())],
+                    keywords=[],
+                ),
+            )
+            if insert_exec
+            else None
         )
-        inserted_exec = False
+        inserted_exec = not insert_exec
 
         def flush():
             nonlocal pending_batch, pending_targets, inserted_exec, has_lazy, pending_location
@@ -482,7 +526,7 @@ class LazyAggregationRewriter:
                 new_body.extend(
                     self._flush_batch(pending_batch, pending_targets, pending_location)
                 )
-                if not inserted_exec:
+                if insert_exec and not inserted_exec:
                     new_body.insert(1 if new_body else 0, exec_assign)
                     inserted_exec = True
                 has_lazy = True
@@ -556,24 +600,31 @@ class LazyAggregationRewriter:
             i = j
 
         flush()
-        if pending_batch and not inserted_exec:
-            new_body.insert(1, exec_assign)
+        if insert_exec and has_lazy and not inserted_exec:
+            new_body.insert(1 if new_body else 0, exec_assign)
             inserted_exec = True
-            has_lazy = True
         return new_body, has_lazy
 
     def _rewrite_children(self, stmt, agg_client_name: str):
         # Recursively rewrite statements that contain bodies.
         child_has_lazy = False
         if isinstance(stmt, (ast.If, ast.For, ast.While, ast.With, ast.AsyncWith)):
-            stmt.body, body_lazy = self._rewrite_body(stmt.body, agg_client_name)
-            stmt.orelse, orelse_lazy = self._rewrite_body(stmt.orelse, agg_client_name)
+            stmt.body, body_lazy = self._rewrite_body(
+                stmt.body, agg_client_name, insert_exec=False
+            )
+            stmt.orelse, orelse_lazy = self._rewrite_body(
+                stmt.orelse, agg_client_name, insert_exec=False
+            )
             child_has_lazy = body_lazy or orelse_lazy
         elif isinstance(stmt, ast.Try):
-            stmt.body, body_lazy = self._rewrite_body(stmt.body, agg_client_name)
-            stmt.orelse, orelse_lazy = self._rewrite_body(stmt.orelse, agg_client_name)
+            stmt.body, body_lazy = self._rewrite_body(
+                stmt.body, agg_client_name, insert_exec=False
+            )
+            stmt.orelse, orelse_lazy = self._rewrite_body(
+                stmt.orelse, agg_client_name, insert_exec=False
+            )
             stmt.finalbody, final_lazy = self._rewrite_body(
-                stmt.finalbody, agg_client_name
+                stmt.finalbody, agg_client_name, insert_exec=False
             )
             new_handlers = []
             handlers_lazy = False
@@ -591,11 +642,15 @@ class LazyAggregationRewriter:
             )
             # Avoid double-decoration; the parent rewrite will handle batching.
             stmt.decorator_list = []
-            stmt.body, child_has_lazy = self._rewrite_body(stmt.body, inner_agg_name)
+            stmt.body, child_has_lazy = self._rewrite_body(
+                stmt.body, inner_agg_name, insert_exec=True
+            )
         return stmt, child_has_lazy
 
     def _rewrite_exc_handler(self, handler, agg_client_name: str):
-        handler.body, handler_lazy = self._rewrite_body(handler.body, agg_client_name)
+        handler.body, handler_lazy = self._rewrite_body(
+            handler.body, agg_client_name, insert_exec=False
+        )
         return handler, handler_lazy
 
 
@@ -647,3 +702,240 @@ class RecordingAggClient:
     def max(self, value):
         self.calls.append(("max", np.asarray(value).size))
         return value
+
+
+class DependencyGraphBuilder(ast.NodeVisitor):
+    """
+    Lightweight dependency graph builder for Python function bodies.
+
+    Useful for visualizing how values flow through a function before/after
+    applying lazy aggregation rewrites.
+    """
+
+    def __init__(self):
+        self.nodes: List[Dict[str, object]] = []
+        self.edges: List[Dict[str, object]] = []
+        self.var_definitions: Dict[str, int] = {}
+        self.var_uses = defaultdict(list)
+        self.node_counter = 0
+        self.current_scope = []
+
+    def add_node(self, node_type: str, details: str = "") -> int:
+        """Add a node to the graph and return its index."""
+        node_id = self.node_counter
+        self.nodes.append({"id": node_id, "type": node_type, "details": details})
+        self.node_counter += 1
+        return node_id
+
+    def add_edge(self, source_id: int, target_id: int, var_name: str):
+        """Add an edge representing data dependency."""
+        if source_id != target_id:
+            self.edges.append(
+                {"source": source_id, "target": target_id, "variable": var_name}
+            )
+
+    def get_names_from_expr(self, node) -> Set[str]:
+        """Extract all variable names used in an expression."""
+        names: Set[str] = set()
+        for child in ast.walk(node):
+            if isinstance(child, ast.Name):
+                names.add(child.id)
+        return names
+
+    def visit_Assign(self, node):
+        """Handle assignment: target = value."""
+        targets_str = ", ".join(self.get_target_names(node.targets))
+
+        value_node_id = self.visit_expr(node.value)
+        node_id = self.add_node("Assign", f"{targets_str} = ...")
+
+        if value_node_id is not None:
+            self.add_edge(value_node_id, node_id, "result")
+
+        for target in node.targets:
+            for name in self.get_target_names([target]):
+                self.var_definitions[name] = node_id
+
+    def visit_expr(self, node) -> int:
+        """Visit an expression and return the node id that produces it."""
+        if isinstance(node, ast.BinOp):
+            left_id = self.visit_expr(node.left)
+            right_id = self.visit_expr(node.right)
+            op_name = node.op.__class__.__name__
+            node_id = self.add_node("BinOp", op_name)
+            if left_id is not None:
+                self.add_edge(left_id, node_id, "left")
+            if right_id is not None:
+                self.add_edge(right_id, node_id, "right")
+            return node_id
+
+        if isinstance(node, ast.Call):
+            func_name = self._get_func_name(node.func)
+            node_id = self.add_node("Call", func_name)
+            for i, arg in enumerate(node.args):
+                arg_id = self.visit_expr(arg)
+                if arg_id is not None:
+                    self.add_edge(arg_id, node_id, f"arg{i}")
+            return node_id
+
+        if isinstance(node, ast.Name):
+            if node.id in self.var_definitions:
+                return self.var_definitions[node.id]
+            return None
+
+        if isinstance(node, ast.Constant):
+            return self.add_node("Constant", repr(node.value))
+
+        return None
+
+    def _get_func_name(self, node) -> str:
+        """Extract function name from a Call node."""
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            obj = self._get_func_name(node.value)
+            return f"{obj}.{node.attr}"
+        return "?"
+
+    def visit_AugAssign(self, node):
+        """Handle augmented assignment: x += 1."""
+        target_name = node.target.id if isinstance(node.target, ast.Name) else "?"
+        op_str = node.op.__class__.__name__
+
+        target_id = (
+            self.var_definitions.get(target_name)
+            if isinstance(node.target, ast.Name)
+            else None
+        )
+        value_id = self.visit_expr(node.value)
+
+        binop_id = self.add_node("BinOp", op_str)
+        if target_id is not None:
+            self.add_edge(target_id, binop_id, target_name)
+        if value_id is not None:
+            self.add_edge(value_id, binop_id, "rhs")
+
+        node_id = self.add_node("Assign", f"{target_name} {op_str}=")
+        self.add_edge(binop_id, node_id, "result")
+
+        if isinstance(node.target, ast.Name):
+            self.var_definitions[node.target.id] = node_id
+
+    def visit_For(self, node):
+        """Handle for loops."""
+        loop_var = node.target.id if isinstance(node.target, ast.Name) else "?"
+        iter_id = self.visit_expr(node.iter)
+        node_id = self.add_node("For", f"for {loop_var}")
+        if iter_id is not None:
+            self.add_edge(iter_id, node_id, "iterator")
+
+        if isinstance(node.target, ast.Name):
+            self.var_definitions[node.target.id] = node_id
+
+        for child in node.body:
+            self.visit(child)
+
+    def visit_If(self, node):
+        """Handle if statements."""
+        test_id = self.visit_expr(node.test)
+        node_id = self.add_node("If", "if")
+        if test_id is not None:
+            self.add_edge(test_id, node_id, "condition")
+
+        for child in node.body + node.orelse:
+            self.visit(child)
+
+    def get_target_names(self, targets) -> List[str]:
+        """Extract variable names from assignment targets."""
+        names: List[str] = []
+        for target in targets:
+            if isinstance(target, ast.Name):
+                names.append(target.id)
+            elif isinstance(target, (ast.Tuple, ast.List)):
+                for elt in target.elts:
+                    names.extend(self.get_target_names([elt]))
+        return names
+
+    def _get_expr_repr(self, node) -> str:
+        """Get a string representation of an expression."""
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                args = ", ".join(self._get_expr_repr(arg) for arg in node.args)
+                return f"{node.func.id}({args})"
+        elif isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, ast.Constant):
+            return repr(node.value)
+        elif isinstance(node, ast.BinOp):
+            left = self._get_expr_repr(node.left)
+            right = self._get_expr_repr(node.right)
+            op = node.op.__class__.__name__
+            return f"{left} {op} {right}"
+        return "..."
+
+
+def build_dependency_graph(func):
+    """Build a dependency graph from a Python function."""
+    source = inspect.getsource(func)
+    source = textwrap.dedent(source)
+    tree = ast.parse(source)
+
+    func_def = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            func_def = node
+            break
+
+    if not func_def:
+        raise ValueError("No function definition found")
+
+    builder = DependencyGraphBuilder()
+    for stmt in func_def.body:
+        builder.visit(stmt)
+
+    return builder.nodes, builder.edges
+
+
+def print_graph(nodes, edges):
+    """Pretty print the dependency graph."""
+    print("=" * 60)
+    print("NODES (Operators):")
+    print("=" * 60)
+    for node in nodes:
+        print(f"[{node['id']}] {node['type']}: {node['details']}")
+
+    print("\n" + "=" * 60)
+    print("EDGES (Data Dependencies):")
+    print("=" * 60)
+    for edge in edges:
+        source_node = nodes[edge["source"]]
+        target_node = nodes[edge["target"]]
+        print(f"{source_node['id']} -> {target_node['id']} (via '{edge['variable']}')")
+
+
+def visualize_graph(nodes, edges, output_file="dep_graph"):
+    """Create a visualization of the dependency graph using Graphviz."""
+    try:
+        import graphviz
+    except ImportError as exc:
+        raise ImportError(
+            "graphviz is required for visualize_graph; install it to generate diagrams."
+        ) from exc
+
+    dot = graphviz.Digraph(comment="Dependency Graph", engine="dot")
+    dot.attr(rankdir="TB")
+    dot.attr("node", shape="box", style="rounded,filled", fillcolor="lightblue")
+
+    for node in nodes:
+        label = f"[{node['id']}] {node['type']}\\n{node['details']}"
+        dot.node(
+            str(node["id"]),
+            label=label,
+            fillcolor="lightgreen" if node["type"] == "Assign" else "lightblue",
+        )
+
+    for edge in edges:
+        dot.edge(str(edge["source"]), str(edge["target"]), label=edge["variable"])
+
+    dot.render(output_file, view=True, cleanup=True)
+    print(f"\nGraph saved as {output_file}.pdf and opened in default viewer")
