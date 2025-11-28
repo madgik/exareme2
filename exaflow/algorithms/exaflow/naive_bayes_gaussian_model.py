@@ -2,6 +2,8 @@ from typing import List
 
 import numpy as np
 
+from exaflow.algorithms.exaflow.library.lazy_aggregation import lazy_agg
+
 VAR_SMOOTHING = 1e-9
 
 
@@ -28,6 +30,7 @@ class GaussianNB:
         self.class_prior = None
         self.total_n_obs = 0.0
 
+    @lazy_agg
     def fit(self, df, agg_client):
         import pandas as pd
 

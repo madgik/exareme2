@@ -5,6 +5,7 @@ from scipy import stats
 from scipy.special import expit
 from scipy.special import xlogy
 
+from exaflow.algorithms.exaflow.library.lazy_aggregation import lazy_agg
 from exaflow.worker_communication import BadUserInput
 
 MAX_ITER = 50
@@ -33,6 +34,7 @@ def max_abs(values: np.ndarray) -> float:
     return float(np.max(np.abs(values))) if len(values) else 0.0
 
 
+@lazy_agg()
 def run_distributed_logistic_regression(
     agg_client, X: np.ndarray, y: np.ndarray
 ) -> Dict:

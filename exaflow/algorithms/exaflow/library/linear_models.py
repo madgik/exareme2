@@ -5,9 +5,12 @@ from typing import Dict
 import numpy as np
 from scipy import stats
 
+from exaflow.algorithms.exaflow.library.lazy_aggregation import lazy_agg
+
 ALPHA = 0.05
 
 
+@lazy_agg
 def run_distributed_linear_regression(agg_client, X: np.ndarray, y: np.ndarray) -> Dict:
     """
     Ordinary Least Squares with aggregated sufficient statistics.

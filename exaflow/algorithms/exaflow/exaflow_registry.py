@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Callable
 from typing import Dict
 
+from exaflow.algorithms.exaflow.library.lazy_aggregation import lazy_agg
 from exaflow.utils import Singleton
 
 """
@@ -65,11 +66,32 @@ exaflow_registry = ExaflowRegistry()
 
 
 def exaflow_udf(
-    _func: Callable | None = None, *, with_aggregation_server: bool = False
+    _func: Callable | None = None,
+    *,
+    with_aggregation_server: bool = False,
+    enable_lazy_aggregation: bool | None = None,
+    agg_client_name: str = "agg_client",
 ):
+    """
+    Decorator to register a UDF and (optionally) enable lazy aggregation.
+
+    - with_aggregation_server: whether the UDF expects an agg_client.
+    - enable_lazy_aggregation: override to force on/off lazy batching. Defaults to
+      matching with_aggregation_server.
+    - agg_client_name: name of the aggregation client parameter used inside the UDF.
+    """
+
     def decorator(func: Callable) -> Callable:
-        exaflow_registry.register(func, with_aggregation_server=with_aggregation_server)
-        return func
+        lazy_on = (
+            with_aggregation_server
+            if enable_lazy_aggregation is None
+            else enable_lazy_aggregation
+        )
+        wrapped = lazy_agg(agg_client_name=agg_client_name)(func) if lazy_on else func
+        exaflow_registry.register(
+            wrapped, with_aggregation_server=with_aggregation_server
+        )
+        return wrapped
 
     if _func is None:
         return decorator

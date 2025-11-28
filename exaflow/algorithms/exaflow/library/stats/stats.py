@@ -7,6 +7,8 @@ import pyarrow as pa
 import scipy.special as special
 import scipy.stats as st
 
+from exaflow.algorithms.exaflow.library.lazy_aggregation import lazy_agg
+
 
 def _to_numpy(x) -> np.ndarray:
     """Convert input (Arrow Table/Array or list/array) to NumPy array."""
@@ -554,3 +556,11 @@ def roc_curve_binary(y_true, y_score):
         "tpr": tpr.tolist(),
         "fpr": fpr.tolist(),
     }
+
+
+# Apply lazy aggregation to key aggregated helpers
+pca = lazy_agg()(pca)
+pearson_correlation = lazy_agg()(pearson_correlation)
+ttest_one_sample = lazy_agg()(ttest_one_sample)
+ttest_paired = lazy_agg()(ttest_paired)
+ttest_independent = lazy_agg()(ttest_independent)
