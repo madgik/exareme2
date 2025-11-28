@@ -18,16 +18,23 @@ logger = logging.getLogger(__name__)
 
 ArrayInput = NDArray[np.floating] | Sequence[float]
 
+DEFAULT_AGGREGATION_PORT = "50051"
+
 
 class BaseAggregationClient:
     def __init__(self, request_id: str, aggregator_dns: str | None = None):
         self._request_id = request_id
 
-        target = aggregator_dns or "172.17.0.1:50051"
-        # If a DNS name is provided, resolve it to preserve compatibility with env-based overrides
+        target = aggregator_dns or f"172.17.0.1:{DEFAULT_AGGREGATION_PORT}"
+        # If a DNS name is provided, ensure a port is present and resolve it
         if aggregator_dns:
+            host, port = (
+                aggregator_dns.rsplit(":", 1)
+                if ":" in aggregator_dns
+                else (aggregator_dns, DEFAULT_AGGREGATION_PORT)
+            )
+            target = f"{host}:{port}"
             try:
-                host, port = target.rsplit(":", 1)
                 resolved = socket.gethostbyname(host)
                 target = f"{resolved}:{port}"
             except Exception as exc:
