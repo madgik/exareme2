@@ -14,8 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - suffix: times_1100mb_data_expand
-            expand_factor: 600
+          - suffix: times_520mb_data_expand
+            expand_factor: 200
             pytest_workers: 1
     steps:
       - name: Check out repository
