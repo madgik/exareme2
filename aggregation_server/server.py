@@ -124,6 +124,7 @@ class AggregationServer(AggregationServerServicer):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
         with agg_ctx.lock:
             self._wait_for_previous_result_if_needed(agg_ctx, context)
+            self._wait_for_active_batch_if_needed(agg_ctx, context)
             if agg_ctx.batch_mode:
                 msg = f"[AGGREGATE] request_id='{request.request_id}' already in batch mode."
                 logger.error(msg)
@@ -251,6 +252,7 @@ class AggregationServer(AggregationServerServicer):
             agg_ctx.error = exc
         finally:
             agg_ctx.result_ready.set()
+            agg_ctx.condition.notify_all()
 
     def _wait_for_result(self, agg_ctx: AggregationContext, request, context) -> None:
         if not agg_ctx.result_ready.wait(
@@ -298,6 +300,21 @@ class AggregationServer(AggregationServerServicer):
             if not notified:
                 msg = (
                     f"Previous aggregation still being consumed for request_id='{agg_ctx.request_id}' "
+                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
+                )
+                logger.error(f"[AGGREGATE] {msg}")
+                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
+
+    def _wait_for_active_batch_if_needed(
+        self, agg_ctx: AggregationContext, context
+    ) -> None:
+        while agg_ctx.batch_mode:
+            notified = agg_ctx.condition.wait(
+                timeout=config.max_wait_for_aggregation_inputs
+            )
+            if not notified and agg_ctx.batch_mode:
+                msg = (
+                    f"Batch aggregation still in progress for request_id='{agg_ctx.request_id}' "
                     f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
                 )
                 logger.error(f"[AGGREGATE] {msg}")

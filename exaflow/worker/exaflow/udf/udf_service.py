@@ -1,16 +1,86 @@
+import inspect
+import threading
+import time
+import tracemalloc
+from typing import Optional
+
+import psutil
+
 from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
     ExaflowUDFAggregationClient as AggregationClient,
 )
 from exaflow.algorithms.exaflow.exaflow_registry import exaflow_registry
-from exaflow.algorithms.exaflow.longitudinal_transformer import (
-    apply_longitudinal_transformation,
-)
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
-from exaflow.algorithms.utils.pandas_utils import ensure_pandas_dataframe
 from exaflow.worker import config as worker_config
-from exaflow.worker.exaflow.udf.udf_db import load_algorithm_arrow_table
+from exaflow.worker.exaflow.udf.cursor import DuckDBCursor
 from exaflow.worker.utils.logger import get_logger
 from exaflow.worker.utils.logger import initialise_logger
+
+BYTES_IN_MB = 1024 * 1024
+
+
+class MemoryUsageTracker:
+    def __init__(self, logger, udf_key: str, interval: float = 0.1):
+        self._logger = logger
+        self._udf_key = udf_key
+        self._process = psutil.Process()
+        self._start_rss: Optional[int] = None
+        self._peak_rss: Optional[int] = None
+        self._interval = interval
+        self._stop_event = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    def __enter__(self):
+        self._start_rss = self._current_rss()
+        self._peak_rss = self._start_rss
+        tracemalloc.start()
+        self._logger.info(
+            "[MEMORY] %s start RSS %.2f MB",
+            self._udf_key,
+            self._start_rss / BYTES_IN_MB,
+        )
+        self._thread = threading.Thread(target=self._sample_loop, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._stop_event.set()
+        if self._thread:
+            self._thread.join()
+        peak_rss = self._peak_rss or self._current_rss()
+        end_rss = self._current_rss()
+        start_rss = self._start_rss or end_rss
+        delta_mb = (end_rss - start_rss) / BYTES_IN_MB
+        peak_mb = peak_rss / BYTES_IN_MB
+        current_alloc = peak_alloc = None
+        if tracemalloc.is_tracing():
+            current_alloc, peak_alloc = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+        current_mb = (current_alloc or 0) / BYTES_IN_MB
+        peak_python_mb = (peak_alloc or 0) / BYTES_IN_MB
+        self._logger.info(
+            "[MEMORY] %s end RSS %.2f MB (Δ %.2f MB, peak %.2f MB) | Python alloc %.2f MB (peak %.2f MB)",
+            self._udf_key,
+            end_rss / BYTES_IN_MB,
+            delta_mb,
+            peak_mb,
+            current_mb,
+            peak_python_mb,
+        )
+
+    def _current_rss(self) -> int:
+        return self._process.memory_info().rss
+
+    def _sample_loop(self):
+        while not self._stop_event.is_set():
+            self._update_peak()
+            time.sleep(self._interval)
+        self._update_peak()
+
+    def _update_peak(self):
+        current = self._current_rss()
+        if self._peak_rss is None or current > self._peak_rss:
+            self._peak_rss = current
 
 
 def enforce_enum_order(data_dict):
@@ -71,25 +141,27 @@ def run_udf(
         )
         extra_columns.update({"subjectid", "visitid"})
 
-    data = load_algorithm_arrow_table(
+    cursor = DuckDBCursor(
         loader_inputdata,
         dropna=dropna,
         include_dataset=include_dataset,
         extra_columns=extra_columns if extra_columns else None,
+        preprocessing=preprocessing,
     )
-
-    if preprocessing and "longitudinal_transformer" in preprocessing:
-        data = apply_longitudinal_transformation(
-            data, preprocessing["longitudinal_transformer"]
-        )
-    params["data"] = ensure_pandas_dataframe(data)
     udf = exaflow_registry.get_func(udf_registry_key)
     if not udf:
         error_msg = f"udf '{udf_registry_key}' not found in EXAFLOW_REGISTRY."
         raise ImportError(error_msg)
 
+    param_names = set(inspect.signature(udf).parameters)
+    if "cursor" in param_names:
+        params["cursor"] = cursor
+    if "data" in param_names:
+        params["data"] = cursor.load_all_dataframe()
+
     try:
-        result = udf(**params)
+        with MemoryUsageTracker(logger, udf_registry_key):
+            result = udf(**params)
         return result
     except TypeError as e:
         logger.error(

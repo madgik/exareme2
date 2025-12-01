@@ -87,3 +87,102 @@ def _fetch_with_duckdb(
     # DuckDB should return unique columns if the query is well-formed.
 
     return arrow_table
+
+
+from typing import Callable
+from typing import Iterable
+from typing import Set
+
+import pyarrow as pa
+
+# ... existing imports ...
+
+
+def _build_duckdb_query(
+    inputdata: Inputdata,
+    required_columns: Set[str],
+    *,
+    dropna: bool,
+) -> str:
+    """
+    Build the DuckDB SQL query string used both by the full-table loader
+    and the streaming loader. This ensures consistent filtering and columns.
+    """
+    datasets = (inputdata.datasets or []) + (
+        inputdata.validation_datasets if inputdata.validation_datasets else []
+    )
+
+    table_name = primary_table_name(inputdata.data_model)
+    columns = sorted(required_columns) if required_columns else ["*"]
+    select_columns = ", ".join(quote_identifier(col) for col in columns)
+
+    where_clauses = []
+
+    if datasets:
+        datasets_clause = ", ".join(quote_literal(value) for value in datasets)
+        where_clauses.append(f'{quote_identifier("dataset")} IN ({datasets_clause})')
+
+    if inputdata.filters:
+        where_clauses.append(build_filter_clause(inputdata.filters))
+
+    if dropna and required_columns:
+        not_null_clause = " AND ".join(
+            f"{quote_identifier(col)} IS NOT NULL" for col in required_columns
+        )
+        where_clauses.append(not_null_clause)
+
+    where_sql = ""
+    if where_clauses:
+        where_sql = " WHERE " + " AND ".join(f"({clause})" for clause in where_clauses)
+
+    query = f"SELECT {select_columns} FROM {table_name}{where_sql}"
+    return query
+
+
+from typing import Callable
+from typing import Iterable
+
+STREAMING_PCA_BATCH_SIZE = 10_000
+
+
+def load_algorithm_arrow_streaming_factory(
+    inputdata: Inputdata,
+    *,
+    dropna: bool = True,
+    include_dataset: bool = False,
+    extra_columns: Iterable[str] | None = None,
+    batch_size: int = STREAMING_PCA_BATCH_SIZE,
+) -> Callable[[], Iterable[pa.Table]]:
+    """
+    Build a factory that, when called, returns an iterator over Arrow Tables
+    loaded in batches from DuckDB. The SQL query and filters are identical
+    to `load_algorithm_arrow_table`.
+
+    Usage:
+        factory = load_algorithm_arrow_streaming_factory(...)
+        streaming_pca(factory)
+    """
+    # Same logic as load_algorithm_arrow_table
+    required_columns: Set[str] = set(inputdata.x or []) | set(inputdata.y or [])
+    if include_dataset:
+        required_columns.add("dataset")
+    if extra_columns:
+        required_columns.update(extra_columns)
+
+    query = _build_duckdb_query(inputdata, required_columns, dropna=dropna)
+
+    def factory():
+        import duckdb
+
+        from exaflow.worker import config as worker_config
+
+        # New connection per iteration, closed automatically
+        with duckdb.connect(worker_config.duckdb.path, read_only=True) as conn:
+            # Run the query and get a RecordBatchReader from the connection
+            reader = conn.execute(query).fetch_record_batch(rows_per_batch=batch_size)
+
+            for record_batch in reader:
+                # Convert each batch to a (single-batch) Arrow Table
+                yield pa.Table.from_batches([record_batch])
+
+    return factory

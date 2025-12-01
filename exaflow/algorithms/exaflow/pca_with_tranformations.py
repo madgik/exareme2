@@ -202,4 +202,8 @@ def pca_with_transformation_local_step(
     #   - standardize all columns
     #   - compute covariance and eigen-decomposition
     # This matches the old exaflow PCA-with-transformation behaviour.
-    return core_pca(agg_client, X_values)
+    def single_batch_factory():
+        yield X_values
+
+    single_batch_factory.n_features = X_values.shape[1]
+    return core_pca(agg_client, single_batch_factory)

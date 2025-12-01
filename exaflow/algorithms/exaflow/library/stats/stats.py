@@ -1,4 +1,3 @@
-from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -148,47 +147,146 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
     )
 
 
-def pca(agg_client, x):
+def pca_streaming(agg_client, batch_iter_factory) -> dict:
+    """
+    Streaming/federated PCA on standardized features (correlation PCA).
 
-    x = _to_numpy(x)
-    n_obs = len(x)
-    sx = np.einsum("ij->j", x)
-    sxx = np.einsum("ij,ij->j", x, x)
-    total_n_obs_arr = agg_client.sum(np.array([float(n_obs)], dtype=float))
-    total_sx = agg_client.sum(sx)
-    total_sxx = agg_client.sum(sxx)
+    Parameters
+    ----------
+    agg_client : object
+        Has a .sum(array_like) -> aggregated_array method, used to aggregate
+        across clients in a federated setup.
+    batch_iter_factory : callable
+        A callable with no arguments that returns an *iterator of batches*.
+        Each batch is array-like of shape (n_batch, d).
 
-    total_n_obs = float(total_n_obs_arr.reshape(-1)[0])
+        We call batch_iter_factory() twice:
+        - first pass: to compute global means/variances
+        - second pass: to compute global Gramian of standardized data
+
+    Returns
+    -------
+    dict
+        {
+            "n_obs": int,
+            "eigenvalues": list[float],
+            "eigenvectors": list[list[float]],  # rows = components
+        }
+    """
+
+    # ---------- First pass: global means & sigmas ----------
+
+    n_features_hint = getattr(batch_iter_factory, "n_features", None)
+    local_n = 0
+    local_sx = None  # sum x
+    local_sxx = None  # sum x^2
+    n_features: Optional[int] = None
+
+    for batch in batch_iter_factory():
+        x = np.asarray(batch, dtype=float)
+        if x.ndim != 2:
+            raise ValueError("Each batch must be 2D: (n_batch, n_features)")
+        if n_features is None:
+            n_features = x.shape[1]
+        elif x.shape[1] != n_features:
+            raise ValueError(
+                f"Inconsistent feature dimensions across batches "
+                f"(expected {n_features}, got {x.shape[1]})"
+            )
+        n_batch = x.shape[0]
+        if n_batch == 0:
+            continue
+
+        sx_batch = np.einsum("ij->j", x)
+        sxx_batch = np.einsum("ij,ij->j", x, x)
+
+        if local_sx is None:
+            local_sx = sx_batch
+            local_sxx = sxx_batch
+        else:
+            local_sx += sx_batch
+            local_sxx += sxx_batch
+
+        local_n += n_batch
+
+    if n_features is None and n_features_hint is not None:
+        n_features = int(n_features_hint)
+    if n_features is None:
+        n_features = 0
+
+    # If this worker had only empty batches, we still need zero-vectors
+    if local_sx is None:
+        local_sx = np.zeros(n_features, dtype=float)
+        local_sxx = np.zeros(n_features, dtype=float)
+
+    # Federated aggregation of N, sum(x), sum(x^2)
+    total_n_obs_arr = agg_client.sum(np.array([float(local_n)], dtype=float))
+    total_sx = agg_client.sum(local_sx)
+    total_sxx = agg_client.sum(local_sxx)
+
+    total_n_obs = float(np.asarray(total_n_obs_arr, dtype=float).reshape(-1)[0])
     total_sx = np.asarray(total_sx, dtype=float)
     total_sxx = np.asarray(total_sxx, dtype=float)
 
     means = total_sx / total_n_obs
+
+    # Var via E[x^2] - (E[x])^2, unbiased
     variances = (total_sxx - total_n_obs * means**2) / (total_n_obs - 1)
     variances = np.maximum(variances, 0.0)
     sigmas = np.sqrt(variances)
+
+    # Avoid division by zero: features with zero variance get sigma=1
     zero_sigma = sigmas == 0
     if np.any(zero_sigma):
         sigmas = sigmas.copy()
         sigmas[zero_sigma] = 1.0
 
-    # Standardize in place to avoid holding an extra full-size buffer.
-    if not x.flags.writeable:
-        x = np.array(x, copy=True)
+    d = means.shape[0]
 
-    np.subtract(x, means, out=x)
-    np.divide(x, sigmas, out=x)
+    # ---------- Second pass: global Gramian of standardized data ----------
 
-    gramian = np.einsum("ji,jk->ik", x, x)
-    total_gramian = np.asarray(agg_client.sum(gramian), dtype=float).reshape(
-        gramian.shape
-    )
+    local_gramian = np.zeros((d, d), dtype=float)
+
+    for batch in batch_iter_factory():
+        x = np.asarray(batch, dtype=float)
+        if x.ndim != 2:
+            raise ValueError("Each batch must be 2D: (n_batch, n_features)")
+        if x.shape[1] != d:
+            raise ValueError(
+                f"Inconsistent feature dimensions across batches "
+                f"(expected {d}, got {x.shape[1]})"
+            )
+        if x.shape[0] == 0:
+            continue
+
+        if not x.flags.writeable:
+            x = np.array(x, copy=True)
+
+        np.subtract(x, means, out=x)
+        np.divide(x, sigmas, out=x)
+
+        # X^T X for this batch (same formulation as original implementation)
+        local_gramian += np.einsum("ji,jk->ik", x, x)
+
+    # Federated aggregation of Gramian
+    total_gramian = agg_client.sum(local_gramian)
+    total_gramian = np.asarray(total_gramian, dtype=float).reshape(local_gramian.shape)
+
     covariance = total_gramian / (total_n_obs - 1)
 
+    # ---------- PCA via eigendecomposition ----------
+
     eigenvalues, eigenvectors = np.linalg.eig(covariance)
-    idx = eigenvalues.argsort()[::-1]
+
+    # Sort by descending eigenvalue
+    idx = np.argsort(eigenvalues)[::-1]
     eigenvalues = eigenvalues[idx]
     eigenvectors = eigenvectors[:, idx]
+
+    # Your original code returns eigenvectors with components as rows,
+    # i.e. shape (n_components, n_features)
     eigenvectors = eigenvectors.T
+
     return dict(
         n_obs=int(total_n_obs),
         eigenvalues=eigenvalues.real.tolist(),
@@ -560,7 +658,7 @@ def roc_curve_binary(y_true, y_score):
 
 # Apply lazy aggregation to key aggregated helpers
 kmeans = lazy_agg()(kmeans)
-pca = lazy_agg()(pca)
+pca = lazy_agg()(pca_streaming)
 pearson_correlation = lazy_agg()(pearson_correlation)
 ttest_one_sample = lazy_agg()(ttest_one_sample)
 ttest_paired = lazy_agg()(ttest_paired)
