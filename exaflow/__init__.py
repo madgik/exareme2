@@ -124,7 +124,7 @@ flower_algorithm_folder_paths = find_flower_algorithm_folder_paths(
 
 EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
 EXAFLOW_ALGORITHM_FOLDERS = os.getenv(
-    EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exaflow/algorithms/exaflow"
+    EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exaflow/algorithms/exareme3"
 )
 
 

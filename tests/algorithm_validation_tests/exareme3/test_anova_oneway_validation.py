@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.algorithm_validation_tests.exaflow.helpers import algorithm_request
-from tests.algorithm_validation_tests.exaflow.helpers import get_test_params
-from tests.algorithm_validation_tests.exaflow.helpers import parse_response
+from tests.algorithm_validation_tests.exareme3.helpers import algorithm_request
+from tests.algorithm_validation_tests.exareme3.helpers import get_test_params
+from tests.algorithm_validation_tests.exareme3.helpers import parse_response
 
 algorithm_name = "anova_oneway"
 

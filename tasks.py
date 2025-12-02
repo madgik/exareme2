@@ -553,7 +553,7 @@ def start_worker(
     framework_log_level=None,
     detached=False,
     flower_algorithm_folders=None,
-    exaflow_algorithm_folders=None,
+    exareme3_algorithm_folders=None,
 ):
     """
     (Re)Start the worker(s) service(s). If a worker service is running, stop and start it again.
@@ -574,8 +574,8 @@ def start_worker(
     flower_algorithm_folders = validate_algorithm_folders(
         flower_algorithm_folders, "flower_algorithm_folders"
     )
-    exaflow_algorithm_folders = validate_algorithm_folders(
-        exaflow_algorithm_folders, "exaflow_algorithm_folders"
+    exareme3_algorithm_folders = validate_algorithm_folders(
+        exareme3_algorithm_folders, "exareme3_algorithm_folders"
     )
 
     worker_ids = sorted(get_worker_ids(all_, worker))
@@ -589,7 +589,7 @@ def start_worker(
 
         env_vars = {
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
-            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
+            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
             EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
             DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
         }
@@ -613,7 +613,7 @@ def start_worker(
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
         env_vars = {
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
-            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
+            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
             EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
             DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
         }
@@ -707,7 +707,7 @@ def start_controller(
     c,
     detached=False,
     flower_algorithm_folders=None,
-    exaflow_algorithm_folders=None,
+    exareme3_algorithm_folders=None,
 ):
     """
     (Re)Start the controller service. If the service is already running, stop and start it again.
@@ -717,8 +717,8 @@ def start_controller(
     flower_algorithm_folders = validate_algorithm_folders(
         flower_algorithm_folders, "flower_algorithm_folders"
     )
-    exaflow_algorithm_folders = validate_algorithm_folders(
-        exaflow_algorithm_folders, "exaflow_algorithm_folders"
+    exareme3_algorithm_folders = validate_algorithm_folders(
+        exareme3_algorithm_folders, "exareme3_algorithm_folders"
     )
 
     kill_controller(c)
@@ -728,7 +728,7 @@ def start_controller(
     # Build a dictionary of environment variables for the controller
     env_vars = {
         FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
-        EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exaflow_algorithm_folders,
+        EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
         EXAFLOW_CONTROLLER_CONFIG_FILE: controller_config_file,
     }
 
@@ -756,7 +756,7 @@ def deploy(
     log_level=None,
     framework_log_level=None,
     flower_algorithm_folders=None,
-    exaflow_algorithm_folders=None,
+    exareme3_algorithm_folders=None,
     smpc=None,
 ):
     """
@@ -766,7 +766,7 @@ def deploy(
     :param log_level: Used for the dev logs. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param framework_log_level: Used for the engine api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param flower_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
-    :param exaflow_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
+    :param exareme3_algorithm_folders: Used from the api. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     :param smpc: Deploy the SMPC cluster as well. If not provided, it looks in the `DEPLOYMENT_CONFIG_FILE`.
     """
 
@@ -779,8 +779,8 @@ def deploy(
     if not flower_algorithm_folders:
         flower_algorithm_folders = get_deployment_config("flower_algorithm_folders")
 
-    if not exaflow_algorithm_folders:
-        exaflow_algorithm_folders = get_deployment_config("exaflow_algorithm_folders")
+    if not exareme3_algorithm_folders:
+        exareme3_algorithm_folders = get_deployment_config("exareme3_algorithm_folders")
 
     start_aggregation_server_ = get_deployment_config(
         "aggregation_server", subconfig="enabled"
@@ -818,7 +818,7 @@ def deploy(
         framework_log_level=framework_log_level,
         detached=True,
         flower_algorithm_folders=flower_algorithm_folders,
-        exaflow_algorithm_folders=exaflow_algorithm_folders,
+        exareme3_algorithm_folders=exareme3_algorithm_folders,
     )
 
     # Start CONTROLLER service
@@ -826,7 +826,7 @@ def deploy(
         c,
         detached=True,
         flower_algorithm_folders=flower_algorithm_folders,
-        exaflow_algorithm_folders=exaflow_algorithm_folders,
+        exareme3_algorithm_folders=exareme3_algorithm_folders,
     )
 
     if smpc and not get_deployment_config("smpc", subconfig="coordinator_ip"):
