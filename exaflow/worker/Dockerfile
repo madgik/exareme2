@@ -38,13 +38,13 @@ RUN poetry install --only main --no-root
 #######################################################
 # Copying the codebase
 #######################################################
-COPY exaflow/ ./exaflow/
+COPY exareme3/ ./exaflow/
 RUN rm -rf exaflow/controller
 
 #######################################################
 # Setup bootstrap file
 #######################################################
-COPY exaflow/worker/bootstrap.sh /home/bootstrap.sh
+COPY exareme3/worker/bootstrap.sh /home/bootstrap.sh
 RUN chmod 775 /home/bootstrap.sh
 
 CMD ["sh", "-c", "/home/bootstrap.sh"]

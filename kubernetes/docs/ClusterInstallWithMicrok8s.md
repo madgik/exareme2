@@ -214,7 +214,7 @@ Using firewalld the following rules should apply,
 in the **master** node, to expose the controller api, if it's used outside the cluster:
 
 ```
-firewall-cmd --permanent --add-port=30000/tcp      # Exareme2 Controller port
+firewall-cmd --permanent --add-port=30000/tcp      # Exaflow Controller port
 ```
 
 on all nodes:

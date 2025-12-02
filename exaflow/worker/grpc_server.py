@@ -13,7 +13,7 @@ from grpc_health.v1 import health_pb2_grpc
 
 from exaflow.worker import config as worker_config
 from exaflow.worker.data_management import data_loader_service
-from exaflow.worker.exaflow.udf import udf_service
+from exaflow.worker.exareme3.udf import udf_service
 from exaflow.worker.flower.cleanup import cleanup_service
 from exaflow.worker.flower.starter import starter_service
 from exaflow.worker.worker_info import worker_info_service

@@ -7,11 +7,11 @@ from exaflow.algorithms.specifications import TransformerName
 from exaflow.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exaflow.controller.services.api.algorithm_spec_dtos import specifications
 from exaflow.controller.services.controller_interface import ControllerI
-from exaflow.controller.services.exaflow import (
+from exaflow.controller.services.exareme3 import (
     get_exaflow_controller as get_exaflow_controller,
 )
-from exaflow.controller.services.exaflow.strategies import ExaflowStrategy
-from exaflow.controller.services.exaflow.strategies import (
+from exaflow.controller.services.exareme3.strategies import ExaflowStrategy
+from exaflow.controller.services.exareme3.strategies import (
     ExaflowWithAggregationServerStrategy,
 )
 from exaflow.controller.services.flower import (

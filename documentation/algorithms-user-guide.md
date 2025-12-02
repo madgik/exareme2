@@ -175,7 +175,7 @@ Let's rewrite the local/global functions of the previous examples as Exareme
 UDFs. First the local UDF.
 
 ```python
-from exaflow.algorithms.exaflow.udfgen import udf, relation, transfer
+from exaflow.algorithms.exareme3.udfgen import udf, relation, transfer
 
 
 @udf(local_data=relation(), return_type=transfer())
@@ -202,7 +202,7 @@ serializable.
 Now, let's write the global UDF.
 
 ```python
-from exaflow.algorithms.exaflow.udfgen import udf, transfer, merge_transfer
+from exaflow.algorithms.exareme3.udfgen import udf, transfer, merge_transfer
 
 
 @udf(local_results=merge_transfer(), return_type=transfer())
@@ -238,7 +238,7 @@ the algorithm execution interface. To have access to this interface we have to
 inherit from the `Algorithm` base class.
 
 ```python
-from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exareme3.algorithm import Algorithm
 
 
 class MyAlgorithm(Algorithm, algname="my_algorithm"):
@@ -287,7 +287,7 @@ In our case we need a very simple data loader for a single dataframe with a
 single column, as requested by the user (see Examples for more advanced uses).
 
 ```python
-from exaflow.algorithms.exaflow.algorithm import AlgorithmDataLoader
+from exaflow.algorithms.exareme3.algorithm import AlgorithmDataLoader
 
 
 class MyDataLoader(AlgorithmDataLoader, algname="mean"):
@@ -418,7 +418,7 @@ is when we want to store part of the output locally for later use in the same
 worker, and we want to transfer the other part of the output to another worker.
 
 ```python
-from exaflow.algorithms.exaflow.udfgen import udf, state, transfer
+from exaflow.algorithms.exareme3.udfgen import udf, state, transfer
 
 
 @udf(input=relation(), return_type=[state(), transfer()])
@@ -457,7 +457,7 @@ To implement a SMPC computation we need to have a local UDF with a
 `secure_transfer` output.
 
 ```python
-from exaflow.algorithms.exaflow.udfgen import udf, relation, secure_transfer
+from exaflow.algorithms.exareme3.udfgen import udf, relation, secure_transfer
 
 
 @udf(local_data=relation(), return_type=secure_transfer(sum_op=True))
@@ -615,8 +615,8 @@ this. For a real world example you should see the `fit` method in the [logistic 
 algorithm](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/algorithms/logistic_regression.py).
 
 ```python
-from exaflow.algorithms.exaflow.algorithm import Algorithm
-from exaflow.algorithms.exaflow.helpers import get_transfer_data
+from exaflow.algorithms.exareme3.algorithm import Algorithm
+from exaflow.algorithms.exareme3.helpers import get_transfer_data
 
 
 class MyAlgorithm(Algorithm, algname="iterative"):
@@ -658,7 +658,7 @@ model to the data, and the second does prediction on new data. Both methods coul
 algorithm, see for example [here](https://github.com/madgik/exaflow/blob/algo-user-guide/exaflow/algorithms/linear_regression_cv.py).
 
 ```python
-from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exareme3.algorithm import Algorithm
 
 
 class MyModel:

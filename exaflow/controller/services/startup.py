@@ -1,14 +1,13 @@
 from exaflow.controller import config as ctrl_config
 from exaflow.controller import logger as ctrl_logger
 from exaflow.controller.services import set_worker_landscape_aggregator
-from exaflow.controller.services.exaflow import ExaflowController
-from exaflow.controller.services.exaflow import set_exaflow_controller
+from exaflow.controller.services.exareme3 import ExaflowController
+from exaflow.controller.services.exareme3 import set_exaflow_controller
 from exaflow.controller.services.flower import set_flower_controller
 from exaflow.controller.services.flower.controller import FlowerController
 from exaflow.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
     WorkerLandscapeAggregator,
 )
-from exaflow.smpc_cluster_communication import DifferentialPrivacyParams
 
 
 def start_background_services():

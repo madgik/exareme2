@@ -1,6 +1,6 @@
 apiVersion: v2
 name: exaflow
-description: A helm chart for Kubernetes deployment of the Exareme2
+description: A helm chart for Kubernetes deployment of the Exaflow
 
 version: 0.1.0
 

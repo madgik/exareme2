@@ -24,4 +24,4 @@ The Student’s Independent samples t-test (sometimes called a two-samples t-tes
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[Independent T-test](../../exaflow/algorithms/exaflow/ttest_independent.py)
+[Independent T-test](../../exaflow/algorithms/exareme3/ttest_independent.py)

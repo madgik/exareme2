@@ -1,4 +1,4 @@
-# Exareme2 Development deployment with Kubernetes in one node
+# Exaflow Development deployment with Kubernetes in one node
 
 ## Configuration
 
@@ -13,44 +13,10 @@ helm
 kubectl [installation guide (Ubuntu)](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/)<br />
 helm [installation gude](https://helm.sh/docs/intro/install/)
 
-## Data preparation (Temporary Solution)
+## Data preparation
 
-MonetDB needs to have the data loaded from a volume and not imported due to a memory leak. So, the idea is you load the data to a temporary container running monetdb, then copy the monetdb's produced files to the folders that will be mounted as volumes for the "real" monetdb containers for each worker of the system.
-
-1. Start a monetdb container:
-
-```
-sudo rm -rf /opt/monetdb
-docker run --name monetdb_tmp -d -p 50010:50000 -v /opt/monetdb:/home/monetdb madgik/exaflow_db:latest
-```
-
-2. Load the data into that container:
-   <br />inside the root folder of the project `Exareme2/`
-
-```
-poetry run inv load-data --port 50010
-```
-
-3. Lock and stop the db so the data can be exported:
-
-```
-docker exec -i monetdb_tmp monetdb lock db
-docker exec -i monetdb_tmp monetdb stop db
-```
-
-4. Copy the data produced to the volumes that will be used from kuberentes monetdb's:
-
-```
-sudo rm -rf /opt/monetdb1 /opt/monetdb2
-sudo cp -r /opt/monetdb/. /opt/monetdb1/
-sudo cp -r /opt/monetdb/. /opt/monetdb2/
-```
-
-5. Remove the used monetdb container:
-
-```
-docker stop monetdb_tmp && docker rm monetdb_tmp
-```
+Data must be present within the defined data paths that each worker has.
+Each worker on initialization load all preset data within the data path.
 
 ## Setup the kubernetes cluster with kind
 
@@ -108,7 +74,7 @@ kind load docker-image madgik/exaflow_worker:latest
 kind load docker-image madgik/exaflow_controller:latest --nodes kind-control-plane
 ```
 
-5. Deploy the Exareme2 kubernetes pods using helm charts:
+5. Deploy the Exaflow kubernetes pods using helm charts:
 
 ```
 helm install exaflow kubernetes/

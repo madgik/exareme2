@@ -4,9 +4,9 @@ from typing import List
 
 from pydantic import BaseModel
 
-from exaflow.algorithms.exaflow.algorithm import Algorithm
-from exaflow.algorithms.exaflow.exaflow_registry import exaflow_udf
-from exaflow.algorithms.exaflow.naive_bayes_gaussian_model import GaussianNB
+from exaflow.algorithms.exareme3.algorithm import Algorithm
+from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.naive_bayes_gaussian_model import GaussianNB
 from exaflow.worker_communication import BadUserInput
 
 ALGNAME_FIT = "test_nb_gaussian_fit"

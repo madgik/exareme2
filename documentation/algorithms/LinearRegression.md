@@ -33,6 +33,6 @@ From these quantities the central worker then computes the following diagnostic 
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[Linear Regression](../../exaflow/algorithms/exaflow/linear_regression.py)
+[Linear Regression](../../exaflow/algorithms/exareme3/linear_regression.py)
 
-[Linear Regression with Cross - Validation](../../exaflow/algorithms/exaflow/linear_regression_cv.py)
+[Linear Regression with Cross - Validation](../../exaflow/algorithms/exareme3/linear_regression_cv.py)

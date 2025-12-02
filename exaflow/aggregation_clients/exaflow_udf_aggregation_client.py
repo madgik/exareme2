@@ -2,10 +2,10 @@ import numpy as np
 
 from exaflow.aggregation_clients import AggregationType
 from exaflow.aggregation_clients import BaseAggregationClient
-from exaflow.algorithms.exaflow.exaflow_udf_aggregation_client_interface import (
+from exaflow.algorithms.exareme3.exaflow_udf_aggregation_client_interface import (
     ArrayInput,
 )
-from exaflow.algorithms.exaflow.exaflow_udf_aggregation_client_interface import (
+from exaflow.algorithms.exareme3.exaflow_udf_aggregation_client_interface import (
     ExaflowUDFAggregationClientI,
 )
 

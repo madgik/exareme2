@@ -1,4 +1,4 @@
-from exaflow.algorithms.exaflow.algorithm import Algorithm
+from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 
 

@@ -1,5 +1,5 @@
 """
-Deployment script used for the development of the Exareme2.
+Deployment script used for the development of the Exaflow.
 
 In order to understand this script a basic knowledge of the system is required, this script
 does not contain the documentation of the engine. The documentation in this script

@@ -26,6 +26,6 @@ In Naive Bayes algorithm the attributes of *X* can be both categorical and conti
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[Categorical Naive Bayes with Cross - Validation](../../exaflow/algorithms/exaflow/naive_bayes_categorical_cv.py)
+[Categorical Naive Bayes with Cross - Validation](../../exaflow/algorithms/exareme3/naive_bayes_categorical_cv.py)
 
-[Gaussian Naive Bayes with Cross - Validation](../../exaflow/algorithms/exaflow/naive_bayes_gaussian_cv.py)
+[Gaussian Naive Bayes with Cross - Validation](../../exaflow/algorithms/exareme3/naive_bayes_gaussian_cv.py)

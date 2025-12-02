@@ -2,7 +2,7 @@
 
 ### Build docker image
 
-To build a new image you must be on the project root `Exareme2`, then
+To build a new image you must be on the project root `Exaflow`, then
 
 ```
 docker build -t <USERNAME>/exaflow_worker:<IMAGETAG> -f exaflow/worker/Dockerfile .

@@ -93,7 +93,7 @@ jobs:
           cat "$TIME_LOG"
           exit $TEST_EXIT_CODE
 
-      - name: Run Exareme2 algorithm validation tests (with resource summary)
+      - name: Run Exaflow algorithm validation tests (with resource summary)
         run: |
           set -o pipefail
           eval "$(python3 scripts/ci/cgroup_snapshot.py)"
@@ -104,7 +104,7 @@ jobs:
             -n 16
           TEST_EXIT_CODE=$?
           set -e
-          REPORT_ARGS=(--title "Exareme2 algorithm validation (1 node)")
+          REPORT_ARGS=(--title "Exaflow algorithm validation (1 node)")
           if [ -n "${CGROUP_BASELINE_CURRENT:-}" ]; then
             REPORT_ARGS+=(--baseline-runner-current "$CGROUP_BASELINE_CURRENT")
           fi
@@ -180,7 +180,7 @@ jobs:
         with:
           run: cat /tmp/exaflow/localworker1.out
 
-      - name: Run Exareme2 algorithm validation tests (with resource summary)
+      - name: Run Exaflow algorithm validation tests (with resource summary)
         run: |
           set -o pipefail
           eval "$(python3 scripts/ci/cgroup_snapshot.py)"
@@ -192,7 +192,7 @@ jobs:
             -k "input1 and not input1-" # run tests 10-19
           TEST_EXIT_CODE=$?
           set -e
-          REPORT_ARGS=(--title "Exareme2 algorithm validation (5 nodes)")
+          REPORT_ARGS=(--title "Exaflow algorithm validation (5 nodes)")
           if [ -n "${CGROUP_BASELINE_CURRENT:-}" ]; then
             REPORT_ARGS+=(--baseline-runner-current "$CGROUP_BASELINE_CURRENT")
           fi
