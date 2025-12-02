@@ -40,7 +40,7 @@ jobs:
       - name: Build data paths for workers
         run: |
           python worker_data_path_builder.py \
-            --local-workers localworker2 localworker1 \
+            --local-workers localworker3 localworker2 localworker1 \
             --global-worker globalworker \
             --test-data-folder tests/test_data
 
