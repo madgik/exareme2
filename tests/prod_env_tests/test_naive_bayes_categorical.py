@@ -1,11 +1,11 @@
 import pytest
 
-from tests.algorithm_validation_tests.exaflow.conftest import algorithm_request
-from tests.algorithm_validation_tests.exaflow.conftest import parse_response
-from tests.algorithm_validation_tests.exaflow.test_naive_bayes_categorical import (
+from tests.algorithm_validation_tests.exareme3.conftest import algorithm_request
+from tests.algorithm_validation_tests.exareme3.conftest import parse_response
+from tests.algorithm_validation_tests.exareme3.test_naive_bayes_categorical import (
     cv_inputs,
 )
-from tests.algorithm_validation_tests.exaflow.test_naive_bayes_gaussian import (
+from tests.algorithm_validation_tests.exareme3.test_naive_bayes_gaussian import (
     get_test_inputs,
 )
 

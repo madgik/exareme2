@@ -1,5 +1,5 @@
-from tests.algorithm_validation_tests.exaflow.helpers import algorithm_request
-from tests.algorithm_validation_tests.exaflow.helpers import parse_response
+from tests.algorithm_validation_tests.exareme3.helpers import algorithm_request
+from tests.algorithm_validation_tests.exareme3.helpers import parse_response
 
 algorithm_name = "linear_regression"
 

@@ -49,7 +49,7 @@
    framework_log_level ="INFO"
 
    flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
-   exaflow_algorithm_folders = "./exaflow/algorithms/exaflow,./tests/algorithms/exaflow"
+   exareme3_algorithm_folders = "./exaflow/algorithms/exareme3,./tests/algorithms/exareme3"
 
    worker_landscape_aggregator_update_interval = 3000
    worker_tasks_timeout = 20

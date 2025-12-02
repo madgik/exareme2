@@ -1,4 +1,4 @@
-localnodes: 2
+localnodes: 3
 managed_cluster: false
 
 exaflow_images:

@@ -47,7 +47,7 @@ def _wait_for_batch_mode(
     deadline = time.time() + timeout
     while time.time() < deadline:
         ctx = servicer.aggregation_contexts.get(request_id)
-        if ctx and ctx.batch_mode:
+        if ctx and ctx.mode == "batch":
             return
         time.sleep(0.01)
     raise AssertionError(f"Batch mode not initialized for {request_id}")
@@ -285,7 +285,7 @@ def test_aggregation_type_mismatch_aborts_all_workers(
 
         with pytest.raises(InlineRpcError) as exc_a:
             future_a.result(timeout=2)
-        assert exc_a.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+        assert exc_a.value.code() == grpc.StatusCode.INVALID_ARGUMENT
 
 
 def test_worker_times_out_when_not_enough_contributions(
@@ -368,7 +368,7 @@ def test_batch_operation_count_mismatch_aborts(
 
         with pytest.raises(InlineRpcError) as exc_a:
             future_a.result(timeout=2)
-        assert exc_a.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+        assert exc_a.value.code() == grpc.StatusCode.INVALID_ARGUMENT
 
 
 def test_batch_operation_type_mismatch_aborts(
@@ -398,7 +398,7 @@ def test_batch_operation_type_mismatch_aborts(
 
         with pytest.raises(InlineRpcError) as exc_a:
             future_a.result(timeout=2)
-        assert exc_a.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+        assert exc_a.value.code() == grpc.StatusCode.INVALID_ARGUMENT
 
 
 def test_batch_vector_length_mismatch_surfaces_error(
@@ -421,13 +421,13 @@ def test_batch_vector_length_mismatch_surfaces_error(
         future_a = pool.submit(worker_a._aggregate_batch_request, ops_a)
         _wait_for_batch_mode(inline_grpc_stub, request_id)
 
-        with pytest.raises(ValueError) as exc_b:
+        with pytest.raises(InlineRpcError) as exc_b:
             worker_b._aggregate_batch_request(ops_b)
-        assert "must have the same length" in str(exc_b.value)
+        assert exc_b.value.code() == grpc.StatusCode.INVALID_ARGUMENT
 
         with pytest.raises(InlineRpcError) as exc_a:
             future_a.result(timeout=2)
-        assert exc_a.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+        assert exc_a.value.code() == grpc.StatusCode.INVALID_ARGUMENT
 
 
 def test_batch_rounds_can_repeat_with_same_request(controller_factory, worker_factory):

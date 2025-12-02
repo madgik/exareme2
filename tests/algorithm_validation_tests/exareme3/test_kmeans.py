@@ -4,9 +4,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from tests.algorithm_validation_tests.exaflow.helpers import algorithm_request
-from tests.algorithm_validation_tests.exaflow.helpers import assert_allclose
-from tests.algorithm_validation_tests.exaflow.helpers import get_test_params
+from tests.algorithm_validation_tests.exareme3.helpers import algorithm_request
+from tests.algorithm_validation_tests.exareme3.helpers import assert_allclose
+from tests.algorithm_validation_tests.exareme3.helpers import get_test_params
 
 expected_file = Path(__file__).parent / "expected" / "kmeans_expected.json"
 

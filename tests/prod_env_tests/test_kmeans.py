@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from tests.algorithm_validation_tests.exaflow.conftest import algorithm_request
-from tests.algorithm_validation_tests.exaflow.helpers import get_test_params
+from tests.algorithm_validation_tests.exareme3.conftest import algorithm_request
+from tests.algorithm_validation_tests.exareme3.helpers import get_test_params
 
 expected_file = Path(__file__).parent / "expected" / "kmeans_expected.json"
 

@@ -99,7 +99,7 @@ jobs:
           eval "$(python3 scripts/ci/cgroup_snapshot.py)"
           TIME_LOG=$(mktemp)
           set +e
-          /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exaflow \
+          /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exareme3 \
             --verbosity=4 \
             -n 16
           TEST_EXIT_CODE=$?
@@ -186,7 +186,7 @@ jobs:
           eval "$(python3 scripts/ci/cgroup_snapshot.py)"
           TIME_LOG=$(mktemp)
           set +e
-          /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exaflow/ \
+          /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exareme3/ \
             --verbosity=4 \
             -n 16 \
             -k "input1 and not input1-" # run tests 10-19

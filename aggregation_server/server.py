@@ -3,6 +3,8 @@ import threading
 from concurrent import futures
 from typing import Dict
 from typing import List
+from typing import Optional
+from typing import Tuple
 
 import grpc
 import numpy as np
@@ -24,74 +26,89 @@ from .serialization import ndarray_to_bytes
 
 logger = logging.getLogger("AggregationServer")
 """
-Aggregation server overview
----------------------------
+Aggregation server, threading model, and data flow
+--------------------------------------------------
 
-This service collects partial aggregates from multiple workers for a given
-`request_id` and returns combined results. Two RPCs exist:
+Overview
+~~~~~~~~
+Each `request_id` represents a round of vector aggregation across `expected_workers`
+callers. Workers first register via `Configure(request_id, num_workers)` and then
+call either:
+- `Aggregate`: single operation (SUM / MIN / MAX) over a flat vector.
+- `AggregateBatch`: multiple operations in one call; each operation defines its
+  own aggregation type and vector.
 
-- `Aggregate`: single operation (SUM/MIN/MAX) over a flat vector of floats.
-- `AggregateBatch`: multiple operations in one call; each op specifies type and
-  a flat vector. The server aggregates per-op and returns all results in a
-  flattened list with offsets.
+Payloads can arrive either as legacy repeated doubles (`vectors`) or as Arrow
+tensors (`tensor`). Responses always include both a Python list and the binary
+tensor form for efficiency.
 
-Workflow:
-1) Controller calls Configure(request_id, num_workers) to create context.
-2) Workers call Aggregate/AggregateBatch with the same request_id.
-3) When all expected workers contribute, the server aggregates and signals
-   result readiness. Subsequent calls for the same request receive the same
-   result until all workers have consumed it; then the context resets.
-4) Controller calls Cleanup(request_id) when done.
+Synchronization model
+~~~~~~~~~~~~~~~~~~~~~
+For every `request_id` we keep an `AggregationContext` guarded by a single
+`Condition`. The context follows a small state machine:
+- `collecting`: accepting inputs. Once `expected_workers` inputs arrive we
+  compute the result and move to `ready`.
+- `ready` or `failed`: result (or error) is available. Each worker request that
+  hits this state increments `acquired_count`. When all `expected_workers`
+  have observed the result or error, the context is reset back to `collecting`.
 
-State per request_id:
-- expected_workers: how many worker responses to wait for.
-- aggregation_type: fixed per Aggregate mode (SUM/MIN/MAX).
-- vectors: collected payloads (single-op mode).
-- batch_ops, batch_vectors: collected payloads per op (batch mode).
-- result/result_ready/error/acquired_count: coordination flags/results.
+The same state machine is shared by single and batch RPCs; the first RPC to
+arrive fixes the mode for that round, preventing cross-mode mixing. All waits
+are bounded by `config.max_wait_for_aggregation_inputs` to avoid deadlocks from
+missing workers.
 
-Notes / future improvements:
-- For very large arrays, converting to Python lists (`tolist`) is expensive.
-  A future performance path could add a binary payload (bytes + shape) in the
-  proto to avoid Python scalar expansion.
+Error handling
+~~~~~~~~~~~~~~
+Any validation or computation error sets the context to `failed`, notifies
+waiters, and counts the triggering request as consumed so the round can drain.
+Subsequent workers immediately receive the same error instead of waiting
+indefinitely.
 """
 
 
 class AggregationContext:
-    def __init__(self, request_id, expected_workers):
+    def __init__(self, request_id: str, expected_workers: int):
         self.request_id = request_id
         self.expected_workers = expected_workers
-        self.aggregation_type = None
-        self.vectors = []
-        self.result = None
+        self.mode: Optional[str] = None  # "single" or "batch"
+        self.aggregation_type: Optional[str] = None
+        self.vectors: List[np.ndarray] = []
+        self.vector_length: Optional[int] = None
+        self.result: Optional[np.ndarray] = None
+        self.error: Optional[Exception] = None
         self.acquired_count = 0
-        self.error = None
-        self.lock = threading.Lock()
-        self.condition = threading.Condition(self.lock)
-        self.result_ready = threading.Event()
-        self.vector_length = None
-        # Batch-related state
-        self.batch_mode = False
-        self.batch_ops = None  # List[str]
-        self.batch_vectors = None  # List[List[np.ndarray]]
-        self.batch_vector_lengths = None  # List[int]
-        self.batch_result = (
-            None  # tuple[List[float], List[int], List[np.ndarray]] | None
+        self.state = "collecting"  # collecting | ready | failed
+        self.condition = threading.Condition()
+        # Batch-specific fields
+        self.batch_ops: Optional[List[str]] = None
+        self.batch_vectors: Optional[List[List[np.ndarray]]] = None
+        self.batch_vector_lengths: Optional[List[Optional[int]]] = None
+        self.batch_result: Optional[Tuple[List[float], List[int], List[np.ndarray]]] = (
+            None
         )
 
-    def reset(self):
+    def reset(self) -> None:
+        self.mode = None
         self.aggregation_type = None
         self.vectors = []
-        self.result = None
-        self.acquired_count = 0
-        self.error = None
-        self.result_ready.clear()
         self.vector_length = None
-        self.batch_mode = False
+        self.result = None
+        self.error = None
+        self.acquired_count = 0
+        self.state = "collecting"
         self.batch_ops = None
         self.batch_vectors = None
         self.batch_vector_lengths = None
         self.batch_result = None
+        self.condition.notify_all()
+
+    def mark_ready(self) -> None:
+        self.state = "ready"
+        self.condition.notify_all()
+
+    def fail(self, exc: Exception) -> None:
+        self.error = exc
+        self.state = "failed"
         self.condition.notify_all()
 
 
@@ -122,32 +139,47 @@ class AggregationServer(AggregationServerServicer):
 
     def Aggregate(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
-        with agg_ctx.lock:
-            self._wait_for_previous_result_if_needed(agg_ctx, context)
-            if agg_ctx.batch_mode:
-                msg = f"[AGGREGATE] request_id='{request.request_id}' already in batch mode."
-                logger.error(msg)
-                context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
-            self._validate_request_type(agg_ctx, request, context)
-            current_count = self._store_vectors(agg_ctx, request)
+        with agg_ctx.condition:
+            if agg_ctx.state != "collecting":
+                self._wait_for_result_ready_locked(agg_ctx, request, context)
+                result = self._consume_single_result_locked(agg_ctx, context)
+            else:
+                self._prepare_single_mode(agg_ctx, request, context)
+                try:
+                    current_count = self._store_single_vector_locked(agg_ctx, request)
+                    if current_count == agg_ctx.expected_workers:
+                        self._compute_single_locked(agg_ctx)
+                except Exception as exc:
+                    self._handle_failure(agg_ctx, exc, context)
+                self._wait_for_result_ready_locked(agg_ctx, request, context)
+                result = self._consume_single_result_locked(agg_ctx, context)
 
-            self._compute_result_if_ready(agg_ctx, current_count)
-
-        self._wait_for_result(agg_ctx, request, context)
-        result = self._get_result(agg_ctx, context)
         return AggregateResponse(
             result=result.tolist(), tensor=ndarray_to_bytes(result)
         )
 
     def AggregateBatch(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
-        with agg_ctx.lock:
-            self._init_batch_if_needed(agg_ctx, request, context)
-            current_count = self._store_batch_vectors(agg_ctx, request)
-            self._compute_batch_result_if_ready(agg_ctx, current_count)
+        with agg_ctx.condition:
+            if agg_ctx.state != "collecting":
+                self._wait_for_result_ready_locked(agg_ctx, request, context)
+                results, offsets, tensors = self._consume_batch_result_locked(
+                    agg_ctx, context
+                )
+            else:
+                self._prepare_batch_mode(agg_ctx, request, context)
+                try:
+                    current_count = self._store_batch_vectors_locked(agg_ctx, request)
+                    if current_count == agg_ctx.expected_workers:
+                        self._compute_batch_locked(agg_ctx)
+                except Exception as exc:
+                    self._handle_failure(agg_ctx, exc, context)
 
-        self._wait_for_result(agg_ctx, request, context)
-        results, offsets, tensors = self._get_batch_result(agg_ctx, context)
+                self._wait_for_result_ready_locked(agg_ctx, request, context)
+                results, offsets, tensors = self._consume_batch_result_locked(
+                    agg_ctx, context
+                )
+
         tensor_payloads = [ndarray_to_bytes(arr) for arr in tensors]
         return AggregateBatchResponse(
             results=results, offsets=offsets, tensors=tensor_payloads
@@ -179,9 +211,16 @@ class AggregationServer(AggregationServerServicer):
                 context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
             return self.aggregation_contexts[request_id]
 
-    def _validate_request_type(
-        self, agg_ctx: AggregationContext, request, context
-    ) -> None:
+    def _prepare_single_mode(self, agg_ctx: AggregationContext, request, context):
+        if agg_ctx.mode is None:
+            agg_ctx.mode = "single"
+        elif agg_ctx.mode != "single":
+            msg = (
+                f"[AGGREGATE] request_id='{request.request_id}' already in batch mode."
+            )
+            logger.error(msg)
+            self._handle_failure(agg_ctx, ValueError(msg), context)
+
         if agg_ctx.aggregation_type is None:
             agg_ctx.aggregation_type = request.aggregation_type
         elif agg_ctx.aggregation_type != request.aggregation_type:
@@ -190,20 +229,46 @@ class AggregationServer(AggregationServerServicer):
                 f"Expected '{agg_ctx.aggregation_type}', got '{request.aggregation_type}'"
             )
             logger.error(f"[AGGREGATE] {msg}")
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
+            self._handle_failure(agg_ctx, ValueError(msg), context)
 
-    def _decode_vector(
-        self, tensor: bytes, legacy_vectors, request_id: str
-    ) -> np.ndarray:
-        if tensor:
-            return np.asarray(bytes_to_ndarray(tensor), dtype=np.float64).reshape(-1)
+    def _prepare_batch_mode(self, agg_ctx: AggregationContext, request, context):
+        if not request.operations:
+            self._handle_failure(
+                agg_ctx,
+                ValueError("Batch request must include at least one operation."),
+                context,
+            )
 
-        vectors = list(legacy_vectors)
-        if not vectors:
-            raise ValueError(f"Empty vectors received for request_id='{request_id}'")
-        return np.asarray(vectors, dtype=np.float64)
+        if agg_ctx.mode is None:
+            agg_ctx.mode = "batch"
+            agg_ctx.batch_ops = [op.aggregation_type for op in request.operations]
+            agg_ctx.batch_vectors = [[] for _ in request.operations]
+            agg_ctx.batch_vector_lengths = [None for _ in request.operations]
+            return
 
-    def _store_vectors(self, agg_ctx: AggregationContext, request) -> int:
+        if agg_ctx.mode != "batch":
+            msg = f"[AGGREGATE] request_id='{request.request_id}' already in single-op mode."
+            logger.error(msg)
+            self._handle_failure(agg_ctx, ValueError(msg), context)
+
+        if len(request.operations) != len(agg_ctx.batch_ops):
+            msg = (
+                f"Batch op count mismatch for request_id='{request.request_id}' "
+                f"(expected {len(agg_ctx.batch_ops)}, got {len(request.operations)})"
+            )
+            logger.error(f"[AGGREGATE] {msg}")
+            self._handle_failure(agg_ctx, ValueError(msg), context)
+
+        for idx, op in enumerate(request.operations):
+            if op.aggregation_type != agg_ctx.batch_ops[idx]:
+                msg = (
+                    f"Batch aggregation_type mismatch at index {idx} for request_id='{request.request_id}' "
+                    f"(expected '{agg_ctx.batch_ops[idx]}', got '{op.aggregation_type}')"
+                )
+                logger.error(f"[AGGREGATE] {msg}")
+                self._handle_failure(agg_ctx, ValueError(msg), context)
+
+    def _store_single_vector_locked(self, agg_ctx: AggregationContext, request) -> int:
         vector = self._decode_vector(
             request.tensor, request.vectors, request.request_id
         )
@@ -225,137 +290,12 @@ class AggregationServer(AggregationServerServicer):
         )
         return current_count
 
-    def _compute_result_if_ready(
-        self, agg_ctx: AggregationContext, current_count: int
-    ) -> None:
-        if current_count < agg_ctx.expected_workers or agg_ctx.result_ready.is_set():
-            return
+    def _compute_single_locked(self, agg_ctx: AggregationContext) -> None:
+        aggregation_function = self._aggregation_fn(agg_ctx.aggregation_type)
+        agg_ctx.result = aggregation_function(agg_ctx.vectors)
+        agg_ctx.mark_ready()
 
-        try:
-            aggregation_function = {
-                AggregationType.SUM.value: self.sum,
-                AggregationType.MIN.value: self.min,
-                AggregationType.MAX.value: self.max,
-            }.get(agg_ctx.aggregation_type)
-
-            if aggregation_function is None:
-                raise ValueError(
-                    f"Unsupported computation type: {agg_ctx.aggregation_type}"
-                )
-
-            if not agg_ctx.vectors:
-                raise ValueError("No vectors provided for aggregation.")
-
-            agg_ctx.result = aggregation_function(agg_ctx.vectors)
-        except Exception as exc:
-            agg_ctx.error = exc
-        finally:
-            agg_ctx.result_ready.set()
-
-    def _wait_for_result(self, agg_ctx: AggregationContext, request, context) -> None:
-        if not agg_ctx.result_ready.wait(
-            timeout=config.max_wait_for_aggregation_inputs
-        ):
-            agg_type = getattr(request, "aggregation_type", "batch")
-            received = (
-                len(agg_ctx.vectors)
-                if not agg_ctx.batch_mode
-                else len(agg_ctx.batch_vectors[0] if agg_ctx.batch_vectors else [])
-            )
-            msg = (
-                f"Timeout waiting for aggregation result for request_id='{request.request_id}' "
-                f"and aggregation_type='{agg_type}' "
-                f"(received {received}/{agg_ctx.expected_workers})"
-            )
-            logger.error(f"[AGGREGATE] {msg}")
-            context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
-
-    def _get_result(self, agg_ctx: AggregationContext, context) -> np.ndarray:
-        with agg_ctx.lock:
-            if agg_ctx.error is not None:
-                logger.error(f"[AGGREGATE] Error during aggregation: {agg_ctx.error}")
-                context.abort(grpc.StatusCode.INTERNAL, str(agg_ctx.error))
-
-            result = agg_ctx.result
-            if result is None:
-                context.abort(grpc.StatusCode.INTERNAL, "Aggregation result missing.")
-            agg_ctx.acquired_count += 1
-
-            if agg_ctx.acquired_count == agg_ctx.expected_workers:
-                agg_ctx.reset()
-
-        return result
-
-    def _wait_for_previous_result_if_needed(
-        self, agg_ctx: AggregationContext, context
-    ) -> None:
-        while agg_ctx.result_ready.is_set() and (
-            agg_ctx.acquired_count < agg_ctx.expected_workers
-        ):
-            notified = agg_ctx.condition.wait(
-                timeout=config.max_wait_for_aggregation_inputs
-            )
-            if not notified:
-                msg = (
-                    f"Previous aggregation still being consumed for request_id='{agg_ctx.request_id}' "
-                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
-                )
-                logger.error(f"[AGGREGATE] {msg}")
-                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
-
-    def _init_batch_if_needed(self, agg_ctx: AggregationContext, request, context):
-        if not request.operations:
-            context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "Batch request must include at least one operation.",
-            )
-        self._wait_for_previous_result_if_needed(agg_ctx, context)
-        self._wait_for_previous_batch_if_needed(agg_ctx, context)
-        if not agg_ctx.batch_mode:
-            agg_ctx.batch_mode = True
-            agg_ctx.batch_ops = [op.aggregation_type for op in request.operations]
-            agg_ctx.batch_vectors = [[] for _ in request.operations]
-            agg_ctx.batch_vector_lengths = [None for _ in request.operations]
-            return
-
-        if len(request.operations) != len(agg_ctx.batch_ops):
-            msg = (
-                f"Batch op count mismatch for request_id='{request.request_id}' "
-                f"(expected {len(agg_ctx.batch_ops)}, got {len(request.operations)})"
-            )
-            logger.error(f"[AGGREGATE] {msg}")
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
-
-        for idx, op in enumerate(request.operations):
-            if op.aggregation_type != agg_ctx.batch_ops[idx]:
-                msg = (
-                    f"Batch aggregation_type mismatch at index {idx} for request_id='{request.request_id}' "
-                    f"(expected '{agg_ctx.batch_ops[idx]}', got '{op.aggregation_type}')"
-                )
-                logger.error(f"[AGGREGATE] {msg}")
-                context.abort(grpc.StatusCode.INVALID_ARGUMENT, msg)
-
-    def _wait_for_previous_batch_if_needed(
-        self, agg_ctx: AggregationContext, context
-    ) -> None:
-        while (
-            agg_ctx.batch_mode
-            and agg_ctx.result_ready.is_set()
-            and agg_ctx.acquired_count < agg_ctx.expected_workers
-        ):
-            notified = agg_ctx.condition.wait(
-                timeout=config.max_wait_for_aggregation_inputs
-            )
-            if not notified:
-                msg = (
-                    f"Previous batch still being consumed for request_id='{agg_ctx.request_id}' "
-                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
-                )
-                logger.error(f"[AGGREGATE] {msg}")
-                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
-
-    def _store_batch_vectors(self, agg_ctx: AggregationContext, request) -> int:
-        # assume operations already validated
+    def _store_batch_vectors_locked(self, agg_ctx: AggregationContext, request) -> int:
         for idx, op in enumerate(request.operations):
             vector = self._decode_vector(op.tensor, op.vectors, request.request_id)
             vector_length = len(vector)
@@ -376,50 +316,127 @@ class AggregationServer(AggregationServerServicer):
         )
         return current_count
 
-    def _compute_batch_result_if_ready(
-        self, agg_ctx: AggregationContext, current_count: int
+    def _compute_batch_locked(self, agg_ctx: AggregationContext) -> None:
+        flat_results: List[float] = []
+        offsets = [0]
+        tensor_results: List[np.ndarray] = []
+        for idx, op_type in enumerate(agg_ctx.batch_ops):
+            aggregation_function = self._aggregation_fn(op_type)
+            vectors = agg_ctx.batch_vectors[idx]
+            res = aggregation_function(vectors)
+            tensor_results.append(res)
+            res_list = res.tolist()
+            flat_results.extend(res_list)
+            offsets.append(len(flat_results))
+
+        agg_ctx.batch_result = (flat_results, offsets, tensor_results)
+        agg_ctx.mark_ready()
+
+    def _wait_for_result_ready_locked(
+        self, agg_ctx: AggregationContext, request, context
     ) -> None:
-        if current_count < agg_ctx.expected_workers or agg_ctx.result_ready.is_set():
+        ready = agg_ctx.condition.wait_for(
+            lambda: agg_ctx.state in {"ready", "failed"},
+            timeout=config.max_wait_for_aggregation_inputs,
+        )
+        if ready:
             return
 
-        try:
-            flat_results: List[float] = []
-            offsets = [0]
-            tensor_results: List[np.ndarray] = []
-            for idx, op_type in enumerate(agg_ctx.batch_ops):
-                aggregation_function = {
-                    AggregationType.SUM.value: self.sum,
-                    AggregationType.MIN.value: self.min,
-                    AggregationType.MAX.value: self.max,
-                }.get(op_type)
-                if aggregation_function is None:
-                    raise ValueError(f"Unsupported computation type: {op_type}")
-                vectors = agg_ctx.batch_vectors[idx]
-                res = aggregation_function(vectors)
-                tensor_results.append(res)
-                res_list = res.tolist()
-                flat_results.extend(res_list)
-                offsets.append(len(flat_results))
-            agg_ctx.batch_result = (flat_results, offsets, tensor_results)
-        except Exception as exc:
-            agg_ctx.error = exc
-        finally:
-            agg_ctx.result_ready.set()
+        agg_type = getattr(request, "aggregation_type", "batch")
+        received = self._received_count(agg_ctx)
+        msg = (
+            f"Timeout waiting for aggregation result for request_id='{request.request_id}' "
+            f"and aggregation_type='{agg_type}' "
+            f"(received {received}/{agg_ctx.expected_workers})"
+        )
+        logger.error(f"[AGGREGATE] {msg}")
+        timeout_exc = TimeoutError(msg)
+        agg_ctx.fail(timeout_exc)
+        self._mark_acquired_and_maybe_reset_locked(agg_ctx)
+        context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
 
-    def _get_batch_result(self, agg_ctx: AggregationContext, context):
-        with agg_ctx.lock:
-            if agg_ctx.error is not None:
-                logger.error(
-                    f"[AGGREGATE] Error during batch aggregation: {agg_ctx.error}"
-                )
-                context.abort(grpc.StatusCode.INTERNAL, str(agg_ctx.error))
-            if not agg_ctx.batch_result:
-                context.abort(grpc.StatusCode.INTERNAL, "Batch result missing.")
-            results, offsets, tensors = agg_ctx.batch_result
-            agg_ctx.acquired_count += 1
-            if agg_ctx.acquired_count == agg_ctx.expected_workers:
-                agg_ctx.reset()
-            return results, offsets, tensors
+    def _consume_single_result_locked(
+        self, agg_ctx: AggregationContext, context
+    ) -> np.ndarray:
+        if agg_ctx.error is not None:
+            error = agg_ctx.error
+            status = self._status_for_exception(error)
+            self._mark_acquired_and_maybe_reset_locked(agg_ctx)
+            logger.error(f"[AGGREGATE] Error during aggregation: {error}")
+            context.abort(status, str(error))
+
+        if agg_ctx.result is None:
+            context.abort(grpc.StatusCode.INTERNAL, "Aggregation result missing.")
+
+        result = agg_ctx.result
+        self._mark_acquired_and_maybe_reset_locked(agg_ctx)
+        return result
+
+    def _consume_batch_result_locked(self, agg_ctx: AggregationContext, context):
+        if agg_ctx.error is not None:
+            error = agg_ctx.error
+            status = self._status_for_exception(error)
+            self._mark_acquired_and_maybe_reset_locked(agg_ctx)
+            logger.error(f"[AGGREGATE] Error during batch aggregation: {error}")
+            context.abort(status, str(error))
+
+        if not agg_ctx.batch_result:
+            context.abort(grpc.StatusCode.INTERNAL, "Batch result missing.")
+
+        results, offsets, tensors = agg_ctx.batch_result
+        self._mark_acquired_and_maybe_reset_locked(agg_ctx)
+        return results, offsets, tensors
+
+    def _mark_acquired_and_maybe_reset_locked(
+        self, agg_ctx: AggregationContext
+    ) -> None:
+        agg_ctx.acquired_count += 1
+        if agg_ctx.acquired_count >= agg_ctx.expected_workers:
+            agg_ctx.reset()
+
+    def _handle_failure(
+        self, agg_ctx: AggregationContext, exc: Exception, context
+    ) -> None:
+        agg_ctx.fail(exc)
+        self._mark_acquired_and_maybe_reset_locked(agg_ctx)
+        status = self._status_for_exception(exc)
+        logger.error(f"[AGGREGATE] {exc}", exc_info=exc)
+        context.abort(status, str(exc))
+
+    def _status_for_exception(self, exc: Exception) -> grpc.StatusCode:
+        if isinstance(exc, TimeoutError):
+            return grpc.StatusCode.DEADLINE_EXCEEDED
+        if isinstance(exc, ValueError):
+            return grpc.StatusCode.INVALID_ARGUMENT
+        return grpc.StatusCode.INTERNAL
+
+    def _received_count(self, agg_ctx: AggregationContext) -> int:
+        if agg_ctx.mode == "batch":
+            return len(agg_ctx.batch_vectors[0]) if agg_ctx.batch_vectors else 0
+        return len(agg_ctx.vectors)
+
+    def _aggregation_fn(self, aggregation_type: str):
+        aggregation_function = {
+            AggregationType.SUM.value: self.sum,
+            AggregationType.MIN.value: self.min,
+            AggregationType.MAX.value: self.max,
+        }.get(aggregation_type)
+
+        if aggregation_function is None:
+            raise ValueError(f"Unsupported computation type: {aggregation_type}")
+
+        return aggregation_function
+
+    def _decode_vector(
+        self, tensor: bytes, legacy_vectors, request_id: str
+    ) -> np.ndarray:
+        if tensor:
+            return np.asarray(bytes_to_ndarray(tensor), dtype=np.float64).reshape(-1)
+
+        vectors = list(legacy_vectors)
+        if not vectors:
+            raise ValueError(f"Empty vectors received for request_id='{request_id}'")
+        return np.asarray(vectors, dtype=np.float64)
 
     @staticmethod
     def sum(vectors: List[np.ndarray]) -> np.ndarray:
