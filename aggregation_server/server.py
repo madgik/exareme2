@@ -140,6 +140,9 @@ class AggregationServer(AggregationServerServicer):
     def Aggregate(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
         with agg_ctx.condition:
+            self._wait_for_mode_transition(
+                agg_ctx, target_mode="single", context=context
+            )
             if agg_ctx.state != "collecting":
                 self._wait_for_result_ready_locked(agg_ctx, request, context)
                 result = self._consume_single_result_locked(agg_ctx, context)
@@ -161,6 +164,9 @@ class AggregationServer(AggregationServerServicer):
     def AggregateBatch(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
         with agg_ctx.condition:
+            self._wait_for_mode_transition(
+                agg_ctx, target_mode="batch", context=context
+            )
             if agg_ctx.state != "collecting":
                 self._wait_for_result_ready_locked(agg_ctx, request, context)
                 results, offsets, tensors = self._consume_batch_result_locked(
@@ -354,6 +360,44 @@ class AggregationServer(AggregationServerServicer):
         agg_ctx.fail(timeout_exc)
         self._mark_acquired_and_maybe_reset_locked(agg_ctx)
         context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
+
+    def _wait_for_mode_transition(
+        self, agg_ctx: AggregationContext, target_mode: str, context
+    ) -> None:
+        # Wait while a previous round in a different mode finishes and is fully consumed.
+        while agg_ctx.mode is not None and agg_ctx.mode != target_mode:
+            notified = agg_ctx.condition.wait(
+                timeout=config.max_wait_for_aggregation_inputs
+            )
+            if not notified:
+                msg = (
+                    f"Previous aggregation mode '{agg_ctx.mode}' still in progress for "
+                    f"request_id='{agg_ctx.request_id}' "
+                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
+                )
+                logger.error(f"[AGGREGATE] {msg}")
+                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
+
+        while (
+            agg_ctx.state in {"ready", "failed"}
+            and agg_ctx.acquired_count < agg_ctx.expected_workers
+        ):
+            notified = agg_ctx.condition.wait(
+                timeout=config.max_wait_for_aggregation_inputs
+            )
+            if not notified:
+                msg = (
+                    f"Previous aggregation still being consumed for request_id='{agg_ctx.request_id}' "
+                    f"(delivered {agg_ctx.acquired_count}/{agg_ctx.expected_workers})"
+                )
+                logger.error(f"[AGGREGATE] {msg}")
+                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, msg)
+
+        if (
+            agg_ctx.state in {"ready", "failed"}
+            and agg_ctx.acquired_count >= agg_ctx.expected_workers
+        ):
+            agg_ctx.reset()
 
     def _consume_single_result_locked(
         self, agg_ctx: AggregationContext, context
