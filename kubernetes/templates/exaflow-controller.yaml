@@ -47,10 +47,6 @@ spec:
           value: {{ quote .Values.flower.execution_timeout }}
         - name: FLOWER_SERVER_PORT
           value: {{ quote .Values.flower.server_port }}
-        - name: WORKERS_CLEANUP_INTERVAL
-          value: {{ quote .Values.controller.workers_cleanup_interval }}
-        - name: WORKERS_CLEANUP_CONTEXTID_RELEASE_TIMELIMIT
-          value: "86400"  # One day in seconds
         - name: WORKER_TASKS_TIMEOUT
           value: {{ quote .Values.controller.worker_tasks_timeout }}
         - name: AGGREGATION_SERVER_ENABLED

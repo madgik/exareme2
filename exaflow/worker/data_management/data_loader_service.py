@@ -108,16 +108,50 @@ def _create_primary_data_table(
     table_name = f"{table_prefix}__primary_data"
     conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
 
+    column_map: dict[Path, list[str]] = {}
+    combined_columns: list[str] = []
+    for csv_path in csv_paths:
+        columns = _read_csv_columns(csv_path)
+        column_map[csv_path] = columns
+        for column in columns:
+            if column not in combined_columns:
+                combined_columns.append(column)
+
+    if not combined_columns:
+        raise ValueError(
+            "Unable to determine the column names for the provided CSV files."
+        )
+
     select_statements = []
     params: list[str] = []
     for csv_path in csv_paths:
+        csv_columns = column_map[csv_path]
+        select_fields = []
+        for column in combined_columns:
+            quoted_column = column.replace('"', '""')
+            if column in csv_columns:
+                select_fields.append(f'"{quoted_column}"')
+            else:
+                select_fields.append(f'NULL AS "{quoted_column}"')
+
         select_statements.append(
-            "SELECT * FROM read_csv_auto(?, HEADER=TRUE, UNION_BY_NAME=TRUE)"
+            "SELECT " + ", ".join(select_fields) + " FROM read_csv_auto(?, HEADER=TRUE)"
         )
         params.append(str(csv_path))
 
     query = " UNION ALL ".join(select_statements)
     conn.execute(f'CREATE TABLE "{table_name}" AS {query}', params)
+
+
+def _read_csv_columns(csv_path: Path) -> list[str]:
+    with csv_path.open(newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        try:
+            header = next(reader)
+        except StopIteration:
+            header = None
+
+    return header or []
 
 
 def _read_data_model_csvs(data_model_dir: Path) -> list[Path]:
@@ -195,7 +229,12 @@ def load_data_folder(request_id: str) -> str:
         data_model_id = 0
         dataset_id = 0
 
-        for data_model_dir in sorted(folder_path.glob("*/")):
+        candidate_dirs = [folder_path]
+        candidate_dirs.extend(
+            sorted(path for path in folder_path.glob("*/") if path.is_dir())
+        )
+
+        for data_model_dir in candidate_dirs:
             meta_path = Path(data_model_dir) / "CDEsMetadata.json"
             if not meta_path.exists():
                 continue
