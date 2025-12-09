@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 from concurrent import futures
+from typing import Optional
 
 import grpc
 from google.protobuf import json_format
@@ -29,6 +30,7 @@ from . import worker_pb2
 from . import worker_pb2_grpc
 
 LOGGER = logging.getLogger("WorkerGrpcServer")
+WORKER_HEALTH_SERVICE_NAME = "worker"
 
 
 def _worker_role_to_proto(role) -> int:
@@ -123,13 +125,21 @@ def _struct_to_dict(struct_message: struct_pb2.Struct) -> dict:
 
 
 class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
-    def __init__(self):
+    def __init__(self, *, health_servicer: Optional[health.HealthServicer] = None):
+        self._health_servicer = health_servicer
+        self._set_health_status(health_pb2.HealthCheckResponse.NOT_SERVING)
         try:
-            # use a synthetic request_id and optional folder from config
             data_loader_service.load_data_folder(request_id="startup")
             LOGGER.info("Data folder loaded successfully on startup.")
+            self._set_health_status(health_pb2.HealthCheckResponse.SERVING)
         except Exception as exc:  # noqa: BLE001
             LOGGER.exception("Failed to load data folder on startup", exc_info=exc)
+            self._set_health_status(health_pb2.HealthCheckResponse.NOT_SERVING)
+
+    def _set_health_status(self, status: int):
+        if self._health_servicer is None:
+            return
+        self._health_servicer.set(WORKER_HEALTH_SERVICE_NAME, status)
 
     def _handle_exception(self, context: grpc.ServicerContext, exc: Exception):
         if isinstance(exc, BadUserInput):
@@ -263,11 +273,12 @@ def serve() -> None:
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
     )
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    worker_pb2_grpc.add_WorkerServiceServicer_to_server(WorkerService(), server)
 
     health_servicer = health.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
-    health_servicer.set("worker", health_pb2.HealthCheckResponse.SERVING)
+
+    worker_service = WorkerService(health_servicer=health_servicer)
+    worker_pb2_grpc.add_WorkerServiceServicer_to_server(worker_service, server)
 
     listen_addr = f"{worker_config.grpc.ip}:{worker_config.grpc.port}"
     server.add_insecure_port(listen_addr)

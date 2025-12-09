@@ -14,6 +14,7 @@ from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.validation_utils import require_covariates
 from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
+from exaflow.worker_communication import BadUserInput
 
 DATASET_VAR_NAME = "dataset"
 ALGORITHM_NAME = "descriptive_stats"

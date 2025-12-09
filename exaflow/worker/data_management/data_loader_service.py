@@ -256,7 +256,8 @@ def load_data_folder(request_id: str) -> str:
 
             _create_primary_data_table(conn, table_prefix, csv_paths)
             _load_variables_metadata(conn, table_prefix, metadata)
-
+            properties = {}
+            properties["cdes"] = metadata
             conn.execute(
                 "INSERT INTO data_models VALUES (?, ?, ?, ?, ?, ?)",
                 [
@@ -265,7 +266,7 @@ def load_data_folder(request_id: str) -> str:
                     version,
                     metadata.get("label", code),
                     "ENABLED",
-                    json.dumps(metadata),
+                    json.dumps(properties),
                 ],
             )
 

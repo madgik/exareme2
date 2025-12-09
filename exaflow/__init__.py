@@ -1,6 +1,8 @@
 import glob
 import importlib
+import importlib.util
 import os
+import sys
 from os.path import basename
 from os.path import isfile
 from types import ModuleType
@@ -42,6 +44,31 @@ class AlgorithmNamesMismatchError(Exception):
         self.message = message
 
 
+def _resolve_package_import(module_path: str):
+    """
+    Try to derive a canonical dotted module path for ``module_path`` by walking
+    upwards while __init__.py files are present. Returns ``(import_path,
+    package_root)`` when found, otherwise ``(None, None)`` to signal that the
+    module lives outside a package.
+    """
+    module_dir = os.path.dirname(module_path)
+    package_parts = []
+    search_dir = module_dir
+
+    while os.path.isfile(os.path.join(search_dir, "__init__.py")):
+        package_parts.append(os.path.basename(search_dir))
+        search_dir = os.path.dirname(search_dir)
+
+    if not package_parts:
+        return None, None
+
+    package_parts.reverse()
+    module_name = os.path.splitext(os.path.basename(module_path))[0]
+    import_path = ".".join(package_parts + [module_name])
+    package_root = os.path.abspath(search_dir or os.curdir)
+    return import_path, package_root
+
+
 def import_algorithm_modules(algorithm_folders: str) -> Dict[str, ModuleType]:
     """
     Import all algorithm modules from the given folder paths.
@@ -61,18 +88,27 @@ def import_algorithm_modules(algorithm_folders: str) -> Dict[str, ModuleType]:
         algorithm_names = [
             basename(module_path)[:-3] for module_path in algorithm_module_paths
         ]
-        specs = [
-            importlib.util.spec_from_file_location(algorithm_name, module_path)
-            for algorithm_name, module_path in zip(
-                algorithm_names, algorithm_module_paths
-            )
-        ]
-        modules = {
-            name: importlib.util.module_from_spec(spec)
-            for name, spec in zip(algorithm_names, specs)
-        }
-        for spec, module in zip(specs, modules.values()):
-            spec.loader.exec_module(module)
+        modules = {}
+        for algorithm_name, module_path in zip(algorithm_names, algorithm_module_paths):
+            import_path, package_root = _resolve_package_import(module_path)
+            module_obj = None
+
+            if import_path:
+                if package_root not in sys.path:
+                    sys.path.append(package_root)
+                try:
+                    module_obj = importlib.import_module(import_path)
+                except ModuleNotFoundError:
+                    module_obj = None
+
+            if module_obj is None:
+                spec = importlib.util.spec_from_file_location(
+                    algorithm_name, module_path
+                )
+                module_obj = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module_obj)
+
+            modules[algorithm_name] = module_obj
         all_modules.update(modules)
     return all_modules
 

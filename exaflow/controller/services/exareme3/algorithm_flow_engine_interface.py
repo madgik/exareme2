@@ -48,7 +48,10 @@ class ExaflowAlgorithmFlowEngineInterface:
         if self._raw_inputdata:
             params["raw_inputdata"] = self._raw_inputdata.json()
 
-        with ThreadPoolExecutor(max_workers=len(self._tasks_handlers)) as executor:
+        executor = ThreadPoolExecutor(max_workers=len(self._tasks_handlers))
+        future_to_index = {}
+        pending = set()
+        try:
             future_to_index = {
                 executor.submit(
                     task_handler.run_udf,
@@ -57,7 +60,15 @@ class ExaflowAlgorithmFlowEngineInterface:
                 ): idx
                 for idx, task_handler in enumerate(self._tasks_handlers)
             }
+            pending = set(future_to_index)
             for future in as_completed(future_to_index):
                 idx = future_to_index[future]
                 results[idx] = future.result()
+                pending.discard(future)
+        except Exception:
+            for future in future_to_index:
+                future.cancel()
+            raise
+        finally:
+            executor.shutdown(wait=not pending, cancel_futures=bool(pending))
         return results
