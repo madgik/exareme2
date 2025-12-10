@@ -170,14 +170,17 @@ def gaussian_nb_cv_local_step(
     if n_rows < n_splits:
         confmats_global: List[np.ndarray] = []
         n_obs_per_fold: List[int] = []
-        counts_zero = np.zeros(counts_shape, dtype=float)
-        sums_zero = np.zeros(counts_shape, dtype=float)
-        sums_sq_zero = np.zeros(counts_shape, dtype=float)
         conf_zero = np.zeros(conf_shape, dtype=float)
+        empty_df = data.iloc[0:0].copy()
+        empty_df[y_var] = pd.Categorical(empty_df[y_var], categories=class_labels)
         for _ in range(n_splits):
-            agg_client.sum(counts_zero)
-            agg_client.sum(sums_zero)
-            agg_client.sum(sums_sq_zero)
+            model = GaussianNB(
+                y_var=y_var,
+                x_vars=x_vars,
+                labels=class_labels,
+                var_smoothing=VAR_SMOOTHING,
+            )
+            model.fit(empty_df, agg_client)
             agg_client.sum(conf_zero.ravel())
             confmats_global.append(conf_zero.copy())
             n_obs_per_fold.append(0)
