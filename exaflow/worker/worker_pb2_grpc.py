@@ -142,6 +142,7 @@ class WorkerServiceServicer(object):
 
 
 def add_WorkerServiceServicer_to_server(servicer, server):
+    print(f"DEBUG: Adding servicer {servicer} to server", flush=True)
     rpc_method_handlers = {
         "GetWorkerInfo": grpc.unary_unary_rpc_method_handler(
             servicer.GetWorkerInfo,
@@ -199,10 +200,27 @@ def add_WorkerServiceServicer_to_server(servicer, server):
             response_serializer=worker__pb2.RunUdfResponse.SerializeToString,
         ),
     }
+    print(
+        f"DEBUG: rpc_method_handlers keys: {list(rpc_method_handlers.keys())}",
+        flush=True,
+    )
     generic_handler = grpc.method_handlers_generic_handler(
         "exaflow.worker.api.WorkerService", rpc_method_handlers
     )
-    server.add_generic_rpc_handlers((generic_handler,))
+
+    class DebugHandler(grpc.GenericRpcHandler):
+        def service(self, handler_call_details):
+            print(f"DEBUG: Request for {handler_call_details.method}", flush=True)
+            return generic_handler.service(handler_call_details)
+
+    server.add_generic_rpc_handlers((DebugHandler(),))
+
+    class DebugHandler(grpc.GenericRpcHandler):
+        def service(self, handler_call_details):
+            print(f"DEBUG: Request for {handler_call_details.method}", flush=True)
+            return generic_handler.service(handler_call_details)
+
+    server.add_generic_rpc_handlers((DebugHandler(),))
 
 
 # This class is part of an EXPERIMENTAL API.
