@@ -29,6 +29,9 @@ class ExaflowUDFAggregationClientI(ABC):
         self, aggregation_type: AggregationType, values: ArrayInput
     ) -> np.ndarray: ...
 
+    @abstractmethod
+    def unregister(self) -> tuple[str, int]: ...
+
     def sum(self, values: ArrayInput) -> np.ndarray:
         return self.aggregate(AggregationType.SUM, values)
 

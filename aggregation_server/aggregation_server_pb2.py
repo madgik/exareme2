@@ -14,14 +14,14 @@ _sym_db = _symbol_database.Default()
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x18\x61ggregation_server.proto\x12\x12\x61ggregation_server">\n\x10\x43onfigureRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x16\n\x0enum_of_workers\x18\x02 \x01(\x05"#\n\x11\x43onfigureResponse\x12\x0e\n\x06status\x18\x01 \x01(\t"a\n\x10\x41ggregateRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x18\n\x10\x61ggregation_type\x18\x02 \x01(\t\x12\x0f\n\x07vectors\x18\x03 \x03(\x01\x12\x0e\n\x06tensor\x18\x04 \x01(\x0c"3\n\x11\x41ggregateResponse\x12\x0e\n\x06result\x18\x01 \x03(\x01\x12\x0e\n\x06tensor\x18\x02 \x01(\x0c"F\n\tOperation\x12\x18\n\x10\x61ggregation_type\x18\x01 \x01(\t\x12\x0f\n\x07vectors\x18\x02 \x03(\x01\x12\x0e\n\x06tensor\x18\x03 \x01(\x0c"^\n\x15\x41ggregateBatchRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x31\n\noperations\x18\x02 \x03(\x0b\x32\x1d.aggregation_server.Operation"K\n\x16\x41ggregateBatchResponse\x12\x0f\n\x07results\x18\x01 \x03(\x01\x12\x0f\n\x07offsets\x18\x02 \x03(\x05\x12\x0f\n\x07tensors\x18\x03 \x03(\x0c"$\n\x0e\x43leanupRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t"!\n\x0f\x43leanupResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2\x84\x03\n\x11\x41ggregationServer\x12X\n\tConfigure\x12$.aggregation_server.ConfigureRequest\x1a%.aggregation_server.ConfigureResponse\x12X\n\tAggregate\x12$.aggregation_server.AggregateRequest\x1a%.aggregation_server.AggregateResponse\x12g\n\x0e\x41ggregateBatch\x12).aggregation_server.AggregateBatchRequest\x1a*.aggregation_server.AggregateBatchResponse\x12R\n\x07\x43leanup\x12".aggregation_server.CleanupRequest\x1a#.aggregation_server.CleanupResponseb\x06proto3'
+    b'\n\x18\x61ggregation_server.proto\x12\x12\x61ggregation_server">\n\x10\x43onfigureRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x16\n\x0enum_of_workers\x18\x02 \x01(\x05"#\n\x11\x43onfigureResponse\x12\x0e\n\x06status\x18\x01 \x01(\t"a\n\x10\x41ggregateRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x18\n\x10\x61ggregation_type\x18\x02 \x01(\t\x12\x0f\n\x07vectors\x18\x03 \x03(\x01\x12\x0e\n\x06tensor\x18\x04 \x01(\x0c"3\n\x11\x41ggregateResponse\x12\x0e\n\x06result\x18\x01 \x03(\x01\x12\x0e\n\x06tensor\x18\x02 \x01(\x0c"F\n\tOperation\x12\x18\n\x10\x61ggregation_type\x18\x01 \x01(\t\x12\x0f\n\x07vectors\x18\x02 \x03(\x01\x12\x0e\n\x06tensor\x18\x03 \x01(\x0c"^\n\x15\x41ggregateBatchRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t\x12\x31\n\noperations\x18\x02 \x03(\x0b\x32\x1d.aggregation_server.Operation"K\n\x16\x41ggregateBatchResponse\x12\x0f\n\x07results\x18\x01 \x03(\x01\x12\x0f\n\x07offsets\x18\x02 \x03(\x05\x12\x0f\n\x07tensors\x18\x03 \x03(\x0c"$\n\x0e\x43leanupRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t"!\n\x0f\x43leanupResponse\x12\x0e\n\x06status\x18\x01 \x01(\t"\'\n\x11UnregisterRequest\x12\x12\n\nrequest_id\x18\x01 \x01(\t"?\n\x12UnregisterResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\x12\x19\n\x11remaining_workers\x18\x02 \x01(\x05\x32\xe1\x03\n\x11\x41ggregationServer\x12X\n\tConfigure\x12$.aggregation_server.ConfigureRequest\x1a%.aggregation_server.ConfigureResponse\x12[\n\nUnregister\x12%.aggregation_server.UnregisterRequest\x1a&.aggregation_server.UnregisterResponse\x12X\n\tAggregate\x12$.aggregation_server.AggregateRequest\x1a%.aggregation_server.AggregateResponse\x12g\n\x0e\x41ggregateBatch\x12).aggregation_server.AggregateBatchRequest\x1a*.aggregation_server.AggregateBatchResponse\x12R\n\x07\x43leanup\x12".aggregation_server.CleanupRequest\x1a#.aggregation_server.CleanupResponseb\x06proto3'
 )
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "aggregation_server_pb2", _globals)
-if _descriptor._USE_C_DESCRIPTORS == False:
-    DESCRIPTOR._options = None
+if not _descriptor._USE_C_DESCRIPTORS:
+    DESCRIPTOR._loaded_options = None
     _globals["_CONFIGUREREQUEST"]._serialized_start = 48
     _globals["_CONFIGUREREQUEST"]._serialized_end = 110
     _globals["_CONFIGURERESPONSE"]._serialized_start = 112
@@ -40,6 +40,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
     _globals["_CLEANUPREQUEST"]._serialized_end = 582
     _globals["_CLEANUPRESPONSE"]._serialized_start = 584
     _globals["_CLEANUPRESPONSE"]._serialized_end = 617
-    _globals["_AGGREGATIONSERVER"]._serialized_start = 620
-    _globals["_AGGREGATIONSERVER"]._serialized_end = 1008
+    _globals["_UNREGISTERREQUEST"]._serialized_start = 619
+    _globals["_UNREGISTERREQUEST"]._serialized_end = 658
+    _globals["_UNREGISTERRESPONSE"]._serialized_start = 660
+    _globals["_UNREGISTERRESPONSE"]._serialized_end = 723
+    _globals["_AGGREGATIONSERVER"]._serialized_start = 726
+    _globals["_AGGREGATIONSERVER"]._serialized_end = 1207
 # @@protoc_insertion_point(module_scope)

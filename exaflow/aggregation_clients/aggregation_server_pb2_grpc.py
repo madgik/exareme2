@@ -19,6 +19,11 @@ class AggregationServerStub(object):
             request_serializer=aggregation__server__pb2.ConfigureRequest.SerializeToString,
             response_deserializer=aggregation__server__pb2.ConfigureResponse.FromString,
         )
+        self.Unregister = channel.unary_unary(
+            "/aggregation_server.AggregationServer/Unregister",
+            request_serializer=aggregation__server__pb2.UnregisterRequest.SerializeToString,
+            response_deserializer=aggregation__server__pb2.UnregisterResponse.FromString,
+        )
         self.Aggregate = channel.unary_unary(
             "/aggregation_server.AggregationServer/Aggregate",
             request_serializer=aggregation__server__pb2.AggregateRequest.SerializeToString,
@@ -40,6 +45,12 @@ class AggregationServerServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Configure(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
+    def Unregister(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -70,6 +81,11 @@ def add_AggregationServerServicer_to_server(servicer, server):
             servicer.Configure,
             request_deserializer=aggregation__server__pb2.ConfigureRequest.FromString,
             response_serializer=aggregation__server__pb2.ConfigureResponse.SerializeToString,
+        ),
+        "Unregister": grpc.unary_unary_rpc_method_handler(
+            servicer.Unregister,
+            request_deserializer=aggregation__server__pb2.UnregisterRequest.FromString,
+            response_serializer=aggregation__server__pb2.UnregisterResponse.SerializeToString,
         ),
         "Aggregate": grpc.unary_unary_rpc_method_handler(
             servicer.Aggregate,
@@ -116,6 +132,35 @@ class AggregationServer(object):
             "/aggregation_server.AggregationServer/Configure",
             aggregation__server__pb2.ConfigureRequest.SerializeToString,
             aggregation__server__pb2.ConfigureResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def Unregister(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/aggregation_server.AggregationServer/Unregister",
+            aggregation__server__pb2.UnregisterRequest.SerializeToString,
+            aggregation__server__pb2.UnregisterResponse.FromString,
             options,
             channel_credentials,
             insecure,

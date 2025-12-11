@@ -2,10 +2,10 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from typing import List
 
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_registry
 from exaflow.algorithms.exareme3.exaflow_registry import get_udf_registry_key
 from exaflow.controller import logger as ctrl_logger
 from exaflow.controller.services.exareme3.tasks_handler import ExaflowTasksHandler
+from exaflow.worker_communication import InsufficientDataError
 
 
 def add_ordered_enums(data_dict):
@@ -63,7 +63,15 @@ class ExaflowAlgorithmFlowEngineInterface:
             pending = set(future_to_index)
             for future in as_completed(future_to_index):
                 idx = future_to_index[future]
-                results[idx] = future.result()
+                try:
+                    results[idx] = future.result()
+                except InsufficientDataError as exc:
+                    self._logger.warning(
+                        "Worker %s returned insufficient data and will be skipped: %s",
+                        self._tasks_handlers[idx].worker_id,
+                        exc,
+                    )
+                    results[idx] = None
                 pending.discard(future)
         except Exception:
             for future in future_to_index:
@@ -71,4 +79,9 @@ class ExaflowAlgorithmFlowEngineInterface:
             raise
         finally:
             executor.shutdown(wait=not pending, cancel_futures=bool(pending))
-        return results
+        filtered_results = [res for res in results if res is not None]
+        if not filtered_results:
+            raise InsufficientDataError(
+                "No workers had sufficient data to run the requested algorithm."
+            )
+        return filtered_results

@@ -11,6 +11,7 @@ from exaflow.worker import config as worker_config
 from exaflow.worker.exareme3.udf.udf_db import load_algorithm_arrow_table
 from exaflow.worker.utils.logger import get_logger
 from exaflow.worker.utils.logger import initialise_logger
+from exaflow.worker_communication import InsufficientDataError
 
 
 def enforce_enum_order(data_dict):
@@ -77,6 +78,18 @@ def run_udf(
         include_dataset=include_dataset,
         extra_columns=extra_columns if extra_columns else None,
     )
+    num_rows = data.num_rows
+    min_required = worker_config.privacy.minimum_row_count
+    if num_rows < min_required:
+        agg_client = params.get("agg_client")
+        if agg_client:
+            try:
+                agg_client.unregister()
+            finally:
+                agg_client.close()
+        raise InsufficientDataError(
+            f"Insufficient data returned {num_rows} rows; minimum required is {min_required}."
+        )
 
     if preprocessing and "longitudinal_transformer" in preprocessing:
         data = apply_longitudinal_transformation(

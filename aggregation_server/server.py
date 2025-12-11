@@ -18,6 +18,7 @@ from .aggregation_server_pb2 import AggregateBatchResponse
 from .aggregation_server_pb2 import AggregateResponse
 from .aggregation_server_pb2 import CleanupResponse
 from .aggregation_server_pb2 import ConfigureResponse
+from .aggregation_server_pb2 import UnregisterResponse
 from .aggregation_server_pb2_grpc import AggregationServerServicer
 from .aggregation_server_pb2_grpc import add_AggregationServerServicer_to_server
 from .constants import AggregationType
@@ -136,6 +137,38 @@ class AggregationServer(AggregationServerServicer):
             f"with expected workers: {request.num_of_workers}"
         )
         return ConfigureResponse(status="Configured")
+
+    def Unregister(self, request, context):
+        agg_ctx = self._get_aggregation_context(request.request_id, context)
+        with agg_ctx.condition:
+            if agg_ctx.expected_workers <= 1:
+                msg = (
+                    f"[UNREGISTER] request_id='{request.request_id}' cannot go below 1 worker "
+                    f"(current: {agg_ctx.expected_workers})"
+                )
+                logger.warning(msg)
+                return UnregisterResponse(
+                    status="Minimum worker count reached",
+                    remaining_workers=agg_ctx.expected_workers,
+                )
+
+            agg_ctx.expected_workers -= 1
+            logger.info(
+                f"[UNREGISTER] request_id='{request.request_id}' decreased expected workers "
+                f"to {agg_ctx.expected_workers}"
+            )
+
+            try:
+                self._maybe_finalize_after_unregister_locked(agg_ctx, context)
+            except Exception as exc:
+                self._handle_failure(agg_ctx, exc, context)
+            finally:
+                agg_ctx.condition.notify_all()
+
+        return UnregisterResponse(
+            status="Unregistered one worker",
+            remaining_workers=agg_ctx.expected_workers,
+        )
 
     def Aggregate(self, request, context):
         agg_ctx = self._get_aggregation_context(request.request_id, context)
@@ -436,6 +469,24 @@ class AggregationServer(AggregationServerServicer):
     ) -> None:
         agg_ctx.acquired_count += 1
         if agg_ctx.acquired_count >= agg_ctx.expected_workers:
+            agg_ctx.reset()
+
+    def _maybe_finalize_after_unregister_locked(
+        self, agg_ctx: AggregationContext, context
+    ) -> None:
+        if agg_ctx.state == "collecting":
+            received = self._received_count(agg_ctx)
+            if received >= agg_ctx.expected_workers:
+                if agg_ctx.mode == "single" and agg_ctx.aggregation_type:
+                    self._compute_single_locked(agg_ctx)
+                elif agg_ctx.mode == "batch" and agg_ctx.batch_ops:
+                    self._compute_batch_locked(agg_ctx)
+            return
+
+        if (
+            agg_ctx.state in {"ready", "failed"}
+            and agg_ctx.acquired_count >= agg_ctx.expected_workers
+        ):
             agg_ctx.reset()
 
     def _handle_failure(

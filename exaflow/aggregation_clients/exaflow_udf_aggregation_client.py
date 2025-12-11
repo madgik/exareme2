@@ -1,5 +1,6 @@
 import numpy as np
 
+import exaflow.aggregation_clients.aggregation_server_pb2 as pb2
 from exaflow.aggregation_clients import AggregationType
 from exaflow.aggregation_clients import BaseAggregationClient
 from exaflow.algorithms.exareme3.exaflow_udf_aggregation_client_interface import (
@@ -39,3 +40,9 @@ class ExaflowUDFAggregationClient(BaseAggregationClient, ExaflowUDFAggregationCl
                 agg_np = agg_np.reshape(arr.shape)
             results.append(agg_np)
         return results
+
+    def unregister(self) -> tuple[str, int]:
+        response = self._stub.Unregister(
+            pb2.UnregisterRequest(request_id=self._request_id)
+        )
+        return response.status, response.remaining_workers

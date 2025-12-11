@@ -4,6 +4,7 @@ package aggregation_server;
 
 service AggregationServer {
   rpc Configure (ConfigureRequest) returns (ConfigureResponse);
+  rpc Unregister (UnregisterRequest) returns (UnregisterResponse);
   rpc Aggregate (AggregateRequest) returns (AggregateResponse);
   rpc AggregateBatch (AggregateBatchRequest) returns (AggregateBatchResponse);
   rpc Cleanup (CleanupRequest) returns (CleanupResponse);
@@ -53,4 +54,13 @@ message CleanupRequest {
 
 message CleanupResponse {
   string status = 1;
+}
+
+message UnregisterRequest {
+  string request_id = 1;
+}
+
+message UnregisterResponse {
+  string status = 1;
+  int32 remaining_workers = 2;
 }

@@ -15,6 +15,9 @@ from exaflow.aggregation_clients.constants import AggregationType
 from exaflow.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
 )
+from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
+    ExaflowUDFAggregationClient,
+)
 
 
 class InlineRpcError(grpc.RpcError):
@@ -67,6 +70,9 @@ def inline_grpc_stub(monkeypatch):
     class InlineStub:
         def Configure(self, request):
             return servicer.Configure(request, InlineGrpcContext())
+
+        def Unregister(self, request):
+            return servicer.Unregister(request, InlineGrpcContext())
 
         def Aggregate(self, request):
             return servicer.Aggregate(request, InlineGrpcContext())
@@ -485,3 +491,20 @@ def test_cleanup_handles_offline_server(controller_factory, monkeypatch):
 
     status = controller.cleanup()
     assert status == "AggregationServer already offline"
+
+
+def test_unregister_reduces_expected_workers(controller_factory):
+    request_id = "udf-unregister"
+    controller = controller_factory(request_id)
+    controller.configure(2)
+    client = ExaflowUDFAggregationClient(request_id)
+
+    status, remaining = client.unregister()
+    assert status == "Unregistered one worker"
+    assert remaining == 1
+
+    result = client.aggregate(AggregationType.SUM, [1.0, 2.5, -3.0])
+    np.testing.assert_allclose(result, np.array([1.0, 2.5, -3.0]))
+
+    controller.cleanup()
+    client.close()
