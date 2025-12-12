@@ -1,6 +1,7 @@
 from typing import List
 
 from exaflow import exaflow_algorithm_classes
+from exaflow.aggregation_clients import aggregation_server_pb2 as agg_pb2
 from exaflow.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
 )
@@ -90,7 +91,7 @@ class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
         status = agg_client.configure(
             num_workers=len(self._local_worker_tasks_handlers)
         )
-        if status != "Configured":
+        if status != agg_pb2.Status.OK:
             raise RuntimeError(f"AggregationServer refused to configure: {status}")
         self._logger.debug(f"Aggregation configured: {status}")
 

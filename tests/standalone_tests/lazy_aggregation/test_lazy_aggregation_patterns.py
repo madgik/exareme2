@@ -82,7 +82,7 @@ def test_dummy_aggregation_batches_and_results():
     result = aggregation(agg_client=agg)
 
     # Expect sum for x, then batch for y and m together (m is independent)
-    assert agg.calls == [("sum", 1), ("batch", 2)]
+    assert agg.calls == [("batch", 1), ("batch", 2)]
 
     assert result["x_global"] == 10.0
     assert result["z_local"] == 11.0
@@ -105,7 +105,7 @@ def _expect_logistic(calls):
             "pca",
             stats.pca,
             lambda: (np.array([[1.0, 2.0], [3.0, 4.0]], dtype=float),),
-            _expect_exact([("batch", 3), ("sum", 4)]),
+            _expect_exact([("batch", 3), ("batch", 1)]),
         ),
         (
             "pearson",
@@ -174,7 +174,7 @@ def test_lazy_agg_handles_global_mutation_and_globals():
     agg = RecordingAggClient()
     first, second = aggregation_with_globals(agg)
 
-    assert agg.calls == [("sum", 1), ("sum", GLOBAL_INPUT.size)]
+    assert agg.calls == [("batch", 1), ("batch", 1)]
     assert GLOBAL_BUFFER == [1.0]
     assert first == 1.0
     assert second == float(GLOBAL_INPUT.reshape(-1)[0])
@@ -219,7 +219,7 @@ def test_lazy_agg_flushes_when_side_effect_present():
     agg = RecordingAggClient()
     a, b = side_effects_flush_batches(agg)
 
-    assert agg.calls == [("sum", 1), ("sum", 1)]
+    assert agg.calls == [("batch", 1), ("batch", 1)]
     assert SIDE_EFFECT_LOG == ["touched"]
     assert a == 1.0 and b == 2.0
 

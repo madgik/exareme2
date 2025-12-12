@@ -29,11 +29,6 @@ class AggregationServerStub(object):
             request_serializer=aggregation__server__pb2.AggregateRequest.SerializeToString,
             response_deserializer=aggregation__server__pb2.AggregateResponse.FromString,
         )
-        self.AggregateBatch = channel.unary_unary(
-            "/aggregation_server.AggregationServer/AggregateBatch",
-            request_serializer=aggregation__server__pb2.AggregateBatchRequest.SerializeToString,
-            response_deserializer=aggregation__server__pb2.AggregateBatchResponse.FromString,
-        )
         self.Cleanup = channel.unary_unary(
             "/aggregation_server.AggregationServer/Cleanup",
             request_serializer=aggregation__server__pb2.CleanupRequest.SerializeToString,
@@ -57,12 +52,6 @@ class AggregationServerServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def Aggregate(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
-
-    def AggregateBatch(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -92,11 +81,6 @@ def add_AggregationServerServicer_to_server(servicer, server):
             request_deserializer=aggregation__server__pb2.AggregateRequest.FromString,
             response_serializer=aggregation__server__pb2.AggregateResponse.SerializeToString,
         ),
-        "AggregateBatch": grpc.unary_unary_rpc_method_handler(
-            servicer.AggregateBatch,
-            request_deserializer=aggregation__server__pb2.AggregateBatchRequest.FromString,
-            response_serializer=aggregation__server__pb2.AggregateBatchResponse.SerializeToString,
-        ),
         "Cleanup": grpc.unary_unary_rpc_method_handler(
             servicer.Cleanup,
             request_deserializer=aggregation__server__pb2.CleanupRequest.FromString,
@@ -107,6 +91,9 @@ def add_AggregationServerServicer_to_server(servicer, server):
         "aggregation_server.AggregationServer", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers(
+        "aggregation_server.AggregationServer", rpc_method_handlers
+    )
 
 
 # This class is part of an EXPERIMENTAL API.
@@ -190,35 +177,6 @@ class AggregationServer(object):
             "/aggregation_server.AggregationServer/Aggregate",
             aggregation__server__pb2.AggregateRequest.SerializeToString,
             aggregation__server__pb2.AggregateResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
-
-    @staticmethod
-    def AggregateBatch(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            "/aggregation_server.AggregationServer/AggregateBatch",
-            aggregation__server__pb2.AggregateBatchRequest.SerializeToString,
-            aggregation__server__pb2.AggregateBatchResponse.FromString,
             options,
             channel_credentials,
             insecure,

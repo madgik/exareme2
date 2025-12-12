@@ -18,31 +18,21 @@ class AggregationServerStub(object):
             "/aggregation_server.AggregationServer/Configure",
             request_serializer=aggregation__server__pb2.ConfigureRequest.SerializeToString,
             response_deserializer=aggregation__server__pb2.ConfigureResponse.FromString,
-            _registered_method=True,
         )
         self.Unregister = channel.unary_unary(
             "/aggregation_server.AggregationServer/Unregister",
             request_serializer=aggregation__server__pb2.UnregisterRequest.SerializeToString,
             response_deserializer=aggregation__server__pb2.UnregisterResponse.FromString,
-            _registered_method=True,
         )
         self.Aggregate = channel.unary_unary(
             "/aggregation_server.AggregationServer/Aggregate",
             request_serializer=aggregation__server__pb2.AggregateRequest.SerializeToString,
             response_deserializer=aggregation__server__pb2.AggregateResponse.FromString,
-            _registered_method=True,
-        )
-        self.AggregateBatch = channel.unary_unary(
-            "/aggregation_server.AggregationServer/AggregateBatch",
-            request_serializer=aggregation__server__pb2.AggregateBatchRequest.SerializeToString,
-            response_deserializer=aggregation__server__pb2.AggregateBatchResponse.FromString,
-            _registered_method=True,
         )
         self.Cleanup = channel.unary_unary(
             "/aggregation_server.AggregationServer/Cleanup",
             request_serializer=aggregation__server__pb2.CleanupRequest.SerializeToString,
             response_deserializer=aggregation__server__pb2.CleanupResponse.FromString,
-            _registered_method=True,
         )
 
 
@@ -62,12 +52,6 @@ class AggregationServerServicer(object):
         raise NotImplementedError("Method not implemented!")
 
     def Aggregate(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
-
-    def AggregateBatch(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details("Method not implemented!")
@@ -96,11 +80,6 @@ def add_AggregationServerServicer_to_server(servicer, server):
             servicer.Aggregate,
             request_deserializer=aggregation__server__pb2.AggregateRequest.FromString,
             response_serializer=aggregation__server__pb2.AggregateResponse.SerializeToString,
-        ),
-        "AggregateBatch": grpc.unary_unary_rpc_method_handler(
-            servicer.AggregateBatch,
-            request_deserializer=aggregation__server__pb2.AggregateBatchRequest.FromString,
-            response_serializer=aggregation__server__pb2.AggregateBatchResponse.SerializeToString,
         ),
         "Cleanup": grpc.unary_unary_rpc_method_handler(
             servicer.Cleanup,
@@ -149,7 +128,6 @@ class AggregationServer(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -179,7 +157,6 @@ class AggregationServer(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -209,37 +186,6 @@ class AggregationServer(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
-        )
-
-    @staticmethod
-    def AggregateBatch(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            "/aggregation_server.AggregationServer/AggregateBatch",
-            aggregation__server__pb2.AggregateBatchRequest.SerializeToString,
-            aggregation__server__pb2.AggregateBatchResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True,
         )
 
     @staticmethod
@@ -269,5 +215,4 @@ class AggregationServer(object):
             wait_for_ready,
             timeout,
             metadata,
-            _registered_method=True,
         )

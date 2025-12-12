@@ -8,6 +8,7 @@ import grpc
 import numpy as np
 import pytest
 
+from aggregation_server import aggregation_server_pb2 as server_pb2
 from aggregation_server import config as aggregation_config
 from aggregation_server.server import AggregationServer
 from exaflow.aggregation_clients.base_aggregation_client import BaseAggregationClient
@@ -50,7 +51,8 @@ def _wait_for_batch_mode(
     deadline = time.time() + timeout
     while time.time() < deadline:
         ctx = servicer.aggregation_contexts.get(request_id)
-        if ctx and ctx.mode == "batch":
+        # Wait until the aggregation context has initialized batch operations
+        if ctx and ctx.batch_ops:
             return
         time.sleep(0.01)
     raise AssertionError(f"Batch mode not initialized for {request_id}")
@@ -76,9 +78,6 @@ def inline_grpc_stub(monkeypatch):
 
         def Aggregate(self, request):
             return servicer.Aggregate(request, InlineGrpcContext())
-
-        def AggregateBatch(self, request):
-            return servicer.AggregateBatch(request, InlineGrpcContext())
 
         def Cleanup(self, request):
             return servicer.Cleanup(request, InlineGrpcContext())
@@ -126,34 +125,34 @@ def worker_factory():
 
 def test_configure_returns_configured_status(controller_factory):
     controller = controller_factory("cfg-success")
-    assert controller.configure(1) == "Configured"
+    assert controller.configure(1) == server_pb2.Status.OK
 
 
 def test_duplicate_configure_returns_warning(controller_factory):
     controller = controller_factory("cfg-duplicate")
     controller.configure(1)
     status = controller.configure(1)
-    assert status == "Already configured for this request_id"
+    assert status == server_pb2.Status.ALREADY_CONFIGURED
 
 
 def test_cleanup_without_configuration_returns_no_context(controller_factory):
     controller = controller_factory("cleanup-empty")
     status = controller.cleanup()
-    assert status == "No aggregation found for request_id"
+    assert status == server_pb2.Status.NOT_FOUND
 
 
 def test_cleanup_after_configuration_without_activity(controller_factory):
     controller = controller_factory("cleanup-configured")
     controller.configure(1)
     status = controller.cleanup()
-    assert status == "Cleaned up"
+    assert status == server_pb2.Status.OK
 
 
 def test_cleanup_twice_reports_missing_context(controller_factory):
     controller = controller_factory("cleanup-twice")
     controller.configure(1)
-    assert controller.cleanup() == "Cleaned up"
-    assert controller.cleanup() == "No aggregation found for request_id"
+    assert controller.cleanup() == server_pb2.Status.OK
+    assert controller.cleanup() == server_pb2.Status.NOT_FOUND
 
 
 def test_single_worker_sum_returns_input(controller_factory, worker_factory):
@@ -490,7 +489,7 @@ def test_cleanup_handles_offline_server(controller_factory, monkeypatch):
     )
 
     status = controller.cleanup()
-    assert status == "AggregationServer already offline"
+    assert status == server_pb2.Status.ERROR
 
 
 def test_unregister_reduces_expected_workers(controller_factory):
@@ -500,7 +499,7 @@ def test_unregister_reduces_expected_workers(controller_factory):
     client = ExaflowUDFAggregationClient(request_id)
 
     status, remaining = client.unregister()
-    assert status == "Unregistered one worker"
+    assert status == server_pb2.Status.OK
     assert remaining == 1
 
     result = client.aggregate(AggregationType.SUM, [1.0, 2.5, -3.0])

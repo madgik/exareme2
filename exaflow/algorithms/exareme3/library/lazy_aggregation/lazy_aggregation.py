@@ -30,14 +30,6 @@ class LazyAggregationExecutor:
         # Prefer a batch call if the client supports it
         aggregate_batch = getattr(self.agg_client, "aggregate_batch", None)
         if aggregate_batch:
-            # If there's only one op, call the specific method to avoid
-            # recording an artificial "batch(1)" when not needed.
-            if len(batch) == 1:
-                op, value = batch[0]
-                method = getattr(self.agg_client, op, None)
-                if method:
-                    return [method(value)]
-
             try:
 
                 class AggregationType(Enum):

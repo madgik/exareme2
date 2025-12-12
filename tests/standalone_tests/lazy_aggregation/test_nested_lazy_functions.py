@@ -24,4 +24,4 @@ def test_nested_functions_are_rewritten_and_batched():
     assert a == 3.0
     assert b == 3.0
     # Inner batches two sums and outer single sum; order may reorder but both must appear.
-    assert agg.calls == [("batch", 2), ("sum", 1)]
+    assert agg.calls == [("batch", 2), ("batch", 1)]

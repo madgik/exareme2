@@ -64,9 +64,9 @@ class Result(BaseModel):
 
 class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        variable_names = [
-            v for v in (self.inputdata.x + self.inputdata.y) if v != DATASET_VAR_NAME
-        ]
+        x_vars = self.inputdata.x or []
+        y_vars = self.inputdata.y or []
+        variable_names = [v for v in (x_vars + y_vars) if v != DATASET_VAR_NAME]
         # Allow either x or y to be supplied, but require at least one variable overall.
         if not variable_names:
             raise BadUserInput("Descriptive statistics requires at least one variable.")

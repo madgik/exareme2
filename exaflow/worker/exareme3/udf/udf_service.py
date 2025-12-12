@@ -52,7 +52,8 @@ def run_udf(
             getattr(getattr(worker_config, "aggregation_server", {}), "dns", None)
             or None
         )
-        params["agg_client"] = AggregationClient(request_id, aggregator_dns=agg_dns)
+        agg_client = AggregationClient(request_id, aggregator_dns=agg_dns)
+        params["agg_client"] = agg_client
 
     logger = get_logger()
     if "metadata" in params:

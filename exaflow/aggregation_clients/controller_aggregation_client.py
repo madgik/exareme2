@@ -26,7 +26,7 @@ class ControllerAggregationClient(ControllerAggregationClientI, BaseAggregationC
             return response.status
         except grpc._channel._InactiveRpcError:
             # aggregation_server already shut down remotely – not an error
-            return "AggregationServer already offline"
+            return pb2.Status.ERROR
 
     def __enter__(self) -> ControllerAggregationClient:
         return self

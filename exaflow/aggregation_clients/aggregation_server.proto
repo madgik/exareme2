@@ -2,11 +2,20 @@ syntax = "proto3";
 
 package aggregation_server;
 
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  OK = 1;
+  ALREADY_CONFIGURED = 2;
+  NOT_FOUND = 3;
+  MIN_WORKERS = 4;
+  TIMEOUT = 5;
+  ERROR = 6;
+}
+
 service AggregationServer {
   rpc Configure (ConfigureRequest) returns (ConfigureResponse);
   rpc Unregister (UnregisterRequest) returns (UnregisterResponse);
   rpc Aggregate (AggregateRequest) returns (AggregateResponse);
-  rpc AggregateBatch (AggregateBatchRequest) returns (AggregateBatchResponse);
   rpc Cleanup (CleanupRequest) returns (CleanupResponse);
 }
 
@@ -16,19 +25,8 @@ message ConfigureRequest {
 }
 
 message ConfigureResponse {
-  string status = 1;
-}
-
-message AggregateRequest {
-  string request_id = 1;
-  string aggregation_type = 2;
-  repeated double vectors = 3;
-  bytes tensor = 4;
-}
-
-message AggregateResponse {
-  repeated double result = 1;
-  bytes tensor = 2;
+  Status status = 1;
+  string status_message = 2;
 }
 
 message Operation {
@@ -37,12 +35,13 @@ message Operation {
   bytes tensor = 3;
 }
 
-message AggregateBatchRequest {
+message AggregateRequest {
   string request_id = 1;
-  repeated Operation operations = 2;
+  int32 step = 2;
+  repeated Operation operations = 3;
 }
 
-message AggregateBatchResponse {
+message AggregateResponse {
   repeated double results = 1;
   repeated int32 offsets = 2;
   repeated bytes tensors = 3;
@@ -53,7 +52,8 @@ message CleanupRequest {
 }
 
 message CleanupResponse {
-  string status = 1;
+  Status status = 1;
+  string status_message = 2;
 }
 
 message UnregisterRequest {
@@ -61,6 +61,7 @@ message UnregisterRequest {
 }
 
 message UnregisterResponse {
-  string status = 1;
-  int32 remaining_workers = 2;
+  Status status = 1;
+  string status_message = 2;
+  int32 remaining_workers = 3;
 }

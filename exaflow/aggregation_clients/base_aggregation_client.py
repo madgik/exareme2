@@ -24,6 +24,7 @@ DEFAULT_AGGREGATION_PORT = "50051"
 class BaseAggregationClient:
     def __init__(self, request_id: str, aggregator_dns: str | None = None):
         self._request_id = request_id
+        self._step_counter = 1
 
         target = aggregator_dns or f"172.17.0.1:{DEFAULT_AGGREGATION_PORT}"
         # If a DNS name is provided, ensure a port is present and resolve it
@@ -53,25 +54,25 @@ class BaseAggregationClient:
         )
         self._stub = pb2_grpc.AggregationServerStub(self._channel)
 
+    def _next_step(self) -> int:
+        step = self._step_counter
+        self._step_counter += 1
+        return step
+
     def _aggregate_request(
-        self, aggregation_type: AggregationType, flat_values: ArrayInput
+        self,
+        aggregation_type: AggregationType,
+        flat_values: ArrayInput,
+        *,
+        step: int | None = None,
     ) -> NDArray[np.floating]:
-        tensor = ndarray_to_bytes(np.asarray(flat_values, dtype=np.float64))
-        req = pb2.AggregateRequest(
-            request_id=self._request_id,
-            aggregation_type=aggregation_type.value,
-            tensor=tensor,
+        results = self._aggregate_batch_request(
+            [(aggregation_type, flat_values)], step=step
         )
-        logger.debug(
-            "[AGGREGATE] req_id=%s comp=%s", self._request_id, aggregation_type
-        )
-        resp = self._stub.Aggregate(req)
-        if resp.tensor:
-            return bytes_to_ndarray(resp.tensor)
-        return np.asarray(resp.result, dtype=np.float64)
+        return results[0]
 
     def _aggregate_batch_request(
-        self, ops: list[tuple[AggregationType, ArrayInput]]
+        self, ops: list[tuple[AggregationType, ArrayInput]], *, step: int | None = None
     ) -> list[NDArray[np.floating]]:
         operations = [
             pb2.Operation(
@@ -80,10 +81,12 @@ class BaseAggregationClient:
             )
             for op, vals in ops
         ]
-        req = pb2.AggregateBatchRequest(
-            request_id=self._request_id, operations=operations
+        req = pb2.AggregateRequest(
+            request_id=self._request_id,
+            step=step or self._next_step(),
+            operations=operations,
         )
-        resp = self._stub.AggregateBatch(req)
+        resp = self._stub.Aggregate(req)
         if resp.tensors:
             return [bytes_to_ndarray(tensor) for tensor in resp.tensors]
 
