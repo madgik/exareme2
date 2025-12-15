@@ -71,8 +71,8 @@ def get_parametrization_list_exception_cases():
     }
 
     expected_response = (
-        460,
-        "Logistic regression cannot run because the number of observations is smaller than the number of predictors. Please add more predictors or select more observations.",
+        461,
+        "The algorithm could not run with the input provided because there are insufficient data.",
     )
     parametrization_list.append((algorithm_name, request_dict, expected_response))
 
