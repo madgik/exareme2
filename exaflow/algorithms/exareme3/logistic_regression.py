@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_class
 from exaflow.algorithms.exareme3.library.logistic_common import compute_logistic_summary
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
@@ -137,6 +138,7 @@ def logistic_regression_local_step(
     data = data.loc[:, cols]
 
     # y_var is now guaranteed to be a single 1D column, not a 2D frame
+    positive_class = coerce_positive_class(data[y_var], positive_class)
     y = data[y_var].eq(positive_class).to_numpy(dtype=float, copy=False).reshape(-1, 1)
 
     X = build_design_matrix(

@@ -12,6 +12,7 @@ from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import buffered_kfold_split
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
 from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_class
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
 )
@@ -332,7 +333,8 @@ def logistic_regression_cv_local_step(
         dummy_categories=dummy_categories,
         numerical_vars=numerical_vars,
     )
-    y = (data[y_var] == positive_class).astype(float).to_numpy().reshape(-1, 1)
+    positive_class = coerce_positive_class(data[y_var], positive_class)
+    y = data[y_var].eq(positive_class).astype(float).to_numpy().reshape(-1, 1)
 
     n_rows = X.shape[0]
     if n_rows < n_splits:

@@ -30,6 +30,38 @@ def handle_logreg_errors(nobs: int, p: int, y_sum: float):
         raise BadUserInput(msg)
 
 
+def coerce_positive_class(series, positive_class):
+    """
+    Try to cast `positive_class` to the dtype of the provided pandas Series.
+
+    This avoids silent mismatches such as comparing numeric columns to a string
+    representation of the class label.
+    """
+    if positive_class is None:
+        return positive_class
+
+    try:
+        dtype = series.dtype
+    except Exception:
+        return positive_class
+
+    try:
+        if hasattr(dtype, "type"):
+            return dtype.type(positive_class)
+    except Exception:
+        pass
+
+    try:
+        first_valid = series.dropna()
+        if len(first_valid):
+            sample = first_valid.iloc[0]
+            return type(sample)(positive_class)
+    except Exception:
+        pass
+
+    return positive_class
+
+
 def max_abs(values: np.ndarray) -> float:
     return float(np.max(np.abs(values))) if len(values) else 0.0
 
