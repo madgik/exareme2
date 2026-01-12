@@ -116,13 +116,6 @@
    inv deploy
    ```
 
-1. _Optional_ Load the data into the db with
-   (It is compulsory if you want to run an algorithm)
-
-   ```
-   inv load-data
-   ```
-
 1. Attach to some service's stdout/stderr with
 
    ```
