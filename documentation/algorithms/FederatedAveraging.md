@@ -2,7 +2,7 @@
 
 #### Some General Remarks
 
-The general architecture of Exareme 2 follows a Master/Worker paradigm where many Workers
+The general architecture of Exaflow follows a Master/Worker paradigm where many Workers
 , operating in multiple locations, are coordinated by one Master. Only Workers
 are allowed access to the anonymized data in each location and the Master only
 sees aggregate data, derived from the full data and sent to him by the Workers.

@@ -1,7 +1,7 @@
 {
     "name": "ttest_paired",
     "desc": "Test the difference in means between two related groups.",
-    "label": "T-Test Paired (Exaflow)",
+    "label": "T-Test Paired",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
     "type": "exaflow",

@@ -1,7 +1,7 @@
 {
     "name": "multiple_histograms",
     "desc": "Multiple Histograms",
-    "label": "Multiple Histograms (Exaflow)",
+    "label": "Multiple Histograms",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
     "type": "exaflow",

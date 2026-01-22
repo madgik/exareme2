@@ -41,7 +41,7 @@ We are going to use Loki to perform log search across the federation, go to:
 ```
 Explore ->
   At the top of the page select Loki ->
-    As label filters add "Namespace" = "default" (that will search only in exareme containers) ->
+    As label filters add "Namespace" = "default" (that will search only in exaflow containers) ->
       In the "Line Contains" field add the text to search for. ->
         Logs from all containers will be aggregated at the bottom.
 ```

@@ -1,7 +1,7 @@
 {
     "name": "descriptive_stats",
     "desc": "Descriptive statistics",
-    "label": "Descriptive statistics (Exaflow)",
+    "label": "Descriptive statistics",
     "enabled": true,
     "components": [],
     "type": "exaflow",

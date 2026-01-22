@@ -26,10 +26,10 @@ Each worker on initialization load all preset data within the data path.
 kind delete cluster
 ```
 
-2. Create the cluster using the prod_env_tests setup (you can create a custom one if you want) :
+2. Create the cluster using the prod_env_tests setup (you can create a custom one if you want):
 
 ```
-kind create cluster --config tests/prod_env_tests/kind_configuration/kind_cluster.yaml
+kind create cluster --config tests/prod_env_tests/deployment_configs/kind_configuration/kind_cluster.yaml
 ```
 
 3. After the nodes are started, you need to taint them properly:
@@ -53,34 +53,37 @@ kubectl label node master nodeType=master
 <br />Taint and label the worker nodes
 
 ```
-kubectl label node worker1 nodeType=worker
-kubectl label node worker2 nodeType=worker
+kubectl label node kind-worker nodeType=worker
+kubectl label node kind-worker2 nodeType=worker
+kubectl label node kind-worker3 nodeType=worker
 ```
 
-4. (Optional) Build and load the docker images for the kuberentes cluster. If this step is ommited, the images will be pulled from dockerhub, which will most likely be slower, depending on the speed of your connection
+4. (Optional) Build and load the docker images for the kubernetes cluster. If this step is omitted, the images will be pulled from dockerhub, which will most likely be slower, depending on the speed of your connection. Make sure the tag you build matches `exaflow_images.version` in `kubernetes/values.yaml` (or override it during `helm install`).
 
 First, build the images:
 <br />(you can execute these in separate terminals, concurrently)
 
 ```
-docker build -f exaflow/worker/Dockerfile -t madgik/exaflow_worker:latest ./
-docker build -f exaflow/controller/Dockerfile -t madgik/exaflow_controller:latest ./
+docker build -f exaflow/worker/Dockerfile -t madgik/exaflow_worker:<TAG> ./
+docker build -f exaflow/controller/Dockerfile -t madgik/exaflow_controller:<TAG> ./
+docker build -f aggregation_server/Dockerfile -t madgik/exaflow_aggregation_server:<TAG> ./
 ```
 
 Second, load the docker images to the kuberentes cluster
 
 ```
-kind load docker-image madgik/exaflow_worker:latest
-kind load docker-image madgik/exaflow_controller:latest --nodes kind-control-plane
+kind load docker-image madgik/exaflow_worker:<TAG>
+kind load docker-image madgik/exaflow_controller:<TAG>
+kind load docker-image madgik/exaflow_aggregation_server:<TAG>
 ```
 
 5. Deploy the Exaflow kubernetes pods using helm charts:
 
 ```
-helm install exaflow kubernetes/
+helm install exaflow kubernetes/ --set exaflow_images.version=<TAG>
 ```
 
-6. (Validation) You can then run the prod_env_tests to see if the deploymnt is working (it might take about a minute for services to sync):
+6. (Validation) You can then run the prod_env_tests to see if the deployment is working (it might take about a minute for services to sync):
 
 ```
 poetry run pytest tests/prod_env_tests/

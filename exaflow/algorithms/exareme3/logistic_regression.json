@@ -1,7 +1,7 @@
 {
     "name": "logistic_regression",
     "desc": "Statistical method modeling the relationship between a binary dependent variable and independent variables using logistic regression.",
-    "label": "Logistic Regression (Exaflow)",
+    "label": "Logistic Regression",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
     "type": "exaflow",

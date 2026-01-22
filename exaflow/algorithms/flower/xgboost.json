@@ -1,7 +1,7 @@
 {
     "name": "xgboost",
     "desc": "xgboost",
-    "label": "XGBoost on Flower",
+    "label": "XGBoost",
     "enabled": true,
     "type": "flower",
     "components": ["FLOWER"],

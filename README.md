@@ -8,8 +8,6 @@
    It is important to install `poetry` in isolation, so follow the
    recommended installation method.
 
-1.
-
 ## Setup
 
 #### Environment Setup
@@ -138,6 +136,12 @@
 
 1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exaflow/worker/config.toml` template.
 
+1. Create the controller config at `./configs/controller/controller.toml` using `./exaflow/controller/config.toml` as a template, and set the `localworkers.config_file` field to `./configs/controller/localworkers_config.json`.
+
+1. Create the localworkers config file at `./configs/controller/localworkers_config.json` with the list of worker `ip:grpc_port` entries.
+
+1. If aggregation server is enabled, create `./configs/aggregation_server/aggregation_server.toml` using `./aggregation_server/config.toml` as a template.
+
 #### Start monitoring tools
 
 1. Start Flower monitoring tool
@@ -169,7 +173,7 @@
   ./run_algorithm -a pca -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1
   ```
   ```
-  ./run_algorithm -a pearson -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1 -p alpha 0.95
+  ./run_algorithm -a pearson_correlation -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1 -p alpha 0.95
   ```
 
 # Acknowledgement

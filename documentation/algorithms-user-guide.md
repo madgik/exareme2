@@ -17,7 +17,7 @@
 - [Advanced topics](#advanced-topics)
   - [UDF registry and decorator options](#udf-registry-and-decorator-options)
   - [Metadata and preprocessing helpers](#metadata-and-preprocessing-helpers)
-  - [Secure multi-party computation](#secure-multi-party-computation)
+  - [Aggregation server (SUM/MIN/MAX)](#aggregation-server-summinmax)
 - [Best practices](#best-practices)
   - [Memory efficiency](#memory-efficiency)
   - [Time efficiency](#time-efficiency)
@@ -32,17 +32,17 @@
 # Intro
 
 This guide will walk you through the process of writing federated algorithms
-using Exareme. Exareme's focus is primarily on machine learning and statistical
+using Exaflow. Exaflow's focus is primarily on machine learning and statistical
 algorithms, but the framework is so general as to allow any type of algorithm
 to be implemented, provided that the input data is scattered across multiple
 decentralized data sources.
 
 ## System Overview
 
-Exareme consists of multiple services distributed across remote workers. There
-are multiple local workers and a single global worker. Local workers host primary
-data sources, while the global worker is responsible for receiving data from
-local workers and perform global computations.
+Exaflow consists of a controller service plus worker services distributed across
+remote sites. There are multiple local workers and a single global worker. Local
+workers host primary data sources, while the global worker performs global
+computations coordinated by the controller.
 
 # Getting started
 
@@ -67,7 +67,7 @@ written as a simple python script, running on a single machine. The purpose of
 this exercise is to illustrate how an algorithm is decomposed into local and
 global steps, and how the flow coordinates these steps. Later, we'll add the
 necessary ingredients in order to be able to run the algorithm in an actual
-federated environment, using Exareme.
+federated environment, using Exaflow.
 
 Since we will run the algorithm on a single machine we will represent the
 federated data as a list of dataframes `data: list[pandas.DataFrame]`.
@@ -151,7 +151,7 @@ older Exareme2 stack and revolve around the `Algorithm` base class,
 ### Declaring worker steps
 
 Exaflow discovers worker-side logic through the
-`exaflow.algorithms.exareme3.exaflow_registry.exaflow_udf` decorator. When you
+`exaflow.algorithms.exareme3.exareme3_registry.exaflow_udf` decorator. When you
 decorate a function with `@exaflow_udf`, it gets registered under a stable
 key, can be dispatched to every participating worker, and receives the
 arguments that the flow passes via `engine.run_algorithm_udf`.
@@ -164,7 +164,7 @@ Every worker step receives:
 - Any additional keyword arguments provided by the flow.
 
 ```python
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 
 
 @exaflow_udf()
@@ -191,8 +191,14 @@ subsequent computations. There is no longer a split between "local" and
 "global" UDFs—global logic is written directly in Python inside the flow.
 
 ```python
+from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.validation_utils import require_covariates
+
+
+class MeanResult(BaseModel):
+    variable: str
+    mean: float
 
 
 class MeanAlgorithm(Algorithm, algname="mean"):
@@ -213,7 +219,7 @@ class MeanAlgorithm(Algorithm, algname="mean"):
         sx = sum(payload["sx"] for payload in worker_payloads)
         n = sum(payload["n"] for payload in worker_payloads)
 
-        return {"variable": column, "mean": sx / n}
+        return MeanResult(variable=column, mean=sx / n)
 ```
 
 `run_algorithm_udf` schedules the registered UDF on every participating worker
@@ -241,9 +247,9 @@ loader via parameters passed alongside the UDF call:
   the data (for example, the longitudinal transformer injects subject-id and
   visit-id columns by setting these fields).
 
-If a worker ends up with zero eligible rows (because of dataset selection,
-filters, or the privacy threshold), it simply returns an empty result and the
-flow must handle it when aggregating.
+If a worker ends up with insufficient rows (because of dataset selection,
+filters, or the privacy threshold), it raises `InsufficientDataError` and the
+controller skips that worker when aggregating.
 
 ### Algorithm Specifications
 
@@ -298,7 +304,7 @@ interact with most frequently.
 
 ## UDF registry and decorator options
 
-`exaflow.algorithms.exareme3.exaflow_registry` exposes the decorator used in
+`exaflow.algorithms.exareme3.exareme3_registry` exposes the decorator used in
 all flows:
 
 - Every decorated function is registered under a stable key derived from the
@@ -317,7 +323,7 @@ all flows:
 
 ```python
 import numpy as np
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 
 
 @exaflow_udf(with_aggregation_server=True)
@@ -362,22 +368,16 @@ Treat these helpers as building blocks: copy the patterns from
 `exaflow/algorithms/exareme3/logistic_regression.py`,
 `linear_regression.py`, or `descriptive_stats.py` when you need similar logic.
 
-## Secure multi-party computation
+## Aggregation server (SUM/MIN/MAX)
 
-Secure multi-party computation is a cryptographic technique used when multiple
-parties want to jointly perform a computation on their data, usually some form
-of aggregation, but wish for their individual data to remain private. For more
-details see
-[Wikipedia](https://en.wikipedia.org/wiki/Secure_multi-party_computation). In
-Exaflow reuses the Exareme3 secure aggregation server for SUM/MIN/MAX
-operations. Instead of returning `secure_transfer` payloads, algorithms opt in
-by using the aggregation client described earlier. The runtime automatically
-encrypts the values sent by each worker, and only the aggregated result is
-returned to the flow.
+The aggregation server provides centralized SUM/MIN/MAX operations across
+workers. Algorithms opt in by using the aggregation client described earlier
+(`with_aggregation_server=True`). The runtime forwards arrays to the aggregation
+service and only the aggregated result is returned to the flow.
 
 ```python
 import numpy as np
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 
 
 @exaflow_udf(with_aggregation_server=True)
@@ -385,7 +385,7 @@ def privacy_preserving_counts(data, agg_client, categories):
     matrix = np.stack(
         [data[cat].value_counts(dropna=False).reindex(categories, fill_value=0)]
     )
-    # The aggregation server sums the matrices securely
+    # The aggregation server sums the matrices across workers
     total_counts = agg_client.sum(matrix)
     return {"counts": total_counts.tolist()}
 ```
@@ -398,11 +398,10 @@ privacy guarantees required by Exaflow deployments.
 
 ## Memory efficiency
 
-The whole point of translating Python functions into database UDFs (see [UDF
-registry and decorator options](#udf-registry-and-decorator-options)) is to avoid unnecessary data copying, as the
-database can transfer data to UDFs with zero cost. If we are not careful when
-writing `udf` functions, we could end up performing numerous unnecessary copies
-of the original data, effectively canceling the zero-cost transfer.
+Worker UDFs receive a pandas `DataFrame` materialized by the runtime (see [UDF
+registry and decorator options](#udf-registry-and-decorator-options)). If we are
+not careful when writing `udf` functions, we could end up performing numerous
+unnecessary copies of the original data, effectively inflating memory usage.
 
 For example, say we want to compute the product of three matrices, `A`, `B` and
 `C`, and then sum the elements of the final resulting matrix. The result is a
@@ -468,7 +467,7 @@ round, instead of two.
 
 Privacy is a very subtle subject. In the context of federated analytics it
 means to protect individual datapoints residing in local workers, as these might
-correspond to a person's sensitive personal data. Exareme allows the user to
+correspond to a person's sensitive personal data. Exaflow allows the user to
 learn something about a large group of individuals through statistics, but
 tries to prevent any individual's information to leak.
 
@@ -519,8 +518,13 @@ should see the `run_distributed_logistic_regression` helper used by the
 algorithm](https://github.com/madgik/exaflow/blob/main/exaflow/algorithms/exareme3/logistic_regression.py).
 
 ```python
+from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+
+
+class IterationResult(BaseModel):
+    value: float
 
 
 @exaflow_udf()
@@ -547,7 +551,7 @@ class MyAlgorithm(Algorithm, algname="iterative"):
             if abs(gradient) < 1e-3:
                 break
 
-        return val
+        return IterationResult(value=val)
 ```
 
 Here we initialize `val` to 0 and start the iteration. In each step the flow
@@ -566,6 +570,7 @@ model to the data, and the second does prediction on new data. Both methods coul
 algorithm, see for example [here](https://github.com/madgik/exaflow/blob/main/exaflow/algorithms/exareme3/linear_regression_cv.py).
 
 ```python
+from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 
 
@@ -586,6 +591,10 @@ class MyModel:
         )
 
 
+class PredictionResult(BaseModel):
+    predictions: list
+
+
 class MyAlgorithm(Algorithm, algname="complex_algorithm"):
     def run(self, metadata):
         model = MyModel(self.engine)
@@ -593,7 +602,7 @@ class MyAlgorithm(Algorithm, algname="complex_algorithm"):
 
         new_inputdata = self.inputdata.copy(update={"datasets": ["validation"]})
         predictions = model.predict(new_inputdata.json())
-        return {"predictions": predictions}
+        return PredictionResult(predictions=predictions)
 ```
 
 ## Customizing worker inputs

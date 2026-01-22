@@ -22,6 +22,8 @@ ______________________________________________________________________
 
 Following, there is a general example of how we would test any algorithm. Bear in mind, this is an example that serves to guide the developer to create a similar example, using mostly the logic of the test, not the code. The purpose is to outline the major areas that should be tested in each algorithm to ensure the algorithm developed will yield the proper results without retesting robust components.
 
+Note: The code blocks below are illustrative pseudo-code. Replace the placeholder client/server imports with the actual modules under `exaflow/algorithms/flower/<algorithm>/` (for example, `logistic_regression_fedaverage_flower/client.py` and `server.py`).
+
 ______________________________________________________________________
 
 ## Test Client (Generic)
@@ -31,8 +33,9 @@ ______________________________________________________________________
 import pytest
 import numpy as np
 from sklearn.base import BaseEstimator
-from exaflow.algorithms.flower.generic_algorithm.client import GenericAlgorithmClient
-from exaflow.algorithms.flower.utils import get_model_parameters, set_model_params
+# Replace these placeholders with the algorithm-specific Flower client and utils.
+from your_algorithm.client import YourAlgorithmClient
+from your_algorithm.utils import get_model_parameters, set_model_params
 
 
 @pytest.fixture
@@ -45,7 +48,7 @@ def sample_data():
 def test_client_training(sample_data):
     X_train, y_train = sample_data
     model = BaseEstimator()  # Replace with actual model class
-    client = GenericAlgorithmClient(model, X_train, y_train)
+    client = YourAlgorithmClient(model, X_train, y_train)
 
     parameters = client.get_parameters()
     new_parameters, num_examples, _ = client.fit(parameters, {})
@@ -56,7 +59,7 @@ def test_client_training(sample_data):
 def test_client_evaluation(sample_data):
     X_train, y_train = sample_data
     model = BaseEstimator()  # Replace with actual model class
-    client = GenericAlgorithmClient(model, X_train, y_train)
+    client = YourAlgorithmClient(model, X_train, y_train)
 
     parameters = client.get_parameters()
     loss, num_examples, metrics = client.evaluate(parameters, {})
@@ -73,7 +76,8 @@ def test_client_evaluation(sample_data):
 import pytest
 from unittest.mock import patch
 from sklearn.base import BaseEstimator
-from exaflow.algorithms.flower.generic_algorithm.server import get_evaluate_fn, configure_round
+# Replace these placeholders with the algorithm-specific Flower server functions.
+from your_algorithm.server import get_evaluate_fn, configure_round
 
 
 def test_server_aggregation():

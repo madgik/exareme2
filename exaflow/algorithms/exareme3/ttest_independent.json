@@ -1,7 +1,7 @@
 {
     "name": "ttest_independent",
     "desc": "Test the difference in means between two independent groups.",
-    "label": "T-Test Independent (Exaflow)",
+    "label": "T-Test Independent",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
     "type": "exaflow",

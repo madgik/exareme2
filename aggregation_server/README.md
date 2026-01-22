@@ -1,4 +1,4 @@
-# Exareme-2 Aggregation Server
+# Exaflow Aggregation Server
 
 A lightweight gRPC microservice that performs **federated vector aggregation**
 (`SUM`, `MIN`, `MAX`) from multiple worker nodes.
@@ -7,7 +7,13 @@ ______________________________________________________________________
 
 ## Features
 
-## | Capability | Description | |--------------|-------------| | **gRPC API** | Defined in [`aggregation_server.proto`](aggregation_server.proto) – three unary RPCs (`Configure`, `Aggregate`, `Cleanup`). | | **Concurrency** | Thread-pool server (configurable worker pool). | | **Idempotent requests** | Same `request_id` may be re-used for multiple aggregation rounds. |
+| Capability | Description |
+| --- | --- |
+| **gRPC API** | Defined in [`aggregation_server.proto`](aggregation_server.proto) – unary RPCs `Configure`, `Aggregate`, `Cleanup`, `Unregister`. |
+| **Aggregation modes** | `SUM`, `MIN`, `MAX` over vectors; `Aggregate` accepts repeated operations in one call. |
+| **Payload formats** | Vectors can be sent as repeated doubles or Arrow tensor bytes. |
+| **Concurrency** | Thread-pool server (configurable worker pool). |
+| **Request lifecycle** | A `request_id` can span multiple steps until `Cleanup` resets the context. |
 
 ## Docker
 

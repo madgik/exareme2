@@ -36,7 +36,6 @@ flwr = "^1.23.0"
 grpcio-tools = "1.62.3"
 grpcio = "1.62.3"
 statsmodels = "^0.14.5"
-graphviz = "^0.21"
 
 [tool.poetry.dev-dependencies]
 pytest = "~8.4"
