@@ -35,5 +35,4 @@ These tests are run:
 
 ### Other folders
 
-- `tests/algorithms`, `tests/test_data`, and `tests/testcase_generators` hold fixtures, expected inputs/outputs, and generators.
-- `tests/k6` contains load-test scripts (see its README).
+- `tests/algorithms`, `tests/test_data`, and `tests/testcase_generators` hold demo/test algorithms, test datasets, and test case generators.
