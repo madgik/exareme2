@@ -13,14 +13,14 @@ jobs:
       - name: syncmaster
         uses: wei/git-sync@v3
         with:
-          source_repo: "madgik/Exaflow"
+          source_repo: "https://${{ secrets.GITHUB_TOKEN }}@github.com/madgik/Exaflow.git"
           source_branch: "master"
           destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/Exareme2.git"
           destination_branch: "master"
       - name: synctags
         uses: wei/git-sync@v3
         with:
-          source_repo: "madgik/Exaflow"
+          source_repo: "https://${{ secrets.GITHUB_TOKEN }}@github.com/madgik/Exaflow.git"
           source_branch: "refs/tags/*"
           destination_repo: "https://ghpusher:${{ secrets.EBRAINS_GITLAB_ACCESS_TOKEN }}@gitlab.ebrains.eu/hbp-mip/Exareme2.git"
           destination_branch: "refs/tags/*"
