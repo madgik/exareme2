@@ -233,6 +233,9 @@ jobs:
         with:
           run: kubectl logs -l nodeType=localworker -c worker --tail -1
 
+      - name: Wait before WLA update
+        run: sleep 5
+
       - name: Run Worker Landscape Aggregator update
         run: curl -X POST "http://172.17.0.1:5000/wla"
 
