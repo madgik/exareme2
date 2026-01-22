@@ -1,16 +1,31 @@
 #!/usr/bin/env python3
 """
-Standalone script to structure and combine test datasets per worker.
+This is a script to convert the broken dataset structure (edsd0, edsd1 ...) that resides in the test_data folder to
+worker-friendly dataset structure.
+
+The resulting new folder structure is:
+.data_paths
+-->  globalworker
+----> dementia_0.1
+------> CDEsMetadata.json
+------> dementia.csv
+-->  localworker1
+----> dementia_0.1
+------> CDEsMetadata.json
+------> dementia.csv
+-->  localworker2
+----> dementia_0.1
+------> CDEsMetadata.json
+------> dementia.csv
+
+CLI usage:
+    python worker_data_paths_builder.py --local-workers worker1 worker2
+    python worker_data_paths_builder.py --local-workers worker1 worker2 --global-worker myglobal --test-data-folder path/to/folder
 
 Defaults:
     global worker  -> "globalworker"
     test data path -> "tests/test_data"
 
-CLI usage:
-    python workers_data_path_builder.py
-    python workers_data_path_builder.py --local-workers worker1 worker2
-    python workers_data_path_builder.py --global-worker myglobal
-    python workers_data_path_builder.py --test-data-folder path/to/folder
 """
 
 import argparse
@@ -220,7 +235,6 @@ def parse_args():
 def main():
     args = parse_args()
 
-    # 🔥 REQUIRE local workers
     if not args.local_workers:
         print(
             "ERROR: --local-workers must be provided with at least one worker.",
