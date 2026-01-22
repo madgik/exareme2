@@ -72,7 +72,7 @@ jobs:
       - name: Run Flower algorithm validation tests (with resource summary)
         run: |
           set -o pipefail
-          eval "$(python3 scripts/ci/cgroup_snapshot.py)"
+          eval "$(python3 .github/scripts/cgroup_snapshot.py)"
           TIME_LOG=$(mktemp)
           set +e
           /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/flower/ \
@@ -89,14 +89,14 @@ jobs:
           if [ -n "${CGROUP_BASELINE_PEAK:-}" ]; then
             REPORT_ARGS+=(--baseline-runner-peak "$CGROUP_BASELINE_PEAK")
           fi
-          python3 scripts/ci/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
+          python3 .github/scripts/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
           cat "$TIME_LOG"
           exit $TEST_EXIT_CODE
 
       - name: Run Exaflow algorithm validation tests (with resource summary)
         run: |
           set -o pipefail
-          eval "$(python3 scripts/ci/cgroup_snapshot.py)"
+          eval "$(python3 .github/scripts/cgroup_snapshot.py)"
           TIME_LOG=$(mktemp)
           set +e
           /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exareme3 \
@@ -111,7 +111,7 @@ jobs:
           if [ -n "${CGROUP_BASELINE_PEAK:-}" ]; then
             REPORT_ARGS+=(--baseline-runner-peak "$CGROUP_BASELINE_PEAK")
           fi
-          python3 scripts/ci/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
+          python3 .github/scripts/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
           cat "$TIME_LOG"
           exit $TEST_EXIT_CODE
 
@@ -183,7 +183,7 @@ jobs:
       - name: Run Exaflow algorithm validation tests (with resource summary)
         run: |
           set -o pipefail
-          eval "$(python3 scripts/ci/cgroup_snapshot.py)"
+          eval "$(python3 .github/scripts/cgroup_snapshot.py)"
           TIME_LOG=$(mktemp)
           set +e
           /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/exareme3/ \
@@ -199,14 +199,14 @@ jobs:
           if [ -n "${CGROUP_BASELINE_PEAK:-}" ]; then
             REPORT_ARGS+=(--baseline-runner-peak "$CGROUP_BASELINE_PEAK")
           fi
-          python3 scripts/ci/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
+          python3 .github/scripts/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
           cat "$TIME_LOG"
           exit $TEST_EXIT_CODE
 
       - name: Run Flower algorithm validation tests (with resource summary)
         run: |
           set -o pipefail
-          eval "$(python3 scripts/ci/cgroup_snapshot.py)"
+          eval "$(python3 .github/scripts/cgroup_snapshot.py)"
           TIME_LOG=$(mktemp)
           set +e
           /usr/bin/time -v -o "$TIME_LOG" poetry run pytest tests/algorithm_validation_tests/flower \
@@ -224,6 +224,6 @@ jobs:
           if [ -n "${CGROUP_BASELINE_PEAK:-}" ]; then
             REPORT_ARGS+=(--baseline-runner-peak "$CGROUP_BASELINE_PEAK")
           fi
-          python3 scripts/ci/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
+          python3 .github/scripts/report_time_stats.py "$TIME_LOG" "${REPORT_ARGS[@]}"
           cat "$TIME_LOG"
           exit $TEST_EXIT_CODE
