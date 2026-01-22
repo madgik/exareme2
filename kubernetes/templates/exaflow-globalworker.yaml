@@ -111,6 +111,14 @@ spec:
               - exaflow.worker.healthcheck
           periodSeconds: 30
           timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+              - python
+              - -m
+              - exaflow.worker.healthcheck
+          periodSeconds: 10
+          timeoutSeconds: 10
   {{- if .Values.managed_cluster }}
   volumeClaimTemplates:
   - metadata:
