@@ -1,0 +1,67 @@
+{
+    "name": "ttest_onesample",
+    "desc": "Test the difference in mean of a single sample with a population mean. It assumes that the sample is drawn from a normal distribution.",
+    "label": "T-Test One-Sample",
+    "enabled": true,
+    "components": ["AGGREGATION_SERVER"],
+    "type": "exaflow",
+    "inputdata": {
+        "y": {
+            "label": "Variable",
+            "desc": "Variable of interest.",
+            "types": [
+                "real",
+                "int"
+            ],
+            "stattypes": [
+                "numerical"
+            ],
+            "notblank": true,
+            "multiple": false
+        }
+    },
+    "parameters": {
+        "alt_hypothesis": {
+            "label": "Alternative Hypothesis",
+            "desc": "Specifies whether the result is less than, greater than, or two-sided.",
+            "types": [
+                "text"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": "two-sided",
+            "enums": {
+                "type": "list",
+                "source": [
+                    "two-sided",
+                    "less",
+                    "greater"
+                ]
+            }
+        },
+        "alpha": {
+            "label": "Alpha",
+            "desc": "The significance level. The probability of rejecting the null hypothesis when it is true.",
+            "types": [
+                "real"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 0.05,
+            "min": 0.0,
+            "max": 1.0
+        },
+        "mu": {
+            "label": "Population mean",
+            "desc": "The population mean, if it is known, else it defaults to 0.",
+            "types": [
+                "real"
+            ],
+            "notblank": true,
+            "multiple": false,
+            "default": 0.0,
+            "min": -10.0,
+            "max": 10.0
+        }
+    }
+}

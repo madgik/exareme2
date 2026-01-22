@@ -1,5 +1,5 @@
-from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
-from tests.algorithm_validation_tests.exareme2.helpers import parse_response
+from tests.algorithm_validation_tests.exareme3.conftest import algorithm_request
+from tests.algorithm_validation_tests.exareme3.conftest import parse_response
 
 algorithm_name = "logistic_regression_fedaverage_flower"
 

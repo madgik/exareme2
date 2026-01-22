@@ -1,4 +1,4 @@
-# Exareme2 [![Maintainability](https://qlty.sh/gh/madgik/projects/MIP-Engine/maintainability.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine) [![Code Coverage](https://qlty.sh/gh/madgik/projects/MIP-Engine/coverage.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine)
+# exaflow [![Maintainability](https://qlty.sh/gh/madgik/projects/MIP-Engine/maintainability.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine) [![Code Coverage](https://qlty.sh/gh/madgik/projects/MIP-Engine/coverage.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine)
 
 ### Prerequisites
 
@@ -45,20 +45,12 @@
    federation = "dementia"
    log_level = "DEBUG"
    framework_log_level ="INFO"
-   monetdb_image = "madgik/exareme2_db:dev"
-   rabbitmq_image = "madgik/exareme2_rabbitmq:dev"
 
-   monetdb_nclients = 128
-   monetdb_memory_limit = 2048 # MB
+   flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
+   exareme3_algorithm_folders = "./exaflow/algorithms/exareme3,./tests/algorithms/exareme3"
 
-   exareme2_algorithm_folders = "./exareme2/algorithms/exareme2,./tests/algorithms/exareme2"
-   flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
-   exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
-
-   worker_landscape_aggregator_update_interval = 30
-   celery_tasks_timeout = 20
-   celery_cleanup_task_timeout=2
-   celery_run_udf_task_timeout = 120
+   worker_landscape_aggregator_update_interval = 3000
+   worker_tasks_timeout = 20
 
    [flower]
    enabled = true
@@ -72,18 +64,11 @@
    minimum_row_count = 10
    protect_local_data = false
 
-   [cleanup]
-   workers_cleanup_interval=10
-   contextid_release_timelimit=3600 #an hour
-
    [aggregation_server]
    enabled = true
    port = 50051
    max_grpc_connections = 10
    max_wait_for_aggregation_inputs = 10
-
-   [monetdb]
-   enabled = true
 
    [smpc]
    enabled=false
@@ -101,34 +86,18 @@
    [[workers]]
    id = "globalworker"
    role = "GLOBALWORKER"
-   rabbitmq_port=5670
-   monetdb_port=50000
-   monetdb_password="executor"
-   local_monetdb_username="executor"
-   local_monetdb_password="executor"
-   public_monetdb_username="guest"
-   public_monetdb_password="guest"
+   grpc_port=5670
 
    [[workers]]
    id = "localworker1"
    role = "LOCALWORKER"
-   rabbitmq_port=5671
-   monetdb_port=50001
-   local_monetdb_username="executor"
-   local_monetdb_password="executor"
-   public_monetdb_username="guest"
-   public_monetdb_password="guest"
+   grpc_port=5671
    smpc_client_port=9001
 
    [[workers]]
    id = "localworker2"
    role = "LOCALWORKER"
-   rabbitmq_port=5672
-   monetdb_port=50002
-   local_monetdb_username="executor"
-   local_monetdb_password="executor"
-   public_monetdb_username="guest"
-   public_monetdb_password="guest"
+   grpc_port=5672
    smpc_client_port=9002
 
    ```
@@ -143,13 +112,6 @@
 
    ```
    inv deploy
-   ```
-
-1. _Optional_ Load the data into the db with
-   (It is compulsory if you want to run an algorithm)
-
-   ```
-   inv load-data
    ```
 
 1. Attach to some service's stdout/stderr with
@@ -172,13 +134,13 @@
 
 #### Local Deployment (without single configuration file)
 
-1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exareme2/worker/config.toml` template.
+1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exaflow/worker/config.toml` template.
 
-1. Install dependencies, start the containers and then the services with
+1. Create the controller config at `./configs/controller/controller.toml` using `./exaflow/controller/config.toml` as a template, and set the `localworkers.config_file` field to `./configs/controller/localworkers_config.json`.
 
-   ```
-   inv deploy --monetdb-image madgik/exareme2_db:dev1.2 --celery-log-level info
-   ```
+1. Create the localworkers config file at `./configs/controller/localworkers_config.json` with the list of worker `ip:grpc_port` entries.
+
+1. If aggregation server is enabled, create `./configs/aggregation_server/aggregation_server.toml` using `./aggregation_server/config.toml` as a template.
 
 #### Start monitoring tools
 
@@ -211,7 +173,7 @@
   ./run_algorithm -a pca -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1
   ```
   ```
-  ./run_algorithm -a pearson -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1 -p alpha 0.95
+  ./run_algorithm -a pearson_correlation -y leftamygdala lefthippocampus -d ppmi0 -m dementia:0.1 -p alpha 0.95
   ```
 
 # Acknowledgement

@@ -3,7 +3,7 @@ from collections import Counter
 
 from sklearn.naive_bayes import GaussianNB
 
-from exareme2.algorithms.exareme2.naive_bayes_gaussian_cv import GaussianNBAlgorithm
+from exaflow.algorithms.exareme3.naive_bayes_gaussian_cv import GaussianNBAlgorithm
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
@@ -40,7 +40,7 @@ class GaussianNBPredictTestCaseGenerator(TestCaseGenerator):
 
 if __name__ == "__main__":
     with open(
-        "exareme2/algorithms/exareme2/naive_bayes_gaussian_cv.json"
+        "exaflow/algorithms/exareme3/naive_bayes_gaussian_cv.json"
     ) as specifications_file:
         specs = json.loads(specifications_file.read())
 

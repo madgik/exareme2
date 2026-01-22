@@ -1,0 +1,36 @@
+node_identifier = "$NODE_IDENTIFIER"
+federation = "$FEDERATION"
+
+log_level = "$LOG_LEVEL"
+framework_log_level = "$FRAMEWORK_LOG_LEVEL"
+
+deployment_type="$DEPLOYMENT_TYPE"
+
+worker_landscape_aggregator_update_interval="$WORKER_LANDSCAPE_AGGREGATOR_UPDATE_INTERVAL"
+worker_tasks_timeout="$WORKER_TASKS_TIMEOUT"
+
+[flower]
+enabled = "$FLOWER_ENABLED"
+execution_timeout="$FLOWER_EXECUTION_TIMEOUT"
+server_port="$FLOWER_SERVER_PORT"
+
+[localworkers]
+config_file="$LOCALWORKERS_CONFIG_FILE"
+dns="$LOCALWORKERS_DNS"
+port="$LOCALWORKERS_PORT"
+
+[aggregation_server]
+enabled = "$AGGREGATION_SERVER_ENABLED"
+dns= "$AGGREGATION_SERVER_DNS"
+
+
+[smpc]
+enabled = "$SMPC_ENABLED"
+optional = "$SMPC_OPTIONAL"
+coordinator_address = "$SMPC_COORDINATOR_ADDRESS"
+get_result_interval = "$SMPC_GET_RESULT_INTERVAL"
+get_result_max_retries = "$SMPC_GET_RESULT_MAX_RETRIES"
+[smpc.dp]
+enabled = "$DP_ENABLED"
+sensitivity = "$DP_SENSITIVITY"
+privacy_budget = "$DP_PRIVACY_BUDGET"

@@ -5,7 +5,7 @@ from rpy2.robjects.packages import importr
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("exareme2", "algorithms", "ttest_paired.json")
+SPECS_PATH = Path("exareme3", "algorithms", "ttest_paired.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",

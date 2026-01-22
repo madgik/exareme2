@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from tests.algorithm_validation_tests.exareme2.helpers import algorithm_request
-from tests.algorithm_validation_tests.exareme2.helpers import get_test_params
-from tests.algorithm_validation_tests.exareme2.helpers import parse_response
+from tests.algorithm_validation_tests.exareme3.conftest import algorithm_request
+from tests.algorithm_validation_tests.exareme3.conftest import parse_response
+from tests.algorithm_validation_tests.exareme3.helpers import get_test_params
 
 algorithm_name = "logistic_regression"
 

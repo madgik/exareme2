@@ -1,0 +1,37 @@
+identifier = "$WORKER_IDENTIFIER"
+role = "$WORKER_ROLE"
+federation = "$FEDERATION"
+
+data_path = "$DATA_PATH"
+
+log_level = "$LOG_LEVEL"
+framework_log_level = "$FRAMEWORK_LOG_LEVEL"
+
+[duckdb]
+path = "$DUCKDB_PATH"
+
+[controller]
+ip = "$CONTROLLER_IP"
+port = "$CONTROLLER_PORT"
+
+[privacy]
+minimum_row_count = 10
+protect_local_data = "$PROTECT_LOCAL_DATA"
+
+[worker_tasks]
+tasks_timeout="$WORKER_TASKS_TIMEOUT"
+
+[grpc]
+ip = "$GRPC_IP"
+port = "$GRPC_PORT"
+
+[aggregation_server]
+enabled = "$AGGREGATION_SERVER_ENABLED"
+dns= "$AGGREGATION_SERVER_DNS"
+
+[smpc]
+enabled = "$SMPC_ENABLED"
+optional = "$SMPC_OPTIONAL"
+client_id = "$SMPC_CLIENT_ID"
+client_address = "$SMPC_CLIENT_ADDRESS"
+coordinator_address = "$SMPC_COORDINATOR_ADDRESS"

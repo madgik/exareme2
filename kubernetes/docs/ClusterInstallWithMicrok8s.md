@@ -175,11 +175,9 @@ docker login
 Pull all the images needed:
 
 ```
-sudo docker pull madgik/exareme2_controller:latest
-sudo docker pull madgik/exareme2_worker:latest
-sudo docker pull madgik/exareme2_mipdb:latest
-sudo docker pull madgik/exareme2_db:latest
-sudo docker pull madgik/exareme2_rabbitmq:latest
+sudo docker pull madgik/exaflow_controller:latest
+sudo docker pull madgik/exaflow_worker:latest
+sudo docker pull madgik/exaflow_aggregation_server:latest
 sudo docker pull gpikra/coordinator:v7.0.7.4
 sudo docker pull mongo:5.0.8
 sudo docker pull redis:alpine3.15
@@ -188,23 +186,19 @@ sudo docker pull redis:alpine3.15
 Tag them using the private registry:
 
 ```
-sudo docker tag madgik/exareme2_controller:latest <master_node_ip>:32000/exareme2_controller:latest
-sudo docker tag madgik/exareme2_worker:latest <master_node_ip>:32000/exareme2_worker:latest
-sudo docker tag madgik/exareme2_mipdb:latest <master_node_ip>:32000/exareme2_mipdb:latest
-sudo docker tag madgik/exareme2_db:latest <master_node_ip>:32000/exareme2_db:latest
-sudo docker tag madgik/exareme2_rabbitmq:latest <master_node_ip>:32000/exareme2_rabbitmq:latest
-sudo docker tag gpikra/coordinator:v7.0.7.4 <master_node_ip>:32000/coordinator:v7.0.6.8
+sudo docker tag madgik/exaflow_controller:latest <master_node_ip>:32000/exaflow_controller:latest
+sudo docker tag madgik/exaflow_worker:latest <master_node_ip>:32000/exaflow_worker:latest
+sudo docker tag madgik/exaflow_aggregation_server:latest <master_node_ip>:32000/exaflow_aggregation_server:latest
+sudo docker tag gpikra/coordinator:v7.0.7.4 <master_node_ip>:32000/coordinator:v7.0.7.4
 sudo docker tag mongo:5.0.8 <master_node_ip>:32000/mongo:5.0.8
 sudo docker tag redis:alpine3.15 <master_node_ip>:32000/redis:alpine3.15
 ```
 
 ```
-sudo docker push <master_node_ip>:32000/exareme2_controller:latest
-sudo docker push <master_node_ip>:32000/exareme2_worker:latest
-sudo docker push <master_node_ip>:32000/exareme2_mipdb:latest
-sudo docker push <master_node_ip>:32000/exareme2_db:latest
-sudo docker push <master_node_ip>:32000/exareme2_rabbitmq:latest
-sudo docker push <master_node_ip>:32000/coordinator:v7.0.6.8
+sudo docker push <master_node_ip>:32000/exaflow_controller:latest
+sudo docker push <master_node_ip>:32000/exaflow_worker:latest
+sudo docker push <master_node_ip>:32000/exaflow_aggregation_server:latest
+sudo docker push <master_node_ip>:32000/coordinator:v7.0.7.4
 sudo docker push <master_node_ip>:32000/mongo:5.0.8
 sudo docker push <master_node_ip>:32000/redis:alpine3.15
 ```
@@ -223,7 +217,7 @@ Using firewalld the following rules should apply,
 in the **master** node, to expose the controller api, if it's used outside the cluster:
 
 ```
-firewall-cmd --permanent --add-port=30000/tcp      # Exareme2 Controller port
+firewall-cmd --permanent --add-port=30000/tcp      # Exaflow Controller port
 ```
 
 on all nodes:

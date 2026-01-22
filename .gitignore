@@ -98,10 +98,6 @@ ipython_config.py
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow
 __pypackages__/
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
 # SageMath parsed files
 *.sage.py
 
@@ -152,4 +148,5 @@ pyrightconfig.json
 /smpc_configs
 .stored_data/
 *.db
-/tests/test_data/.combined/
+/tests/test_data/.data_paths/
+/logs/

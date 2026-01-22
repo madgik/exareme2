@@ -1,7 +1,7 @@
 {
     "name": "mnist_logistic_regression",
     "desc": "Statistical method. that models the relationship between a dependent binary variable and one or more independent variables by fitting a binary logistic curve to the observed data.",
-    "label": "Logistic Regression on Flower that runs on the mnist dataset",
+    "label": "Logistic Regression that runs on the mnist dataset",
     "enabled": true,
     "type": "flower",
     "components": ["FLOWER"],

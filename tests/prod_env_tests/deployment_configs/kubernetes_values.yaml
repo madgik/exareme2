@@ -1,7 +1,7 @@
-localnodes: 2
+localnodes: 3
 managed_cluster: false
 
-exareme2_images:
+exaflow_images:
   repository: madgik
   version: dev
 
@@ -13,14 +13,9 @@ max_concurrent_experiments: 32
 globalworker_identifier: globalworker
 
 aggregation_server:
-  enabled: false
-  max_wait_for_aggregation_inputs: 60
-
-monetdb:
   enabled: true
-  max_memory: 1024    # k8s memory limit in megabytes
-  percentage_soft_memory_limit: 65
-  percentage_hard_memory_limit: 85
+  max_wait_for_aggregation_inputs: 60
+  dns: "exaflow-aggregation-service"
 
 flower:
   enabled: true
@@ -28,22 +23,18 @@ flower:
   server_port: 8080
 
 controller:
-  workers_dns: "exareme2-workers-service"
+  workers_dns: "exaflow-workers-service"
   worker_landscape_aggregator_update_interval: 20
-  celery_tasks_timeout: 120
+  worker_tasks_timeout: 120
   workers_cleanup_interval: 60
 
 smpc:
-  enabled: false
-
-elk:
   enabled: false
 
 storage:
   type: hostPath  # options: hostPath | cephfs
 
   hostPath:
-    controller_cleanup: "/opt/cleanup"
     db:
-      localworker: "/opt/exareme2/localworker"
-      globalworker: "/opt/exareme2/globalworker"
+      localworker: "/opt/exaflow/localworker"
+      globalworker: "/opt/exaflow/globalworker"

@@ -2,21 +2,12 @@ ip = "172.17.0.1"
 federation = "algorithm_tests"
 log_level = "INFO"
 framework_log_level ="INFO"
-monetdb_image = "madgik/exareme2_db:testing"
-rabbitmq_image = "madgik/exareme2_rabbitmq:testing"
 
-monetdb_nclients = 128
-monetdb_memory_limit = 2048 # MB
+flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
+exareme3_algorithm_folders = "./exaflow/algorithms/exareme3,./tests/algorithms/exareme3"
 
-exareme2_algorithm_folders = "./exareme2/algorithms/exareme2,./tests/algorithms/exareme2"
-flower_algorithm_folders = "./exareme2/algorithms/flower,./tests/algorithms/flower"
-exaflow_algorithm_folders = "./exareme2/algorithms/exaflow,./tests/algorithms/exaflow"
-
-worker_landscape_aggregator_update_interval = 30
-celery_tasks_timeout = 120
-celery_cleanup_task_timeout=2
-celery_run_udf_task_timeout = 300
-
+worker_landscape_aggregator_update_interval = 30000
+worker_tasks_timeout = 10
 [flower]
 enabled = true
 execution_timeout=60
@@ -29,18 +20,11 @@ port = 5000
 minimum_row_count = 1
 protect_local_data = false
 
-[cleanup]
-workers_cleanup_interval=30
-contextid_release_timelimit=3600 #an hour
-
 [aggregation_server]
-enabled = false
+enabled = true
 port = 50051
 max_grpc_connections = 10
-max_wait_for_aggregation_inputs = 10
-
-[monetdb]
-enabled = true
+max_wait_for_aggregation_inputs = 2
 
 [smpc]
 enabled=false
@@ -52,62 +36,31 @@ enabled = false
 [[workers]]
 id = "globalworker"
 role="GLOBALWORKER"
-rabbitmq_port=5670
-monetdb_port=50000
-local_monetdb_username="executor"
-local_monetdb_password="executor"
-public_monetdb_username="guest"
-public_monetdb_password="guest"
+grpc_port=5670
 
 [[workers]]
 id = "localworker1"
 role="LOCALWORKER"
-rabbitmq_port=5671
-monetdb_port=50001
-local_monetdb_username="executor"
-local_monetdb_password="executor"
-public_monetdb_username="guest"
-public_monetdb_password="guest"
+grpc_port=5671
 
 [[workers]]
 id = "localworker2"
 role="LOCALWORKER"
-rabbitmq_port=5672
-monetdb_port=50002
-local_monetdb_username="executor"
-local_monetdb_password="executor"
-public_monetdb_username="guest"
-public_monetdb_password="guest"
-
+grpc_port=5672
 
 [[workers]]
 id = "localworker3"
 role="LOCALWORKER"
-rabbitmq_port=5673
-monetdb_port=50003
-local_monetdb_username="executor"
-local_monetdb_password="executor"
-public_monetdb_username="guest"
-public_monetdb_password="guest"
+grpc_port=5673
 
 
 [[workers]]
 id = "localworker4"
 role="LOCALWORKER"
-rabbitmq_port=5674
-monetdb_port=50004
-local_monetdb_username="executor"
-local_monetdb_password="executor"
-public_monetdb_username="guest"
-public_monetdb_password="guest"
+grpc_port=5674
 
 
 [[workers]]
 id = "localworker5"
 role="LOCALWORKER"
-rabbitmq_port=5675
-monetdb_port=50005
-local_monetdb_username="executor"
-local_monetdb_password="executor"
-public_monetdb_username="guest"
-public_monetdb_password="guest"
+grpc_port=5675

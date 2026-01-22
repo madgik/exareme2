@@ -3,12 +3,12 @@ import re
 import pandas as pd
 import statsmodels.formula.api as smf
 
-from exareme2.algorithms.exareme2.linear_regression import LinearRegressionResult
+from exaflow.algorithms.exareme3.linear_regression import LinearRegressionResult
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
 class LinearRegressionTestCaseGenerator(TestCaseGenerator):
-    def compute_expected_output(self, input_data, _):
+    def compute_expected_output(self, input_data, _, __):
         y, X = input_data
 
         [yname] = y.columns
@@ -49,7 +49,7 @@ class LinearRegressionTestCaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    with open("exareme2/algorithms/linear_regression.json") as specs_file:
+    with open("exareme3/algorithms/linear_regression.json") as specs_file:
         pcagen = LinearRegressionTestCaseGenerator(specs_file)
     with open("linear_regression_expected.json", "w") as expected_file:
         pcagen.write_test_cases(expected_file)

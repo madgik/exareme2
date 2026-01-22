@@ -6,11 +6,11 @@ from sklearn.decomposition import PCA
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("exareme2", "algorithms", "exareme2", "pca_with_transformations.json")
+SPECS_PATH = Path("exaflow", "algorithms", "exareme3", "pca_with_transformations.json")
 EXPECTED_PATH = Path(
     "tests",
     "algorithm_validation_tests",
-    "exareme2",
+    "exareme3",
     "expected",
     "pca_with_transformation_expected.json",
 )
@@ -68,7 +68,7 @@ class PCATestCaseGenerator(TestCaseGenerator):
 
 if __name__ == "__main__":
     with open(
-        "exareme2/algorithms/exareme2/pca_with_transformations.json"
+        "exaflow/algorithms/exareme3/pca_with_transformations.json"
     ) as specs_file:
         pcagen = PCATestCaseGenerator(specs_file)
     with open(EXPECTED_PATH, "w") as expected_file:

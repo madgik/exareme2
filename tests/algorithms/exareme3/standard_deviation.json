@@ -1,0 +1,20 @@
+{
+    "name":"standard_deviation",
+    "desc":"Standard Deviation of a column",
+    "label":"Standard Deviation",
+    "type": "exaflow",
+    "components": ["AGGREGATION_SERVER"],
+    "enabled":true,
+    "inputdata":
+    {
+        "y": {
+            "name":"y",
+            "label": "column",
+            "desc": "Column",
+            "types": ["real", "int"],
+            "stattypes": ["numerical"],
+            "notblank": true,
+            "multiple": false
+        }
+    }
+}

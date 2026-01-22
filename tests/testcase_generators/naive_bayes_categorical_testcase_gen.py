@@ -4,7 +4,7 @@ from collections import Counter
 from sklearn.naive_bayes import CategoricalNB
 from sklearn.preprocessing import OrdinalEncoder
 
-from exareme2.algorithms.exareme2.naive_bayes_categorical_cv import (
+from exaflow.algorithms.exareme3.naive_bayes_categorical_cv import (
     CategoricalNBAlgorithm,
 )
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
@@ -64,7 +64,7 @@ def get_enums(code, metadata):
 
 if __name__ == "__main__":
     with open(
-        "exareme2/algorithms/exareme2/naive_bayes_categorical_cv.json"
+        "exaflow/algorithms/exareme3/naive_bayes_categorical_cv.json"
     ) as specifications_file:
         specs = json.loads(specifications_file.read())
     gen = CategoricalNBFitTestCaseGenerator(specifications_file.read())

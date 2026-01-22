@@ -4,27 +4,10 @@ from contextlib import contextmanager
 from sys import stdin
 
 import click
-import pymonetdb
 
 DB_USERNAME = "admin"
 DB_PASSWORD = "executor"
 DB_FARM = "db"
-
-
-@contextmanager
-def db_cursor(ip, port):
-    connection = pymonetdb.connect(
-        hostname=ip,
-        port=port,
-        username=DB_USERNAME,
-        password=DB_PASSWORD,
-        database=DB_FARM,
-        autocommit=True,
-    )
-    cursor = connection.cursor()
-    yield cursor
-    cursor.close()
-    connection.close()
 
 
 @click.group()

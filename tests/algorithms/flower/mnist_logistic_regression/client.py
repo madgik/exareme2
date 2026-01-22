@@ -6,7 +6,7 @@ from flwr.common.logger import FLOWER_LOGGER
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import log_loss
 
-from exareme2.algorithms.flower.inputdata_preprocessing import connect_with_retries
+from exaflow.algorithms.flower.inputdata_preprocessing import connect_with_retries
 from tests.algorithms.flower.mnist_logistic_regression import utils
 
 if __name__ == "__main__":

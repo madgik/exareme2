@@ -7,7 +7,7 @@ from sklearn.base import BaseEstimator
 from sklearn.base import RegressorMixin
 from sklearn.model_selection import cross_val_score
 
-from exareme2.algorithms.exareme2.linear_regression_cv import CVLinearRegressionResult
+from exaflow.algorithms.exareme3.linear_regression_cv import CVLinearRegressionResult
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
 
@@ -87,7 +87,7 @@ def result_has_nan(result):
 
 
 if __name__ == "__main__":
-    with open("exareme2/algorithms/linear_regression_cv.json") as specs_file:
+    with open("exareme3/algorithms/linear_regression_cv.json") as specs_file:
         pcagen = LinearRegressionTestCaseGenerator(specs_file)
     with open("linear_regression_cv_expected.json", "w") as expected_file:
         pcagen.write_test_cases(expected_file, num_test_cases=50)

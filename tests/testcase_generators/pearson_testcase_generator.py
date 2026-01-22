@@ -6,7 +6,7 @@ from scipy import stats
 
 from tests.testcase_generators.testcase_generator import TestCaseGenerator
 
-SPECS_PATH = Path("exareme2", "algorithms", "pearson_correlation.json")
+SPECS_PATH = Path("exareme3", "algorithms", "pearson_correlation.json")
 EXPECTED_PATH = Path(
     "tests",
     "prod_env_tests",

@@ -74,7 +74,7 @@ class LogisticRegressionCVTestCaseGenerator(TestCaseGenerator):
 
 
 if __name__ == "__main__":
-    algorithm_properties_file = "exareme2/algorithms/logistic_regression_cv.json"
+    algorithm_properties_file = "exareme3/algorithms/logistic_regression_cv.json"
     expected_file = (
         "tests/algorithm_validation_tests/expected/logisticregression_cv_expected.json"
     )

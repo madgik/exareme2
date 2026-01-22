@@ -31,4 +31,4 @@ requirements. Additionally, as a first step, data is centered and standardized.
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[PCA](../../exareme2/algorithms/exareme2/pca.py)
+[PCA](../../exaflow/algorithms/exareme3/pca.py)

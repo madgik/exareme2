@@ -31,7 +31,7 @@ It is handy to define incremental sums of squares to represent these differences
 
 <img src="https://render.githubusercontent.com/render/math?math=SS(B|A)=SS(A,B)-SS(A)">
 
-The notation shows the incremental differences in sums of squares, for example <img src="https://render.githubusercontent.com/render/math?math=SS(AB|A,B)"> represents the sum of squares for interaction after the main effects, and  <img src="https://render.githubusercontent.com/render/math?math=SS(A|B)"> is the sum of squares for the <img src="https://render.githubusercontent.com/render/math?math=A">  main effect after the <img src="https://render.githubusercontent.com/render/math?math=B"> main effect and ignoring interactions.
+The notation shows the incremental differences in sums of squares, for example <img src="https://render.githubusercontent.com/render/math?math=SS(AB|A,B)"> represents the sum of squares for interaction after the main effects, and <img src="https://render.githubusercontent.com/render/math?math=SS(A|B)"> is the sum of squares for the <img src="https://render.githubusercontent.com/render/math?math=A"> main effect after the <img src="https://render.githubusercontent.com/render/math?math=B"> main effect and ignoring interactions.
 
 The different types of sums of squares then arise depending on the stage of model reduction at which they are carried out. In particular:
 
@@ -41,23 +41,23 @@ The Type I analysis corresponds to adding each effect sequentially to the model 
 
 Let <img src="https://render.githubusercontent.com/render/math?math=SS(A,B,AB)"> be the full model. We test:
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(A)"> for factor  <img src="https://render.githubusercontent.com/render/math?math=A">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(A)"> for factor <img src="https://render.githubusercontent.com/render/math?math=A">.
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(B|A)"> for factor  <img src="https://render.githubusercontent.com/render/math?math=B">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(B|A)"> for factor <img src="https://render.githubusercontent.com/render/math?math=B">.
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(AB|B,A)"> for interaction  <img src="https://render.githubusercontent.com/render/math?math=AB">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(AB|B,A)"> for interaction <img src="https://render.githubusercontent.com/render/math?math=AB">.
 
 <b><h5>Type II: hierarchical or partially sequential</b></h5>
 
-Type II computes <img src="https://render.githubusercontent.com/render/math?math=SS">  for all effects in the model that are at the same or lower level. For example,<img src="https://render.githubusercontent.com/render/math?math=SS"> for the main effects take account of all other main effects, rather than simply accounting for those entered earlier in the model. Interaction effects take account of all main effects and all other interaction effects at the same level.
+Type II computes <img src="https://render.githubusercontent.com/render/math?math=SS"> for all effects in the model that are at the same or lower level. For example,<img src="https://render.githubusercontent.com/render/math?math=SS"> for the main effects take account of all other main effects, rather than simply accounting for those entered earlier in the model. Interaction effects take account of all main effects and all other interaction effects at the same level.
 
 Let <img src="https://render.githubusercontent.com/render/math?math=SS(A,B,AB)"> be the full model. We test:
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(A|B)"> for factor  <img src="https://render.githubusercontent.com/render/math?math=A">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(A|B)"> for factor <img src="https://render.githubusercontent.com/render/math?math=A">.
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(B|A)"> for factor  <img src="https://render.githubusercontent.com/render/math?math=B">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(B|A)"> for factor <img src="https://render.githubusercontent.com/render/math?math=B">.
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(AB|B,A)"> for interaction  <img src="https://render.githubusercontent.com/render/math?math=AB">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(AB|B,A)"> for interaction <img src="https://render.githubusercontent.com/render/math?math=AB">.
 
 <b><h5>Type III: marginal or orthogonal</b></h5>
 
@@ -65,9 +65,9 @@ Let <img src="https://render.githubusercontent.com/render/math?math=SS(A,B,AB)">
 
 Let <img src="https://render.githubusercontent.com/render/math?math=SS(A,B,AB)"> be the full model. We test:
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(A|B,AB)"> for factor  <img src="https://render.githubusercontent.com/render/math?math=A">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(A|B,AB)"> for factor <img src="https://render.githubusercontent.com/render/math?math=A">.
 
-<img src="https://render.githubusercontent.com/render/math?math=SS(B|A,AB)"> for factor  <img src="https://render.githubusercontent.com/render/math?math=B">.
+<img src="https://render.githubusercontent.com/render/math?math=SS(B|A,AB)"> for factor <img src="https://render.githubusercontent.com/render/math?math=B">.
 
 <b><h4>Federated ANOVA</b></h4>
 
@@ -75,6 +75,6 @@ Based on the type of sum of squares selected by the user as well as the full mod
 
 <b><h4>Algorithm Implementation</b></h4>
 
-[ANOVA one-way](../../exareme2/algorithms/exareme2/anova_oneway.py)
+[ANOVA one-way](../../exaflow/algorithms/exareme3/anova_oneway.py)
 
-[ANOVA two-way](../../exareme2/algorithms/exareme2/anova.py)
+[ANOVA two-way](../../exaflow/algorithms/exareme3/anova.py)

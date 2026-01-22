@@ -36,65 +36,12 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --no-interaction --no-root
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Load MONETDB cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/monetdb
-          key: ${{ runner.os }}-buildx-3-monetdb-${{hashFiles('monetdb/**')}}-${{ hashFiles('exareme2/udfgen/udfio.py')}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-3-monetdb-
-
-      - name: Build MONETDB docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: monetdb/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_db:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/monetdb
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/monetdb
-
-      - name: Load RABBITMQ cached image
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache/rabbitmq
-          key: ${{ runner.os }}-buildx-rabbitmq-${{hashFiles( 'rabbitmq/**' )}}
-          restore-keys: |
-            ${{ runner.os }}-buildx-rabbitmq-
-
-      - name: Build RABBITMQ docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: rabbitmq/Dockerfile
-          push: false
-          load: true
-          tags: madgik/exareme2_rabbitmq:dev
-          cache-from: type=local,src=/tmp/.buildx-cache/rabbitmq
-          cache-to: type=local,dest=/tmp/.buildx-cache-new/rabbitmq
-
-        # Temp fix
-        # https://github.com/docker/build-push-action/issues/252
-        # https://github.com/moby/buildkit/issues/1896
-      - name: Move Docker images cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-
-#      - name: SMPC Controller logs (post run)
-#        uses: webiny/action-post-run@3.0.0
-#        with:
-#          run: cat /tmp/exareme2/test_smpc_controller.out
 
       - name: Run all standalone tests except the SMPC
         id: non_smpc_tests
-        run: poetry run pytest -s -m "not smpc" --cov=exareme2 --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
+        run: poetry run pytest -s -m "not smpc" --cov=exaflow --cov-report=xml:non_smpc_cov.xml tests/standalone_tests --verbosity=4
         env:
-          PYTHONPATH: ${{ github.workspace }}/exareme2:${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }}/exaflow:${{ github.workspace }}
           PULL_DOCKER_IMAGES: false
 
 #      Skip due to failing SMPC
@@ -102,7 +49,7 @@ jobs:
 #        if: success() || ( failure() && steps.non_smpc_tests.outcome == 'failure' )
 #        run:  |
 #          poetry run inv cleanup
-#          poetry run pytest -s -m "smpc" --cov=exareme2 --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4 --reruns 3 --reruns-delay 5
+#          poetry run pytest -s -m "smpc" --cov=exaflow --cov-report=xml:smpc_cov.xml tests/standalone_tests --verbosity=4 --reruns 3 --reruns-delay 5
 #        env:
 #          PULL_DOCKER_IMAGES: false
 
