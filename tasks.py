@@ -398,7 +398,7 @@ def update_wla(c):
 
 def _structure_data(worker=None):
     """
-    Delegate dataset structuring to worker_data_path_builder.py and
+    Delegate dataset structuring to worker_data_paths_builder.py and
     reprint its output using our message() logging system.
     """
 
@@ -429,7 +429,7 @@ def _structure_data(worker=None):
     if not local_worker_ids:
         raise Exception("No local workers found.")
 
-    script_path = Path(__file__).parent / "worker_data_path_builder.py"
+    script_path = Path(__file__).parent / "tests" / "worker_data_paths_builder.py"
 
     cmd = [
         sys.executable,
