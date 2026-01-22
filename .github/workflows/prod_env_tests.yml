@@ -233,11 +233,28 @@ jobs:
         with:
           run: kubectl logs -l nodeType=localworker -c worker --tail -1
 
-      - name: Wait before WLA update
-        run: sleep 5
-
-      - name: Run Worker Landscape Aggregator update
-        run: curl -X POST "http://172.17.0.1:5000/wla"
+      - name: Wait for WLA worker discovery
+        run: |
+          for attempt in 1 2 3 4; do
+            curl -X POST "http://172.17.0.1:5000/wla"
+            if kubectl logs -l app=exaflow-controller --since=30s | awk '
+              /Workers:/ {
+                if ($0 ~ /globalworker/ && $0 ~ /localworker1/ && $0 ~ /localworker2/ && $0 ~ /localworker3/) {
+                  found=1
+                  exit
+                }
+              }
+              END { exit found ? 0 : 1 }
+            '; then
+              echo "All workers discovered."
+              break
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "Timed out waiting for all workers to be discovered."
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Run Healthcheck
         run: curl "http://172.17.0.1:5000/healthcheck"
