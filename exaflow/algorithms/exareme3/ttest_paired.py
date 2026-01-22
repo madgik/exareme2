@@ -1,5 +1,5 @@
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.algorithms.exareme3.library.stats.stats import ttest_paired
 from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALPHA
 from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALT

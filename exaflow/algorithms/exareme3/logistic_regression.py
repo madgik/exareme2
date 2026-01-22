@@ -4,7 +4,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_class
 from exaflow.algorithms.exareme3.library.logistic_common import compute_logistic_summary
 from exaflow.algorithms.exareme3.library.logistic_common import (

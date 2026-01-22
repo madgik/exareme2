@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sklearn.svm import SVC
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "svm_scikit"

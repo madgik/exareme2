@@ -11,7 +11,7 @@ from pandas.api import types as pd_types
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 

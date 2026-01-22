@@ -15,7 +15,7 @@ class Algorithm(ABC):
     - `algname` must match the `"name"` field of the accompanying <algorithm>.json.
     - `engine` is the algorithm execution engine injected by the framework. It
       exposes methods such as `run_algorithm_udf` to execute the UDFs declared
-      in the flow (see `exaflow_registry.exaflow_udf` for registration).
+      in the flow (see `exareme3_registry.exaflow_udf` for registration).
     - `inputdata` is a pydantic model describing the requested variables,
       datasets and filters (see `utils/inputdata_utils.Inputdata`). Unlike
       exareme2, `x`/`y` can be optional in the model; flows are expected to

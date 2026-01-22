@@ -106,8 +106,8 @@ ______________________________________________________________________
   - `ALGORITHM_SPEC` loading the JSON file.
   - A class derived from a base (e.g., `Algorithm` in `algorithm.py`) exposing `run`.
   - UDF helpers decorated with `@exaflow_udf`.
-- **Data helpers:** `data_loading.py`, `metrics.py`, and `library/` hold reusable
-  computations; prefer extending them before inlining SQL.
+- **Data helpers:** `metrics.py` and `library/` hold reusable computations;
+  prefer extending them before inlining SQL.
 - **Controller integration:** Ensure the algorithm module lives in
   `EXAREME3_ALGORITHM_FOLDERS` (default `./exaflow/algorithms/exareme3`) so
   `exareme3_algorithm_classes` can discover it.

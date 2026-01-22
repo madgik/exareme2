@@ -10,7 +10,7 @@ from exaflow.algorithms.exareme3.library.lazy_aggregation import lazy_agg
 from exaflow.utils import Singleton
 
 """
-Lightweight registry for exaflow UDFs.
+Lightweight registry for exareme3 UDFs.
 
 - UDFs are registered with a stable key derived from `func.__qualname__` and
   the defining module (see `get_udf_registry_key`).
@@ -35,7 +35,7 @@ class UDFInfo:
     with_aggregation_server: "bool"
 
 
-class ExaflowRegistry(metaclass=Singleton):
+class Exareme3Registry(metaclass=Singleton):
     def __init__(self) -> None:
         self._registry: Dict[str, UDFInfo] = {}
 
@@ -59,10 +59,10 @@ class ExaflowRegistry(metaclass=Singleton):
         return info.func
 
     def __repr__(self) -> str:
-        return f"<ExaflowRegistry {len(self._registry)} entries>"
+        return f"<Exareme3Registry {len(self._registry)} entries>"
 
 
-exaflow_registry = ExaflowRegistry()
+exareme3_registry = Exareme3Registry()
 
 
 def exaflow_udf(
@@ -88,7 +88,7 @@ def exaflow_udf(
             else enable_lazy_aggregation
         )
         wrapped = lazy_agg(agg_client_name=agg_client_name)(func) if lazy_on else func
-        exaflow_registry.register(
+        exareme3_registry.register(
             wrapped, with_aggregation_server=with_aggregation_server
         )
         return wrapped

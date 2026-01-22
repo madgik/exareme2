@@ -96,7 +96,7 @@ if not CLEANUP_DIR.exists():
 TEST_DATA_FOLDER = PROJECT_ROOT / "tests" / "test_data"
 
 FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE = "FLOWER_ALGORITHM_FOLDERS"
-EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
+EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME3_ALGORITHM_FOLDERS"
 EXAFLOW_WORKER_CONFIG_FILE = "EXAFLOW_WORKER_CONFIG_FILE"
 EXAFLOW_CONTROLLER_CONFIG_FILE = "EXAFLOW_CONTROLLER_CONFIG_FILE"
 EXAFLOW_AGG_SERVER_CONFIG_FILE = "EXAFLOW_AGG_SERVER_CONFIG_FILE"
@@ -589,7 +589,7 @@ def start_worker(
 
         env_vars = {
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
-            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
+            EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
             EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
             DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
         }
@@ -613,7 +613,7 @@ def start_worker(
         worker_config_file = WORKERS_CONFIG_DIR / f"{worker_id}.toml"
         env_vars = {
             FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
-            EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
+            EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
             EXAFLOW_WORKER_CONFIG_FILE: worker_config_file,
             DATA_PATH: (_worker_data_path(worker_id)).as_posix(),
         }
@@ -728,7 +728,7 @@ def start_controller(
     # Build a dictionary of environment variables for the controller
     env_vars = {
         FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE: flower_algorithm_folders,
-        EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
+        EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE: exareme3_algorithm_folders,
         EXAFLOW_CONTROLLER_CONFIG_FILE: controller_config_file,
     }
 

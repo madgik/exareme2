@@ -2,7 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from typing import List
 
-from exaflow.algorithms.exareme3.exaflow_registry import get_udf_registry_key
+from exaflow.algorithms.exareme3.exareme3_registry import get_udf_registry_key
 from exaflow.controller import logger as ctrl_logger
 from exaflow.controller.services.exareme3.tasks_handler import ExaflowTasksHandler
 from exaflow.worker_communication import InsufficientDataError

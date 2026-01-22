@@ -4,7 +4,7 @@ from typing import Sequence
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.algorithms.exareme3.library.stats.stats import pearson_correlation
 
 ALGORITHM_NAME = "pearson_correlation"

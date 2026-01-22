@@ -7,7 +7,7 @@ from typing import List
 from typing import Type
 from typing import Union
 
-from exaflow import EXAFLOW_ALGORITHM_FOLDERS
+from exaflow import EXAREME3_ALGORITHM_FOLDERS
 from exaflow import FLOWER_ALGORITHM_FOLDERS
 from exaflow.algorithms.specifications import AlgorithmSpecification
 from exaflow.algorithms.specifications import AlgorithmType
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def find_spec_paths() -> List[Path]:
     folders = (
         FLOWER_ALGORITHM_FOLDERS,
-        EXAFLOW_ALGORITHM_FOLDERS,
+        EXAREME3_ALGORITHM_FOLDERS,
     )
     paths = (p.strip() for folder in folders for p in folder.split(","))
     return [Path(p) for p in paths if p]

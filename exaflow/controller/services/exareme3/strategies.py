@@ -1,6 +1,6 @@
 from typing import List
 
-from exaflow import exaflow_algorithm_classes
+from exaflow import exareme3_algorithm_classes
 from exaflow.aggregation_clients import aggregation_server_pb2 as agg_pb2
 from exaflow.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
@@ -56,7 +56,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
             preprocessing=preprocessing_payload,
             raw_inputdata=raw_inputdata,
         )
-        algorithm_cls = exaflow_algorithm_classes[self._algorithm_name]
+        algorithm_cls = exareme3_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(
             inputdata=transformed_inputdata,
             engine=engine,

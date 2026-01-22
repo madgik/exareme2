@@ -6,7 +6,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.algorithms.exareme3.library.anova_common import get_min_max_ci_info
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_enumerations
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars

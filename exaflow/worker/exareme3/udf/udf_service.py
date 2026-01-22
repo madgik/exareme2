@@ -1,7 +1,7 @@
 from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
     ExaflowUDFAggregationClient as AggregationClient,
 )
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_registry
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_registry
 from exaflow.algorithms.exareme3.longitudinal_transformer import (
     apply_longitudinal_transformation,
 )
@@ -47,7 +47,7 @@ def run_udf(
     loader_inputdata = Inputdata.parse_raw(loader_inputdata_dict)
     params.pop("raw_inputdata", None)
 
-    if exaflow_registry.aggregation_server_required(udf_registry_key):
+    if exareme3_registry.aggregation_server_required(udf_registry_key):
         agg_dns = (
             getattr(getattr(worker_config, "aggregation_server", {}), "dns", None)
             or None
@@ -97,9 +97,9 @@ def run_udf(
             data, preprocessing["longitudinal_transformer"]
         )
     params["data"] = ensure_pandas_dataframe(data)
-    udf = exaflow_registry.get_func(udf_registry_key)
+    udf = exareme3_registry.get_func(udf_registry_key)
     if not udf:
-        error_msg = f"udf '{udf_registry_key}' not found in EXAFLOW_REGISTRY."
+        error_msg = f"udf '{udf_registry_key}' not found in EXAREME3_REGISTRY."
         raise ImportError(error_msg)
 
     try:

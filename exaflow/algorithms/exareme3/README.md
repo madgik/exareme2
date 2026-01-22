@@ -6,24 +6,23 @@ This folder contains the exaflow algorithm flows migrated from exareme2. This gu
 
 - Base class: `algorithm.py.Algorithm`
   - `algname` must match the `"name"` in the `<algorithm>.json`.
-  - `engine` exposes `run_algorithm_udf` to execute UDFs registered with `exaflow_registry.exaflow_udf`.
-  - `inputdata` is a pydantic model with `x`, `y`, `datasets`, `filters` (see `utils/inputdata_utils.Inputdata`). Algorithms should validate required vars via `validation_utils`.
+  - `engine` exposes `run_algorithm_udf` to execute UDFs registered with `exareme3_registry.exaflow_udf`.
+  - `inputdata` is a pydantic model with `x`, `y`, `datasets`, `filters` (see `exaflow/algorithms/utils/inputdata_utils.Inputdata`). Algorithms should validate required vars via `validation_utils`.
   - `metadata` passed to `run()` is a `dict[var] -> {is_categorical: bool, enumerations: {...}}`. Use `metadata_utils.validate_metadata_vars` / `validate_metadata_enumerations` to enforce presence.
-- Parameters: `parameters` is a plain dict from the JSON spec.
+  - Parameters: `parameters` is a plain dict from the JSON spec.
 
 ## UDFs and aggregation
 
-- Decorate UDFs with `@exaflow_udf(...)` (see `exaflow_registry.py`).
+- Decorate UDFs with `@exaflow_udf(...)` (see `exareme3_registry.py`).
   - `with_aggregation_server=True` injects `agg_client`, which implements sum/min/max over numpy-like arrays (`ExaflowUDFAggregationClientI`).
   - UDF registry keys are derived from `__qualname__` and module; duplicates raise to avoid ambiguity.
-- Common secure aggregation helper: `helpers.sum_secure_transfers` provides a SUM UDF over numeric arrays/lists.
+- Lazy aggregation helper: `library/lazy_aggregation.lazy_agg` can batch `agg_client.sum/min/max` calls when supported.
 
 ## Preprocessing and metadata helpers
 
 - Metadata validation: `metadata_utils.validate_metadata_vars` (requires `is_categorical`), `validate_metadata_enumerations` (requires `enumerations`).
 - Variable checks: `validation_utils` has `require_dependent_var`, `require_covariates`, and exact-count variants.
 - Dummy encoding: use `preprocessing.get_dummy_categories` with a collect UDF to discover categories, then `metrics.build_design_matrix` inside UDFs to build the matrix.
-- Patsy formulas: `preprocessing.formula_design_matrix` builds design matrices from R-style formulas when categorical enums are supplied.
 
 ## Cross-validation utilities
 

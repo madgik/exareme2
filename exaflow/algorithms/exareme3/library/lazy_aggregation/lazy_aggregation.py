@@ -147,8 +147,8 @@ class LazyAggregationRewriter:
         )
         if not filename:
             filename = f"<lazy-{func.__name__}>"
-
-        self._log_rewritten(func_def, filename)
+        # Uncomment for debugging
+        # self._log_rewritten(func_def, filename)
 
         code_obj = compile(module_ast, filename=filename, mode="exec")
         env = func.__globals__
@@ -864,70 +864,3 @@ class DependencyGraphBuilder(ast.NodeVisitor):
             op = node.op.__class__.__name__
             return f"{left} {op} {right}"
         return "..."
-
-
-def build_dependency_graph(func):
-    """Build a dependency graph from a Python function."""
-    source = inspect.getsource(func)
-    source = textwrap.dedent(source)
-    tree = ast.parse(source)
-
-    func_def = None
-    for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef):
-            func_def = node
-            break
-
-    if not func_def:
-        raise ValueError("No function definition found")
-
-    builder = DependencyGraphBuilder()
-    for stmt in func_def.body:
-        builder.visit(stmt)
-
-    return builder.nodes, builder.edges
-
-
-def print_graph(nodes, edges):
-    """Pretty print the dependency graph."""
-    print("=" * 60)
-    print("NODES (Operators):")
-    print("=" * 60)
-    for node in nodes:
-        print(f"[{node['id']}] {node['type']}: {node['details']}")
-
-    print("\n" + "=" * 60)
-    print("EDGES (Data Dependencies):")
-    print("=" * 60)
-    for edge in edges:
-        source_node = nodes[edge["source"]]
-        target_node = nodes[edge["target"]]
-        print(f"{source_node['id']} -> {target_node['id']} (via '{edge['variable']}')")
-
-
-def visualize_graph(nodes, edges, output_file="dep_graph"):
-    """Create a visualization of the dependency graph using Graphviz."""
-    try:
-        import graphviz
-    except ImportError as exc:
-        raise ImportError(
-            "graphviz is required for visualize_graph; install it to generate diagrams."
-        ) from exc
-
-    dot = graphviz.Digraph(comment="Dependency Graph", engine="dot")
-    dot.attr(rankdir="TB")
-    dot.attr("node", shape="box", style="rounded,filled", fillcolor="lightblue")
-
-    for node in nodes:
-        label = f"[{node['id']}] {node['type']}\\n{node['details']}"
-        dot.node(
-            str(node["id"]),
-            label=label,
-            fillcolor="lightgreen" if node["type"] == "Assign" else "lightblue",
-        )
-
-    for edge in edges:
-        dot.edge(str(edge["source"]), str(edge["target"]), label=edge["variable"])
-
-    dot.render(output_file, view=True, cleanup=True)
-    print(f"\nGraph saved as {output_file}.pdf and opened in default viewer")

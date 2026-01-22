@@ -1,6 +1,6 @@
 import numpy as np
 
-from exaflow.algorithms.exareme3.exaflow_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
 from exaflow.algorithms.exareme3.library.lazy_aggregation import RecordingAggClient
 
 

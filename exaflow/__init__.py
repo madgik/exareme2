@@ -18,9 +18,9 @@ __all__ = [
     "flower_algorithm_folder_paths",
     "FLOWER_ALGORITHM_FOLDERS_ENV_VARIABLE",
     "FLOWER_ALGORITHM_FOLDERS",
-    "EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE",
-    "EXAFLOW_ALGORITHM_FOLDERS",
-    "exaflow_algorithm_classes",
+    "EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE",
+    "EXAREME3_ALGORITHM_FOLDERS",
+    "exareme3_algorithm_classes",
 ]
 
 DATA_TABLE_PRIMARY_KEY = "row_id"
@@ -158,15 +158,15 @@ flower_algorithm_folder_paths = find_flower_algorithm_folder_paths(
 )
 
 
-EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAFLOW_ALGORITHM_FOLDERS"
-EXAFLOW_ALGORITHM_FOLDERS = os.getenv(
-    EXAFLOW_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exaflow/algorithms/exareme3"
+EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE = "EXAREME3_ALGORITHM_FOLDERS"
+EXAREME3_ALGORITHM_FOLDERS = os.getenv(
+    EXAREME3_ALGORITHM_FOLDERS_ENV_VARIABLE, "./exaflow/algorithms/exareme3"
 )
 
 
-def get_exaflow_algorithm_classes() -> Dict[str, type]:
-    import_algorithm_modules(EXAFLOW_ALGORITHM_FOLDERS)
+def get_exareme3_algorithm_classes() -> Dict[str, type]:
+    import_algorithm_modules(EXAREME3_ALGORITHM_FOLDERS)
     return {cls.algname: cls for cls in ExaflowAlgorithm.__subclasses__()}
 
 
-exaflow_algorithm_classes = get_exaflow_algorithm_classes()
+exareme3_algorithm_classes = get_exareme3_algorithm_classes()
