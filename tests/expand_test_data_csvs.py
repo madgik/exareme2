@@ -3,7 +3,7 @@
 Utility to enlarge CSV-based test datasets by repeating each data row block.
 
 Example:
-    python expand_test_csvs.py --factor 200 --base tests/test_data
+    python expand_test_data_csvs.py --factor 200 --base tests/test_data
 """
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--base",
         type=Path,
-        default=Path("tests/test_data"),
+        default=Path(""),
         help="Directory to scan for CSV files (default: tests/test_data)",
     )
     parser.add_argument(
