@@ -211,7 +211,7 @@ def _dataset_codes_from_metadata(metadata: dict) -> list[str]:
     return [metadata.get("code", "dataset")]
 
 
-def load_data_folder(request_id: str) -> str:
+def load_all_csvs_from_data_folder(request_id: str) -> str:
     db_path = worker_config.duckdb.path
     folder_path = Path(worker_config.data_path).expanduser()
     if not folder_path.exists():

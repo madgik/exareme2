@@ -76,7 +76,7 @@ The pipeline below is what you usually need to reference/debug.
 
    - Worker gRPC server implementation is at `exaflow/worker/grpc_server.py`.
    - After startup it eagerly loads DuckDB datasets via
-     `data_loader_service.load_data_folder`.
+     `duck_db_csv_loader.load_all_csvs_from_data_folder`.
    - `WorkerTasksHandler` calls `RunUdf` on the worker; `udf_service` loads the
      registered UDF, applies parameters, and runs queries locally (usually through
      helpers in `exaflow/worker/exareme3/udf/` and `exaflow/algorithms/exareme3/library/`).

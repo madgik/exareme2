@@ -13,8 +13,8 @@ from grpc_health.v1 import health_pb2_grpc
 from exaflow.worker import config as worker_config
 from exaflow.worker import worker_pb2
 from exaflow.worker import worker_pb2_grpc
-from exaflow.worker.data_management import data_loader_service
 from exaflow.worker.grpc_server import WorkerService
+from exaflow.worker.utils import duck_db_csv_loader
 from exaflow.worker_communication import WorkerRole
 
 
@@ -51,7 +51,9 @@ def _start_worker_server(
 ) -> grpc.Server:
     # Avoid touching the filesystem-heavy data loader in tests.
     monkeypatch.setattr(
-        data_loader_service, "load_data_folder", lambda request_id: "mocked"
+        duck_db_csv_loader,
+        "load_all_csvs_from_data_folder",
+        lambda request_id: "mocked",
     )
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))

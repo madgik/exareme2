@@ -1,1 +1,0 @@
-"""Worker data management."""
