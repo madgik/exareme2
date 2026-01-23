@@ -1,7 +1,7 @@
 import os
 import subprocess
+import sys
 import time
-from pathlib import Path
 
 import psutil
 
@@ -150,7 +150,7 @@ class FlowerProcess:
             logger.error("Process already started!")
             raise RuntimeError("Process already started!")
         env = {**os.environ, **{k: str(v) for k, v in self.env_vars.items()}}
-        command = ["poetry", "run", "python", str(self.file), *self.parameters]
+        command = [sys.executable, str(self.file), *self.parameters]
         logger.info(f"Executing command: {command}")
         self.proc = subprocess.Popen(
             command, env=env, stdout=self.stdout, stderr=self.stderr

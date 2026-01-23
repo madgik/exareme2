@@ -24,7 +24,7 @@ FEDERATION=dementia
 LOG_LEVEL=INFO
 FRAMEWORK_LOG_LEVEL=INFO
 DUCKDB_PATH=/opt/data/data_models.duckdb
-DATA_PATH=/opt/data/
+DATA_PATH=/opt/csvs/
 CONTROLLER_IP=172.17.0.1
 CONTROLLER_PORT=5000
 WORKER_TASKS_TIMEOUT=20
@@ -40,8 +40,9 @@ SMPC_CLIENT_ADDRESS=
 SMPC_COORDINATOR_ADDRESS=
 ```
 
-If `DUCKDB_PATH` is omitted the worker stores its DuckDB file under
-`$DATA_PATH/data_models.duckdb`.
+`DATA_PATH` should point at the directory containing the input CSVs. Set
+`DUCKDB_PATH` to a writable location (for example `/opt/data/data_models.duckdb`)
+when CSVs are mounted read-only.
 
 Then start the container with:
 

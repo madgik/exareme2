@@ -1,20 +1,27 @@
-FROM python:3.10.18-slim-bullseye
-LABEL maintainer="Konstantinos Filippopolitis <kfilippopolitis@athenarc.gr>"
+FROM python:3.10.18-slim-bullseye AS builder
 
-# Prevent pip/poetry issues in flaky networks
-ENV PIP_NO_CACHE_DIR=yes
-ENV PIP_DEFAULT_TIMEOUT=100
-
-# Install poetry and configure it
-RUN pip install --no-cache-dir poetry
+ENV PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    PIP_DEFAULT_TIMEOUT=100 \
+    POETRY_VERSION=1.8.2 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_HOME="/opt/poetry"
 
 WORKDIR /app
 
-# Install only aggregation-server group dependencies
-COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create false
-RUN poetry install --with aggregation-server --no-root --no-interaction --no-ansi
+RUN pip install --no-cache-dir --prefix "$POETRY_HOME" poetry==$POETRY_VERSION \
+    && PYTHONPATH="/opt/poetry/lib/python3.10/site-packages" python -m poetry config virtualenvs.create false
 
+COPY pyproject.toml poetry.lock ./
+RUN PYTHONPATH="/opt/poetry/lib/python3.10/site-packages" python -m poetry install --only aggregation-server --no-root --no-ansi \
+    && rm -rf /root/.cache/pip /root/.cache/pypoetry "$POETRY_HOME"
+
+FROM python:3.10.18-slim-bullseye
+LABEL maintainer="Konstantinos Filippopolitis <kfilippopolitis@athenarc.gr>"
+
+WORKDIR /app
+
+COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
 COPY aggregation_server ./aggregation_server
 

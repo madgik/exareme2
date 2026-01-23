@@ -39,8 +39,12 @@ spec:
       {{- if not .Values.managed_cluster }}
       nodeSelector:
         master: "true"
-      # Use hostPath storage on unmanaged clusters
+      {{- end }}
       volumes:
+        - name: duckdb-data
+          emptyDir: {}
+      {{- if not .Values.managed_cluster }}
+      # Use hostPath storage on unmanaged clusters
         - name: csv-data
           hostPath:
             path: {{ printf "%s/csvs" .Values.storage.hostPath.db.globalworker }}
@@ -50,6 +54,8 @@ spec:
         image: {{ .Values.exaflow_images.repository }}/exaflow_worker:{{ .Values.exaflow_images.version }}
         volumeMounts:
         - mountPath: /opt/data
+          name: duckdb-data
+        - mountPath: /opt/csvs
           name: csv-data
         env:
         - name: WORKER_IDENTIFIER
@@ -68,6 +74,8 @@ spec:
           value: $(EXAFLOW_CONTROLLER_SERVICE_SERVICE_PORT)
         - name: WORKER_TASKS_TIMEOUT
           value: {{ quote .Values.controller.worker_tasks_timeout }}
+        - name: DATA_PATH
+          value: "/opt/csvs"
         - name: GRPC_IP
           valueFrom:
             fieldRef:

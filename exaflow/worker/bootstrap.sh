@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-poetry run python -m exaflow.worker.grpc_server
+python -m exaflow.worker.grpc_server
