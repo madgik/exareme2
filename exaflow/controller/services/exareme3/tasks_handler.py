@@ -3,7 +3,7 @@ from exaflow.controller.services.tasks_handler_interface import TasksHandlerI
 from exaflow.controller.worker_client.tasks_handler import WorkerTasksHandler
 
 
-class ExaflowTasksHandler(TasksHandlerI):
+class Exareme3TasksHandler(TasksHandlerI):
     def __init__(
         self,
         request_id: str,

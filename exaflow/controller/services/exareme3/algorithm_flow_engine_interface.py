@@ -4,7 +4,7 @@ from typing import List
 
 from exaflow.algorithms.exareme3.exareme3_registry import get_udf_registry_key
 from exaflow.controller import logger as ctrl_logger
-from exaflow.controller.services.exareme3.tasks_handler import ExaflowTasksHandler
+from exaflow.controller.services.exareme3.tasks_handler import Exareme3TasksHandler
 from exaflow.worker_communication import InsufficientDataError
 
 
@@ -18,12 +18,12 @@ def add_ordered_enums(data_dict):
     return data_dict
 
 
-class ExaflowAlgorithmFlowEngineInterface:
+class Exareme3AlgorithmFlowEngineInterface:
     def __init__(
         self,
         request_id: str,
         context_id: str,
-        tasks_handlers: List[ExaflowTasksHandler],
+        tasks_handlers: List[Exareme3TasksHandler],
         preprocessing=None,
         raw_inputdata=None,
     ) -> None:

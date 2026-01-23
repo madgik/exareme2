@@ -2,11 +2,9 @@ import json
 from ipaddress import IPv4Address
 from logging import Logger
 from typing import List
-from typing import Optional
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
-from google.protobuf import wrappers_pb2
 
 from exaflow.controller import worker_pb2
 from exaflow.controller.worker_client.app import WorkerClientFactory

@@ -8,8 +8,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from exaflow.algorithms.specifications import AlgorithmType
-
 
 @unique
 class AlgorithmRequestSystemFlags(str, Enum):
