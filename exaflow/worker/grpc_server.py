@@ -13,8 +13,8 @@ from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
 from exaflow.worker import config as worker_config
-from exaflow.worker.data_management import data_loader_service
 from exaflow.worker.exareme3.udf import udf_service
+from exaflow.worker.utils import duck_db_csv_loader
 from exaflow.worker.worker_info import worker_info_service
 from exaflow.worker_communication import BadUserInput
 from exaflow.worker_communication import CommonDataElement
@@ -144,7 +144,7 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
         self._health_servicer = health_servicer
         self._set_health_status(health_pb2.HealthCheckResponse.NOT_SERVING)
         try:
-            data_loader_service.load_data_folder(request_id="startup")
+            duck_db_csv_loader.load_all_csvs_from_data_folder(request_id="startup")
             LOGGER.info("Data folder loaded successfully on startup.")
             self._set_health_status(health_pb2.HealthCheckResponse.SERVING)
         except Exception as exc:  # noqa: BLE001
