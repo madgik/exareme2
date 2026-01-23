@@ -85,7 +85,7 @@ jobs:
       - name: Build and push images with bake
         uses: docker/bake-action@v5
         with:
-          files: ./docker-bake.hcl
+          files: .github/workflows/docker-bake.hcl
           targets: default
           push: true
           set: |
