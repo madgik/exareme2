@@ -15,8 +15,6 @@ from grpc_health.v1 import health_pb2_grpc
 from exaflow.worker import config as worker_config
 from exaflow.worker.data_management import data_loader_service
 from exaflow.worker.exareme3.udf import udf_service
-from exaflow.worker.flower.cleanup import cleanup_service
-from exaflow.worker.flower.starter import starter_service
 from exaflow.worker.worker_info import worker_info_service
 from exaflow.worker_communication import BadUserInput
 from exaflow.worker_communication import CommonDataElement
@@ -31,6 +29,23 @@ from . import worker_pb2_grpc
 
 LOGGER = logging.getLogger("WorkerGrpcServer")
 WORKER_HEALTH_SERVICE_NAME = "worker"
+
+
+class FlowerNotAvailableError(RuntimeError):
+    """Raised when Flower dependencies are not installed on the worker."""
+
+
+def _get_flower_services():
+    try:
+        from exaflow.worker.flower.cleanup import cleanup_service
+        from exaflow.worker.flower.starter import starter_service
+    except ModuleNotFoundError as exc:
+        raise FlowerNotAvailableError(
+            "Flower support is not available on this worker. "
+            "Rebuild the worker image with the 'flower' dependency group "
+            "or disable FLOWER_ENABLED and avoid Flower algorithms."
+        ) from exc
+    return cleanup_service, starter_service
 
 
 def _worker_role_to_proto(role) -> int:
@@ -146,6 +161,8 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
         elif isinstance(exc, InsufficientDataError):
             context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(exc))
+        elif isinstance(exc, FlowerNotAvailableError):
+            context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(exc))
         else:
             LOGGER.exception("Worker gRPC call failed", exc_info=exc)
             context.abort(grpc.StatusCode.INTERNAL, str(exc))
@@ -203,6 +220,7 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
     def StartFlowerClient(self, request, context):
         try:
+            _, starter_service = _get_flower_services()
             pid = starter_service.start_flower_client(
                 request_id=request.request_id,
                 algorithm_folder_path=request.algorithm_folder_path,
@@ -217,6 +235,7 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
     def StartFlowerServer(self, request, context):
         try:
+            _, starter_service = _get_flower_services()
             pid = starter_service.start_flower_server(
                 request_id=request.request_id,
                 algorithm_folder_path=request.algorithm_folder_path,
@@ -231,6 +250,7 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
     def StopFlowerClient(self, request, context):
         try:
+            cleanup_service, _ = _get_flower_services()
             cleanup_service.stop_flower_process(
                 request_id=request.request_id,
                 pid=request.pid,
@@ -242,6 +262,7 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
     def StopFlowerServer(self, request, context):
         try:
+            cleanup_service, _ = _get_flower_services()
             cleanup_service.stop_flower_process(
                 request_id=request.request_id,
                 pid=request.pid,
@@ -253,6 +274,7 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
     def GarbageCollect(self, request, context):
         try:
+            cleanup_service, _ = _get_flower_services()
             cleanup_service.garbage_collect(request.request_id)
             return worker_pb2.GarbageCollectResponse(ok=True)
         except Exception as exc:  # noqa: BLE001

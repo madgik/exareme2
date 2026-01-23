@@ -9,6 +9,7 @@ metadata:
     nodeType: localworker
 spec:
   serviceName: "exaflow-worker"
+  podManagementPolicy: Parallel
   replicas: {{ .Values.localnodes }}
   selector:
     matchLabels:
@@ -35,9 +36,11 @@ spec:
                 values:
                 - localworker
             topologyKey: kubernetes.io/hostname
+      volumes:
+        - name: duckdb-data
+          emptyDir: {}
       # HostPath volumes if hostPath selected
       {{ if not .Values.managed_cluster }}
-      volumes:
         - name: csv-data
           hostPath:
             path: {{ printf "%s/csvs" .Values.storage.hostPath.db.localworker }}
@@ -48,6 +51,8 @@ spec:
         image: {{ .Values.exaflow_images.repository }}/exaflow_worker:{{ .Values.exaflow_images.version }}
         volumeMounts:
         - mountPath: /opt/data
+          name: duckdb-data
+        - mountPath: /opt/csvs
           name: csv-data
         env:
         - name: WORKER_IDENTIFIER
@@ -68,6 +73,8 @@ spec:
           value: $(EXAFLOW_CONTROLLER_SERVICE_SERVICE_PORT)
         - name: WORKER_TASKS_TIMEOUT
           value: {{ quote .Values.controller.worker_tasks_timeout }}
+        - name: DATA_PATH
+          value: "/opt/csvs"
         - name: DUCKDB_PATH
           value: "/opt/data/data_models.duckdb"
         - name: GRPC_IP
