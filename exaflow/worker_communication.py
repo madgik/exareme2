@@ -6,69 +6,13 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Tuple
 from typing import Union
 
-import pandas as pd
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import validator
 
 from exaflow import DType
-
-"""
-!!!!!!!!!!!!!!!!!!!!!! ATTENTION !!!!!!!!!!!!!!!!!!!!!!!!
-When exceptions are propagated from workers through the asynchronous RPC layer
-they may arrive wrapped as generic exceptions. In those cases catching them by
-their original definition might not be possible. Always verify that any newly
-introduced exception is still serialised/deserialised correctly across the
-controller <-> worker boundary and that the message survives the roundtrip.
-"""
-
-
-class TablesNotFound(Exception):
-    """
-    Exception raised for errors while retrieving a table from a database.
-
-    Attributes:
-        tables -- tables which caused the error
-        message -- explanation of the error
-    """
-
-    def __init__(self, tables: List[str]):
-        self.tables = tables
-        self.message = f"The following tables were not found : {tables}"
-        super().__init__(self.message)
-
-
-class IncompatibleSchemasMergeException(Exception):
-    """Exception raised for errors while trying to merge tables with incompatible schemas.
-
-    Attributes:
-        table -- table which caused the error
-        message -- explanation of the error
-    """
-
-    def __init__(self, table_names: List[str]):
-        self.table_names = table_names
-        self.message = (
-            f"Tables to be added don't match MERGE TABLE schema : {table_names}"
-        )
-        super().__init__(self.message)
-
-
-class IncompatibleTableTypes(Exception):
-    """Exception raised for errors while trying to merge tables with incompatible table types.
-
-    Attributes:
-        table_types --  the types of the table which caused the error
-        message -- explanation of the error
-    """
-
-    def __init__(self, table_types: set):
-        self.table_types = table_types
-        self.message = f"Tables have more than one distinct types : {self.table_types}"
-        super().__init__(self.message)
 
 
 class RequestIDNotFound(Exception):
@@ -132,25 +76,6 @@ class BadUserInput(Exception):
 # ~~~~~~~~~~~~~~~~~~~~ Enums ~~~~~~~~~~~~~~~~~~~~ #
 
 
-class _WorkerUDFDTOType(Enum):
-    TABLE = "TABLE"
-    LITERAL = "LITERAL"
-    SMPC = "SMPC"
-
-    def __str__(self):
-        return self.name
-
-
-class TableType(Enum):
-    NORMAL = "NORMAL"
-    REMOTE = "REMOTE"
-    MERGE = "MERGE"
-    VIEW = "VIEW"
-
-    def __str__(self):
-        return self.name
-
-
 @unique
 class WorkerRole(str, Enum):
     GLOBALWORKER = "GLOBALWORKER"
@@ -176,73 +101,6 @@ class WorkerInfo(BaseModel):
     @property
     def socket_addr(self) -> str:
         return f"{self.ip}:{self.port}"
-
-
-class ColumnInfo(ImmutableBaseModel):
-    name: str
-    dtype: DType
-
-
-class TableSchema(ImmutableBaseModel):
-    columns: List[ColumnInfo]
-
-    @property
-    def column_names(self):
-        return [column_info.name for column_info in self.columns]
-
-    @classmethod
-    def from_list(cls, lst: List[Tuple[str, DType]]):
-        return cls(columns=[ColumnInfo(name=name, dtype=dtype) for name, dtype in lst])
-
-    def to_list(self) -> List[Tuple[str, DType]]:
-        return [(col.name, col.dtype) for col in self.columns]
-
-
-class TableInfo(ImmutableBaseModel):
-    name: str
-    schema_: TableSchema
-    type_: TableType
-
-    @property
-    def column_names(self):
-        return self.schema_.column_names
-
-    @property
-    def _tablename_parts(self) -> Tuple[str, str, str, str]:
-        table_type, worker_id, context_id, command_id, result_id = self.name.split("_")
-        return worker_id, context_id, command_id, result_id
-
-    @property
-    def worker_id(self) -> str:
-        worker_id, _, _, _ = self._tablename_parts
-        return worker_id
-
-    @property
-    def context_id(self) -> str:
-        _, context_id, _, _ = self._tablename_parts
-        return context_id
-
-    @property
-    def command_id(self) -> str:
-        _, _, command_id, _ = self._tablename_parts
-        return command_id
-
-    @property
-    def result_id(self) -> str:
-        _, _, _, result_id = self._tablename_parts
-        return result_id
-
-    @property
-    def name_without_worker_id(self) -> str:
-        return (
-            str(self.type_)
-            + "_"
-            + self.context_id
-            + "_"
-            + self.command_id
-            + "_"
-            + self.result_id
-        )
 
 
 class DatasetProperties(ImmutableBaseModel):
@@ -379,93 +237,6 @@ class ColumnDataFloat(ColumnData):
     type = DType.FLOAT
 
 
-class ColumnDataJSON(ColumnData):
-    data: List[Union[None, str]]
-    type = DType.JSON
-
-
-class ColumnDataBinary(ColumnData):
-    data: List[Union[None, int]]
-    type = DType.BINARY
-
-
-class TableData(ImmutableBaseModel):
-    name: str
-    columns: List[
-        Union[
-            ColumnDataInt,
-            ColumnDataStr,
-            ColumnDataFloat,
-            ColumnDataJSON,
-            ColumnDataBinary,
-        ]
-    ]
-
-    def to_pandas(self) -> pd.DataFrame:
-        data = {column.name: column.data for column in self.columns}
-        return pd.DataFrame(data)
-
-
 class TabularDataResult(ImmutableBaseModel):
     title: str
     columns: List[Union[ColumnDataInt, ColumnDataStr, ColumnDataFloat]]
-
-
-# ~~~~~~~~~~~~~~~~~~~ UDFs IO ~~~~~~~~~~~~~~~~~~~~~~ #
-
-
-class SMPCTablesInfo(ImmutableBaseModel):
-    template: TableInfo
-    sum_op: Optional[TableInfo]
-    min_op: Optional[TableInfo]
-    max_op: Optional[TableInfo]
-
-
-class WorkerUDFDTO(ImmutableBaseModel):
-    type: _WorkerUDFDTOType
-    value: Any
-
-    @validator("type")
-    def validate_type(cls, tp):
-        if cls.__name__ == "WorkerUDFDTO":
-            raise TypeError(
-                "WorkerUDFDTO should not be instantiated. "
-                "Use WorkerLiteralDTO, WorkerTableDTO or WorkerSMPCDTO instead."
-            )
-        udf_argument_type = cls.__fields__["type"].default
-        if tp != udf_argument_type:
-            raise ValueError(
-                f"Objects of type {cls.__name__} have a fixed type {udf_argument_type}, "
-                f"you cannot use {tp} in the constructor."
-            )
-        return tp
-
-
-class WorkerLiteralDTO(WorkerUDFDTO):
-    type = _WorkerUDFDTOType.LITERAL
-    value: Any
-
-
-class WorkerTableDTO(WorkerUDFDTO):
-    type = _WorkerUDFDTOType.TABLE
-    value: TableInfo
-
-
-class WorkerSMPCDTO(WorkerUDFDTO):
-    type = _WorkerUDFDTOType.SMPC
-    value: SMPCTablesInfo
-
-
-class WorkerUDFPosArguments(ImmutableBaseModel):
-    # The WorkerSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
-    args: List[Union[WorkerLiteralDTO, WorkerTableDTO, WorkerSMPCDTO]]
-
-
-class WorkerUDFKeyArguments(ImmutableBaseModel):
-    # The WorkerSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
-    args: Dict[str, Union[WorkerLiteralDTO, WorkerTableDTO, WorkerSMPCDTO]]
-
-
-class WorkerUDFResults(ImmutableBaseModel):
-    # The WorkerSMPCDTO cannot be used here instead of the Union due to pydantic json deserialization.
-    results: List[Union[WorkerLiteralDTO, WorkerTableDTO, WorkerSMPCDTO]]
