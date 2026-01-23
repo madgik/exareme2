@@ -23,26 +23,6 @@ __all__ = [
     "exareme3_algorithm_classes",
 ]
 
-DATA_TABLE_PRIMARY_KEY = "row_id"
-
-
-class AlgorithmNamesMismatchError(Exception):
-    def __init__(self, mismatches, algorithm_classes, algorithm_data_loaders):
-        mismatches_algname_class = []
-        for m in mismatches:
-            alg_classes = algorithm_classes.get(m)
-            alg_dloaders = algorithm_data_loaders.get(m)
-            if alg_classes:
-                mismatches_algname_class.append(f"{m} -> {alg_classes}")
-            elif alg_dloaders:
-                mismatches_algname_class.append(f"{m} -> {alg_dloaders}")
-        message = (
-            "The following Algorithm and AlgorithmDataLoader classes have "
-            f"mismatching 'algname' values: {mismatches_algname_class}"
-        )
-        super().__init__(message)
-        self.message = message
-
 
 def _resolve_package_import(module_path: str):
     """
@@ -111,14 +91,6 @@ def import_algorithm_modules(algorithm_folders: str) -> Dict[str, ModuleType]:
             modules[algorithm_name] = module_obj
         all_modules.update(modules)
     return all_modules
-
-
-def _check_algo_naming_matching(algo_classes: dict, algo_data_loaders: dict):
-    algo_classes_set = set(algo_classes.keys())
-    algo_data_loaders_set = set(algo_data_loaders.keys())
-    sym_diff = algo_classes_set.symmetric_difference(algo_data_loaders_set)
-    if sym_diff:
-        raise AlgorithmNamesMismatchError(sym_diff, algo_classes, algo_data_loaders)
 
 
 def find_flower_algorithm_folder_paths(algorithm_folders):

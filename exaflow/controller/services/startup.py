@@ -1,8 +1,8 @@
 from exaflow.controller import config as ctrl_config
 from exaflow.controller import logger as ctrl_logger
 from exaflow.controller.services import set_worker_landscape_aggregator
-from exaflow.controller.services.exareme3 import ExaflowController
-from exaflow.controller.services.exareme3 import set_exaflow_controller
+from exaflow.controller.services.exareme3 import Exareme3Controller
+from exaflow.controller.services.exareme3 import set_exareme3_controller
 from exaflow.controller.services.flower import set_flower_controller
 from exaflow.controller.services.flower.controller import FlowerController
 from exaflow.controller.services.worker_landscape_aggregator.worker_landscape_aggregator import (
@@ -27,8 +27,8 @@ def start_background_services():
     )
     set_flower_controller(flower_controller)
 
-    exaflow_controller = ExaflowController(
+    exaflow_controller = Exareme3Controller(
         worker_landscape_aggregator=worker_landscape_aggregator,
         task_timeout=ctrl_config.worker_tasks_timeout,
     )
-    set_exaflow_controller(exaflow_controller)
+    set_exareme3_controller(exaflow_controller)

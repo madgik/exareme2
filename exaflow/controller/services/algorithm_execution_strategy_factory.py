@@ -3,16 +3,15 @@ from typing import Type
 
 from exaflow.algorithms.specifications import AlgorithmType
 from exaflow.algorithms.specifications import ComponentType
-from exaflow.algorithms.specifications import TransformerName
 from exaflow.controller.services.api.algorithm_request_dtos import AlgorithmRequestDTO
 from exaflow.controller.services.api.algorithm_spec_dtos import specifications
 from exaflow.controller.services.controller_interface import ControllerI
 from exaflow.controller.services.exareme3 import (
-    get_exaflow_controller as get_exaflow_controller,
+    get_exareme3_controller as get_exareme3_controller,
 )
-from exaflow.controller.services.exareme3.strategies import ExaflowStrategy
+from exaflow.controller.services.exareme3.strategies import Exareme3Strategy
 from exaflow.controller.services.exareme3.strategies import (
-    ExaflowWithAggregationServerStrategy,
+    Exareme3WithAggregationServerStrategy,
 )
 from exaflow.controller.services.flower import (
     get_flower_controller as get_flower_controller,
@@ -42,7 +41,7 @@ def get_algorithm_execution_strategy(
 def _get_algorithm_controller(algo_type: AlgorithmType) -> ControllerI:
     controller: ControllerI
     if algo_type in [AlgorithmType.EXAFLOW]:
-        return get_exaflow_controller()
+        return get_exareme3_controller()
     elif algo_type == AlgorithmType.FLOWER:
         return get_flower_controller()
 
@@ -59,8 +58,8 @@ def _get_algorithm_strategy_type(
     strategy: AlgorithmExecutionStrategyI
     if algo_type == AlgorithmType.EXAFLOW:
         if ComponentType.AGGREGATION_SERVER in algo_component_types:
-            return ExaflowWithAggregationServerStrategy
-        return ExaflowStrategy
+            return Exareme3WithAggregationServerStrategy
+        return Exareme3Strategy
     elif algo_type == AlgorithmType.FLOWER:
         return FlowerStrategy
 

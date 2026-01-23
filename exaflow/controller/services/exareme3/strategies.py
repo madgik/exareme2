@@ -11,18 +11,18 @@ from exaflow.algorithms.exareme3.longitudinal_transformer import (
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.controller import config as controller_config
 from exaflow.controller.federation_info_logs import log_experiment_execution
-from exaflow.controller.services.exareme3 import ExaflowController
+from exaflow.controller.services.exareme3 import Exareme3Controller
 from exaflow.controller.services.exareme3.algorithm_flow_engine_interface import (
-    ExaflowAlgorithmFlowEngineInterface,
+    Exareme3AlgorithmFlowEngineInterface,
 )
-from exaflow.controller.services.exareme3.tasks_handler import ExaflowTasksHandler
+from exaflow.controller.services.exareme3.tasks_handler import Exareme3TasksHandler
 from exaflow.controller.services.strategy_interface import AlgorithmExecutionStrategyI
 
 
-class ExaflowStrategy(AlgorithmExecutionStrategyI):
-    _controller: ExaflowController
-    _local_worker_tasks_handlers: List[ExaflowTasksHandler]
-    _global_worker_tasks_handler: ExaflowTasksHandler
+class Exareme3Strategy(AlgorithmExecutionStrategyI):
+    _controller: Exareme3Controller
+    _local_worker_tasks_handlers: List[Exareme3TasksHandler]
+    _global_worker_tasks_handler: Exareme3TasksHandler
 
     async def execute(self) -> str:
         raw_inputdata = Inputdata.parse_raw(
@@ -49,7 +49,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
         else:
             transformed_inputdata = raw_inputdata
 
-        engine = ExaflowAlgorithmFlowEngineInterface(
+        engine = Exareme3AlgorithmFlowEngineInterface(
             request_id=self._request_id,
             context_id=self._context_id,
             tasks_handlers=self._local_worker_tasks_handlers,
@@ -78,7 +78,7 @@ class ExaflowStrategy(AlgorithmExecutionStrategyI):
         return result.json()
 
 
-class ExaflowWithAggregationServerStrategy(ExaflowStrategy):
+class Exareme3WithAggregationServerStrategy(Exareme3Strategy):
     async def execute(self) -> str:
 
         agg_dns = (
