@@ -83,7 +83,7 @@ CONTROLLER_LOCALWORKERS_CONFIG_FILE = (
 CONTROLLER_CONFIG_TEMPLATE_FILE = (
     PROJECT_ROOT / "exaflow" / "controller" / "config.toml"
 )
-AGG_SERVER_DIR = PROJECT_ROOT / "aggregation_server"
+AGG_SERVER_DIR = PROJECT_ROOT / "exaflow" / "aggregation_server"
 AGG_SERVER_CONFIG_TEMPLATE_FILE = AGG_SERVER_DIR / "config.toml"
 OUTDIR = Path("/tmp/exaflow/")
 if not OUTDIR.exists():
@@ -162,6 +162,11 @@ def create_configs(c):
     for worker in deployment_config["workers"]:
         worker_config = copy.deepcopy(template_worker_config)
 
+        aggregation_enabled = deployment_config["aggregation_server"]["enabled"]
+        aggregation_dns = ""
+        if aggregation_enabled:
+            aggregation_dns = f"{deployment_config['ip']}:{deployment_config['aggregation_server']['port']}"
+
         worker_config["identifier"] = worker["id"]
         worker_config["role"] = worker["role"]
         worker_config["federation"] = deployment_config["federation"]
@@ -169,9 +174,8 @@ def create_configs(c):
         worker_config["framework_log_level"] = deployment_config["framework_log_level"]
         worker_config["controller"]["ip"] = deployment_config["ip"]
         worker_config["controller"]["port"] = deployment_config["controller"]["port"]
-        worker_config["aggregation_server"]["enabled"] = deployment_config[
-            "aggregation_server"
-        ]["enabled"]
+        worker_config["aggregation_server"]["enabled"] = aggregation_enabled
+        worker_config["aggregation_server"]["dns"] = aggregation_dns
 
         worker_config["grpc"]["ip"] = deployment_config["ip"]
         worker_config["grpc"]["port"] = worker["grpc_port"]
@@ -242,9 +246,13 @@ def create_configs(c):
     controller_config["flower"]["server_port"] = deployment_config["flower"][
         "server_port"
     ]
-    controller_config["aggregation_server"]["enabled"] = deployment_config[
-        "aggregation_server"
-    ]["enabled"]
+    aggregation_enabled = deployment_config["aggregation_server"]["enabled"]
+    controller_config["aggregation_server"]["enabled"] = aggregation_enabled
+    controller_config["aggregation_server"]["dns"] = (
+        f"{deployment_config['ip']}:{deployment_config['aggregation_server']['port']}"
+        if aggregation_enabled
+        else ""
+    )
     controller_config["worker_tasks_timeout"] = deployment_config[
         "worker_tasks_timeout"
     ]
@@ -642,13 +650,15 @@ def start_worker(
 @task
 def kill_aggregation_server(c):
     """
-    Kill any running aggregation_server.server processes.
+    Kill any running exaflow.aggregation_server.server processes.
     """
-    res = c.run("ps aux | grep '[a]ggregation_server.server'", warn=True, hide="both")
+    res = c.run(
+        "ps aux | grep '[e]xaflow.aggregation_server.server'", warn=True, hide="both"
+    )
     if res.ok and res.stdout.strip():
         message("Killing existing aggregation_server ...", Level.HEADER)
         c.run(
-            "ps aux | grep '[a]ggregation_server.server' "
+            "ps aux | grep '[e]xaflow.aggregation_server.server' "
             "| awk '{print $2}' | xargs kill -9",
             warn=True,
         )
@@ -663,16 +673,20 @@ def start_aggregation_server(c, detached: bool = False):
     kill_aggregation_server(c)
     message("Starting aggregation server...", Level.HEADER)
 
-    if not AGG_SERVER_CONFIG_TEMPLATE_FILE.exists():
-        message(f"Config not found: {AGG_SERVER_CONFIG_TEMPLATE_FILE}", Level.ERROR)
+    config_file = AGG_SERVER_CONFIG_DIR / "aggregation_server.toml"
+    if not config_file.exists():
+        config_file = AGG_SERVER_CONFIG_TEMPLATE_FILE
+    if not config_file.exists():
+        message(f"Config not found: {config_file}", Level.ERROR)
         return
 
     env = os.environ.copy()
-    env["AGG_SERVER_CONFIG_FILE"] = str(AGG_SERVER_CONFIG_TEMPLATE_FILE)
+    env["AGG_SERVER_CONFIG_FILE"] = str(config_file)
 
-    # run the script directly instead of -m aggregation_server.server
+    # run the script directly instead of -m exaflow.aggregation_server.server
     run_cmd = (
-        f"cd {PROJECT_ROOT!s} && " f"poetry run python -m aggregation_server.server"
+        f"cd {PROJECT_ROOT!s} && "
+        f"poetry run python -m exaflow.aggregation_server.server"
     )
 
     if detached:

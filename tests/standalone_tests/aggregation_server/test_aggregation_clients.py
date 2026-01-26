@@ -8,9 +8,6 @@ import grpc
 import numpy as np
 import pytest
 
-from aggregation_server import aggregation_server_pb2 as server_pb2
-from aggregation_server import config as aggregation_config
-from aggregation_server.server import AggregationServer
 from exaflow.aggregation_clients.base_aggregation_client import BaseAggregationClient
 from exaflow.aggregation_clients.constants import AggregationType
 from exaflow.aggregation_clients.controller_aggregation_client import (
@@ -19,6 +16,9 @@ from exaflow.aggregation_clients.controller_aggregation_client import (
 from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
     ExaflowUDFAggregationClient,
 )
+from exaflow.aggregation_server import config as aggregation_config
+from exaflow.aggregation_server.server import AggregationServer
+from exaflow.protos.aggregation_server import aggregation_server_pb2 as server_pb2
 
 
 class InlineRpcError(grpc.RpcError):

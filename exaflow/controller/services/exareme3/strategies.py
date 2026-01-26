@@ -1,7 +1,6 @@
 from typing import List
 
 from exaflow import exareme3_algorithm_classes
-from exaflow.aggregation_clients import aggregation_server_pb2 as agg_pb2
 from exaflow.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
 )
@@ -17,6 +16,7 @@ from exaflow.controller.services.exareme3.algorithm_flow_engine_interface import
 )
 from exaflow.controller.services.exareme3.tasks_handler import Exareme3TasksHandler
 from exaflow.controller.services.strategy_interface import AlgorithmExecutionStrategyI
+from exaflow.protos.aggregation_server import aggregation_server_pb2 as agg_pb2
 
 
 class Exareme3Strategy(AlgorithmExecutionStrategyI):

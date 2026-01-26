@@ -23,9 +23,10 @@ WORKDIR /app
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 
-COPY aggregation_server ./aggregation_server
+COPY exaflow/aggregation_server ./exaflow/aggregation_server
+COPY exaflow/protos ./exaflow/protos
 
 EXPOSE 50051
-ENV AGG_SERVER_CONFIG_FILE=/app/aggregation_server/config.toml
+ENV AGG_SERVER_CONFIG_FILE=/app/exaflow/aggregation_server/config.toml
 
-ENTRYPOINT ["python", "-m", "aggregation_server.server"]
+ENTRYPOINT ["python", "-m", "exaflow.aggregation_server.server"]
