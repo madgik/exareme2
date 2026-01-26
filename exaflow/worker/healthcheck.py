@@ -2,10 +2,9 @@ import grpc
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
+from exaflow.protos.worker import worker_pb2
+from exaflow.protos.worker import worker_pb2_grpc
 from exaflow.worker import config as worker_config
-
-from . import worker_pb2
-from . import worker_pb2_grpc
 
 target = f"{worker_config.grpc.ip}:{worker_config.grpc.port}"
 channel = grpc.insecure_channel(target)

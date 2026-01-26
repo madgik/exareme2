@@ -3,7 +3,7 @@ from typing import Any
 
 import grpc
 
-from exaflow.controller import worker_pb2_grpc
+from exaflow.protos.worker import worker_pb2_grpc
 from exaflow.utils import Singleton
 from exaflow.worker_communication import BadUserInput
 from exaflow.worker_communication import InsufficientDataError

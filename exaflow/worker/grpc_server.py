@@ -12,6 +12,8 @@ from grpc_health.v1 import health
 from grpc_health.v1 import health_pb2
 from grpc_health.v1 import health_pb2_grpc
 
+from exaflow.protos.worker import worker_pb2
+from exaflow.protos.worker import worker_pb2_grpc
 from exaflow.worker import config as worker_config
 from exaflow.worker.exareme3.udf import udf_service
 from exaflow.worker.utils import duck_db_csv_loader
@@ -23,9 +25,6 @@ from exaflow.worker_communication import DataModelAttributes
 from exaflow.worker_communication import DatasetsInfoPerDataModel
 from exaflow.worker_communication import InsufficientDataError
 from exaflow.worker_communication import WorkerInfo
-
-from . import worker_pb2
-from . import worker_pb2_grpc
 
 LOGGER = logging.getLogger("WorkerGrpcServer")
 WORKER_HEALTH_SERVICE_NAME = "worker"
