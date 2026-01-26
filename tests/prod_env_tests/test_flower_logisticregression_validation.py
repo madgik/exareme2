@@ -3,7 +3,10 @@ from tests.algorithm_validation_tests.exareme3.conftest import parse_response
 
 algorithm_name = "logistic_regression_fedaverage_flower"
 
+import pytest
 
+
+@pytest.mark.skip(reason="Flower tests disabled pending MIP-1203.")
 def test_logisticregression_algorithm():
     test_input = {
         "inputdata": {

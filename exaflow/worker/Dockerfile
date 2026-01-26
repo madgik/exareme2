@@ -12,8 +12,9 @@ ENV PIP_NO_CACHE_DIR=1 \
 WORKDIR $CODE_PATH
 
 COPY poetry.lock pyproject.toml ./
+# To restore Flower deps, add `--only flower` to the Poetry install (see MIP-1203).
 RUN pip install --no-cache-dir --prefix "$POETRY_HOME" poetry==$POETRY_VERSION \
-    && PYTHONPATH="/opt/poetry/lib/python3.10/site-packages" python -m poetry install --only main --only worker --only flower --no-root \
+    && PYTHONPATH="/opt/poetry/lib/python3.10/site-packages" python -m poetry install --only main --only worker --no-root \
     && rm -rf /root/.cache/pip /root/.cache/pypoetry "$POETRY_HOME"
 
 FROM python:3.10.18-slim-bullseye
