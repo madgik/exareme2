@@ -2,7 +2,9 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import worker_pb2 as worker__pb2
+from exaflow.protos.worker import (
+    worker_pb2 as exaflow_dot_protos_dot_worker_dot_worker__pb2,
+)
 
 
 class WorkerServiceStub(object):
@@ -16,58 +18,58 @@ class WorkerServiceStub(object):
         """
         self.GetWorkerInfo = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GetWorkerInfo",
-            request_serializer=worker__pb2.GetWorkerInfoRequest.SerializeToString,
-            response_deserializer=worker__pb2.GetWorkerInfoResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetWorkerInfoRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetWorkerInfoResponse.FromString,
         )
         self.ListDatasetsPerDataModel = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/ListDatasetsPerDataModel",
-            request_serializer=worker__pb2.ListDatasetsPerDataModelRequest.SerializeToString,
-            response_deserializer=worker__pb2.ListDatasetsPerDataModelResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.ListDatasetsPerDataModelRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.ListDatasetsPerDataModelResponse.FromString,
         )
         self.GetDataModelCdes = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GetDataModelCdes",
-            request_serializer=worker__pb2.GetDataModelRequest.SerializeToString,
-            response_deserializer=worker__pb2.GetDataModelCdesResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelCdesResponse.FromString,
         )
         self.GetDataModelAttributes = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GetDataModelAttributes",
-            request_serializer=worker__pb2.GetDataModelRequest.SerializeToString,
-            response_deserializer=worker__pb2.GetDataModelAttributesResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelAttributesResponse.FromString,
         )
         self.Healthcheck = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/Healthcheck",
-            request_serializer=worker__pb2.HealthcheckRequest.SerializeToString,
-            response_deserializer=worker__pb2.HealthcheckResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.HealthcheckRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.HealthcheckResponse.FromString,
         )
         self.StartFlowerClient = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StartFlowerClient",
-            request_serializer=worker__pb2.StartFlowerClientRequest.SerializeToString,
-            response_deserializer=worker__pb2.StartFlowerClientResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerClientRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerClientResponse.FromString,
         )
         self.StartFlowerServer = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StartFlowerServer",
-            request_serializer=worker__pb2.StartFlowerServerRequest.SerializeToString,
-            response_deserializer=worker__pb2.StartFlowerServerResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerServerRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerServerResponse.FromString,
         )
         self.StopFlowerClient = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StopFlowerClient",
-            request_serializer=worker__pb2.StopFlowerProcessRequest.SerializeToString,
-            response_deserializer=worker__pb2.StopFlowerProcessResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessResponse.FromString,
         )
         self.StopFlowerServer = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/StopFlowerServer",
-            request_serializer=worker__pb2.StopFlowerProcessRequest.SerializeToString,
-            response_deserializer=worker__pb2.StopFlowerProcessResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessResponse.FromString,
         )
         self.GarbageCollect = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/GarbageCollect",
-            request_serializer=worker__pb2.GarbageCollectRequest.SerializeToString,
-            response_deserializer=worker__pb2.GarbageCollectResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GarbageCollectRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GarbageCollectResponse.FromString,
         )
         self.RunUdf = channel.unary_unary(
             "/exaflow.worker.api.WorkerService/RunUdf",
-            request_serializer=worker__pb2.RunUdfRequest.SerializeToString,
-            response_deserializer=worker__pb2.RunUdfResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.RunUdfRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.RunUdfResponse.FromString,
         )
 
 
@@ -142,85 +144,67 @@ class WorkerServiceServicer(object):
 
 
 def add_WorkerServiceServicer_to_server(servicer, server):
-    print(f"DEBUG: Adding servicer {servicer} to server", flush=True)
     rpc_method_handlers = {
         "GetWorkerInfo": grpc.unary_unary_rpc_method_handler(
             servicer.GetWorkerInfo,
-            request_deserializer=worker__pb2.GetWorkerInfoRequest.FromString,
-            response_serializer=worker__pb2.GetWorkerInfoResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetWorkerInfoRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetWorkerInfoResponse.SerializeToString,
         ),
         "ListDatasetsPerDataModel": grpc.unary_unary_rpc_method_handler(
             servicer.ListDatasetsPerDataModel,
-            request_deserializer=worker__pb2.ListDatasetsPerDataModelRequest.FromString,
-            response_serializer=worker__pb2.ListDatasetsPerDataModelResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.ListDatasetsPerDataModelRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.ListDatasetsPerDataModelResponse.SerializeToString,
         ),
         "GetDataModelCdes": grpc.unary_unary_rpc_method_handler(
             servicer.GetDataModelCdes,
-            request_deserializer=worker__pb2.GetDataModelRequest.FromString,
-            response_serializer=worker__pb2.GetDataModelCdesResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelCdesResponse.SerializeToString,
         ),
         "GetDataModelAttributes": grpc.unary_unary_rpc_method_handler(
             servicer.GetDataModelAttributes,
-            request_deserializer=worker__pb2.GetDataModelRequest.FromString,
-            response_serializer=worker__pb2.GetDataModelAttributesResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelAttributesResponse.SerializeToString,
         ),
         "Healthcheck": grpc.unary_unary_rpc_method_handler(
             servicer.Healthcheck,
-            request_deserializer=worker__pb2.HealthcheckRequest.FromString,
-            response_serializer=worker__pb2.HealthcheckResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.HealthcheckRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.HealthcheckResponse.SerializeToString,
         ),
         "StartFlowerClient": grpc.unary_unary_rpc_method_handler(
             servicer.StartFlowerClient,
-            request_deserializer=worker__pb2.StartFlowerClientRequest.FromString,
-            response_serializer=worker__pb2.StartFlowerClientResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerClientRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerClientResponse.SerializeToString,
         ),
         "StartFlowerServer": grpc.unary_unary_rpc_method_handler(
             servicer.StartFlowerServer,
-            request_deserializer=worker__pb2.StartFlowerServerRequest.FromString,
-            response_serializer=worker__pb2.StartFlowerServerResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerServerRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerServerResponse.SerializeToString,
         ),
         "StopFlowerClient": grpc.unary_unary_rpc_method_handler(
             servicer.StopFlowerClient,
-            request_deserializer=worker__pb2.StopFlowerProcessRequest.FromString,
-            response_serializer=worker__pb2.StopFlowerProcessResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessResponse.SerializeToString,
         ),
         "StopFlowerServer": grpc.unary_unary_rpc_method_handler(
             servicer.StopFlowerServer,
-            request_deserializer=worker__pb2.StopFlowerProcessRequest.FromString,
-            response_serializer=worker__pb2.StopFlowerProcessResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessResponse.SerializeToString,
         ),
         "GarbageCollect": grpc.unary_unary_rpc_method_handler(
             servicer.GarbageCollect,
-            request_deserializer=worker__pb2.GarbageCollectRequest.FromString,
-            response_serializer=worker__pb2.GarbageCollectResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GarbageCollectRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.GarbageCollectResponse.SerializeToString,
         ),
         "RunUdf": grpc.unary_unary_rpc_method_handler(
             servicer.RunUdf,
-            request_deserializer=worker__pb2.RunUdfRequest.FromString,
-            response_serializer=worker__pb2.RunUdfResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.RunUdfRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_worker_dot_worker__pb2.RunUdfResponse.SerializeToString,
         ),
     }
-    print(
-        f"DEBUG: rpc_method_handlers keys: {list(rpc_method_handlers.keys())}",
-        flush=True,
-    )
     generic_handler = grpc.method_handlers_generic_handler(
         "exaflow.worker.api.WorkerService", rpc_method_handlers
     )
-
-    class DebugHandler(grpc.GenericRpcHandler):
-        def service(self, handler_call_details):
-            print(f"DEBUG: Request for {handler_call_details.method}", flush=True)
-            return generic_handler.service(handler_call_details)
-
-    server.add_generic_rpc_handlers((DebugHandler(),))
-
-    class DebugHandler(grpc.GenericRpcHandler):
-        def service(self, handler_call_details):
-            print(f"DEBUG: Request for {handler_call_details.method}", flush=True)
-            return generic_handler.service(handler_call_details)
-
-    server.add_generic_rpc_handlers((DebugHandler(),))
+    server.add_generic_rpc_handlers((generic_handler,))
 
 
 # This class is part of an EXPERIMENTAL API.
@@ -244,8 +228,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/GetWorkerInfo",
-            worker__pb2.GetWorkerInfoRequest.SerializeToString,
-            worker__pb2.GetWorkerInfoResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GetWorkerInfoRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GetWorkerInfoResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -273,8 +257,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/ListDatasetsPerDataModel",
-            worker__pb2.ListDatasetsPerDataModelRequest.SerializeToString,
-            worker__pb2.ListDatasetsPerDataModelResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.ListDatasetsPerDataModelRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.ListDatasetsPerDataModelResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -302,8 +286,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/GetDataModelCdes",
-            worker__pb2.GetDataModelRequest.SerializeToString,
-            worker__pb2.GetDataModelCdesResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelCdesResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -331,8 +315,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/GetDataModelAttributes",
-            worker__pb2.GetDataModelRequest.SerializeToString,
-            worker__pb2.GetDataModelAttributesResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GetDataModelAttributesResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -360,8 +344,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/Healthcheck",
-            worker__pb2.HealthcheckRequest.SerializeToString,
-            worker__pb2.HealthcheckResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.HealthcheckRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.HealthcheckResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -389,8 +373,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/StartFlowerClient",
-            worker__pb2.StartFlowerClientRequest.SerializeToString,
-            worker__pb2.StartFlowerClientResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerClientRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerClientResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -418,8 +402,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/StartFlowerServer",
-            worker__pb2.StartFlowerServerRequest.SerializeToString,
-            worker__pb2.StartFlowerServerResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerServerRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StartFlowerServerResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -447,8 +431,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/StopFlowerClient",
-            worker__pb2.StopFlowerProcessRequest.SerializeToString,
-            worker__pb2.StopFlowerProcessResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -476,8 +460,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/StopFlowerServer",
-            worker__pb2.StopFlowerProcessRequest.SerializeToString,
-            worker__pb2.StopFlowerProcessResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.StopFlowerProcessResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -505,8 +489,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/GarbageCollect",
-            worker__pb2.GarbageCollectRequest.SerializeToString,
-            worker__pb2.GarbageCollectResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GarbageCollectRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.GarbageCollectResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -534,8 +518,8 @@ class WorkerService(object):
             request,
             target,
             "/exaflow.worker.api.WorkerService/RunUdf",
-            worker__pb2.RunUdfRequest.SerializeToString,
-            worker__pb2.RunUdfResponse.FromString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.RunUdfRequest.SerializeToString,
+            exaflow_dot_protos_dot_worker_dot_worker__pb2.RunUdfResponse.FromString,
             options,
             channel_credentials,
             insecure,

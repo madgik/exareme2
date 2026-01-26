@@ -6,8 +6,8 @@ from typing import List
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
 
-from exaflow.controller import worker_pb2
 from exaflow.controller.worker_client.app import WorkerClientFactory
+from exaflow.protos.worker import worker_pb2
 from exaflow.worker_communication import CommonDataElement
 from exaflow.worker_communication import CommonDataElements
 from exaflow.worker_communication import DataModelAttributes
