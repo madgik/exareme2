@@ -9,7 +9,7 @@ ______________________________________________________________________
 
 | Capability | Description |
 | --- | --- |
-| **gRPC API** | Defined in [`aggregation_server.proto`](aggregation_server.proto) – unary RPCs `Configure`, `Aggregate`, `Cleanup`, `Unregister`. |
+| **gRPC API** | Defined in [`exaflow/protos/aggregation_server/aggregation_server.proto`](exaflow/protos/aggregation_server/aggregation_server.proto) – unary RPCs `Configure`, `Aggregate`, `Cleanup`, `Unregister`. |
 | **Aggregation modes** | `SUM`, `MIN`, `MAX` over vectors; `Aggregate` accepts repeated operations in one call. |
 | **Payload formats** | Vectors can be sent as repeated doubles or Arrow tensor bytes. |
 | **Concurrency** | Thread-pool server (configurable worker pool). |
@@ -20,6 +20,6 @@ ______________________________________________________________________
 Build a production-ready image with the supplied **Dockerfile**:
 
 ```bash
-docker build -t exaflow/aggregation_server:latest .
+docker build -f exaflow/aggregation_server/Dockerfile -t exaflow/aggregation_server:latest .
 docker run -p 50051:50051 exaflow/aggregation_server:latest
 ```

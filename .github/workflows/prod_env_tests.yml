@@ -78,7 +78,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ hashFiles('exaflow/**', 'aggregation_server/**') }}
+          key: ${{ runner.os }}-buildx-${{ hashFiles('exaflow/**') }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 

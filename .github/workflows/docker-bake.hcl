@@ -20,6 +20,6 @@ target "controller" {
 
 target "aggregation_server" {
   context = "."
-  dockerfile = "aggregation_server/Dockerfile"
+  dockerfile = "exaflow/aggregation_server/Dockerfile"
   tags = ["${REGISTRY}/madgik/exaflow_aggregation_server:dev"]
 }

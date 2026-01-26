@@ -1,6 +1,6 @@
 import numpy as np
 
-import exaflow.aggregation_clients.aggregation_server_pb2 as pb2
+import exaflow.protos.aggregation_server.aggregation_server_pb2 as pb2
 from exaflow.aggregation_clients import AggregationType
 from exaflow.aggregation_clients import BaseAggregationClient
 from exaflow.algorithms.exareme3.exaflow_udf_aggregation_client_interface import (

@@ -22,7 +22,7 @@ ______________________________________________________________________
   | `exaflow/controller/services/exareme3` | Controller-side strategy + worker task abstractions. |
   | `exaflow/algorithms/exareme3` | Algorithm implementations and JSON specs. |
   | `exaflow/worker` | gRPC server, DuckDB loader, UDF runner. |
-  | `aggregation_server/` | Optional microservice providing SUM/MIN/MAX aggregation. |
+  | `exaflow/aggregation_server` | Optional microservice providing SUM/MIN/MAX aggregation. |
   | `tasks.py` | `invoke` tasks for configs, data seeding, service lifecycle. |
   | `tests/algorithms` | Expected inputs/outputs used in validation. |
 
@@ -88,7 +88,7 @@ The pipeline below is what you usually need to reference/debug.
    - Some UDFs set `with_aggregation_server=True`. `ExaflowWithAggregationServerStrategy`
      wraps execution with `ControllerAggregationClient` so the workers can push partial
      vectors to the gRPC aggregation service and retrieve the combined result.
-   - Service config sits at `aggregation_server/config.toml`; start it with
+   - Service config sits at `exaflow/aggregation_server/config.toml`; start it with
      `inv start-aggregation-server`.
 
 1. **Response**

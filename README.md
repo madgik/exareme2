@@ -140,7 +140,7 @@
 
 1. Create the localworkers config file at `./configs/controller/localworkers_config.json` with the list of worker `ip:grpc_port` entries.
 
-1. If aggregation server is enabled, create `./configs/aggregation_server/aggregation_server.toml` using `./aggregation_server/config.toml` as a template.
+1. If aggregation server is enabled, create `./configs/aggregation_server/aggregation_server.toml` using `./exaflow/aggregation_server/config.toml` as a template.
 
 #### Start monitoring tools
 

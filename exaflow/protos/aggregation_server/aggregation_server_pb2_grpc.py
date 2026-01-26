@@ -2,7 +2,9 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import aggregation_server_pb2 as aggregation__server__pb2
+from exaflow.protos.aggregation_server import (
+    aggregation_server_pb2 as exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2,
+)
 
 
 class AggregationServerStub(object):
@@ -16,23 +18,23 @@ class AggregationServerStub(object):
         """
         self.Configure = channel.unary_unary(
             "/aggregation_server.AggregationServer/Configure",
-            request_serializer=aggregation__server__pb2.ConfigureRequest.SerializeToString,
-            response_deserializer=aggregation__server__pb2.ConfigureResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.ConfigureRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.ConfigureResponse.FromString,
         )
         self.Unregister = channel.unary_unary(
             "/aggregation_server.AggregationServer/Unregister",
-            request_serializer=aggregation__server__pb2.UnregisterRequest.SerializeToString,
-            response_deserializer=aggregation__server__pb2.UnregisterResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.UnregisterRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.UnregisterResponse.FromString,
         )
         self.Aggregate = channel.unary_unary(
             "/aggregation_server.AggregationServer/Aggregate",
-            request_serializer=aggregation__server__pb2.AggregateRequest.SerializeToString,
-            response_deserializer=aggregation__server__pb2.AggregateResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.AggregateRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.AggregateResponse.FromString,
         )
         self.Cleanup = channel.unary_unary(
             "/aggregation_server.AggregationServer/Cleanup",
-            request_serializer=aggregation__server__pb2.CleanupRequest.SerializeToString,
-            response_deserializer=aggregation__server__pb2.CleanupResponse.FromString,
+            request_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.CleanupRequest.SerializeToString,
+            response_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.CleanupResponse.FromString,
         )
 
 
@@ -68,32 +70,29 @@ def add_AggregationServerServicer_to_server(servicer, server):
     rpc_method_handlers = {
         "Configure": grpc.unary_unary_rpc_method_handler(
             servicer.Configure,
-            request_deserializer=aggregation__server__pb2.ConfigureRequest.FromString,
-            response_serializer=aggregation__server__pb2.ConfigureResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.ConfigureRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.ConfigureResponse.SerializeToString,
         ),
         "Unregister": grpc.unary_unary_rpc_method_handler(
             servicer.Unregister,
-            request_deserializer=aggregation__server__pb2.UnregisterRequest.FromString,
-            response_serializer=aggregation__server__pb2.UnregisterResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.UnregisterRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.UnregisterResponse.SerializeToString,
         ),
         "Aggregate": grpc.unary_unary_rpc_method_handler(
             servicer.Aggregate,
-            request_deserializer=aggregation__server__pb2.AggregateRequest.FromString,
-            response_serializer=aggregation__server__pb2.AggregateResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.AggregateRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.AggregateResponse.SerializeToString,
         ),
         "Cleanup": grpc.unary_unary_rpc_method_handler(
             servicer.Cleanup,
-            request_deserializer=aggregation__server__pb2.CleanupRequest.FromString,
-            response_serializer=aggregation__server__pb2.CleanupResponse.SerializeToString,
+            request_deserializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.CleanupRequest.FromString,
+            response_serializer=exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.CleanupResponse.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
         "aggregation_server.AggregationServer", rpc_method_handlers
     )
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers(
-        "aggregation_server.AggregationServer", rpc_method_handlers
-    )
 
 
 # This class is part of an EXPERIMENTAL API.
@@ -117,8 +116,8 @@ class AggregationServer(object):
             request,
             target,
             "/aggregation_server.AggregationServer/Configure",
-            aggregation__server__pb2.ConfigureRequest.SerializeToString,
-            aggregation__server__pb2.ConfigureResponse.FromString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.ConfigureRequest.SerializeToString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.ConfigureResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -146,8 +145,8 @@ class AggregationServer(object):
             request,
             target,
             "/aggregation_server.AggregationServer/Unregister",
-            aggregation__server__pb2.UnregisterRequest.SerializeToString,
-            aggregation__server__pb2.UnregisterResponse.FromString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.UnregisterRequest.SerializeToString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.UnregisterResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -175,8 +174,8 @@ class AggregationServer(object):
             request,
             target,
             "/aggregation_server.AggregationServer/Aggregate",
-            aggregation__server__pb2.AggregateRequest.SerializeToString,
-            aggregation__server__pb2.AggregateResponse.FromString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.AggregateRequest.SerializeToString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.AggregateResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -204,8 +203,8 @@ class AggregationServer(object):
             request,
             target,
             "/aggregation_server.AggregationServer/Cleanup",
-            aggregation__server__pb2.CleanupRequest.SerializeToString,
-            aggregation__server__pb2.CleanupResponse.FromString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.CleanupRequest.SerializeToString,
+            exaflow_dot_protos_dot_aggregation__server_dot_aggregation__server__pb2.CleanupResponse.FromString,
             options,
             channel_credentials,
             insecure,

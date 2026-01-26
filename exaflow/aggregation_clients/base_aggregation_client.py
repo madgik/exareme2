@@ -6,8 +6,8 @@ import grpc
 import numpy as np
 from numpy.typing import NDArray
 
-import exaflow.aggregation_clients.aggregation_server_pb2 as pb2
-import exaflow.aggregation_clients.aggregation_server_pb2_grpc as pb2_grpc
+import exaflow.protos.aggregation_server.aggregation_server_pb2 as pb2
+import exaflow.protos.aggregation_server.aggregation_server_pb2_grpc as pb2_grpc
 
 from .constants import AggregationType
 from .serialization import bytes_to_ndarray

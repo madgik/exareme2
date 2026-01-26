@@ -1,5 +1,6 @@
-from . import aggregation_server_pb2
-from . import aggregation_server_pb2_grpc
+from exaflow.protos.aggregation_server import aggregation_server_pb2
+from exaflow.protos.aggregation_server import aggregation_server_pb2_grpc
+
 from .base_aggregation_client import BaseAggregationClient
 from .constants import AggregationType
 

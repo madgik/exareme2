@@ -66,7 +66,7 @@ First, build the images:
 ```
 docker build -f exaflow/worker/Dockerfile -t madgik/exaflow_worker:<TAG> ./
 docker build -f exaflow/controller/Dockerfile -t madgik/exaflow_controller:<TAG> ./
-docker build -f aggregation_server/Dockerfile -t madgik/exaflow_aggregation_server:<TAG> ./
+docker build -f exaflow/aggregation_server/Dockerfile -t madgik/exaflow_aggregation_server:<TAG> ./
 ```
 
 Second, load the docker images to the kuberentes cluster
