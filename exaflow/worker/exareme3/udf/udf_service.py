@@ -33,6 +33,49 @@ def enforce_enum_order(data_dict):
     return data_dict
 
 
+def _coerce_series_to_enums(series, enums):
+    import numpy as np
+    import pandas as pd
+
+    if not isinstance(series, pd.Series):
+        return series
+    enums_list = list(enums) if enums is not None else []
+    if not enums_list:
+        return series
+
+    enums_are_ints = all(
+        isinstance(e, (int, np.integer)) and not isinstance(e, bool) for e in enums_list
+    )
+    enums_are_strs = all(isinstance(e, str) for e in enums_list)
+
+    if enums_are_ints:
+        numeric = pd.to_numeric(series, errors="coerce")
+        if numeric.notna().sum() == series.notna().sum():
+            numeric_non_null = numeric.dropna()
+            if numeric_non_null.empty or np.all(
+                np.isclose(numeric_non_null, np.round(numeric_non_null))
+            ):
+                return numeric.astype("Int64")
+    elif enums_are_strs and not pd.api.types.is_string_dtype(series):
+        return series.astype("string")
+
+    return series
+
+
+def coerce_categorical_columns(data, metadata):
+    if data is None or metadata is None:
+        return data
+    for name, field in metadata.items():
+        if not field.get("is_categorical"):
+            continue
+        enums = field.get("enumerations")
+        if not enums or name not in data.columns:
+            continue
+        enum_values = enums.keys() if isinstance(enums, dict) else enums
+        data[name] = _coerce_series_to_enums(data[name], enum_values)
+    return data
+
+
 @initialise_logger
 def run_udf(
     request_id,
@@ -97,10 +140,28 @@ def run_udf(
             data, preprocessing["longitudinal_transformer"]
         )
     params["data"] = ensure_pandas_dataframe(data)
+    if "metadata" in params:
+        params["data"] = coerce_categorical_columns(params["data"], params["metadata"])
     udf = exareme3_registry.get_func(udf_registry_key)
     if not udf:
         error_msg = f"udf '{udf_registry_key}' not found in EXAREME3_REGISTRY."
         raise ImportError(error_msg)
+
+    if "metadata" in params:
+        import inspect
+
+        try:
+            signature = inspect.signature(udf)
+        except (TypeError, ValueError):
+            signature = None
+        if signature is not None:
+            parameters = signature.parameters
+            accepts_kwargs = any(
+                param.kind == inspect.Parameter.VAR_KEYWORD
+                for param in parameters.values()
+            )
+            if "metadata" not in parameters and not accepts_kwargs:
+                params.pop("metadata", None)
 
     try:
         result = udf(**params)
