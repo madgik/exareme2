@@ -5,7 +5,7 @@ from typing import Dict
 import numpy as np
 from scipy import stats
 
-from exaflow.algorithms.exareme3.library.lazy_aggregation import lazy_agg
+from exaflow.algorithms.exareme3.lazy_aggregation import lazy_agg
 
 ALPHA = 0.05
 

@@ -1,4 +1,4 @@
-# Lazy Aggregation (prototype)
+# Lazy Aggregation
 
 `lazy_aggregation.py` rewrites functions at call time to batch global aggregation calls (`agg_client.sum/min/max`) when it is safe to do so, reducing aggregation roundtrips while preserving semantics and debuggability.
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Callable
 from typing import Dict
 
-from exaflow.algorithms.exareme3.library.lazy_aggregation import lazy_agg
+from exaflow.algorithms.exareme3.lazy_aggregation import lazy_agg
 from exaflow.utils import Singleton
 
 """
