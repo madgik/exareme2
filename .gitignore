@@ -150,3 +150,4 @@ pyrightconfig.json
 *.db
 /tests/test_data/.data_paths/
 /logs/
+poetry.toml
