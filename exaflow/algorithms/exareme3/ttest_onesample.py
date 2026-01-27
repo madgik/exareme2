@@ -1,5 +1,5 @@
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import ttest_one_sample
 from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALPHA
 from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALT
@@ -32,7 +32,7 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         return build_one_sample_ttest_result(results[0])
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def local_step(data, inputdata, agg_client, alpha, alternative, mu):
 
     if not inputdata.y or len(inputdata.y) != 1:

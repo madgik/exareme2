@@ -14,7 +14,7 @@ ArrayInput = Union[
 ]
 
 
-class ExaflowUDFAggregationClientI(ABC):
+class Exareme3UDFAggregationClientI(ABC):
     """
     Minimal interface passed into UDFs when `with_aggregation_server=True`.
 

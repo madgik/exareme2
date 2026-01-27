@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_enumerations
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.naive_bayes_common import make_naive_bayes_result
@@ -131,7 +131,7 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 # ---------------------------------------------------------------------------
 
 
-@exaflow_udf()
+@exareme3_udf()
 def gaussian_nb_cv_check_local(data, inputdata, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
@@ -140,7 +140,7 @@ def gaussian_nb_cv_check_local(data, inputdata, y_var, n_splits):
     return min_rows_for_cv(data, y_var, n_splits)
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def gaussian_nb_cv_local_step(
     data,
     inputdata,

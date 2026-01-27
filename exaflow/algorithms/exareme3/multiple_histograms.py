@@ -11,7 +11,7 @@ from pandas.api import types as pd_types
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 
@@ -205,7 +205,7 @@ def _aggregate_matrix(agg_client, matrix: Sequence[Sequence[int]]):
     return np.asarray(summed).reshape(arr.shape).tolist()
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def local_step(data, inputdata, agg_client, metadata, bins):
     from exaflow.worker import config as worker_config
 

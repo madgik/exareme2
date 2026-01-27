@@ -6,14 +6,14 @@ This folder contains the exaflow algorithm flows migrated from exareme2. This gu
 
 - Base class: `algorithm.py.Algorithm`
   - `algname` must match the `"name"` in the `<algorithm>.json`.
-  - `engine` exposes `run_algorithm_udf` to execute UDFs registered with `exareme3_registry.exaflow_udf`.
+  - `engine` exposes `run_algorithm_udf` to execute UDFs registered with `exareme3_registry.exareme3_udf`.
   - `inputdata` is a pydantic model with `x`, `y`, `datasets`, `filters` (see `exaflow/algorithms/utils/inputdata_utils.Inputdata`). Algorithms should validate required vars via `validation_utils`.
   - `metadata` passed to `run()` is a `dict[var] -> {is_categorical: bool, enumerations: {...}}`. Use `metadata_utils.validate_metadata_vars` / `validate_metadata_enumerations` to enforce presence.
   - Parameters: `parameters` is a plain dict from the JSON spec.
 
 ## UDFs and aggregation
 
-- Decorate UDFs with `@exaflow_udf(...)` (see `exareme3_registry.py`).
+- Decorate UDFs with `@exareme3_udf(...)` (see `exareme3_registry.py`).
   - `with_aggregation_server=True` injects `agg_client`, which implements sum/min/max over numpy-like arrays (`ExaflowUDFAggregationClientI`).
   - UDF registry keys are derived from `__qualname__` and module; duplicates raise to avoid ambiguity.
 - Lazy aggregation helper: `library/lazy_aggregation.lazy_agg` can batch `agg_client.sum/min/max` calls when supported.

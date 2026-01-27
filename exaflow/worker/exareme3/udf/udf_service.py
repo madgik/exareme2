@@ -1,5 +1,5 @@
-from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
-    ExaflowUDFAggregationClient as AggregationClient,
+from exaflow.aggregation_clients.exareme3_udf_aggregation_client import (
+    Exareme3UDFAggregationClient as AggregationClient,
 )
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_registry
 from exaflow.algorithms.exareme3.longitudinal_transformer import (

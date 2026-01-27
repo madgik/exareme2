@@ -6,7 +6,7 @@ import scipy.stats as st
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.linear_models import (
     run_distributed_linear_regression,
 )
@@ -81,7 +81,7 @@ class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         return AnovaResult(**metrics)
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def anova_twoway_local_step(data, inputdata, agg_client, x1, x2, y, levels_a, levels_b):
     import numpy as np
     import pandas as pd
