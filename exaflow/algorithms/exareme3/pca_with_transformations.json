@@ -4,7 +4,7 @@
     "label": "Principal Component Analysis (PCA)",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
-    "type": "exaflow",
+    "type": "exareme3",
     "inputdata": {
         "y": {
             "label": "Variables",

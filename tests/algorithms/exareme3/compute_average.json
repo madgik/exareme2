@@ -2,7 +2,7 @@
     "name": "compute_average",
     "desc": "Compute the average value of a column",
     "label": "Compute Average",
-    "type": "exaflow",
+    "type": "exareme3",
     "components": [],
     "enabled": true,
     "inputdata": {

@@ -4,7 +4,7 @@
     "label": "Longitudinal Transformer",
     "enabled": true,
     "components": [],
-    "type": "exaflow_transformer",
+    "type": "exareme3_transformer",
     "parameters": {
         "visit1": {
             "label": "1st Visit",
