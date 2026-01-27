@@ -8,10 +8,6 @@ from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.anova_common import get_min_max_ci_info
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_enumerations
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
-from exaflow.algorithms.exareme3.validation_utils import require_exact_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_exact_dependents
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "anova_oneway"
@@ -30,31 +26,9 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         Exaflow implementation of one-way ANOVA with Tukey HSD, matching the
         behaviour of the original exaflow ANOVA_ONEWAY algorithm.
         """
-        y_var_name = require_exact_dependents(
-            self.inputdata,
-            count=1,
-            message="Anova one-way requires exactly one dependent variable (y).",
-        )[0]
-        x_var_name = require_exact_covariates(
-            self.inputdata,
-            count=1,
-            message="Anova one-way requires exactly one covariate (x).",
-        )[0]
-        validate_metadata_vars([x_var_name, y_var_name], metadata)
-        validate_metadata_enumerations([x_var_name], metadata)
-
-        # Enumerations for the categorical covariate
-        covar_enums_raw = metadata[x_var_name].get("enumerations")
-        if covar_enums_raw is None:
-            raise BadUserInput(
-                f"Covariate '{x_var_name}' must be categorical with enumerations."
-            )
-
-        # enumerations may be dict-like or list-like
-        if isinstance(covar_enums_raw, dict):
-            covar_enums = list(covar_enums_raw.keys())
-        else:
-            covar_enums = list(covar_enums_raw)
+        y_var_name = self.inputdata.y[0]
+        x_var_name = self.inputdata.x[0]
+        covar_enums = metadata[x_var_name].get("enumerations")
 
         # Run a single distributed ANOVA UDF with aggregation server
         udf_results = self.engine.run_algorithm_udf(
@@ -69,7 +43,6 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         result = udf_results[0]
 
-        # Build ANOVA summary dict
         anova_result = {
             "n_obs": result["n_obs"],
             "y_label": y_var_name,

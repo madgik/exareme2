@@ -10,14 +10,10 @@ from exaflow.algorithms.exareme3.library.logistic_common import compute_logistic
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
 )
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.metrics import build_design_matrix
 from exaflow.algorithms.exareme3.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exareme3.metrics import construct_design_labels
 from exaflow.algorithms.exareme3.preprocessing import get_dummy_categories
-from exaflow.algorithms.exareme3.validation_utils import require_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
-from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "logistic_regression"
 ALPHA = 0.05
@@ -49,20 +45,8 @@ class LogisticRegressionResult(BaseModel):
 
 class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
-        require_dependent_var(
-            self.inputdata, message="Logistic regression requires a dependent variable."
-        )
-        require_covariates(
-            self.inputdata,
-            message="Logistic regression requires at least one covariate.",
-        )
-
         positive_class = self.parameters.get("positive_class")
-        if positive_class is None:
-            raise BadUserInput("Parameter 'positive_class' is required.")
-
         y_var = self.inputdata.y[0]
-        validate_metadata_vars([y_var] + self.inputdata.x, metadata)
         categorical_vars = [
             var for var in self.inputdata.x if metadata[var]["is_categorical"]
         ]
@@ -70,7 +54,6 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             var for var in self.inputdata.x if not metadata[var]["is_categorical"]
         ]
 
-        # Discover dummies from actual data (not metadata)
         dummy_categories = get_dummy_categories(
             engine=self.engine,
             inputdata_json=self.inputdata.json(),

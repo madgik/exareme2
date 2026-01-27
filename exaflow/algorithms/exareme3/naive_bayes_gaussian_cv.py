@@ -1,13 +1,11 @@
 from typing import List
 
 import numpy as np
-from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_enumerations
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
+from exaflow.algorithms.exareme3.naive_bayes_common import NBResult
 from exaflow.algorithms.exareme3.naive_bayes_common import make_naive_bayes_result
 from exaflow.algorithms.exareme3.naive_bayes_common import (
     multiclass_classification_metrics,
@@ -16,57 +14,17 @@ from exaflow.algorithms.exareme3.naive_bayes_common import (
     multiclass_classification_summary,
 )
 from exaflow.algorithms.exareme3.naive_bayes_gaussian_model import GaussianNB
-from exaflow.algorithms.exareme3.validation_utils import require_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_gaussian_cv"
 VAR_SMOOTHING = 1e-9  # same as original GaussianNB _fit_global
 
 
-class GaussianNBResult(BaseModel):
-    # Only here for clarity; Algorithm.run actually returns
-    # whatever make_naive_bayes_result returns (NBResult).
-    confusion_matrix: dict
-    classification_summary: dict
-
-
 class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
-        """
-        Cross-validated Gaussian Naive Bayes using exaflow + aggregation server.
-
-        Mirrors the original exaflow GaussianNBAlgorithm, but bundles the
-        cross-validation + fitting + prediction into exaflow UDFs:
-          * a local check UDF to ensure n_obs >= n_splits per worker
-          * a main CV UDF using agg_client for secure aggregation of
-            training statistics and confusion matrices.
-        """
-        require_dependent_var(
-            self.inputdata,
-            message="Naive Bayes Gaussian CV requires a dependent variable.",
-        )
-        require_covariates(
-            self.inputdata,
-            message="Naive Bayes Gaussian CV requires at least one covariate.",
-        )
-
+    def run(self, metadata: dict) -> NBResult:
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        validate_metadata_vars([y_var] + x_vars, metadata)
-
-        # Y must be categorical, as in the original GaussianNB
-        if not metadata[y_var]["is_categorical"]:
-            raise BadUserInput(
-                f"Dependent variable {y_var!r} must be categorical for Gaussian NB."
-            )
-        validate_metadata_enumerations([y_var], metadata)
-
         n_splits = self.parameters.get("n_splits")
-        if not isinstance(n_splits, int) or n_splits <= 1:
-            raise BadUserInput(
-                "Parameter 'n_splits' must be an integer greater than 1."
-            )
 
         # Sorted class labels to match sklearn/original implementation
         label_dict = metadata[y_var]["enumerations"]
@@ -121,9 +79,7 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         ]
         summary = multiclass_classification_summary(per_fold_metrics, labels, n_obs)
 
-        # Package result using the original helper
-        result = make_naive_bayes_result(total_confmat, labels, summary)
-        return result
+        return make_naive_bayes_result(total_confmat, labels, summary)
 
 
 # ---------------------------------------------------------------------------

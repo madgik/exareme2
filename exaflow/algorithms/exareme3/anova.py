@@ -10,10 +10,6 @@ from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.linear_models import (
     run_distributed_linear_regression,
 )
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_enumerations
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
-from exaflow.algorithms.exareme3.validation_utils import require_exact_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_exact_dependents
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "anova"
@@ -29,23 +25,13 @@ class AnovaResult(BaseModel):
 
 class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        y = require_exact_dependents(
-            self.inputdata,
-            count=1,
-            message="ANOVA two-way requires exactly one dependent variable (y).",
-        )[0]
-        xs = require_exact_covariates(
-            self.inputdata,
-            count=2,
-            message="ANOVA two-way requires exactly two covariates (x).",
-        )
+        y = self.inputdata.y[0]
+        xs = self.inputdata.x
+        if len(xs) != 2:
+            raise BadUserInput("ANOVA two-way requires exactly two covariates (x).")
         x1, x2 = xs
-        validate_metadata_vars([x1, x2, y], metadata)
-        validate_metadata_enumerations([x1, x2], metadata)
 
         sstype = self.parameters.get("sstype")
-        if sstype not in (1, 2):
-            raise BadUserInput("Parameter 'sstype' must be 1 or 2.")
 
         levels_a = list(metadata[x1]["enumerations"])
         levels_b = list(metadata[x2]["enumerations"])

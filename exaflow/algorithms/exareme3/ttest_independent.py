@@ -1,9 +1,6 @@
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import ttest_independent
-from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALPHA
-from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALT
-from exaflow.algorithms.exareme3.library.ttest_common import TTestResult
 from exaflow.algorithms.exareme3.library.ttest_common import build_basic_ttest_result
 
 ALGORITHM_NAME = "ttest_independent"
@@ -11,15 +8,10 @@ ALGORITHM_NAME = "ttest_independent"
 
 class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        alpha = self.parameters.get("alpha", DEFAULT_ALPHA)
-        alternative = self.parameters.get("alt_hypothesis", DEFAULT_ALT)
+        alpha = self.parameters.get("alpha")
+        alternative = self.parameters.get("alt_hypothesis")
         group_a = self.parameters.get("groupA")
         group_b = self.parameters.get("groupB")
-
-        if group_a is None or group_b is None:
-            raise ValueError(
-                "Independent t-test requires 'groupA' and 'groupB' parameters."
-            )
 
         results = self.engine.run_algorithm_udf(
             func=local_step,
@@ -36,12 +28,6 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 @exareme3_udf(with_aggregation_server=True)
 def local_step(data, inputdata, agg_client, alpha, alternative, group_a, group_b):
-
-    if not inputdata.x or not inputdata.y:
-        raise ValueError(
-            "Independent t-test requires both grouping ('x') and measurement ('y') variables."
-        )
-
     group_var = inputdata.x[0]
     value_var = inputdata.y[0]
 

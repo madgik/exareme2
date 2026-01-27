@@ -193,7 +193,6 @@ subsequent computations. There is no longer a split between "local" and
 ```python
 from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.validation_utils import require_covariates
 
 
 class MeanResult(BaseModel):
@@ -203,10 +202,7 @@ class MeanResult(BaseModel):
 
 class MeanAlgorithm(Algorithm, algname="mean"):
     def run(self, metadata):
-        column = require_covariates(
-            self.inputdata,
-            message="Mean needs a numerical covariate.",
-        )[0]
+        column = self.inputdata.x[0]
 
         worker_payloads = self.engine.run_algorithm_udf(
             func=mean_local,

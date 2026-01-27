@@ -8,7 +8,6 @@ from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import pearson_correlation
 
 ALGORITHM_NAME = "pearson_correlation"
-DEFAULT_ALPHA = 0.95
 
 
 class PearsonResult(BaseModel):
@@ -22,7 +21,7 @@ class PearsonResult(BaseModel):
 
 class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        alpha = self.parameters.get("alpha", DEFAULT_ALPHA)
+        alpha = self.parameters.get("alpha")
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
@@ -32,10 +31,8 @@ class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
         result = results[0]
 
-        x_vars = self.inputdata.x or self.inputdata.y or []
-        y_vars = self.inputdata.y or []
-        if not x_vars or not y_vars:
-            raise ValueError("Pearson correlation requires at least one variable.")
+        x_vars = self.inputdata.x or self.inputdata.y
+        y_vars = self.inputdata.y
 
         corr_dict, p_dict, ci_hi_dict, ci_lo_dict = _format_result_matrices(
             result,

@@ -5,7 +5,6 @@ from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import kmeans
-from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "kmeans"
 
@@ -18,23 +17,11 @@ class KMeansResult(BaseModel):
 
 class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        # We expect clustering variables in y (same as the exaflow version)
-        if not self.inputdata.y:
-            raise BadUserInput("K-means requires at least one variable in 'y'.")
-
-        # Required parameters
-        try:
-            n_clusters = int(self.parameters["k"])
-        except (KeyError, ValueError, TypeError):
-            raise BadUserInput(
-                "Parameter 'k' (number of clusters) must be provided as an integer."
-            )
-
+        n_clusters = int(self.parameters["k"])
         # Optional parameters with defaults
         tol = float(self.parameters.get("tol", 1e-4))
         maxiter = int(self.parameters.get("maxiter", 100))
 
-        # Run the exaflow UDF
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
