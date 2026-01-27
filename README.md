@@ -1,4 +1,4 @@
-# exaflow [![Maintainability](https://qlty.sh/gh/madgik/projects/MIP-Engine/maintainability.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine) [![Code Coverage](https://qlty.sh/gh/madgik/projects/MIP-Engine/coverage.svg)](https://qlty.sh/gh/madgik/projects/MIP-Engine)
+# Exaflow [![Maintainability](https://qlty.sh/gh/madgik/projects/exaflow/maintainability.svg)](https://qlty.sh/gh/madgik/projects/exaflow) [![Code Coverage](https://qlty.sh/gh/madgik/projects/exaflow/coverage.svg)](https://qlty.sh/gh/madgik/projects/exaflow)
 
 ### Prerequisites
 
@@ -7,6 +7,8 @@
 1. Install [poetry](https://python-poetry.org/ "poetry")
    It is important to install `poetry` in isolation, so follow the
    recommended installation method.
+
+1. Install [poetry-shell-plugin](https://github.com/python-poetry/poetry-plugin-shell/ "poetry-shell-plugin")
 
 ## Setup
 
@@ -38,71 +40,13 @@
 
 #### Local Deployment
 
-1. Create a deployment configuration file `.deployment.toml` using the following template
+1. Create a deployment configuration file `.deployment.toml` from the sample file:
 
    ```
-   ip = "172.17.0.1"
-   federation = "dementia"
-   log_level = "DEBUG"
-   framework_log_level ="INFO"
-
-   flower_algorithm_folders = "./exaflow/algorithms/flower,./tests/algorithms/flower"
-   exareme3_algorithm_folders = "./exaflow/algorithms/exareme3,./tests/algorithms/exareme3"
-
-   worker_landscape_aggregator_update_interval = 3000
-   worker_tasks_timeout = 20
-
-   [flower]
-   enabled = true
-   execution_timeout = 60
-   server_port = 8080
-
-   [controller]
-   port = 5000
-
-   [privacy]
-   minimum_row_count = 10
-   protect_local_data = false
-
-   [aggregation_server]
-   enabled = true
-   port = 50051
-   max_grpc_connections = 10
-   max_wait_for_aggregation_inputs = 10
-
-   [smpc]
-   enabled=false
-   optional=false
-   get_result_interval = 10
-   get_result_max_retries = 100
-   smpc_image="gpikra/coordinator:v7.0.7.4"
-   db_image="mongo:5.0.8"
-   queue_image="redis:alpine3.15"
-   [smpc.dp]
-   enabled = false
-   # sensitivity = 1
-   # privacy_budget = 0.1
-
-   [[workers]]
-   id = "globalworker"
-   role = "GLOBALWORKER"
-   grpc_port=5670
-
-   [[workers]]
-   id = "localworker1"
-   role = "LOCALWORKER"
-   grpc_port=5671
-   smpc_client_port=9001
-
-   [[workers]]
-   id = "localworker2"
-   role = "LOCALWORKER"
-   grpc_port=5672
-   smpc_client_port=9002
-
+   cp .deployment.sample.toml .deployment.toml
    ```
 
-   and then run the following command to create the config files that the worker services will use
+1. Create the config files that the worker services will use
 
    ```
    inv create-configs
@@ -126,44 +70,10 @@
    inv attach --worker <WORKER-NAME>
    ```
 
-1. Restart all the worker/controller services and keep the same containers with
+1. Restart a specific worker service with
 
    ```
-   inv start-worker --all && inv start-controller --detached
-   ```
-
-#### Local Deployment (without single configuration file)
-
-1. Create the worker configuration files inside the `./configs/workers/` directory following the `./exaflow/worker/config.toml` template.
-
-1. Create the controller config at `./configs/controller/controller.toml` using `./exaflow/controller/config.toml` as a template, and set the `localworkers.config_file` field to `./configs/controller/localworkers_config.json`.
-
-1. Create the localworkers config file at `./configs/controller/localworkers_config.json` with the list of worker `ip:grpc_port` entries.
-
-1. If aggregation server is enabled, create `./configs/aggregation_server/aggregation_server.toml` using `./exaflow/aggregation_server/config.toml` as a template.
-
-#### Start monitoring tools
-
-1. Start Flower monitoring tool
-
-   by choosing a specific worker to monitor
-
-   ```
-   inv start-flower --worker <WORKER-NAME>
-   ```
-
-   or start a separate flower instance for all of the workers with
-
-   ```
-   inv start-flower --all
-   ```
-
-   Then go to the respective address on your browser to start monitoring the workers.
-
-1. Kill all flower instances at any point with
-
-   ```
-   inv kill-flower
+   inv start-worker --localworker1
    ```
 
 #### Execute an algorithm
