@@ -13,8 +13,8 @@ from exaflow.aggregation_clients.constants import AggregationType
 from exaflow.aggregation_clients.controller_aggregation_client import (
     ControllerAggregationClient,
 )
-from exaflow.aggregation_clients.exaflow_udf_aggregation_client import (
-    ExaflowUDFAggregationClient,
+from exaflow.aggregation_clients.exareme3_udf_aggregation_client import (
+    Exareme3UDFAggregationClient,
 )
 from exaflow.aggregation_server import config as aggregation_config
 from exaflow.aggregation_server.server import AggregationServer
@@ -496,7 +496,7 @@ def test_unregister_reduces_expected_workers(controller_factory):
     request_id = "udf-unregister"
     controller = controller_factory(request_id)
     controller.configure(2)
-    client = ExaflowUDFAggregationClient(request_id)
+    client = Exareme3UDFAggregationClient(request_id)
 
     status, remaining = client.unregister()
     assert status == server_pb2.Status.OK

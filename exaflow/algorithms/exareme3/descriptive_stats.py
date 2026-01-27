@@ -10,7 +10,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.validation_utils import require_covariates
 from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
@@ -118,7 +118,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
 
-@exaflow_udf()
+@exareme3_udf()
 def local_step(data, inputdata, numerical_vars, nominal_vars):
     from exaflow.worker import config as worker_config
 

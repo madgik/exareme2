@@ -3,7 +3,7 @@ from typing import List
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import pca
 
 ALGORITHM_NAME = "pca"
@@ -36,6 +36,6 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         return result
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def local_step(data, inputdata, agg_client):
     return pca(agg_client, data[inputdata.y])

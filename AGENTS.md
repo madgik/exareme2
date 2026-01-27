@@ -69,7 +69,7 @@ The pipeline below is what you usually need to reference/debug.
      - Runs requests concurrently via a thread pool, calling
        `ExaflowTasksHandler.run_udf` which in turn proxies to
        `WorkerTasksHandler` (gRPC client).
-   - Each UDF is tagged with `@exaflow_udf` (see `exaflow/algorithms/exareme3/exareme3_registry.py`)
+   - Each UDF is tagged with `@exareme3_udf` (see `exaflow/algorithms/exareme3/exareme3_registry.py`)
      which registers it and (optionally) flags whether aggregation server support is required.
 
 1. **Worker Execution Path**
@@ -105,7 +105,7 @@ ______________________________________________________________________
 - **Implementations:** `exaflow/algorithms/exareme3/*.py` typically define:
   - `ALGORITHM_SPEC` loading the JSON file.
   - A class derived from a base (e.g., `Algorithm` in `algorithm.py`) exposing `run`.
-  - UDF helpers decorated with `@exaflow_udf`.
+  - UDF helpers decorated with `@exareme3_udf`.
 - **Data helpers:** `metrics.py` and `library/` hold reusable computations;
   prefer extending them before inlining SQL.
 - **Controller integration:** Ensure the algorithm module lives in

@@ -1,13 +1,13 @@
 import numpy as np
 
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.lazy_aggregation import RecordingAggClient
 
 
-def test_exaflow_udf_enables_lazy_by_default():
+def test_exareme3_udf_enables_lazy_by_default():
     calls = RecordingAggClient()
 
-    @exaflow_udf(with_aggregation_server=True)
+    @exareme3_udf(with_aggregation_server=True)
     def udf(agg_client):
         a = agg_client.sum(np.array([1.0], dtype=float))
         b = agg_client.sum(np.array([2.0], dtype=float))
@@ -18,10 +18,10 @@ def test_exaflow_udf_enables_lazy_by_default():
     assert calls.calls == [("batch", 2)]
 
 
-def test_exaflow_udf_lazy_can_be_disabled():
+def test_exareme3_udf_lazy_can_be_disabled():
     calls = RecordingAggClient()
 
-    @exaflow_udf(with_aggregation_server=True, enable_lazy_aggregation=False)
+    @exareme3_udf(with_aggregation_server=True, enable_lazy_aggregation=False)
     def udf(agg_client):
         a = agg_client.sum(np.array([1.0], dtype=float))
         b = agg_client.sum(np.array([2.0], dtype=float))
@@ -32,10 +32,10 @@ def test_exaflow_udf_lazy_can_be_disabled():
     assert calls.calls == [("sum", 1), ("sum", 1)]
 
 
-def test_exaflow_udf_custom_client_name():
+def test_exareme3_udf_custom_client_name():
     calls = RecordingAggClient()
 
-    @exaflow_udf(with_aggregation_server=True, agg_client_name="client")
+    @exareme3_udf(with_aggregation_server=True, agg_client_name="client")
     def udf(client):
         x = client.sum(np.array([4.0], dtype=float))
         y = client.sum(np.array([5.0], dtype=float))

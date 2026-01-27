@@ -1,5 +1,5 @@
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import ttest_paired
 from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALPHA
 from exaflow.algorithms.exareme3.library.ttest_common import DEFAULT_ALT
@@ -25,7 +25,7 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         return build_basic_ttest_result(results[0])
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 # TODO codex here i would like to have a logic of adding an anotations @duck_data_loading or @csvs_data_loading  if duckdb the dataframe that will be using the usual load_algorithm_dataframe the same for csvs you can see the csvs loading at /home/kfilippopolitis/Desktop/exaflow/exaflow/algorithms/utils on file inputdata_utils this should be moved in the worker.
 def local_step(data, inputdata, agg_client, alpha, alternative):
 

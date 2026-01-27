@@ -5,7 +5,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import pca as core_pca
 from exaflow.worker_communication import BadUserInput
 
@@ -65,7 +65,7 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def pca_with_transformation_local_step(
     data,
     inputdata,

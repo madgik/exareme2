@@ -5,7 +5,7 @@ from typing import List
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.naive_bayes_gaussian_model import GaussianNB
 from exaflow.worker_communication import BadUserInput
 
@@ -83,7 +83,7 @@ class GaussianNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
         return self.Result(predictions=dict(total))
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def gaussian_nb_fit_udf(
     data,
     inputdata,
@@ -107,7 +107,7 @@ def gaussian_nb_fit_udf(
     }
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def gaussian_nb_predict_udf(
     data,
     inputdata,

@@ -146,13 +146,13 @@ Let's now port the above algorithm to the Exaflow runtime used in
 local computations that run next to each dataset and combine their outputs in
 the controller. The implementation details, however, are different from the
 older Exareme2 stack and revolve around the `Algorithm` base class,
-`@exaflow_udf` decorator, and the `Inputdata` pydantic model.
+`@exareme3_udf` decorator, and the `Inputdata` pydantic model.
 
 ### Declaring worker steps
 
 Exaflow discovers worker-side logic through the
-`exaflow.algorithms.exareme3.exareme3_registry.exaflow_udf` decorator. When you
-decorate a function with `@exaflow_udf`, it gets registered under a stable
+`exaflow.algorithms.exareme3.exareme3_registry.exareme3_udf` decorator. When you
+decorate a function with `@exareme3_udf`, it gets registered under a stable
 key, can be dispatched to every participating worker, and receives the
 arguments that the flow passes via `engine.run_algorithm_udf`.
 
@@ -164,10 +164,10 @@ Every worker step receives:
 - Any additional keyword arguments provided by the flow.
 
 ```python
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 
 
-@exaflow_udf()
+@exareme3_udf()
 def mean_local(data, inputdata, column):
     # Keep only the column of interest and drop NA locally
     series = data[column].dropna()
@@ -323,10 +323,10 @@ all flows:
 
 ```python
 import numpy as np
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def xtx_local(data, inputdata, covariates, agg_client):
     X = data[covariates].to_numpy(dtype=float, copy=False)
     payload = np.array([X.T @ X, X.sum(axis=0), [len(X)]], dtype=object)
@@ -377,10 +377,10 @@ service and only the aggregated result is returned to the flow.
 
 ```python
 import numpy as np
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def privacy_preserving_counts(data, agg_client, categories):
     matrix = np.stack(
         [data[cat].value_counts(dropna=False).reindex(categories, fill_value=0)]
@@ -520,14 +520,14 @@ algorithm](https://github.com/madgik/exaflow/blob/main/exaflow/algorithms/exarem
 ```python
 from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 
 
 class IterationResult(BaseModel):
     value: float
 
 
-@exaflow_udf()
+@exareme3_udf()
 def update_local(data, column, val):
     gradient = data[column].mean() - val
     return {"gradient": gradient}

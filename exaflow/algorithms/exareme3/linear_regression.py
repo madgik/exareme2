@@ -4,7 +4,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.linear_models import compute_summary_from_stats
 from exaflow.algorithms.exareme3.library.linear_models import (
     run_distributed_linear_regression,
@@ -116,12 +116,12 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
 
-@exaflow_udf()
+@exareme3_udf()
 def linear_collect_categorical_levels(data, inputdata, categorical_vars):
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def linear_regression_local_step(
     data,
     inputdata,

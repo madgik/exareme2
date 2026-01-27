@@ -11,7 +11,7 @@ from scipy.special import expit
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import buffered_kfold_split
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_class
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
@@ -281,7 +281,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 # ---------------------------------------------------------------------------#
 
 
-@exaflow_udf()
+@exareme3_udf()
 def logistic_collect_categorical_levels_cv(data, inputdata, categorical_vars):
     """
     Thin UDF wrapper used only to collect categorical levels from workers.
@@ -290,7 +290,7 @@ def logistic_collect_categorical_levels_cv(data, inputdata, categorical_vars):
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
-@exaflow_udf()
+@exareme3_udf()
 def logistic_regression_cv_check_local(
     data, inputdata, y_var, positive_class, n_splits
 ):
@@ -303,7 +303,7 @@ def logistic_regression_cv_check_local(
     )
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def logistic_regression_cv_local_step(
     data,
     inputdata,

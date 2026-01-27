@@ -65,7 +65,7 @@ class Exareme3Registry(metaclass=Singleton):
 exareme3_registry = Exareme3Registry()
 
 
-def exaflow_udf(
+def exareme3_udf(
     _func: Callable | None = None,
     *,
     with_aggregation_server: bool = False,

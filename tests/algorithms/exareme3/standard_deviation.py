@@ -1,5 +1,5 @@
 from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exaflow_udf
+from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.worker_communication import ColumnDataFloat
 from exaflow.worker_communication import ColumnDataStr
 from exaflow.worker_communication import TabularDataResult
@@ -44,6 +44,6 @@ def compute_stddev(agg_client, data):
     return float(np.sqrt(max(variance, 0.0)))
 
 
-@exaflow_udf(with_aggregation_server=True)
+@exareme3_udf(with_aggregation_server=True)
 def local_step(data, inputdata, agg_client):
     return compute_stddev(agg_client, data[inputdata.y[0]])
