@@ -1,7 +1,7 @@
 import numpy as np
 
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
-from exaflow.algorithms.exareme3.library.lazy_aggregation import RecordingAggClient
+from exaflow.algorithms.exareme3.lazy_aggregation import RecordingAggClient
 
 
 def test_exareme3_udf_enables_lazy_by_default():

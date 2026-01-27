@@ -5,7 +5,7 @@ from scipy import stats
 from scipy.special import expit
 from scipy.special import xlogy
 
-from exaflow.algorithms.exareme3.library.lazy_aggregation import lazy_agg
+from exaflow.algorithms.exareme3.lazy_aggregation import lazy_agg
 from exaflow.worker_communication import BadUserInput
 
 MAX_ITER = 50

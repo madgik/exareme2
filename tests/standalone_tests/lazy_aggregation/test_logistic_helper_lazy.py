@@ -1,6 +1,6 @@
 import numpy as np
 
-from exaflow.algorithms.exareme3.library.lazy_aggregation import RecordingAggClient
+from exaflow.algorithms.exareme3.lazy_aggregation import RecordingAggClient
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
 )

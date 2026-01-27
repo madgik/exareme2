@@ -1,13 +1,11 @@
-from typing import Dict
 from typing import List
-from typing import Optional
 
 import numpy as np
 import pyarrow as pa
 import scipy.special as special
 import scipy.stats as st
 
-from exaflow.algorithms.exareme3.library.lazy_aggregation import lazy_agg
+from exaflow.algorithms.exareme3.lazy_aggregation import lazy_agg
 
 
 def _to_numpy(x) -> np.ndarray:

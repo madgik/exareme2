@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from exaflow.algorithms.exareme3.library.lazy_aggregation import lazy_agg
+from exaflow.algorithms.exareme3.lazy_aggregation import lazy_agg
 
 VAR_SMOOTHING = 1e-9
 
