@@ -40,7 +40,7 @@ def get_algorithm_execution_strategy(
 
 def _get_algorithm_controller(algo_type: AlgorithmType) -> ControllerI:
     controller: ControllerI
-    if algo_type in [AlgorithmType.EXAFLOW]:
+    if algo_type in [AlgorithmType.EXAREME3]:
         return get_exareme3_controller()
     elif algo_type == AlgorithmType.FLOWER:
         return get_flower_controller()
@@ -56,7 +56,7 @@ def _get_algorithm_strategy_type(
     algorithm_request_dto: AlgorithmRequestDTO,
 ) -> Type[AlgorithmExecutionStrategyI]:
     strategy: AlgorithmExecutionStrategyI
-    if algo_type == AlgorithmType.EXAFLOW:
+    if algo_type == AlgorithmType.EXAREME3:
         if ComponentType.AGGREGATION_SERVER in algo_component_types:
             return Exareme3WithAggregationServerStrategy
         return Exareme3Strategy

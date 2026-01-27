@@ -10,7 +10,7 @@ framework_log_level = os.getenv("FRAMEWORK_LOG_LEVEL", "INFO")
 request_id = os.getenv("REQUEST_ID", "NO-REQUEST_ID")
 
 flower_formatter = logging.Formatter(
-    f"%(asctime)s - %(levelname)s - %(module)s.%(funcName)s(%(lineno)d) - [{federation}] - [exaflow-flower-{worker_role.lower()}] - [{node_identifier}] - [{request_id}] - %(message)s"
+    f"%(asctime)s - %(levelname)s - %(module)s.%(funcName)s(%(lineno)d) - [{federation}] - [flower-{worker_role.lower()}] - [{node_identifier}] - [{request_id}] - %(message)s"
 )
 
 # Configure console logger

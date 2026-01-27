@@ -12,12 +12,12 @@ from pydantic import root_validator
 @unique
 class AlgorithmType(Enum):
     FLOWER = "flower"
-    EXAFLOW = "exaflow"
+    EXAREME3 = "exareme3"
 
 
 @unique
 class TransformerType(Enum):
-    EXAFLOW_TRANSFORMER = "exaflow_transformer"
+    EXAREME3_TRANSFORMER = "exareme3_transformer"
 
 
 @unique

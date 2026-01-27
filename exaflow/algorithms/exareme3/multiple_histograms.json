@@ -4,7 +4,7 @@
     "label": "Multiple Histograms",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
-    "type": "exaflow",
+    "type": "exareme3",
     "inputdata": {
         "y": {
             "label": "Variable to distribute among bins.",

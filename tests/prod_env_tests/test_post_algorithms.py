@@ -32,7 +32,7 @@ def get_parametrization_list_exception_cases():
             "x": ["test_cde1", "test_cde2"],
             "y": ["test_cde3"],
         },
-        "type": "exaflow",
+        "type": "exareme3",
     }
 
     expected_response = (460, "Data model .* does not exist.*")
@@ -67,7 +67,7 @@ def get_parametrization_list_exception_cases():
             },
         },
         "parameters": {"positive_class": "AD"},
-        "type": "exaflow",
+        "type": "exareme3",
     }
 
     expected_response = (
@@ -111,7 +111,7 @@ def test_post_algorithm_with_request_id():
         },
         "parameters": None,
         "request_id": "89aace55-60e8-4b29-958b-84cca8785120",
-        "type": "exaflow",
+        "type": "exareme3",
     }
     algorithm_url = algorithms_url + "/" + algorithm_name
     headers = {"Content-type": "application/json", "Accept": "text/plain"}

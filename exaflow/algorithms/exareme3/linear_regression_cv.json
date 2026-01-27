@@ -4,7 +4,7 @@
     "label": "Linear Regression Cross-validation",
     "enabled": true,
     "components": ["AGGREGATION_SERVER"],
-    "type": "exaflow",
+    "type": "exareme3",
     "inputdata": {
         "y": {
             "label": "Variable (dependent)",
