@@ -20,25 +20,14 @@ class SVMResult(BaseModel):
 
 class SVMAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
-        if not self.inputdata.y:
-            raise BadUserInput("SVM requires one dependent variable (y).")
-        if not self.inputdata.x:
-            raise BadUserInput("SVM requires at least one covariate (x).")
-
         y_var = self.inputdata.y[0]
         x_vars = self.inputdata.x
 
         gamma = self.parameters.get("gamma")
         C = self.parameters.get("C")
-        if gamma is None or C is None:
-            raise BadUserInput("Parameters 'gamma' and 'C' are required for SVM.")
 
         # Validate that y has at least two levels using metadata enumerations
-        y_enums = metadata.get(y_var, {}).get("enumerations")
-        if not y_enums:
-            raise BadUserInput(
-                f"Covariate '{y_var}' must be categorical with enumerations."
-            )
+        y_enums = metadata.get(y_var).get("enumerations")
         y_levels = list(y_enums.keys())
         if len(y_levels) < 2:
             raise BadUserInput(

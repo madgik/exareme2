@@ -16,13 +16,10 @@ from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
 )
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.metrics import build_design_matrix
 from exaflow.algorithms.exareme3.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exareme3.metrics import construct_design_labels
 from exaflow.algorithms.exareme3.preprocessing import get_dummy_categories
-from exaflow.algorithms.exareme3.validation_utils import require_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "logistic_regression_cv"
@@ -146,32 +143,10 @@ def make_classification_metrics_summary(
 
 class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
-        """
-        Cross-validated logistic regression using exaflow.
-        """
-        require_dependent_var(
-            self.inputdata,
-            message="Logistic regression CV requires a dependent variable.",
-        )
-        require_covariates(
-            self.inputdata,
-            message="Logistic regression CV requires at least one covariate.",
-        )
-
         positive_class = self.parameters.get("positive_class")
-        if positive_class is None:
-            raise BadUserInput("Parameter 'positive_class' is required.")
-
         n_splits = self.parameters.get("n_splits")
-        if not isinstance(n_splits, int) or n_splits <= 1:
-            raise BadUserInput(
-                "Parameter 'n_splits' must be an integer greater than 1."
-            )
-
         y_var = self.inputdata.y[0]
-        validate_metadata_vars([y_var] + self.inputdata.x, metadata)
 
-        # Identify categorical vs numerical predictors
         categorical_vars = [
             var for var in self.inputdata.x if metadata[var]["is_categorical"]
         ]
@@ -179,7 +154,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             var for var in self.inputdata.x if not metadata[var]["is_categorical"]
         ]
 
-        # Discover dummy categories from actual data (shared util)
         dummy_categories = get_dummy_categories(
             engine=self.engine,
             inputdata_json=self.inputdata.json(),
@@ -210,7 +184,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 f"smaller than the number of splits, {n_splits}."
             )
 
-        # 2) Run distributed logistic CV with aggregation server
+        # 2) Run distributed logistic CV
         udf_results = self.engine.run_algorithm_udf(
             func=logistic_regression_cv_local_step,
             positional_args={

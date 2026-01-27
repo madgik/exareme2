@@ -12,13 +12,10 @@ from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.linear_models import (
     run_distributed_linear_regression,
 )
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.metrics import build_design_matrix
 from exaflow.algorithms.exareme3.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exareme3.metrics import construct_design_labels
 from exaflow.algorithms.exareme3.preprocessing import get_dummy_categories
-from exaflow.algorithms.exareme3.validation_utils import require_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "linear_regression_cv"
@@ -42,28 +39,8 @@ class CVLinearRegressionResult(BaseModel):
 
 class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
-        """
-        Cross-validated linear regression using exaflow.
-
-        This mirrors the original exaflow LinearRegressionCVAlgorithm, but
-        uses exaflow UDFs and secure aggregation.
-        """
-        require_dependent_var(
-            self.inputdata,
-            message="Linear regression CV requires a dependent variable.",
-        )
-        require_covariates(
-            self.inputdata,
-            message="Linear regression CV requires at least one covariate.",
-        )
-
         y_var = self.inputdata.y[0]
-        validate_metadata_vars([y_var] + self.inputdata.x, metadata)
         n_splits = self.parameters.get("n_splits")
-        if not isinstance(n_splits, int) or n_splits <= 1:
-            raise BadUserInput(
-                "Parameter 'n_splits' must be an integer greater than 1."
-            )
 
         # Identify categorical vs numerical predictors
         categorical_vars = [
@@ -73,7 +50,6 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             var for var in self.inputdata.x if not metadata[var]["is_categorical"]
         ]
 
-        # Discover dummy categories from actual data (shared util)
         dummy_categories = get_dummy_categories(
             engine=self.engine,
             inputdata_json=self.inputdata.json(),
@@ -105,7 +81,7 @@ class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 f"smaller than the number of splits, {n_splits}."
             )
 
-        # 2) Run distributed K-fold CV with aggregation server
+        # 2) Run distributed K-fold CV
         udf_results = self.engine.run_algorithm_udf(
             func=linear_regression_cv_local_step,
             positional_args={

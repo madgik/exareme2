@@ -7,8 +7,6 @@ from pydantic import BaseModel
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_enumerations
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
 from exaflow.algorithms.exareme3.naive_bayes_categorical_model import CategoricalNB
 from exaflow.algorithms.exareme3.naive_bayes_common import make_naive_bayes_result
 from exaflow.algorithms.exareme3.naive_bayes_common import (
@@ -17,8 +15,6 @@ from exaflow.algorithms.exareme3.naive_bayes_common import (
 from exaflow.algorithms.exareme3.naive_bayes_common import (
     multiclass_classification_summary,
 )
-from exaflow.algorithms.exareme3.validation_utils import require_covariates
-from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_categorical_cv"
@@ -32,50 +28,15 @@ class CategoricalNBResult(BaseModel):
 
 class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
-        """
-        Cross-validated categorical Naive Bayes using exaflow + aggregation server.
-
-        Mirrors the original exaflow CategoricalNBAlgorithm + CategoricalNB
-        logic, but implemented as a single exaflow UDF that:
-          * does K-fold CV locally on each worker,
-          * uses agg_client to aggregate training counts and confusion matrices,
-          * returns per-fold global confusion matrices & n_obs.
-        Then we reconstruct the summary using the same metrics helpers and
-        make_naive_bayes_result.
-        """
-        require_dependent_var(
-            self.inputdata,
-            message="Naive Bayes CV requires a dependent variable.",
-        )
-        require_covariates(
-            self.inputdata, message="Naive Bayes CV requires at least one covariate."
-        )
-
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        validate_metadata_vars([y_var] + x_vars, metadata)
-
-        # Require all variables to be categorical
-        non_cat = [v for v in [*x_vars, y_var] if not metadata[v]["is_categorical"]]
-        if non_cat:
-            raise BadUserInput(
-                "Naive Bayes categorical CV only supports categorical variables. "
-                f"Non-categorical variables: {', '.join(non_cat)}"
-            )
-        validate_metadata_enumerations([y_var] + x_vars, metadata)
-
         n_splits = self.parameters.get("n_splits")
-        if not isinstance(n_splits, int) or n_splits <= 1:
-            raise BadUserInput(
-                "Parameter 'n_splits' must be an integer greater than 1."
-            )
 
         # Build sorted category lists to match sklearn / original implementation
         all_vars = x_vars + [y_var]
         categories: Dict[str, List[str]] = {
             var: list(sorted(metadata[var]["enumerations"].keys())) for var in all_vars
         }
-        labels = categories[y_var]
 
         # 1) Per-worker check: n_obs >= n_splits
         check_results = self.engine.run_algorithm_udf(

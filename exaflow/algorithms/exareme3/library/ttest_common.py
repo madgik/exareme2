@@ -4,9 +4,6 @@ from typing import Dict
 
 from pydantic import BaseModel
 
-DEFAULT_ALPHA = 0.05
-DEFAULT_ALT = "two-sided"
-
 
 class TTestResult(BaseModel):
     t_stat: float

@@ -12,8 +12,6 @@ from pydantic import BaseModel
 
 from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
-from exaflow.algorithms.exareme3.metadata_utils import validate_metadata_vars
-from exaflow.algorithms.exareme3.validation_utils import require_dependent_var
 
 HistogramBin = Union[float, str]
 
@@ -37,14 +35,13 @@ logger = logging.getLogger(__name__)
 
 class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
-        require_dependent_var(
-            self.inputdata,
-            message="Multiple histograms requires a target variable in 'y' (grouping 'x' is optional).",
-        )
         y_var = self.inputdata.y[0]
         x_vars = self.inputdata.x or []
-        bins_param = self.parameters.get("bins", 20) or 20
-        validate_metadata_vars([y_var] + x_vars, metadata)
+
+        default_bins = 20
+        bins = self.parameters.get("bins", default_bins)
+        if bins is None:
+            bins = default_bins
 
         metadata_subset = {var: metadata[var] for var in {y_var, *x_vars}}
 
@@ -53,7 +50,7 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             positional_args={
                 "inputdata": self.inputdata.json(),
                 "metadata": metadata_subset,
-                "bins": int(bins_param),
+                "bins": bins,
             },
         )
         payload = results[0]

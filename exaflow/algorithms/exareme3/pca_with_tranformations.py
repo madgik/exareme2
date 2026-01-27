@@ -20,21 +20,8 @@ class PCAResult(BaseModel):
 
 
 class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
-        """
-        PCA with data transformations, exaflow-style.
-
-        It mirrors the old exaflow PCA-with-transformation behaviour:
-
-        1. Optionally applies local log/exp to selected columns.
-        2. Optionally applies global center/standardize (via agg_client) to
-           selected columns.
-        3. Always calls the base `pca` helper, which standardizes all columns
-           and computes covariance eigen-decomposition.
-
-        Error messages are preserved so the validation tests match.
-        """
-        data_transformation: Dict = self.parameters.get("data_transformation", {})
+    def run(self, metadata):
+        data_transformation: Dict = self.parameters.get("data_transformation")
 
         try:
             results = self.engine.run_algorithm_udf(
@@ -52,7 +39,6 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 or "Unknown transformation" in msg
                 or "Standardization cannot be applied to column" in msg
             ):
-                # Same user-facing behaviour as old exaflow implementation
                 raise BadUserInput(msg)
             raise
 
@@ -89,7 +75,6 @@ def pca_with_transformation_local_step(
             "standardize": ["col5", "col6"],
         }
     """
-    import pandas as pd
 
     if data_transformation is None:
         data_transformation = {}
