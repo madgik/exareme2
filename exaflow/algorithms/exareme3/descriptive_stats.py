@@ -74,7 +74,6 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         local_results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "numerical_vars": numerical_vars,
                 "nominal_vars": nominal_vars,
                 "dropna": False,
@@ -106,7 +105,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def local_step(data, inputdata, numerical_vars, nominal_vars):
+def local_step(data, numerical_vars, nominal_vars):
     from exaflow.worker import config as worker_config
 
     min_row_count = worker_config.privacy.minimum_row_count

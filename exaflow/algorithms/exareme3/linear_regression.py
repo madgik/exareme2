@@ -48,7 +48,6 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         dummy_categories = get_dummy_categories(
             engine=self.engine,
-            inputdata_json=self.inputdata.json(),
             categorical_vars=categorical_vars,
             collect_udf=linear_collect_categorical_levels,
         )
@@ -63,7 +62,6 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         udf_results = self.engine.run_algorithm_udf(
             func=linear_regression_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "categorical_vars": categorical_vars,
                 "numerical_vars": numerical_vars,
@@ -101,15 +99,14 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def linear_collect_categorical_levels(data, inputdata, categorical_vars):
+def linear_collect_categorical_levels(data, categorical_vars):
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exareme3_udf(with_aggregation_server=True)
 def linear_regression_local_step(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     categorical_vars,
     numerical_vars,

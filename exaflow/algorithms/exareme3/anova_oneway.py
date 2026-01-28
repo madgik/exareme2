@@ -24,17 +24,16 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata: dict):
         """
         Exaflow implementation of one-way ANOVA with Tukey HSD, matching the
-        behaviour of the original exaflow ANOVA_ONEWAY algorithm.
+        behavior of the original exaflow ANOVA_ONEWAY algorithm.
         """
         y_var_name = self.inputdata.y[0]
         x_var_name = self.inputdata.x[0]
         covar_enums = metadata[x_var_name].get("enumerations")
 
-        # Run a single distributed ANOVA UDF with aggregation server
+        # Run a single distributed ANOVA UDF
         udf_results = self.engine.run_algorithm_udf(
             func=anova_oneway_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "x_var": x_var_name,
                 "y_var": y_var_name,
                 "covar_enums": covar_enums,
@@ -101,7 +100,7 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def anova_oneway_local_step(data, inputdata, agg_client, x_var, y_var, covar_enums):
+def anova_oneway_local_step(data, agg_client, x_var, y_var, covar_enums):
     """
     Exaflow UDF that:
     - On each worker: builds local group statistics for y by x.

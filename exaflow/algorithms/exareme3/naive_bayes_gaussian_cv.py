@@ -34,7 +34,6 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         check_results = self.engine.run_algorithm_udf(
             func=gaussian_nb_cv_check_local,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "n_splits": int(n_splits),
             },
@@ -53,7 +52,6 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         udf_results = self.engine.run_algorithm_udf(
             func=gaussian_nb_cv_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "labels": labels,
@@ -88,7 +86,7 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def gaussian_nb_cv_check_local(data, inputdata, y_var, n_splits):
+def gaussian_nb_cv_check_local(data, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
@@ -98,9 +96,8 @@ def gaussian_nb_cv_check_local(data, inputdata, y_var, n_splits):
 
 @exareme3_udf(with_aggregation_server=True)
 def gaussian_nb_cv_local_step(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     x_vars,
     labels,
@@ -121,7 +118,6 @@ def gaussian_nb_cv_local_step(
     data = data[cols].copy()
 
     n_rows = data.shape[0]
-    counts_shape = (n_classes_full, n_features)
     conf_shape = (n_classes_full, n_classes_full)
     if n_rows < n_splits:
         confmats_global: List[np.ndarray] = []

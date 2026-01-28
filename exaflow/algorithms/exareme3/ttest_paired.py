@@ -14,7 +14,8 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
+                "x_var": self.inputdata.x[0],
+                "y_var": self.inputdata.y[0],
                 "alpha": alpha,
                 "alternative": alternative,
             },
@@ -23,10 +24,7 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client, alpha, alternative):
-    x_var = inputdata.x[0]
-    y_var = inputdata.y[0]
-
+def local_step(agg_client, data, x_var, y_var, alpha, alternative):
     sample_x = data[x_var].to_numpy(dtype=float, copy=False)
     sample_y = data[y_var].to_numpy(dtype=float, copy=False)
 

@@ -33,13 +33,7 @@ class CategoricalNBTestingFit(Algorithm, algname=ALGNAME_FIT):
         categories = _sorted_categories(metadata, x_vars + [y_var])
 
         udf_results = self.engine.run_algorithm_udf(
-            func=categorical_nb_fit_udf,
-            positional_args={
-                "inputdata": self.inputdata.json(),
-                "y_var": y_var,
-                "x_vars": x_vars,
-                "categories": categories,
-            },
+            func=categorical_nb_fit_udf, positional_args={}
         )
 
         stats = udf_results[0]
@@ -64,7 +58,6 @@ class CategoricalNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
         udf_results = self.engine.run_algorithm_udf(
             func=categorical_nb_predict_udf,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "categories": categories,
@@ -95,9 +88,8 @@ def _prepare_dataframe(data, x_vars, y_var, categories):
 
 @exareme3_udf(with_aggregation_server=True)
 def categorical_nb_fit_udf(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     x_vars,
     categories,
@@ -119,9 +111,8 @@ def categorical_nb_fit_udf(
 
 @exareme3_udf(with_aggregation_server=True)
 def categorical_nb_predict_udf(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     x_vars,
     categories,

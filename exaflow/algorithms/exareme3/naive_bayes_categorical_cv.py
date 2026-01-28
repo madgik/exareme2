@@ -42,7 +42,6 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         check_results = self.engine.run_algorithm_udf(
             func=naive_bayes_categorical_cv_check_local,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "n_splits": int(n_splits),
             },
@@ -58,7 +57,6 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         udf_results = self.engine.run_algorithm_udf(
             func=naive_bayes_categorical_cv_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "categories": categories,
@@ -91,7 +89,7 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def naive_bayes_categorical_cv_check_local(data, inputdata, y_var, n_splits):
+def naive_bayes_categorical_cv_check_local(data, y_var, n_splits):
     """
     Check on each worker whether the number of observations is at least n_splits.
     """
@@ -101,9 +99,8 @@ def naive_bayes_categorical_cv_check_local(data, inputdata, y_var, n_splits):
 
 @exareme3_udf(with_aggregation_server=True)
 def naive_bayes_categorical_cv_local_step(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     x_vars,
     categories,

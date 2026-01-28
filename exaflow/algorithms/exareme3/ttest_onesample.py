@@ -17,7 +17,7 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
+                "y_var": self.inputdata.y[0],
                 "alpha": alpha,
                 "alternative": alternative,
                 "mu": mu,
@@ -27,8 +27,8 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client, alpha, alternative, mu):
-    sample = data[inputdata.y[0]].to_numpy(dtype=float, copy=False)
+def local_step(agg_client, data, y_var, alpha, alternative, mu):
+    sample = data[y_var].to_numpy(dtype=float, copy=False)
 
     return ttest_one_sample(
         agg_client=agg_client,

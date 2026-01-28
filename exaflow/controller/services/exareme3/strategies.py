@@ -37,7 +37,6 @@ class Exareme3Strategy(AlgorithmExecutionStrategyI):
         preprocessing = self._algorithm_request_dto.preprocessing or {}
         preprocessing_payload = None
         if "longitudinal_transformer" in preprocessing:
-            prep_payload = None
             (
                 transformed_inputdata,
                 metadata,

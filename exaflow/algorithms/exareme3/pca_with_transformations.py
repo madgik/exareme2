@@ -27,7 +27,7 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             results = self.engine.run_algorithm_udf(
                 func=pca_with_transformation_local_step,
                 positional_args={
-                    "inputdata": self.inputdata.json(),
+                    "y_vars": self.inputdata.y,
                     "data_transformation": data_transformation,
                 },
             )
@@ -53,9 +53,9 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 @exareme3_udf(with_aggregation_server=True)
 def pca_with_transformation_local_step(
-    data,
-    inputdata,
     agg_client,
+    data,
+    y_vars,
     data_transformation,
 ):
     """
@@ -86,7 +86,6 @@ def pca_with_transformation_local_step(
             raise ValueError(f"Unknown transformation: {key}")
 
     # Use the same y variables as the base PCA implementation
-    y_vars = inputdata.y
     X = data.loc[:, y_vars]
 
     # ---------------------------

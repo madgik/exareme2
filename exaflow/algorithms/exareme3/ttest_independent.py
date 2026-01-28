@@ -16,7 +16,8 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
+                "group_var": self.inputdata.x[0],
+                "value_var": self.inputdata.y[0],
                 "alpha": alpha,
                 "alternative": alternative,
                 "group_a": group_a,
@@ -27,10 +28,9 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client, alpha, alternative, group_a, group_b):
-    group_var = inputdata.x[0]
-    value_var = inputdata.y[0]
-
+def local_step(
+    agg_client, data, group_var, value_var, alpha, alternative, group_a, group_b
+):
     grouping = data[group_var]
     if hasattr(grouping, "ndim") and grouping.ndim > 1:
         # Some backends return a single-column DataFrame; convert to Series.

@@ -20,7 +20,9 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         results = self.engine.run_algorithm_udf(
             func=local_step,
-            positional_args={"inputdata": self.inputdata.json()},
+            positional_args={
+                "y_vars": self.inputdata.y,
+            },
         )
         result = results[0]
         n_obs = result["n_obs"]
@@ -37,5 +39,5 @@ class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client):
-    return pca(agg_client, data[inputdata.y])
+def local_step(agg_client, data, y_vars):
+    return pca(agg_client, data[y_vars])

@@ -49,7 +49,6 @@ class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         results = self.engine.run_algorithm_udf(
             func=anova_twoway_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "x1": x1,
                 "x2": x2,
                 "y": y,
@@ -68,7 +67,7 @@ class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def anova_twoway_local_step(data, inputdata, agg_client, x1, x2, y, levels_a, levels_b):
+def anova_twoway_local_step(agg_client, data, x1, x2, y, levels_a, levels_b):
     import numpy as np
     import pandas as pd
     from patsy import dmatrix
