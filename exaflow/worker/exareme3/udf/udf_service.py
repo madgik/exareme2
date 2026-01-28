@@ -99,9 +99,13 @@ def run_udf(
         params["agg_client"] = agg_client
 
     logger = get_logger()
-    if "metadata" in params:
+    # TODO: Move metadata, enum order, inputdata, and other core fields to
+    # dedicated RunUdf fields instead of params.
+    metadata = params.get("metadata")
+    if metadata:
         # GRPC will mess with the order of dict when sending from controller to worker we need a list with the order to we can re-arrange them properly
-        params["metadata"] = enforce_enum_order(params["metadata"])
+        metadata = enforce_enum_order(metadata)
+        params["metadata"] = metadata
 
     dropna = params.pop("dropna", True)
     include_dataset = params.pop("include_dataset", False)
@@ -140,14 +144,14 @@ def run_udf(
             data, preprocessing["longitudinal_transformer"]
         )
     params["data"] = ensure_pandas_dataframe(data)
-    if "metadata" in params:
-        params["data"] = coerce_categorical_columns(params["data"], params["metadata"])
+    if metadata:
+        params["data"] = coerce_categorical_columns(params["data"], metadata)
     udf = exareme3_registry.get_func(udf_registry_key)
     if not udf:
         error_msg = f"udf '{udf_registry_key}' not found in EXAREME3_REGISTRY."
         raise ImportError(error_msg)
 
-    if "metadata" in params:
+    if metadata:
         import inspect
 
         try:
