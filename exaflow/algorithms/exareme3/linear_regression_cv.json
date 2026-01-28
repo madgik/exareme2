@@ -10,7 +10,8 @@
             "label": "Variable (dependent)",
             "desc": "A unique numerical variable.",
             "types": [
-                "real"
+                "real",
+                "int"
             ],
             "stattypes": [
                 "numerical"

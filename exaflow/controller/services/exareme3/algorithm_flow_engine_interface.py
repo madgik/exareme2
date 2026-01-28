@@ -26,12 +26,14 @@ class Exareme3AlgorithmFlowEngineInterface:
         tasks_handlers: List[Exareme3TasksHandler],
         preprocessing=None,
         raw_inputdata=None,
+        metadata=None,
     ) -> None:
         self._logger = ctrl_logger.get_request_logger(request_id=request_id)
         self._context_id = context_id
         self._tasks_handlers = tasks_handlers
         self._preprocessing = preprocessing
         self._raw_inputdata = raw_inputdata
+        self._metadata = metadata
 
     def run_algorithm_udf(self, func, positional_args) -> List[dict]:
         if not self._tasks_handlers:
@@ -41,6 +43,8 @@ class Exareme3AlgorithmFlowEngineInterface:
         udf_registry_key = get_udf_registry_key(func)
         if "metadata" in positional_args:
             positional_args["metadata"] = add_ordered_enums(positional_args["metadata"])
+        elif hasattr(self, "_metadata") and self._metadata:
+            positional_args["metadata"] = add_ordered_enums(dict(self._metadata))
 
         params = dict(positional_args)
         if self._preprocessing:

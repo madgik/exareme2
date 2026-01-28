@@ -55,6 +55,7 @@ class Exareme3Strategy(AlgorithmExecutionStrategyI):
             tasks_handlers=self._local_worker_tasks_handlers,
             preprocessing=preprocessing_payload,
             raw_inputdata=raw_inputdata,
+            metadata=metadata,
         )
         algorithm_cls = exareme3_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(

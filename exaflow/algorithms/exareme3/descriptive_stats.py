@@ -119,7 +119,7 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def local_step(data, inputdata, numerical_vars, nominal_vars):
+def local_step(data, inputdata, numerical_vars, nominal_vars, metadata):
     from exaflow.worker import config as worker_config
 
     min_row_count = worker_config.privacy.minimum_row_count
@@ -127,6 +127,31 @@ def local_step(data, inputdata, numerical_vars, nominal_vars):
         ds = data["dataset"]
         if isinstance(ds, pd.DataFrame):
             data["dataset"] = ds.iloc[:, 0]
+
+    for var in nominal_vars:
+        meta = metadata.get(var, {})
+        enums = meta.get("enumerations")
+        if not enums or var not in data.columns:
+            continue
+        enum_values = list(enums.keys()) if isinstance(enums, dict) else list(enums)
+        if enum_values and all(isinstance(e, str) for e in enum_values):
+            series = data[var]
+            numeric = pd.to_numeric(series, errors="coerce")
+            if numeric.notna().sum() == series.notna().sum():
+                numeric_non_null = numeric.dropna()
+                if numeric_non_null.empty or np.all(
+                    np.isclose(numeric_non_null, np.round(numeric_non_null))
+                ):
+                    data[var] = numeric.astype("Int64").astype("string")
+                else:
+                    data[var] = numeric.astype("string")
+            else:
+                non_null = series.dropna()
+                if (
+                    not non_null.empty
+                    and not non_null.map(lambda value: isinstance(value, str)).all()
+                ):
+                    data[var] = series.astype("string")
 
     return _compute_local_stats(data, numerical_vars, nominal_vars, min_row_count)
 
@@ -149,7 +174,23 @@ def _compute_local_stats(data, numerical_vars, nominal_vars, min_row_count):
         num_na = {var: num_total - num_dtps.get(var, 0) for var in variables}
 
         descr_numerical = df.describe()
-        if (df.dtypes != "object").any():
+        min_, max_, q1, q2, q3, mean, std, sx, sxx = (
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+        )
+        # Some datasets/partitions may have no numerical columns; guard describe().loc lookups.
+        if (
+            numerical_vars
+            and (df.dtypes != "object").any()
+            and not descr_numerical.empty
+        ):
             min_ = descr_numerical.loc["min"].to_dict()
             max_ = descr_numerical.loc["max"].to_dict()
             q1 = descr_numerical.loc["25%"].to_dict()
@@ -157,8 +198,8 @@ def _compute_local_stats(data, numerical_vars, nominal_vars, min_row_count):
             q3 = descr_numerical.loc["75%"].to_dict()
             mean = descr_numerical.loc["mean"].to_dict()
             std = descr_numerical.loc["std"].to_dict()
-            sx = df[numerical_vars].sum().to_dict() if numerical_vars else {}
-            sxx = ((df[numerical_vars] ** 2).sum().to_dict()) if numerical_vars else {}
+            sx = df[numerical_vars].sum().to_dict()
+            sxx = (df[numerical_vars] ** 2).sum().to_dict()
         counts = {var: df[var].value_counts().to_dict() for var in nominal_vars}
 
         def numerical_var_data(var):

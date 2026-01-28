@@ -52,7 +52,6 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             func=local_step,
             positional_args={
                 "inputdata": self.inputdata.json(),
-                "metadata": metadata_subset,
                 "bins": int(bins_param),
             },
         )

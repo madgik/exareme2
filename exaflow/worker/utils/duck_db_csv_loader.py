@@ -100,7 +100,10 @@ def _reformat_metadata(metadata: dict) -> dict:
 
 
 def _create_primary_data_table(
-    conn: duckdb.DuckDBPyConnection, table_prefix: str, csv_paths: list[Path]
+    conn: duckdb.DuckDBPyConnection,
+    table_prefix: str,
+    csv_paths: list[Path],
+    required_columns: list[str],
 ):
     if not csv_paths:
         raise ValueError("No CSV files provided to create the primary data table.")
@@ -109,18 +112,12 @@ def _create_primary_data_table(
     conn.execute(f'DROP TABLE IF EXISTS "{table_name}"')
 
     column_map: dict[Path, list[str]] = {}
-    combined_columns: list[str] = []
+    combined_columns = list(dict.fromkeys(required_columns))
     for csv_path in csv_paths:
-        columns = _read_csv_columns(csv_path)
-        column_map[csv_path] = columns
-        for column in columns:
-            if column not in combined_columns:
-                combined_columns.append(column)
+        column_map[csv_path] = _read_csv_columns(csv_path)
 
     if not combined_columns:
-        raise ValueError(
-            "Unable to determine the column names for the provided CSV files."
-        )
+        raise ValueError("No columns provided from metadata to create primary table.")
 
     select_statements = []
     params: list[str] = []
@@ -152,6 +149,14 @@ def _read_csv_columns(csv_path: Path) -> list[str]:
             header = None
 
     return header or []
+
+
+def _extract_cde_columns(metadata: dict) -> list[str]:
+    variables = _collect_all_variables(metadata)
+    codes = [var.get("code") for var in variables if var.get("code")]
+    if "dataset" not in codes:
+        codes.append("dataset")
+    return codes
 
 
 def _read_data_model_csvs(data_model_dir: Path) -> list[Path]:
@@ -254,7 +259,8 @@ def load_all_csvs_from_data_folder(request_id: str) -> str:
             data_model_id += 1
             table_prefix = _sanitize_name(f"{code}:{version}")
 
-            _create_primary_data_table(conn, table_prefix, csv_paths)
+            required_columns = _extract_cde_columns(metadata)
+            _create_primary_data_table(conn, table_prefix, csv_paths, required_columns)
             _load_variables_metadata(conn, table_prefix, metadata)
             properties = {}
             properties["cdes"] = metadata

@@ -246,12 +246,17 @@ def pearson_correlation(agg_client, x, y, alpha):
     lo_z, hi_z = r_z - z * se, r_z + z * se
     ci_lo, ci_hi = np.tanh((lo_z, hi_z))
 
+    def _to_jsonable(matrix):
+        arr = np.asarray(matrix, dtype=float)
+        arr[~np.isfinite(arr)] = np.nan
+        return np.where(np.isnan(arr), None, arr).tolist()
+
     return dict(
         n_obs=int(total_n_obs),
-        correlations=correlations.tolist(),
-        p_values=p_values.tolist(),
-        ci_lo=ci_lo.tolist(),
-        ci_hi=ci_hi.tolist(),
+        correlations=_to_jsonable(correlations),
+        p_values=_to_jsonable(p_values),
+        ci_lo=_to_jsonable(ci_lo),
+        ci_hi=_to_jsonable(ci_hi),
     )
 
 
