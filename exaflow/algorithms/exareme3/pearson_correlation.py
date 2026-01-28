@@ -1,4 +1,3 @@
-from typing import List
 from typing import Sequence
 
 from pydantic import BaseModel
@@ -22,10 +21,15 @@ class PearsonResult(BaseModel):
 class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         alpha = self.parameters.get("alpha")
+        if self.inputdata.x:
+            x_vars = self.inputdata.x
+        else:
+            x_vars = self.inputdata.y
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
+                "y_vars": self.inputdata.y,
+                "x_vars": x_vars,
                 "alpha": alpha,
             },
         )
@@ -72,20 +76,10 @@ def _format_result_matrices(
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client, alpha):
-
-    if not inputdata.y:
-        raise ValueError("Pearson correlation needs target variables in 'y'.")
-
-    x_vars: List[str]
-    if inputdata.x:
-        x_vars = inputdata.x
-    else:
-        x_vars = inputdata.y
-
+def local_step(agg_client, data, y_vars, x_vars, alpha):
     # Use numpy arrays directly to avoid pandas alignment overhead.
     x_matrix = data[x_vars].to_numpy(dtype=float, copy=False)
-    y_matrix = data[inputdata.y].to_numpy(dtype=float, copy=False)
+    y_matrix = data[y_vars].to_numpy(dtype=float, copy=False)
 
     return pearson_correlation(
         agg_client=agg_client,

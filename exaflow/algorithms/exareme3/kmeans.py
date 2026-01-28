@@ -18,14 +18,13 @@ class KMeansResult(BaseModel):
 class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         n_clusters = int(self.parameters["k"])
-        # Optional parameters with defaults
+
         tol = float(self.parameters.get("tol", 1e-4))
         maxiter = int(self.parameters.get("maxiter", 100))
 
         results = self.engine.run_algorithm_udf(
             func=local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "n_clusters": n_clusters,
                 "tol": tol,
                 "maxiter": maxiter,
@@ -44,26 +43,10 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client, n_clusters, tol, maxiter):
-    """
-    Local exaflow UDF wrapper:
-
-    - Fetch local data (same way as PCA).
-    - Select the columns in inputdata.y as the feature matrix.
-    - Delegate the actual distributed K-means to `stats.kmeans`, which uses
-      `agg_client` to aggregate across workers.
-    """
-
-    # `inputdata.y` is a list of variable names; we use them as features
-    # just like PCA does: data[inputdata.y] is a 2D array-like.
-    X = data[inputdata.y]
-
-    # `kmeans` is expected to implement the distributed logic using agg_client
-    # and return a dict, e.g.:
-    #   {"n_obs": int, "centers": List[List[float]]}
+def local_step(agg_client, data, n_clusters, tol, maxiter):
     result = kmeans(
         agg_client=agg_client,
-        x=X,
+        x=data,
         n_clusters=int(n_clusters),
         tol=float(tol),
         maxiter=int(maxiter),

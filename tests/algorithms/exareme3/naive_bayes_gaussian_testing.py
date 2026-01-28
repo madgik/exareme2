@@ -39,7 +39,6 @@ class GaussianNBTestingFit(Algorithm, algname=ALGNAME_FIT):
         udf_results = self.engine.run_algorithm_udf(
             func=gaussian_nb_fit_udf,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "labels": labels,
@@ -69,7 +68,6 @@ class GaussianNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
         udf_results = self.engine.run_algorithm_udf(
             func=gaussian_nb_predict_udf,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "labels": labels,
@@ -85,9 +83,8 @@ class GaussianNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
 
 @exareme3_udf(with_aggregation_server=True)
 def gaussian_nb_fit_udf(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     x_vars,
     labels,
@@ -109,9 +106,8 @@ def gaussian_nb_fit_udf(
 
 @exareme3_udf(with_aggregation_server=True)
 def gaussian_nb_predict_udf(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     x_vars,
     labels,

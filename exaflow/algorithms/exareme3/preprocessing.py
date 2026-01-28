@@ -9,7 +9,6 @@ from typing import List
 def get_dummy_categories(
     *,
     engine,
-    inputdata_json: str,
     categorical_vars: List[str],
     collect_udf,
     extra_args: Dict | None = None,
@@ -25,7 +24,6 @@ def get_dummy_categories(
         return {}
 
     positional_args = {
-        "inputdata": inputdata_json,
         "categorical_vars": categorical_vars,
     }
     if extra_args:

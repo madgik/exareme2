@@ -156,7 +156,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         dummy_categories = get_dummy_categories(
             engine=self.engine,
-            inputdata_json=self.inputdata.json(),
             categorical_vars=categorical_vars,
             collect_udf=logistic_collect_categorical_levels_cv,
         )
@@ -171,7 +170,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         check_results = self.engine.run_algorithm_udf(
             func=logistic_regression_cv_check_local,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "positive_class": positive_class,
                 "n_splits": n_splits,
@@ -188,7 +186,6 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         udf_results = self.engine.run_algorithm_udf(
             func=logistic_regression_cv_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "positive_class": positive_class,
                 "categorical_vars": categorical_vars,
@@ -256,7 +253,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def logistic_collect_categorical_levels_cv(data, inputdata, categorical_vars):
+def logistic_collect_categorical_levels_cv(data, categorical_vars):
     """
     Thin UDF wrapper used only to collect categorical levels from workers.
     """
@@ -265,9 +262,7 @@ def logistic_collect_categorical_levels_cv(data, inputdata, categorical_vars):
 
 
 @exareme3_udf()
-def logistic_regression_cv_check_local(
-    data, inputdata, y_var, positive_class, n_splits
-):
+def logistic_regression_cv_check_local(data, y_var, positive_class, n_splits):
     """
     Check on each worker whether the number of observations (for y) is at least n_splits.
     """
@@ -279,9 +274,8 @@ def logistic_regression_cv_check_local(
 
 @exareme3_udf(with_aggregation_server=True)
 def logistic_regression_cv_local_step(
-    data,
-    inputdata,
     agg_client,
+    data,
     y_var,
     positive_class,
     categorical_vars,

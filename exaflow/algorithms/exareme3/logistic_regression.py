@@ -56,7 +56,6 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         dummy_categories = get_dummy_categories(
             engine=self.engine,
-            inputdata_json=self.inputdata.json(),
             categorical_vars=categorical_vars,
             collect_udf=logistic_collect_categorical_levels,
         )
@@ -68,7 +67,6 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         udf_results = self.engine.run_algorithm_udf(
             func=logistic_regression_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "positive_class": positive_class,
                 "y_var": y_var,
                 "categorical_vars": categorical_vars,
@@ -97,16 +95,15 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf()
-def logistic_collect_categorical_levels(data, inputdata, categorical_vars):
+def logistic_collect_categorical_levels(data, categorical_vars):
 
     return collect_categorical_levels_from_df(data, categorical_vars)
 
 
 @exareme3_udf(with_aggregation_server=True)
 def logistic_regression_local_step(
-    data,
-    inputdata,
     agg_client,
+    data,
     positive_class,
     y_var,
     categorical_vars,

@@ -13,7 +13,7 @@ class StandardDeviationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         # They all execute the aggregation server calls so each one returns the same final standard deviation.
         results = self.engine.run_algorithm_udf(
             func=local_step,
-            positional_args={"inputdata": self.inputdata.json()},
+            positional_args={},
         )
         std_deviation = results[0]
         if any(r != std_deviation for r in results[1:]):
@@ -45,5 +45,5 @@ def compute_stddev(agg_client, data):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def local_step(data, inputdata, agg_client):
-    return compute_stddev(agg_client, data[inputdata.y[0]])
+def local_step(agg_client, data, y_var):
+    return compute_stddev(agg_client, data[y_var])

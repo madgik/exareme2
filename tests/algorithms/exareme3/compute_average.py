@@ -11,7 +11,7 @@ class ComputeAverage(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         local_results = self.engine.run_algorithm_udf(
             func=local_step,
-            positional_args={"inputdata": self.inputdata.json()},
+            positional_args={},
         )
 
         results = {}
@@ -46,7 +46,5 @@ def compute_local_sum_and_count(columns, data):
 
 
 @exareme3_udf
-def local_step(inputdata):
-
-    columns = inputdata.y
-    return compute_local_sum_and_count(columns, data)
+def local_step(data, y_vars):
+    return compute_local_sum_and_count(y_vars, data)

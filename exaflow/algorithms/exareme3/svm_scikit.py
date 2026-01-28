@@ -38,7 +38,6 @@ class SVMAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         udf_results = self.engine.run_algorithm_udf(
             func=svm_scikit_local_step,
             positional_args={
-                "inputdata": self.inputdata.json(),
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "y_levels": y_levels,
@@ -57,9 +56,7 @@ class SVMAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def svm_scikit_local_step(
-    data, inputdata, agg_client, y_var, x_vars, y_levels, gamma, C
-):
+def svm_scikit_local_step(agg_client, data, y_var, x_vars, y_levels, gamma, C):
     """
     Train a linear SVM locally, then securely average the model parameters
     (coefficients and a per-feature summary of support vectors) across workers.

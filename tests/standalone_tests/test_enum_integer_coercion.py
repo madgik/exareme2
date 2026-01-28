@@ -71,7 +71,7 @@ def test_integer_enum_codes_flow_through_anova_oneway(monkeypatch):
         request_id="test-request",
         udf_registry_key=udf_registry_key,
         params={
-            "inputdata": inputdata.json(),
+            "raw_inputdata": inputdata.json(),
             "x_var": "ppmicategory",
             "y_var": "age",
             "covar_enums": [0, 1],

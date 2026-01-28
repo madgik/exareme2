@@ -82,11 +82,7 @@ def run_udf(
     udf_registry_key: str,
     params: dict,
 ):
-    # TODO this has to be completely replace on algorithms to expect x and y not data
-    transformed_inputdata_dict = params["inputdata"]
-    transformed_inputdata = Inputdata.parse_raw(transformed_inputdata_dict)
-    params["inputdata"] = transformed_inputdata
-    loader_inputdata_dict = params.get("raw_inputdata", transformed_inputdata_dict)
+    loader_inputdata_dict = params.get("raw_inputdata")
     loader_inputdata = Inputdata.parse_raw(loader_inputdata_dict)
     params.pop("raw_inputdata", None)
 
