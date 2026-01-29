@@ -20,8 +20,8 @@ class PCAResult(BaseModel):
 
 
 class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
-        data_transformation: Dict = self.parameters.get("data_transformation")
+    def run(self):
+        data_transformation: Dict = self.get_parameter("data_transformation")
 
         try:
             results = self.run_local_udf(

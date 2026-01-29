@@ -8,7 +8,7 @@ ALGORITHM_NAME = "compute_average"
 
 
 class ComputeAverage(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
+    def run(self):
         local_results = self.run_local_udf(
             func=local_step,
             kw_args={},

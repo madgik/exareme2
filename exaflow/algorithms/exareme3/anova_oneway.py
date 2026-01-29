@@ -21,14 +21,14 @@ class AnovaResult(BaseModel):
 
 
 class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
+    def run(self):
         """
         Exaflow implementation of one-way ANOVA with Tukey HSD, matching the
         behavior of the original exaflow ANOVA_ONEWAY algorithm.
         """
         y_var_name = self.inputdata.y[0]
         x_var_name = self.inputdata.x[0]
-        covar_enums = metadata[x_var_name].get("enumerations")
+        covar_enums = self.metadata[x_var_name].get("enumerations")
 
         # Run a single distributed ANOVA UDF
         udf_results = self.run_local_udf(

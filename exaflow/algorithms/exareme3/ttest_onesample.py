@@ -9,10 +9,10 @@ ALGORITHM_NAME = "ttest_onesample"
 
 
 class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
-        alpha = self.parameters.get("alpha")
-        alternative = self.parameters.get("alt_hypothesis")
-        mu = self.parameters.get("mu")
+    def run(self):
+        alpha = self.get_parameter("alpha")
+        alternative = self.get_parameter("alt_hypothesis")
+        mu = self.get_parameter("mu")
 
         results = self.run_local_udf(
             func=local_step,

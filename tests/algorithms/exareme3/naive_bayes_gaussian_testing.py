@@ -28,13 +28,13 @@ class GaussianNBTestingFit(Algorithm, algname=ALGNAME_FIT):
         var: List[List[float]]
         class_count: List[float]
 
-    def run(self, metadata):
+    def run(self):
         if not self.inputdata.y or not self.inputdata.x:
             raise BadUserInput("Gaussian NB fit requires X and y.")
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        labels = _sorted_labels(metadata, y_var)
+        labels = _sorted_labels(self.metadata, y_var)
 
         udf_results = self.run_local_udf(
             func=gaussian_nb_fit_udf,
@@ -57,13 +57,13 @@ class GaussianNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
     class Result(BaseModel):
         predictions: Dict[str, int]
 
-    def run(self, metadata):
+    def run(self):
         if not self.inputdata.y or not self.inputdata.x:
             raise BadUserInput("Gaussian NB predict requires X and y.")
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        labels = _sorted_labels(metadata, y_var)
+        labels = _sorted_labels(self.metadata, y_var)
 
         udf_results = self.run_local_udf(
             func=gaussian_nb_predict_udf,

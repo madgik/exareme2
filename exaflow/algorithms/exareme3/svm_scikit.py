@@ -19,15 +19,15 @@ class SVMResult(BaseModel):
 
 
 class SVMAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
+    def run(self):
         y_var = self.inputdata.y[0]
         x_vars = self.inputdata.x
 
-        gamma = self.parameters.get("gamma")
-        C = self.parameters.get("C")
+        gamma = self.get_parameter("gamma")
+        C = self.get_parameter("C")
 
         # Validate that y has at least two levels using metadata enumerations
-        y_enums = metadata.get(y_var).get("enumerations")
+        y_enums = self.metadata.get(y_var).get("enumerations")
         y_levels = list(y_enums.keys())
         if len(y_levels) < 2:
             raise BadUserInput(

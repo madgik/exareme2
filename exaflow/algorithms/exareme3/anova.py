@@ -24,17 +24,17 @@ class AnovaResult(BaseModel):
 
 
 class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
+    def run(self):
         y = self.inputdata.y[0]
         xs = self.inputdata.x
         if len(xs) != 2:
             raise BadUserInput("ANOVA two-way requires exactly two covariates (x).")
         x1, x2 = xs
 
-        sstype = self.parameters.get("sstype")
+        sstype = self.get_parameter("sstype")
 
-        levels_a = list(metadata[x1]["enumerations"])
-        levels_b = list(metadata[x2]["enumerations"])
+        levels_a = list(self.metadata[x1]["enumerations"])
+        levels_b = list(self.metadata[x2]["enumerations"])
         if len(levels_a) < 2:
             raise BadUserInput(
                 f"The variable {x1} has less than 2 levels and Anova cannot be "

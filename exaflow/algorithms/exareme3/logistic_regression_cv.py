@@ -142,16 +142,16 @@ def make_classification_metrics_summary(
 
 
 class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
-        positive_class = self.parameters.get("positive_class")
-        n_splits = self.parameters.get("n_splits")
+    def run(self):
+        positive_class = self.get_parameter("positive_class")
+        n_splits = self.get_parameter("n_splits")
         y_var = self.inputdata.y[0]
 
         categorical_vars = [
-            var for var in self.inputdata.x if metadata[var]["is_categorical"]
+            var for var in self.inputdata.x if self.metadata[var]["is_categorical"]
         ]
         numerical_vars = [
-            var for var in self.inputdata.x if not metadata[var]["is_categorical"]
+            var for var in self.inputdata.x if not self.metadata[var]["is_categorical"]
         ]
 
         dummy_categories = get_dummy_categories(

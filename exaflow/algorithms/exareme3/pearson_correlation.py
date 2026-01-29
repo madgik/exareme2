@@ -19,8 +19,8 @@ class PearsonResult(BaseModel):
 
 
 class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
-        alpha = self.parameters.get("alpha")
+    def run(self):
+        alpha = self.get_parameter("alpha")
         if self.inputdata.x:
             x_vars = self.inputdata.x
         else:

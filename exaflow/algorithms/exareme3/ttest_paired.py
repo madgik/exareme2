@@ -7,9 +7,9 @@ ALGORITHM_NAME = "ttest_paired"
 
 
 class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
-        alpha = self.parameters.get("alpha")
-        alternative = self.parameters.get("alt_hypothesis")
+    def run(self):
+        alpha = self.get_parameter("alpha")
+        alternative = self.get_parameter("alt_hypothesis")
 
         results = self.run_local_udf(
             func=local_step,

@@ -8,7 +8,7 @@ ALGORITHM_NAME = "standard_deviation"
 
 
 class StandardDeviationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
+    def run(self):
         # This call runs the local UDF on all workers.
         # They all execute the aggregation server calls so each one returns the same final standard deviation.
         results = self.run_local_udf(

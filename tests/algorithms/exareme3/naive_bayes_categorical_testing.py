@@ -24,13 +24,13 @@ class CategoricalNBTestingFit(Algorithm, algname=ALGNAME_FIT):
         category_count: List[List[List[int]]]
         class_count: List[int]
 
-    def run(self, metadata):
+    def run(self):
         if not self.inputdata.y or not self.inputdata.x:
             raise BadUserInput("Naive Bayes categorical fit requires X and y.")
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        categories = _sorted_categories(metadata, x_vars + [y_var])
+        categories = _sorted_categories(self.metadata, x_vars + [y_var])
 
         udf_results = self.run_local_udf(
             func=categorical_nb_fit_udf,
@@ -52,13 +52,13 @@ class CategoricalNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
     class Result(BaseModel):
         predictions: Dict[str, int]
 
-    def run(self, metadata):
+    def run(self):
         if not self.inputdata.y or not self.inputdata.x:
             raise BadUserInput("Naive Bayes categorical predict requires X and y.")
 
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        categories = _sorted_categories(metadata, x_vars + [y_var])
+        categories = _sorted_categories(self.metadata, x_vars + [y_var])
 
         udf_results = self.run_local_udf(
             func=categorical_nb_predict_udf,
