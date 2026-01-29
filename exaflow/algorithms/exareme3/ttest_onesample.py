@@ -14,9 +14,9 @@ class OneSampleTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         alternative = self.parameters.get("alt_hypothesis")
         mu = self.parameters.get("mu")
 
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "y_var": self.inputdata.y[0],
                 "alpha": alpha,
                 "alternative": alternative,

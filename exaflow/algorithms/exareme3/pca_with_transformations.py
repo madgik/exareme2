@@ -24,9 +24,9 @@ class PCAWithTransformationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         data_transformation: Dict = self.parameters.get("data_transformation")
 
         try:
-            results = self.engine.run_algorithm_udf(
+            results = self.run_local_udf(
                 func=pca_with_transformation_local_step,
-                positional_args={
+                kw_args={
                     "y_vars": self.inputdata.y,
                     "data_transformation": data_transformation,
                 },

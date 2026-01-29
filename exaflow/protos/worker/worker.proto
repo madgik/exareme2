@@ -158,7 +158,8 @@ message GarbageCollectResponse {
 message RunUdfRequest {
   string request_id = 1;
   string udf_registry_key = 2;
-  google.protobuf.Struct params = 3;
+  google.protobuf.Struct kw_args = 3;
+  google.protobuf.Struct system_args = 4;
 }
 
 message RunUdfResponse {

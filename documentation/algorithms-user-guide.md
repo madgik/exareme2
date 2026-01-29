@@ -196,26 +196,26 @@ from exaflow.algorithms.exareme3.algorithm import Algorithm
 
 
 class MeanResult(BaseModel):
-    variable: str
-    mean: float
+  variable: str
+  mean: float
 
 
 class MeanAlgorithm(Algorithm, algname="mean"):
-    def run(self, metadata):
-        column = self.inputdata.x[0]
+  def run(self, metadata):
+    column = self.inputdata.x[0]
 
-        worker_payloads = self.engine.run_algorithm_udf(
-            func=mean_local,
-            positional_args={
-                "inputdata": self.inputdata.json(),
-                "column": column,
-            },
-        )
+    worker_payloads = self.run_local_udf(
+      func=mean_local,
+      kw_args={
+        "inputdata": self.inputdata.json(),
+        "column": column,
+      },
+    )
 
-        sx = sum(payload["sx"] for payload in worker_payloads)
-        n = sum(payload["n"] for payload in worker_payloads)
+    sx = sum(payload["sx"] for payload in worker_payloads)
+    n = sum(payload["n"] for payload in worker_payloads)
 
-        return MeanResult(variable=column, mean=sx / n)
+    return MeanResult(variable=column, mean=sx / n)
 ```
 
 `run_algorithm_udf` schedules the registered UDF on every participating worker
@@ -520,34 +520,34 @@ from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 
 
 class IterationResult(BaseModel):
-    value: float
+  value: float
 
 
 @exareme3_udf()
 def update_local(data, column, val):
-    gradient = data[column].mean() - val
-    return {"gradient": gradient}
+  gradient = data[column].mean() - val
+  return {"gradient": gradient}
 
 
 class MyAlgorithm(Algorithm, algname="iterative"):
-    def run(self, metadata):
-        val = 0.0
-        while True:
-            local_results = self.engine.run_algorithm_udf(
-                func=update_local,
-                positional_args={
-                    "inputdata": self.inputdata.json(),
-                    "column": self.inputdata.x[0],
-                    "val": val,
-                },
-            )
-            # Combine local gradients and update the iterate
-            gradient = sum(result["gradient"] for result in local_results)
-            val -= 0.1 * gradient
-            if abs(gradient) < 1e-3:
-                break
+  def run(self, metadata):
+    val = 0.0
+    while True:
+      local_results = self.run_local_udf(
+        func=update_local,
+        kw_args={
+          "inputdata": self.inputdata.json(),
+          "column": self.inputdata.x[0],
+          "val": val,
+        },
+      )
+      # Combine local gradients and update the iterate
+      gradient = sum(result["gradient"] for result in local_results)
+      val -= 0.1 * gradient
+      if abs(gradient) < 1e-3:
+        break
 
-        return IterationResult(value=val)
+    return IterationResult(value=val)
 ```
 
 Here we initialize `val` to 0 and start the iteration. In each step the flow
@@ -571,34 +571,34 @@ from exaflow.algorithms.exareme3.algorithm import Algorithm
 
 
 class MyModel:
-    def __init__(self, engine):
-        self.engine = engine
+  def __init__(self, engine):
+    self.engine = engine
 
-    def fit(self, inputdata_json):
-        self.engine.run_algorithm_udf(
-            func=some_local_training_step,
-            positional_args={"inputdata": inputdata_json},
-        )
+  def fit(self, inputdata_json):
+    self.run_local_udf(
+      func=some_local_training_step,
+      kw_args={"inputdata": inputdata_json},
+    )
 
-    def predict(self, inputdata_json):
-        return self.engine.run_algorithm_udf(
-            func=some_predict_step,
-            positional_args={"inputdata": inputdata_json},
-        )
+  def predict(self, inputdata_json):
+    return self.run_local_udf(
+      func=some_predict_step,
+      kw_args={"inputdata": inputdata_json},
+    )
 
 
 class PredictionResult(BaseModel):
-    predictions: list
+  predictions: list
 
 
 class MyAlgorithm(Algorithm, algname="complex_algorithm"):
-    def run(self, metadata):
-        model = MyModel(self.engine)
-        model.fit(self.inputdata.json())
+  def run(self, metadata):
+    model = MyModel(self.engine)
+    model.fit(self.inputdata.json())
 
-        new_inputdata = self.inputdata.copy(update={"datasets": ["validation"]})
-        predictions = model.predict(new_inputdata.json())
-        return PredictionResult(predictions=predictions)
+    new_inputdata = self.inputdata.copy(update={"datasets": ["validation"]})
+    predictions = model.predict(new_inputdata.json())
+    return PredictionResult(predictions=predictions)
 ```
 
 ## Customizing worker inputs

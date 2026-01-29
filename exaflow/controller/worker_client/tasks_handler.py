@@ -243,7 +243,8 @@ class WorkerTasksHandler:
         self,
         request_id: str,
         udf_registry_key: str,
-        params: dict,
+        kw_args: dict,
+        system_args: dict,
         timeout: int,
     ):
         response = self._client().call(
@@ -251,7 +252,8 @@ class WorkerTasksHandler:
             worker_pb2.RunUdfRequest(
                 request_id=request_id,
                 udf_registry_key=udf_registry_key,
-                params=_dict_to_struct(params),
+                kw_args=_dict_to_struct(kw_args),
+                system_args=_dict_to_struct(system_args),
             ),
             timeout,
         )

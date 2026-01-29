@@ -36,9 +36,9 @@ class GaussianNBTestingFit(Algorithm, algname=ALGNAME_FIT):
         x_vars = list(self.inputdata.x)
         labels = _sorted_labels(metadata, y_var)
 
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=gaussian_nb_fit_udf,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "labels": labels,
@@ -65,9 +65,9 @@ class GaussianNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
         x_vars = list(self.inputdata.x)
         labels = _sorted_labels(metadata, y_var)
 
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=gaussian_nb_predict_udf,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "labels": labels,

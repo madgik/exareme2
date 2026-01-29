@@ -28,10 +28,11 @@ class Exareme3TasksHandler(TasksHandlerI):
     def tasks_timeout(self) -> int:
         return self._tasks_timeout
 
-    def run_udf(self, udf_registry_key, params: dict):
+    def run_udf(self, udf_registry_key, kw_args: dict, system_args: dict):
         return self._worker_tasks_handler.run_udf(
             request_id=self._request_id,
             udf_registry_key=udf_registry_key,
-            params=params,
+            kw_args=kw_args,
+            system_args=system_args,
             timeout=self._tasks_timeout,
         )

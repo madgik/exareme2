@@ -35,9 +35,9 @@ class SVMAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "performed. Please choose another variable."
             )
 
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=svm_scikit_local_step,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "y_levels": y_levels,

@@ -39,9 +39,9 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         }
 
         # 1) Per-worker check: n_obs >= n_splits
-        check_results = self.engine.run_algorithm_udf(
+        check_results = self.run_local_udf(
             func=naive_bayes_categorical_cv_check_local,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "n_splits": int(n_splits),
             },
@@ -54,9 +54,9 @@ class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             )
 
         # 2) Run distributed CV with aggregation server
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=naive_bayes_categorical_cv_local_step,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "categories": categories,

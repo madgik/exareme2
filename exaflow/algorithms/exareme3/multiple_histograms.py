@@ -45,9 +45,9 @@ class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
         metadata_subset = {var: metadata[var] for var in {y_var, *x_vars}}
 
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "metadata": metadata_subset,

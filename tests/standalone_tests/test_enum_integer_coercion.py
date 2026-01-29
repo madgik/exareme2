@@ -70,12 +70,17 @@ def test_integer_enum_codes_flow_through_anova_oneway(monkeypatch):
     result = udf_service.run_udf(
         request_id="test-request",
         udf_registry_key=udf_registry_key,
-        params={
-            "raw_inputdata": inputdata.json(),
+        kw_args={
             "x_var": "ppmicategory",
             "y_var": "age",
             "covar_enums": [0, 1],
+        },
+        system_args={
+            "inputdata": inputdata.json(),
             "metadata": metadata,
+            "drop_na": True,
+            "check_min_rows": True,
+            "add_dataset_variable": False,
         },
     )
 

@@ -13,9 +13,9 @@ class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         group_a = self.parameters.get("groupA")
         group_b = self.parameters.get("groupB")
 
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "group_var": self.inputdata.x[0],
                 "value_var": self.inputdata.y[0],
                 "alpha": alpha,

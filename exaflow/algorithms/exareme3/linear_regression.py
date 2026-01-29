@@ -47,7 +47,7 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         ]
 
         dummy_categories = get_dummy_categories(
-            engine=self.engine,
+            run_local_udf_func=self.run_local_udf,
             categorical_vars=categorical_vars,
             collect_udf=linear_collect_categorical_levels,
         )
@@ -59,9 +59,9 @@ class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             numerical_vars=numerical_vars,
         )
 
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=linear_regression_local_step,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "categorical_vars": categorical_vars,
                 "numerical_vars": numerical_vars,

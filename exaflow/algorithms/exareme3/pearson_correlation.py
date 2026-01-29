@@ -25,9 +25,9 @@ class PearsonCorrelationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             x_vars = self.inputdata.x
         else:
             x_vars = self.inputdata.y
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "y_vars": self.inputdata.y,
                 "x_vars": x_vars,
                 "alpha": alpha,

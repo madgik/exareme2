@@ -31,9 +31,9 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         labels = sorted(label_dict.keys())
 
         # 1) Per-worker feasibility check
-        check_results = self.engine.run_algorithm_udf(
+        check_results = self.run_local_udf(
             func=gaussian_nb_cv_check_local,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "n_splits": int(n_splits),
             },
@@ -49,9 +49,9 @@ class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             )
 
         # 2) Run CV UDF (with aggregation server)
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=gaussian_nb_cv_local_step,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "labels": labels,

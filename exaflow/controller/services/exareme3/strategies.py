@@ -25,12 +25,10 @@ class Exareme3Strategy(AlgorithmExecutionStrategyI):
     _global_worker_tasks_handler: Exareme3TasksHandler
 
     async def execute(self) -> str:
-        raw_inputdata = Inputdata.parse_raw(
-            self._algorithm_request_dto.inputdata.json()
-        )
-        variable_names = (raw_inputdata.x or []) + (raw_inputdata.y or [])
+        inputdata = Inputdata.parse_raw(self._algorithm_request_dto.inputdata.json())
+        variable_names = (inputdata.x or []) + (inputdata.y or [])
         metadata = self._controller.worker_landscape_aggregator.get_metadata(
-            data_model=raw_inputdata.data_model,
+            data_model=inputdata.data_model,
             variable_names=variable_names,
         )
 
@@ -42,18 +40,19 @@ class Exareme3Strategy(AlgorithmExecutionStrategyI):
                 metadata,
                 prep_payload,
             ) = prepare_longitudinal_transformation(
-                raw_inputdata, metadata, preprocessing["longitudinal_transformer"]
+                inputdata, metadata, preprocessing["longitudinal_transformer"]
             )
             preprocessing_payload = {"longitudinal_transformer": prep_payload}
         else:
-            transformed_inputdata = raw_inputdata
+            transformed_inputdata = inputdata
 
         engine = Exareme3AlgorithmFlowEngineInterface(
             request_id=self._request_id,
             context_id=self._context_id,
             tasks_handlers=self._local_worker_tasks_handlers,
+            inputdata=inputdata,
+            metadata=metadata,
             preprocessing=preprocessing_payload,
-            raw_inputdata=raw_inputdata,
         )
         algorithm_cls = exareme3_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(

@@ -11,9 +11,9 @@ class PairedTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         alpha = self.parameters.get("alpha")
         alternative = self.parameters.get("alt_hypothesis")
 
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "x_var": self.inputdata.x[0],
                 "y_var": self.inputdata.y[0],
                 "alpha": alpha,

@@ -8,7 +8,7 @@ from typing import List
 
 def get_dummy_categories(
     *,
-    engine,
+    run_local_udf_func,
     categorical_vars: List[str],
     collect_udf,
     extra_args: Dict | None = None,
@@ -29,9 +29,9 @@ def get_dummy_categories(
     if extra_args:
         positional_args.update(extra_args)
 
-    worker_levels = engine.run_algorithm_udf(
+    worker_levels = run_local_udf_func(
         func=collect_udf,
-        positional_args=positional_args,
+        kw_args=positional_args,
     )
 
     merged = {var: set() for var in categorical_vars}
