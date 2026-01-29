@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.anova_common import get_min_max_ci_info
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "anova_oneway"

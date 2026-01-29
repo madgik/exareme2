@@ -8,10 +8,8 @@ import sklearn.metrics as skm
 from pydantic import BaseModel
 from scipy.special import expit
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import buffered_kfold_split
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_class
 from exaflow.algorithms.exareme3.library.logistic_common import (
     run_distributed_logistic_regression,
@@ -20,6 +18,8 @@ from exaflow.algorithms.exareme3.metrics import build_design_matrix
 from exaflow.algorithms.exareme3.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exareme3.metrics import construct_design_labels
 from exaflow.algorithms.exareme3.preprocessing import get_dummy_categories
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "logistic_regression_cv"

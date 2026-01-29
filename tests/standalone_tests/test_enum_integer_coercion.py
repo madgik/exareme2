@@ -1,7 +1,7 @@
 import pandas as pd
 
 from exaflow.algorithms.exareme3.anova_oneway import anova_oneway_local_step
-from exaflow.algorithms.exareme3.exareme3_registry import get_udf_registry_key
+from exaflow.algorithms.exareme3.utils.registry import get_udf_registry_key
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.worker import config as worker_config
 from exaflow.worker.exareme3.udf import udf_db

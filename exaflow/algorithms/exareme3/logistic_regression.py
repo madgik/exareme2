@@ -3,8 +3,6 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.logistic_common import coerce_positive_class
 from exaflow.algorithms.exareme3.library.logistic_common import compute_logistic_summary
 from exaflow.algorithms.exareme3.library.logistic_common import (
@@ -14,6 +12,8 @@ from exaflow.algorithms.exareme3.metrics import build_design_matrix
 from exaflow.algorithms.exareme3.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exareme3.metrics import construct_design_labels
 from exaflow.algorithms.exareme3.preprocessing import get_dummy_categories
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 ALGORITHM_NAME = "logistic_regression"
 ALPHA = 0.05

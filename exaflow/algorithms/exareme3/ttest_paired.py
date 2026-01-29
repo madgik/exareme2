@@ -1,7 +1,7 @@
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import ttest_paired
 from exaflow.algorithms.exareme3.library.ttest_common import build_basic_ttest_result
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 ALGORITHM_NAME = "ttest_paired"
 

@@ -1,5 +1,5 @@
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 from exaflow.worker_communication import ColumnDataFloat
 from exaflow.worker_communication import ColumnDataStr
 from exaflow.worker_communication import TabularDataResult

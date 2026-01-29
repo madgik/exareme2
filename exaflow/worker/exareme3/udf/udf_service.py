@@ -3,10 +3,10 @@ from typing import Optional
 from exaflow.aggregation_clients.exareme3_udf_aggregation_client import (
     Exareme3UDFAggregationClient as AggregationClient,
 )
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_registry
 from exaflow.algorithms.exareme3.longitudinal_transformer import (
     apply_longitudinal_transformation,
 )
+from exaflow.algorithms.exareme3.utils.registry import exareme3_registry
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.algorithms.utils.pandas_utils import convert_to_pandas_dataframe
 from exaflow.worker import config as worker_config

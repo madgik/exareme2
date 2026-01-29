@@ -4,9 +4,9 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.stats.stats import pca as core_pca
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "pca_with_transformation"
