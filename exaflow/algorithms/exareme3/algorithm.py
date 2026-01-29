@@ -8,24 +8,6 @@ from exaflow.algorithms.utils.inputdata_utils import Inputdata
 
 
 class Algorithm(ABC):
-    """
-    Base class for all exaflow algorithm flows.
-
-    Notes for authors:
-    - `algname` must match the `"name"` field of the accompanying <algorithm>.json.
-    - `engine` is the algorithm execution engine injected by the framework. It
-      exposes methods such as `run_algorithm_udf` to execute the UDFs declared
-      in the flow (see `exareme3_registry.exareme3_udf` for registration).
-    - `inputdata` is a pydantic model describing the requested variables,
-      datasets and filters (see `utils/inputdata_utils.Inputdata`). Unlike
-      exareme2, `x`/`y` can be optional in the model; flows are expected to
-      validate required fields in their `run` method.
-    - `metadata` passed to `run()` is a dictionary keyed by variable name. Today
-      flows expect at least `metadata[var]["is_categorical"]` to exist when
-      distinguishing categorical vs numerical variables.
-    - `parameters` holds the algorithm parameters as provided by the user.
-    """
-
     algname: str
 
     def __init__(
@@ -43,9 +25,14 @@ class Algorithm(ABC):
         super().__init_subclass__(**kwargs)
         cls.algname = algname
 
-    @property
-    def engine(self):
-        return self._engine
+    def run_local_udf(self, func, kw_args):
+        return self._engine.run_udf(
+            func,
+            self.drop_na_rows,
+            self.check_min_rows,
+            self.add_dataset_variable,
+            kw_args,
+        )
 
     @property
     def inputdata(self):
@@ -54,6 +41,31 @@ class Algorithm(ABC):
     @property
     def parameters(self) -> Dict[str, Any]:
         return self._parameters
+
+    @property
+    def drop_na_rows(self) -> bool:
+        """
+        By default, the rows with 'Not Available' values are dropped.
+        If an algorithm needs to keep the 'Not Available' values,
+        this method must be overridden to return False.
+        """
+        return True
+
+    @property
+    def check_min_rows(self) -> bool:
+        """
+        If an algorithm needs to ignore the minimum row count threshold check,
+        for its data, this method must be overridden to return False.
+        """
+        return True
+
+    @property
+    def add_dataset_variable(self) -> bool:
+        """
+        If an algorithm needs to include the dataset column, in addition to the user
+        selected columns, this method should be overridden to return True.
+        """
+        return False
 
     @abstractmethod
     def run(self, metadata: dict):

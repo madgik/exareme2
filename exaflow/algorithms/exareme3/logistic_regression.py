@@ -55,7 +55,7 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         ]
 
         dummy_categories = get_dummy_categories(
-            engine=self.engine,
+            run_local_udf_func=self.run_local_udf,
             categorical_vars=categorical_vars,
             collect_udf=logistic_collect_categorical_levels,
         )
@@ -64,9 +64,9 @@ class LogisticRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             categorical_vars, dummy_categories, numerical_vars
         )
 
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=logistic_regression_local_step,
-            positional_args={
+            kw_args={
                 "positive_class": positive_class,
                 "y_var": y_var,
                 "categorical_vars": categorical_vars,

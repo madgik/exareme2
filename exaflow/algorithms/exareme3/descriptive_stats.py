@@ -59,6 +59,18 @@ class Result(BaseModel):
 
 
 class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
+    @property
+    def drop_na_rows(self) -> bool:
+        return False
+
+    @property
+    def check_min_rows(self) -> bool:
+        return False
+
+    @property
+    def add_dataset_variable(self) -> bool:
+        return True
+
     def run(self, metadata):
         x_vars = self.inputdata.x or []
         y_vars = self.inputdata.y or []
@@ -71,13 +83,11 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             var for var in variable_names if metadata[var]["is_categorical"]
         ]
 
-        local_results = self.engine.run_algorithm_udf(
+        local_results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "numerical_vars": numerical_vars,
                 "nominal_vars": nominal_vars,
-                "dropna": False,
-                "include_dataset": True,
             },
         )
 
@@ -118,89 +128,109 @@ def local_step(data, numerical_vars, nominal_vars):
 
 
 def _compute_local_stats(data, numerical_vars, nominal_vars, min_row_count):
-    variables = numerical_vars + nominal_vars
-
-    def record(var, dataset, payload):
-        return dict(variable=var, dataset=dataset, data=payload)
-
-    def get_empty_records(dataset):
-        return [record(var, dataset, None) for var in variables]
-
-    def compute_records(df: pd.DataFrame, dataset: str):
-        if len(df) < min_row_count:
-            return get_empty_records(dataset)
-        num_total = len(df)
-        descr_all = df.describe(include="all")
-        num_dtps = descr_all.loc["count"].to_dict()
-        num_na = {var: num_total - num_dtps.get(var, 0) for var in variables}
-
-        descr_numerical = df.describe()
-        if (df.dtypes != "object").any():
-            min_ = descr_numerical.loc["min"].to_dict()
-            max_ = descr_numerical.loc["max"].to_dict()
-            q1 = descr_numerical.loc["25%"].to_dict()
-            q2 = descr_numerical.loc["50%"].to_dict()
-            q3 = descr_numerical.loc["75%"].to_dict()
-            mean = descr_numerical.loc["mean"].to_dict()
-            std = descr_numerical.loc["std"].to_dict()
-            sx = df[numerical_vars].sum().to_dict() if numerical_vars else {}
-            sxx = ((df[numerical_vars] ** 2).sum().to_dict()) if numerical_vars else {}
-        counts = {var: df[var].value_counts().to_dict() for var in nominal_vars}
-
-        def numerical_var_data(var):
-            if num_dtps.get(var, 0) < min_row_count:
-                return None
-            return dict(
-                num_dtps=num_dtps[var],
-                num_na=num_na[var],
-                num_total=num_total,
-                sx=sx[var],
-                sxx=sxx[var],
-                q1=q1[var],
-                q2=q2[var],
-                q3=q3[var],
-                mean=mean[var],
-                std=None if np.isnan(std[var]) else std[var],
-                min=min_[var],
-                max=max_[var],
-            )
-
-        def nominal_var_data(var):
-            if num_dtps.get(var, 0) < min_row_count:
-                return None
-            return dict(
-                num_dtps=num_dtps[var],
-                num_na=num_na[var],
-                num_total=num_total,
-                counts=counts[var],
-            )
-
-        numerical_recs = [
-            record(var, dataset, numerical_var_data(var)) for var in numerical_vars
-        ]
-        nominal_recs = [
-            record(var, dataset, nominal_var_data(var)) for var in nominal_vars
-        ]
-        return numerical_recs + nominal_recs
-
     datasets = set(data["dataset"]) if "dataset" in data.columns else ["unknown"]
-
     recs_varbased = [
         stats
         for dataset in datasets
-        for stats in compute_records(data[data["dataset"] == dataset], dataset)
+        for stats in _compute_stats_records(
+            data[data["dataset"] == dataset],
+            dataset,
+            numerical_vars,
+            nominal_vars,
+            min_row_count,
+        )
     ]
+
     data_nona = data.dropna()
     recs_modbased = [
         stats
         for dataset in datasets
-        for stats in compute_records(data_nona[data_nona.dataset == dataset], dataset)
+        for stats in _compute_stats_records(
+            data_nona[data_nona.dataset == dataset],
+            dataset,
+            numerical_vars,
+            nominal_vars,
+            min_row_count,
+        )
     ]
 
     return {
         "recs_varbased": recs_varbased,
         "recs_modbased": recs_modbased,
     }
+
+
+def _compute_stats_records(
+    df: pd.DataFrame,
+    dataset: str,
+    numerical_vars: List[str],
+    nominal_vars: List[str],
+    min_row_count: int,
+):
+    def record(var, dataset, payload):
+        return dict(variable=var, dataset=dataset, data=payload)
+
+    variables = numerical_vars + nominal_vars
+    if len(df) < min_row_count:
+        return [record(var, dataset, None) for var in variables]
+
+    num_total = len(df)
+    descr_all = df.describe(include="all")
+    descr_numerical = (
+        df[numerical_vars].describe() if numerical_vars else pd.DataFrame()
+    )
+    num_dtps = descr_all.loc["count"].to_dict()
+    num_na = {var: num_total - num_dtps.get(var, 0) for var in variables}
+
+    numerical_recs = []
+    for var in numerical_vars:
+        if num_dtps.get(var, 0) < min_row_count:
+            numerical_recs.append(record(var, dataset, None))
+            continue
+        numerical_recs.append(
+            record(
+                var,
+                dataset,
+                dict(
+                    num_dtps=num_dtps[var],
+                    num_na=num_na[var],
+                    num_total=num_total,
+                    sx=df[numerical_vars].sum().to_dict()[var],
+                    sxx=(df[numerical_vars] ** 2).sum().to_dict()[var],
+                    q1=descr_numerical.loc["25%"][var],
+                    q2=descr_numerical.loc["50%"][var],
+                    q3=descr_numerical.loc["75%"][var],
+                    mean=descr_numerical.loc["mean"][var],
+                    std=(
+                        None
+                        if np.isnan(descr_numerical.loc["std"][var])
+                        else descr_numerical.loc["std"][var]
+                    ),
+                    min=descr_numerical.loc["min"][var],
+                    max=descr_numerical.loc["max"][var],
+                ),
+            )
+        )
+
+    nominal_recs = []
+    for var in nominal_vars:
+        if num_dtps.get(var, 0) < min_row_count:
+            nominal_recs.append(record(var, dataset, None))
+            continue
+        nominal_recs.append(
+            record(
+                var,
+                dataset,
+                dict(
+                    num_dtps=num_dtps[var],
+                    num_na=num_na[var],
+                    num_total=num_total,
+                    counts=df[var].value_counts().to_dict(),
+                ),
+            )
+        )
+
+    return numerical_recs + nominal_recs
 
 
 def reduce_recs_for_var(records, variable):

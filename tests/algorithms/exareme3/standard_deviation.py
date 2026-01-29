@@ -11,9 +11,9 @@ class StandardDeviationAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def run(self, metadata):
         # This call runs the local UDF on all workers.
         # They all execute the aggregation server calls so each one returns the same final standard deviation.
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={},
+            kw_args={},
         )
         std_deviation = results[0]
         if any(r != std_deviation for r in results[1:]):

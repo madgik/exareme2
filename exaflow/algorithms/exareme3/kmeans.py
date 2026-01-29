@@ -22,9 +22,9 @@ class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         tol = float(self.parameters.get("tol", 1e-4))
         maxiter = int(self.parameters.get("maxiter", 100))
 
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=local_step,
-            positional_args={
+            kw_args={
                 "n_clusters": n_clusters,
                 "tol": tol,
                 "maxiter": maxiter,

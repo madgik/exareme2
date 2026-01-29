@@ -31,9 +31,9 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         covar_enums = metadata[x_var_name].get("enumerations")
 
         # Run a single distributed ANOVA UDF
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=anova_oneway_local_step,
-            positional_args={
+            kw_args={
                 "x_var": x_var_name,
                 "y_var": y_var_name,
                 "covar_enums": covar_enums,
@@ -100,7 +100,7 @@ class AnovaOneWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
 
 
 @exareme3_udf(with_aggregation_server=True)
-def anova_oneway_local_step(data, agg_client, x_var, y_var, covar_enums):
+def anova_oneway_local_step(agg_client, data, x_var, y_var, covar_enums):
     """
     Exaflow UDF that:
     - On each worker: builds local group statistics for y by x.

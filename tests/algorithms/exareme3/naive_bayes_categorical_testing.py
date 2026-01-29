@@ -32,8 +32,13 @@ class CategoricalNBTestingFit(Algorithm, algname=ALGNAME_FIT):
         x_vars = list(self.inputdata.x)
         categories = _sorted_categories(metadata, x_vars + [y_var])
 
-        udf_results = self.engine.run_algorithm_udf(
-            func=categorical_nb_fit_udf, positional_args={}
+        udf_results = self.run_local_udf(
+            func=categorical_nb_fit_udf,
+            kw_args={
+                "y_var": y_var,
+                "x_vars": x_vars,
+                "categories": categories,
+            },
         )
 
         stats = udf_results[0]
@@ -55,9 +60,9 @@ class CategoricalNBTestingPredict(Algorithm, algname=ALGNAME_PRED):
         x_vars = list(self.inputdata.x)
         categories = _sorted_categories(metadata, x_vars + [y_var])
 
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=categorical_nb_predict_udf,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "x_vars": x_vars,
                 "categories": categories,

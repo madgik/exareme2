@@ -36,9 +36,9 @@ def test_exareme3_udf_custom_client_name():
     calls = RecordingAggClient()
 
     @exareme3_udf(with_aggregation_server=True, agg_client_name="client")
-    def udf(agg_client):
-        x = agg_client.sum(np.array([4.0], dtype=float))
-        y = agg_client.sum(np.array([5.0], dtype=float))
+    def udf(client):
+        x = client.sum(np.array([4.0], dtype=float))
+        y = client.sum(np.array([5.0], dtype=float))
         return float(np.asarray(x, dtype=float)[0] + np.asarray(y, dtype=float)[0])
 
     total = udf(calls)

@@ -155,7 +155,7 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         ]
 
         dummy_categories = get_dummy_categories(
-            engine=self.engine,
+            run_local_udf_func=self.run_local_udf,
             categorical_vars=categorical_vars,
             collect_udf=logistic_collect_categorical_levels_cv,
         )
@@ -167,9 +167,9 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
         )
 
         # 1) Check per-worker that n_obs >= n_splits
-        check_results = self.engine.run_algorithm_udf(
+        check_results = self.run_local_udf(
             func=logistic_regression_cv_check_local,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "positive_class": positive_class,
                 "n_splits": n_splits,
@@ -183,9 +183,9 @@ class LogisticRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
             )
 
         # 2) Run distributed logistic CV
-        udf_results = self.engine.run_algorithm_udf(
+        udf_results = self.run_local_udf(
             func=logistic_regression_cv_local_step,
-            positional_args={
+            kw_args={
                 "y_var": y_var,
                 "positive_class": positive_class,
                 "categorical_vars": categorical_vars,

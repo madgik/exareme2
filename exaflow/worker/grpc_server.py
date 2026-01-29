@@ -281,11 +281,13 @@ class WorkerService(worker_pb2_grpc.WorkerServiceServicer):
 
     def RunUdf(self, request, context):
         try:
-            params = _struct_to_dict(request.params)
+            kw_args = _struct_to_dict(request.kw_args)
+            system_args = _struct_to_dict(request.system_args)
             result = udf_service.run_udf(
                 request_id=request.request_id,
                 udf_registry_key=request.udf_registry_key,
-                params=params,
+                kw_args=kw_args,
+                system_args=system_args,
             )
             return worker_pb2.RunUdfResponse(result=_dict_to_value(result))
         except Exception as exc:  # noqa: BLE001

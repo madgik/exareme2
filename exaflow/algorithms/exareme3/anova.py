@@ -46,9 +46,9 @@ class AnovaTwoWayAlgorithm(Algorithm, algname=ALGORITHM_NAME):
                 "performed. Please choose another variable."
             )
 
-        results = self.engine.run_algorithm_udf(
+        results = self.run_local_udf(
             func=anova_twoway_local_step,
-            positional_args={
+            kw_args={
                 "x1": x1,
                 "x2": x2,
                 "y": y,

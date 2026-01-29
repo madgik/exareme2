@@ -10,14 +10,11 @@ except ImportError:  # pragma: no cover - pyarrow not available
     pa = None  # type: ignore[assignment]
 
 
-def ensure_pandas_dataframe(data: Any) -> pd.DataFrame:
+def convert_to_pandas_dataframe(data: Any) -> pd.DataFrame:
     """
     Return a pandas DataFrame regardless of whether ``data`` is already a DataFrame,
     a PyArrow table, or any object exposing ``to_pandas``.
     """
-    if data is None:
-        return pd.DataFrame()
-
     if isinstance(data, pd.DataFrame):
         return data
 
