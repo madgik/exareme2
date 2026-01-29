@@ -3,7 +3,7 @@ from concurrent.futures import as_completed
 from typing import List
 from typing import Optional
 
-from exaflow.algorithms.exareme3.exareme3_registry import get_udf_registry_key
+from exaflow.algorithms.exareme3.utils.registry import get_udf_registry_key
 from exaflow.algorithms.utils.inputdata_utils import Inputdata
 from exaflow.controller import logger as ctrl_logger
 from exaflow.controller.services.exareme3.tasks_handler import Exareme3TasksHandler

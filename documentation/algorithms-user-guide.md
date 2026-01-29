@@ -164,16 +164,16 @@ Every worker step receives:
 - Any additional keyword arguments provided by the flow.
 
 ```python
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 
 @exareme3_udf()
 def mean_local(data, inputdata, column):
-    # Keep only the column of interest and drop NA locally
-    series = data[column].dropna()
-    sx = float(series.sum())
-    n = int(len(series))
-    return {"sx": sx, "n": n}
+  # Keep only the column of interest and drop NA locally
+  series = data[column].dropna()
+  sx = float(series.sum())
+  n = int(len(series))
+  return {"sx": sx, "n": n}
 ```
 
 Whenever a UDF needs access to the secure aggregation service (for operations
@@ -192,7 +192,7 @@ subsequent computations. There is no longer a split between "local" and
 
 ```python
 from pydantic import BaseModel
-from exaflow.algorithms.exareme3.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
 
 
 class MeanResult(BaseModel):
@@ -318,15 +318,15 @@ all flows:
 
 ```python
 import numpy as np
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 
 @exareme3_udf(with_aggregation_server=True)
 def xtx_local(data, inputdata, covariates, agg_client):
-    X = data[covariates].to_numpy(dtype=float, copy=False)
-    payload = np.array([X.T @ X, X.sum(axis=0), [len(X)]], dtype=object)
-    xtx, sx, count = agg_client.sum(payload)
-    return {"xtx": xtx.tolist(), "sx": sx.tolist(), "count": int(count[0])}
+  X = data[covariates].to_numpy(dtype=float, copy=False)
+  payload = np.array([X.T @ X, X.sum(axis=0), [len(X)]], dtype=object)
+  xtx, sx, count = agg_client.sum(payload)
+  return {"xtx": xtx.tolist(), "sx": sx.tolist(), "count": int(count[0])}
 ```
 
 The return value of a UDF can be any JSON-serializable object; most flows
@@ -372,17 +372,17 @@ service and only the aggregated result is returned to the flow.
 
 ```python
 import numpy as np
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 
 @exareme3_udf(with_aggregation_server=True)
 def privacy_preserving_counts(data, agg_client, categories):
-    matrix = np.stack(
-        [data[cat].value_counts(dropna=False).reindex(categories, fill_value=0)]
-    )
-    # The aggregation server sums the matrices across workers
-    total_counts = agg_client.sum(matrix)
-    return {"counts": total_counts.tolist()}
+  matrix = np.stack(
+    [data[cat].value_counts(dropna=False).reindex(categories, fill_value=0)]
+  )
+  # The aggregation server sums the matrices across workers
+  total_counts = agg_client.sum(matrix)
+  return {"counts": total_counts.tolist()}
 ```
 
 Inside the flow you treat the aggregated values like any other result; the main
@@ -514,8 +514,8 @@ algorithm](https://github.com/madgik/exaflow/blob/main/exaflow/algorithms/exarem
 
 ```python
 from pydantic import BaseModel
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 
 class IterationResult(BaseModel):
@@ -565,7 +565,7 @@ algorithm, see for example [here](https://github.com/madgik/exaflow/blob/main/ex
 
 ```python
 from pydantic import BaseModel
-from exaflow.algorithms.exareme3.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
 
 
 class MyModel:

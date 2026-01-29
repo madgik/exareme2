@@ -2,9 +2,7 @@ from typing import List
 
 import numpy as np
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
 from exaflow.algorithms.exareme3.crossvalidation import min_rows_for_cv
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.naive_bayes_common import NBResult
 from exaflow.algorithms.exareme3.naive_bayes_common import make_naive_bayes_result
 from exaflow.algorithms.exareme3.naive_bayes_common import (
@@ -14,6 +12,8 @@ from exaflow.algorithms.exareme3.naive_bayes_common import (
     multiclass_classification_summary,
 )
 from exaflow.algorithms.exareme3.naive_bayes_gaussian_model import GaussianNB
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 from exaflow.worker_communication import BadUserInput
 
 ALGORITHM_NAME = "naive_bayes_gaussian_cv"

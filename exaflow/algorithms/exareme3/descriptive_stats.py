@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 from pydantic import BaseModel
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 DATASET_VAR_NAME = "dataset"
 ALGORITHM_NAME = "descriptive_stats"

@@ -1,37 +1,67 @@
-# Exaflow Algorithms – Author Guide
+# Exareme3 Algorithms- Author Guide
 
-This folder contains the exaflow algorithm flows migrated from exareme2. This guide highlights the key pieces you need to know when adding or modifying a flow.
+## Core contracts (what every algorithm relies on)
 
-## Core contracts
+- Base class: `exaflow/algorithms/exareme3/utils/algorithm.py` -> `Algorithm`
 
-- Base class: `algorithm.py.Algorithm`
-  - `algname` must match the `"name"` in the `<algorithm>.json`.
-  - `engine` exposes `run_algorithm_udf` to execute UDFs registered with `exareme3_registry.exareme3_udf`.
-  - `inputdata` is a pydantic model with `x`, `y`, `datasets`, `filters` (see `exaflow/algorithms/utils/inputdata_utils.Inputdata`). Algorithms should validate required vars via `validation_utils`.
-  - `metadata` passed to `run()` is a `dict[var] -> {is_categorical: bool, enumerations: {...}}`. Use `metadata_utils.validate_metadata_vars` / `validate_metadata_enumerations` to enforce presence.
-  - Parameters: `parameters` is a plain dict from the JSON spec.
+  - `algname` must match `"name"` in the `<algorithm>.json` spec.
+  - Constructor receives `inputdata`, `metadata`, `parameters`, and the engine.
+  - Use `self.run_local_udf(func=..., kw_args=...)` to execute UDFs on workers.
+  - Override these properties when needed:
+    - `drop_na_rows` (default `True`) to keep rows with NA values.
+    - `check_min_rows` (default `True`) to skip the privacy minimum-row check.
+    - `add_dataset_variable` (default `False`) to include the dataset column.
 
-## UDFs and aggregation
+- Input payloads:
 
-- Decorate UDFs with `@exareme3_udf(...)` (see `exareme3_registry.py`).
-  - `with_aggregation_server=True` injects `agg_client`, which implements sum/min/max over numpy-like arrays (`ExaflowUDFAggregationClientI`).
-  - UDF registry keys are derived from `__qualname__` and module; duplicates raise to avoid ambiguity.
-- Lazy aggregation helper: `library/lazy_aggregation.lazy_agg` can batch `agg_client.sum/min/max` calls when supported.
+  - `inputdata` is the Pydantic model in
+    `exaflow/algorithms/utils/inputdata_utils.Inputdata`.
+  - `metadata` is `dict[var] -> {is_categorical: bool, enumerations: {...}}`.
+  - `parameters` is a plain dict from the JSON spec.
+
+## UDFs, registry, and aggregation
+
+- Decorate worker UDFs with `@exareme3_udf(...)` in
+  `exaflow/algorithms/exareme3/utils/registry.py`.
+
+  - UDF registry keys are stable and derived from `__qualname__` + module.
+  - Duplicate keys for different callables raise to avoid ambiguity.
+  - `with_aggregation_server=True` injects an `agg_client` argument.
+
+- Aggregation client contract:
+
+  - Interface: `exaflow/algorithms/exareme3/utils/udf_aggregation_client_interface.py`
+    (`Exareme3UDFAggregationClientI`).
+  - `agg_client.sum/min/max(...)` return numpy arrays; convert to lists for JSON.
+
+- Lazy aggregation (now default for aggregation UDFs):
+
+  - `exareme3_udf(with_aggregation_server=True)` auto-wraps the UDF with
+    `lazy_agg` from `exaflow/algorithms/exareme3/lazy_aggregation`.
+  - Disable batching with `enable_lazy_aggregation=False`.
+  - Use `agg_client_name="client"` if your UDF uses a custom argument name.
 
 ## Preprocessing and metadata helpers
 
-- Metadata validation: `metadata_utils.validate_metadata_vars` (requires `is_categorical`), `validate_metadata_enumerations` (requires `enumerations`).
-- Variable checks: `validation_utils` has `require_dependent_var`, `require_covariates`, and exact-count variants.
-- Dummy encoding: use `preprocessing.get_dummy_categories` with a collect UDF to discover categories, then `metrics.build_design_matrix` inside UDFs to build the matrix.
+- Metadata validation: `metadata_utils.validate_metadata_vars` (requires
+  `is_categorical`), `validate_metadata_enumerations` (requires `enumerations`).
+- Variable checks: `validation_utils` has `require_dependent_var`,
+  `require_covariates`, and exact-count variants.
+- Dummy encoding: use `preprocessing.get_dummy_categories` with
+  `run_local_udf_func=self.run_local_udf` to collect categories, then
+  `metrics.build_design_matrix` inside UDFs.
 
 ## Cross-validation utilities
 
-- `crossvalidation.kfold_indices` yields train/test index arrays for K-fold splits without sklearn.
-- `crossvalidation.split_dataframe` yields (train_df, test_df) pairs for pandas DataFrames.
+- `crossvalidation.kfold_indices` yields train/test index arrays for K-folds.
+- `crossvalidation.split_dataframe` yields `(train_df, test_df)` pairs.
 
 ## Patterns to follow
 
-- Always validate input variables and metadata at the start of `run()`.
-- Keep UDF inputs minimal (only the columns you use) to reduce network/serialization overhead.
-- When using aggregation server, aggregate numpy arrays and convert to lists before returning to stay JSON-serializable.
-- Preserve privacy checks (e.g., minimum row count masking) when aggregating counts/histograms.
+- Validate input variables and metadata at the start of `run()`.
+- Keep UDF inputs minimal (only the columns you use).
+- Prefer `self.run_local_udf(...)` for worker dispatch instead of direct engine access.
+- When using aggregation, aggregate numpy arrays and convert to lists before
+  returning to stay JSON-serializable.
+- Preserve privacy checks (minimum row count) unless explicitly opting out via
+  `check_min_rows`.

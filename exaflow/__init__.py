@@ -8,7 +8,7 @@ from os.path import isfile
 from types import ModuleType
 from typing import Dict
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm as ExaflowAlgorithm
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm as ExaflowAlgorithm
 from exaflow.datatypes import DType
 from exaflow.utils import AttrDict
 

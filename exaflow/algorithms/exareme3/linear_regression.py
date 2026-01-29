@@ -3,8 +3,6 @@ from typing import List
 import numpy as np
 from pydantic import BaseModel
 
-from exaflow.algorithms.exareme3.algorithm import Algorithm
-from exaflow.algorithms.exareme3.exareme3_registry import exareme3_udf
 from exaflow.algorithms.exareme3.library.linear_models import compute_summary_from_stats
 from exaflow.algorithms.exareme3.library.linear_models import (
     run_distributed_linear_regression,
@@ -13,6 +11,8 @@ from exaflow.algorithms.exareme3.metrics import build_design_matrix
 from exaflow.algorithms.exareme3.metrics import collect_categorical_levels_from_df
 from exaflow.algorithms.exareme3.metrics import construct_design_labels
 from exaflow.algorithms.exareme3.preprocessing import get_dummy_categories
+from exaflow.algorithms.exareme3.utils.algorithm import Algorithm
+from exaflow.algorithms.exareme3.utils.registry import exareme3_udf
 
 ALGORITHM_NAME = "linear_regression"
 
