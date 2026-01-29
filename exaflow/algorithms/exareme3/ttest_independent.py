@@ -7,11 +7,11 @@ ALGORITHM_NAME = "ttest_independent"
 
 
 class IndependentTTestAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
-        alpha = self.parameters.get("alpha")
-        alternative = self.parameters.get("alt_hypothesis")
-        group_a = self.parameters.get("groupA")
-        group_b = self.parameters.get("groupB")
+    def run(self):
+        alpha = self.get_parameter("alpha")
+        alternative = self.get_parameter("alt_hypothesis")
+        group_a = self.get_parameter("groupA")
+        group_b = self.get_parameter("groupB")
 
         results = self.run_local_udf(
             func=local_step,

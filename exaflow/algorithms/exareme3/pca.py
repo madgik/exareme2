@@ -17,7 +17,7 @@ class PCAResult(BaseModel):
 
 
 class PCAAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
+    def run(self):
         results = self.run_local_udf(
             func=local_step,
             kw_args={

@@ -16,11 +16,11 @@ class KMeansResult(BaseModel):
 
 
 class KMeansAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
-        n_clusters = int(self.parameters["k"])
+    def run(self):
+        n_clusters = int(self.get_parameter("k"))
 
-        tol = float(self.parameters.get("tol", 1e-4))
-        maxiter = int(self.parameters.get("maxiter", 100))
+        tol = float(self.get_parameter("tol", 1e-4))
+        maxiter = int(self.get_parameter("maxiter", 100))
 
         results = self.run_local_udf(
             func=local_step,

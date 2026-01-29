@@ -13,34 +13,30 @@ class Algorithm(ABC):
     def __init__(
         self,
         *,
-        inputdata: Inputdata,
         engine,
+        metadata: dict,
+        inputdata: Inputdata,
         parameters: Optional[Dict[str, Any]] = None,
     ):
-        self._inputdata = inputdata
         self._engine = engine
-        self._parameters = parameters if parameters is not None else {}
+        self._metadata: dict = metadata
+        self._inputdata: Inputdata = inputdata
+        self._parameters: dict = parameters if parameters is not None else {}
 
     def __init_subclass__(cls, algname: str, **kwargs):
         super().__init_subclass__(**kwargs)
         cls.algname = algname
 
-    def run_local_udf(self, func, kw_args):
-        return self._engine.run_udf(
-            func,
-            self.drop_na_rows,
-            self.check_min_rows,
-            self.add_dataset_variable,
-            kw_args,
-        )
+    @property
+    def metadata(self) -> dict:
+        return self._metadata
 
     @property
-    def inputdata(self):
+    def inputdata(self) -> Inputdata:
         return self._inputdata
 
-    @property
-    def parameters(self) -> Dict[str, Any]:
-        return self._parameters
+    def get_parameter(self, name, default=None) -> Any:
+        return self._parameters.get(name, default)
 
     @property
     def drop_na_rows(self) -> bool:
@@ -68,14 +64,14 @@ class Algorithm(ABC):
         return False
 
     @abstractmethod
-    def run(self, metadata: dict):
-        """
-        Execute the algorithm flow.
-
-        Parameters
-        ----------
-        metadata : dict
-            Per-variable metadata. Flows rely on at least `metadata[var]["is_categorical"]`
-            to decide encoding, and may use additional keys as needed.
-        """
+    def run(self):
         pass
+
+    def run_local_udf(self, func, kw_args):
+        return self._engine.run_udf(
+            func,
+            self.drop_na_rows,
+            self.check_min_rows,
+            self.add_dataset_variable,
+            kw_args,
+        )

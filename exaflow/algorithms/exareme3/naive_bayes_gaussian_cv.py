@@ -21,13 +21,13 @@ VAR_SMOOTHING = 1e-9  # same as original GaussianNB _fit_global
 
 
 class GaussianNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict) -> NBResult:
+    def run(self) -> NBResult:
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        n_splits = self.parameters.get("n_splits")
+        n_splits = self.get_parameter("n_splits")
 
         # Sorted class labels to match sklearn/original implementation
-        label_dict = metadata[y_var]["enumerations"]
+        label_dict = self.metadata[y_var]["enumerations"]
         labels = sorted(label_dict.keys())
 
         # 1) Per-worker feasibility check

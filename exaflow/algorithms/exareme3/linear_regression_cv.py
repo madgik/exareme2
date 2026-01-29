@@ -38,16 +38,16 @@ class CVLinearRegressionResult(BaseModel):
 
 
 class LinearRegressionCVAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
+    def run(self):
         y_var = self.inputdata.y[0]
-        n_splits = self.parameters.get("n_splits")
+        n_splits = self.get_parameter("n_splits")
 
         # Identify categorical vs numerical predictors
         categorical_vars = [
-            var for var in self.inputdata.x if metadata[var]["is_categorical"]
+            var for var in self.inputdata.x if self.metadata[var]["is_categorical"]
         ]
         numerical_vars = [
-            var for var in self.inputdata.x if not metadata[var]["is_categorical"]
+            var for var in self.inputdata.x if not self.metadata[var]["is_categorical"]
         ]
 
         dummy_categories = get_dummy_categories(

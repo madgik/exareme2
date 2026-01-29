@@ -27,15 +27,16 @@ class CategoricalNBResult(BaseModel):
 
 
 class CategoricalNBAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
+    def run(self):
         y_var = self.inputdata.y[0]
         x_vars = list(self.inputdata.x)
-        n_splits = self.parameters.get("n_splits")
+        n_splits = self.get_parameter("n_splits")
 
         # Build sorted category lists to match sklearn / original implementation
         all_vars = x_vars + [y_var]
         categories: Dict[str, List[str]] = {
-            var: list(sorted(metadata[var]["enumerations"].keys())) for var in all_vars
+            var: list(sorted(self.metadata[var]["enumerations"].keys()))
+            for var in all_vars
         }
 
         # 1) Per-worker check: n_obs >= n_splits

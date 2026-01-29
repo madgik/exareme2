@@ -34,16 +34,16 @@ logger = logging.getLogger(__name__)
 
 
 class MultipleHistogramsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata):
+    def run(self):
         y_var = self.inputdata.y[0]
         x_vars = self.inputdata.x or []
 
         default_bins = 20
-        bins = self.parameters.get("bins", default_bins)
+        bins = self.get_parameter("bins", default_bins)
         if bins is None:
             bins = default_bins
 
-        metadata_subset = {var: metadata[var] for var in {y_var, *x_vars}}
+        metadata_subset = {var: self.metadata[var] for var in {y_var, *x_vars}}
 
         results = self.run_local_udf(
             func=local_step,

@@ -56,8 +56,9 @@ class Exareme3Strategy(AlgorithmExecutionStrategyI):
         )
         algorithm_cls = exareme3_algorithm_classes[self._algorithm_name]
         algorithm = algorithm_cls(
-            inputdata=transformed_inputdata,
             engine=engine,
+            inputdata=transformed_inputdata,
+            metadata=metadata,
             parameters=self._algorithm_request_dto.parameters,
         )
         log_experiment_execution(
@@ -69,7 +70,7 @@ class Exareme3Strategy(AlgorithmExecutionStrategyI):
             self._algorithm_request_dto.parameters,
             [h.worker_id for h in self._local_worker_tasks_handlers],
         )
-        result = algorithm.run(metadata)
+        result = algorithm.run()
         self._logger.info(
             f"Execution completed: {self._algorithm_name} ({self._request_id})"
         )

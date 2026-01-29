@@ -37,13 +37,13 @@ class LinearRegressionResult(BaseModel):
 
 
 class LinearRegressionAlgorithm(Algorithm, algname=ALGORITHM_NAME):
-    def run(self, metadata: dict):
+    def run(self):
         y_var = self.inputdata.y[0]
         categorical_vars = [
-            var for var in self.inputdata.x if metadata[var]["is_categorical"]
+            var for var in self.inputdata.x if self.metadata[var]["is_categorical"]
         ]
         numerical_vars = [
-            var for var in self.inputdata.x if not metadata[var]["is_categorical"]
+            var for var in self.inputdata.x if not self.metadata[var]["is_categorical"]
         ]
 
         dummy_categories = get_dummy_categories(

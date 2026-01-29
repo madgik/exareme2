@@ -201,13 +201,12 @@ class MeanResult(BaseModel):
 
 
 class MeanAlgorithm(Algorithm, algname="mean"):
-  def run(self, metadata):
+  def run(self):
     column = self.inputdata.x[0]
 
     worker_payloads = self.run_local_udf(
       func=mean_local,
       kw_args={
-        "inputdata": self.inputdata.json(),
         "column": column,
       },
     )
@@ -530,13 +529,12 @@ def update_local(data, column, val):
 
 
 class MyAlgorithm(Algorithm, algname="iterative"):
-  def run(self, metadata):
+  def run(self):
     val = 0.0
     while True:
       local_results = self.run_local_udf(
         func=update_local,
         kw_args={
-          "inputdata": self.inputdata.json(),
           "column": self.inputdata.x[0],
           "val": val,
         },
@@ -592,8 +590,8 @@ class PredictionResult(BaseModel):
 
 
 class MyAlgorithm(Algorithm, algname="complex_algorithm"):
-  def run(self, metadata):
-    model = MyModel(self.engine)
+  def run(self):
+    model = MyModel(self.run_local_udf)
     model.fit(self.inputdata.json())
 
     new_inputdata = self.inputdata.copy(update={"datasets": ["validation"]})

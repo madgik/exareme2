@@ -71,16 +71,16 @@ class DescriptiveStatisticsAlgorithm(Algorithm, algname=ALGORITHM_NAME):
     def add_dataset_variable(self) -> bool:
         return True
 
-    def run(self, metadata):
+    def run(self):
         x_vars = self.inputdata.x or []
         y_vars = self.inputdata.y or []
         variable_names = [v for v in (x_vars + y_vars) if v != DATASET_VAR_NAME]
 
         numerical_vars = [
-            var for var in variable_names if not metadata[var]["is_categorical"]
+            var for var in variable_names if not self.metadata[var]["is_categorical"]
         ]
         nominal_vars = [
-            var for var in variable_names if metadata[var]["is_categorical"]
+            var for var in variable_names if self.metadata[var]["is_categorical"]
         ]
 
         local_results = self.run_local_udf(
