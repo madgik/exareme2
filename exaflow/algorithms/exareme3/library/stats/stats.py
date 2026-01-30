@@ -54,28 +54,21 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
             Final cluster centers (k x n_features).
     """
 
-    # Convert to numpy array
     X = _to_numpy(x)
     if X.ndim == 1:
         X = X.reshape(-1, 1)
 
     n_local, n_features = X.shape
 
-    # Global number of observations
     total_n_obs = int(agg_client.sum([float(n_local)])[0])
 
-    # If there is no data at all, return empty centers
     if total_n_obs == 0:
         return dict(n_obs=0, centers=[])
 
-    # ------------------------------------------------------------------
-    # Global initialization of centers using global min/max per feature
-    # ------------------------------------------------------------------
     if n_local > 0:
         local_min = np.nanmin(X, axis=0)
         local_max = np.nanmax(X, axis=0)
     else:
-        # This worker has no rows but we still need to participate
         local_min = np.full((n_features,), np.inf, dtype=float)
         local_max = np.full((n_features,), -np.inf, dtype=float)
 
@@ -89,21 +82,12 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
         size=(int(n_clusters), n_features),
     )
 
-    # ------------------------------------------------------------------
-    # Lloyd's algorithm with distributed aggregation of sums/counts
-    # ------------------------------------------------------------------
     for _ in range(int(maxiter)):
-        # If this worker has no data, it contributes zero sums/counts
         if n_local > 0:
-            # Compute squared distances to centers
-            # X: (n_local, n_features)
-            # centers: (k, n_features)
-            # diff: (n_local, k, n_features)
             diff = X[:, np.newaxis, :] - centers[np.newaxis, :, :]
             dists_sq = np.einsum("ijk,ijk->ij", diff, diff)
             labels = np.argmin(dists_sq, axis=1)
 
-            # Local sums and counts per cluster
             sum_local = np.zeros((n_clusters, n_features), dtype=float)
             count_local = np.zeros((n_clusters,), dtype=float)
 
@@ -116,7 +100,6 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
             sum_local = np.zeros((n_clusters, n_features), dtype=float)
             count_local = np.zeros((n_clusters,), dtype=float)
 
-        # Aggregate sums and counts across workers
         sum_global_arr = agg_client.sum(sum_local.ravel())
         count_global_arr = agg_client.sum(count_local)
         sum_global = np.asarray(sum_global_arr, dtype=float).reshape(
@@ -124,9 +107,6 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
         )
         count_global = np.asarray(count_global_arr, dtype=float)
 
-        # Update centers; if a cluster has no assigned points, follow the
-        # original Exareme behavior by resetting it to the origin so that
-        # it can capture the smallest-norm observations in the next step.
         new_centers = np.zeros_like(centers)
         for k in range(n_clusters):
             if count_global[k] > 0.0:
@@ -134,7 +114,6 @@ def kmeans(agg_client, x, n_clusters, tol=1e-4, maxiter=100, random_state=123):
             else:
                 new_centers[k] = np.zeros(n_features, dtype=float)
 
-        # Check convergence (Frobenius norm)
         diff_norm = np.linalg.norm(new_centers - centers, ord="fro")
         centers = new_centers
         if diff_norm <= tol:
