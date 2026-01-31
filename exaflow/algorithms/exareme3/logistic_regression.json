@@ -9,7 +9,7 @@
         "y": {
             "label": "Variable (dependent)",
             "desc": "A unique nominal variable. The variable is converted to binary by assigning 1 to the positive class and 0 to all other classes.",
-            "types": ["int", "text"],
+            "types": ["text"],
             "stattypes": ["nominal"],
             "notblank": true,
             "multiple": false

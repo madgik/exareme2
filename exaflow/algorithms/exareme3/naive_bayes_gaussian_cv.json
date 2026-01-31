@@ -10,8 +10,7 @@
             "label": "Variable (dependent)",
             "desc": "A unique nominal variable.",
             "types": [
-                "text",
-                "int"
+                "text"
             ],
             "stattypes": [
                 "nominal"

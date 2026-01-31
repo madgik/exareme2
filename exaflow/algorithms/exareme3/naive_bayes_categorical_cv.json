@@ -10,8 +10,7 @@
             "label": "Variable (dependent)",
             "desc": "A unique nominal variable.",
             "types": [
-                "text",
-                "int"
+                "text"
             ],
             "stattypes": [
                 "nominal"
@@ -23,8 +22,7 @@
             "label": "Covariates (independent)",
             "desc": "One or more nominal variables.",
             "types": [
-                "text",
-                "int"
+                "text"
             ],
             "stattypes": [
                 "nominal"

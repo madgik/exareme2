@@ -10,9 +10,7 @@
             "label": "Classes",
             "desc": "Classes of x.",
             "types": [
-                "text",
-                "int",
-                "real"
+                "text"
             ],
             "stattypes": [
                 "nominal"
